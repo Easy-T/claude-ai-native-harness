@@ -45,5 +45,47 @@
     }
   },
   "effortLevel": "max",
-  "skipDangerousModePermissionPrompt": true
+  "skipDangerousModePermissionPrompt": true,
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/enforce-orchestrator.sh"
+          },
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/stable-claude-md.sh"
+          },
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/enforce-rpi-cycle.sh"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Read|Bash|Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/auto-compact-watch.sh"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/session-start-audit.sh"
+          }
+        ]
+      }
+    ]
+  }
 }
