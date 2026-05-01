@@ -1,64 +1,82 @@
-Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
+# 글로벌 Claude 행동 규약
 
-**Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.
+> 이 파일은 모든 Claude 세션의 prefix에 자동 로드됩니다. ≤200줄.
+> 변경은 의식적으로 — 변경 시 캐시 무효화 (다음 세션 비용 ~20배).
 
-## 1. Think Before Coding
+<!-- audit: 2026-05-02 -->
 
-**Don't assume. Don't hide confusion. Surface tradeoffs.**
+---
 
-Before implementing:
-- State your assumptions explicitly. If uncertain, ask.
-- If multiple interpretations exist, present them - don't pick silently.
+## §1. Cache Stability
+루트 `CLAUDE.md`(글로벌·프로젝트 모두) 수정은 세션 종료 직전에만.
+중간 수정 = prefix 캐시 미스 = 비용 약 20배.
+사용자가 세션 중 수정 요청 → 한 번 환기 후 진행 가능.
+
+## §2. Orchestrator Meta Rule
+새 커스텀 skill 생성 요청은 항상 `create-orchestrator-skill` 사용.
+단순 텍스트 변환 skill은 사용자가 명시할 때만 일반 skill-creator 사용.
+이유: 모든 skill이 sub-agent에 위임하는 일관 패턴 유지.
+
+## §3. RPI Cycle Mandate
+변경 작업(기능 추가·버그 수정·리팩토링)은 항상 R→P→I→Closeout.
+- Research: brainstorming + explore-strict
+- Plan: writing-plans
+- Implement: executing-plans 또는 execute-strict
+- Closeout: review-strict drift 검사 + 자산 갱신
+예외: ≤5라인 trivial change. 또는 사용자가 `RPI_SKIP=<reason>` 명시.
+
+## §4. Non-Obvious 등록 절차
+AI 실패 감지 시:
+1. 등록 가치 있는지 사용자에게 확인
+2. review-strict로 5 Whys 진행
+3. 사람/AI는 root cause 불가 (시스템·프로세스만)
+4. SMART action item 명시
+5. 통과 시에만 `docs/ai-context/non-obvious.md` 추가
+
+## §5. ADR Auto-Trigger
+아키텍처 영향 변경 (모듈 추가/삭제, 의존성 추가, 데이터 흐름 변경, 인증/저장소/통신 패턴 변경):
+- 변경 전 또는 직후 ADR 작성
+- `docs/ai-context/architecture.md`는 append-only
+- 결정 변경 시 새 ADR로 supersede (이전 항목 수정 X)
+
+## §6. Domain Glossary 의미 확인
+사용자가 도메인 용어 사용 시:
+- 의미 confidence < 80% → 즉시 확인 질문
+- 확인된 용어 + 코드 식별자 매핑 → glossary 자동 추가
+- 같은 단어 다른 컨텍스트 → "Identical-Looking" 섹션에
+
+---
+
+## Think Before Coding
+Don't assume. Don't hide confusion. Surface tradeoffs.
+- State assumptions explicitly. If uncertain, ask.
+- If multiple interpretations exist, present them — don't pick silently.
 - If a simpler approach exists, say so. Push back when warranted.
 - If something is unclear, stop. Name what's confusing. Ask.
 
-## 2. Simplicity First
-
-**Minimum code that solves the problem. Nothing speculative.**
-
+## Simplicity First
+Minimum code that solves the problem. Nothing speculative.
 - No features beyond what was asked.
 - No abstractions for single-use code.
 - No "flexibility" or "configurability" that wasn't requested.
 - No error handling for impossible scenarios.
-- If you write 200 lines and it could be 50, rewrite it.
 
-Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
-
-## 3. Surgical Changes
-
-**Touch only what you must. Clean up only your own mess.**
-
-When editing existing code:
-- Don't "improve" adjacent code, comments, or formatting.
+## Surgical Changes
+Touch only what you must. Clean up only your own mess.
+- Don't "improve" adjacent code, comments, formatting.
 - Don't refactor things that aren't broken.
-- Match existing style, even if you'd do it differently.
-- If you notice unrelated dead code, mention it - don't delete it.
+- Match existing style.
+- Test: every changed line traces directly to the user's request.
 
-When your changes create orphans:
-- Remove imports/variables/functions that YOUR changes made unused.
-- Don't remove pre-existing dead code unless asked.
-
-The test: Every changed line should trace directly to the user's request.
-
-## 4. Goal-Driven Execution
-
-**Define success criteria. Loop until verified.**
-
-Transform tasks into verifiable goals:
+## Goal-Driven Execution
+Define success criteria. Loop until verified.
 - "Add validation" → "Write tests for invalid inputs, then make them pass"
 - "Fix the bug" → "Write a test that reproduces it, then make it pass"
 - "Refactor X" → "Ensure tests pass before and after"
 
-For multi-step tasks, state a brief plan:
-```
-1. [Step] → verify: [check]
-2. [Step] → verify: [check]
-3. [Step] → verify: [check]
-```
-
-Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
-
 ---
 
-**These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
-<!-- audit: 2026-05-01 -->
+이 파일이 작동하는 기준:
+- 새 프로젝트마다 /init-ai-ready Phase 0이 이 파일을 점검
+- 30일 이상 audit 마커 미갱신 시 session-start-audit이 알림
+- 200줄 초과 시 doctor.sh가 경고
