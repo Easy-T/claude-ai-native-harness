@@ -1,0 +1,29 @@
+# Sensitive
+.credentials.json
+
+# Session/runtime state (regenerated)
+session-env/
+shell-snapshots/
+sessions/
+ide/
+paste-cache/
+file-history/
+tasks/
+telemetry/
+history.jsonl
+stats-cache.json
+mcp-needs-auth-cache.json
+projects/
+
+# Plugin cache (managed by Claude Code, has embedded git repos)
+plugins/cache/
+plugins/install-counts-cache.json
+
+# Settings backups
+backups/
+*.backup-*
+
+# Cache
+cache/
+plugins/marketplaces/
+plugins/data/

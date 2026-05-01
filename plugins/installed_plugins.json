@@ -1,0 +1,55 @@
+{
+  "version": 2,
+  "plugins": {
+    "superpowers@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "C:\\Users\\12132\\.claude\\plugins\\cache\\claude-plugins-official\\superpowers\\5.0.7",
+        "version": "5.0.7",
+        "installedAt": "2026-04-24T12:47:11.155Z",
+        "lastUpdated": "2026-04-27T15:10:06.275Z",
+        "gitCommitSha": "6efe32c9e2dd002d0c394e861e0529675d1ab32e"
+      }
+    ],
+    "context7@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "C:\\Users\\12132\\.claude\\plugins\\cache\\claude-plugins-official\\context7\\0742692199b4",
+        "version": "0742692199b4",
+        "installedAt": "2026-04-24T12:47:19.660Z",
+        "lastUpdated": "2026-04-30T23:03:00.008Z",
+        "gitCommitSha": "7bc347b89aaa7f1e02c03617b8d163243d86ecce"
+      }
+    ],
+    "skill-creator@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "C:\\Users\\12132\\.claude\\plugins\\cache\\claude-plugins-official\\skill-creator\\0742692199b4",
+        "version": "0742692199b4",
+        "installedAt": "2026-04-24T12:47:39.366Z",
+        "lastUpdated": "2026-04-30T23:03:00.004Z",
+        "gitCommitSha": "7bc347b89aaa7f1e02c03617b8d163243d86ecce"
+      }
+    ],
+    "playwright@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "C:\\Users\\12132\\.claude\\plugins\\cache\\claude-plugins-official\\playwright\\0742692199b4",
+        "version": "0742692199b4",
+        "installedAt": "2026-04-24T12:47:45.208Z",
+        "lastUpdated": "2026-04-30T23:02:59.999Z",
+        "gitCommitSha": "7bc347b89aaa7f1e02c03617b8d163243d86ecce"
+      }
+    ],
+    "claude-md-management@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "C:\\Users\\12132\\.claude\\plugins\\cache\\claude-plugins-official\\claude-md-management\\1.0.0",
+        "version": "1.0.0",
+        "installedAt": "2026-04-24T12:47:50.917Z",
+        "lastUpdated": "2026-04-24T12:47:50.917Z",
+        "gitCommitSha": "7bc347b89aaa7f1e02c03617b8d163243d86ecce"
+      }
+    ]
+  }
+}
