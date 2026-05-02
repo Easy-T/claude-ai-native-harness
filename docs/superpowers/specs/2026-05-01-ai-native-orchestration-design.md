@@ -2293,7 +2293,8 @@ Agent(subagent_type="review-strict",
 | 15 | jq (선택) | 미설치면 자동 설치 시도 | ✅ (winget/choco/scoop/brew/apt) |
 | 16 | install 마커 | `~/.claude/setup/.installed` | ✅ (자동 생성) |
 | 17 | audit 마커 | `~/.claude/CLAUDE.md`의 `<!-- audit: ... -->` | ✅ (오늘 날짜로 생성) |
-| 18 | backup 디렉터리 | `~/.claude.backup-YYYY-MM-DD/` | ✅ (cp -r) |
+| 18 | backup 디렉터리 | `~/.claude.backup-YYYY-MM-DD/` | ✅ (cp -r — git 미관리 시에만; git 관리되면 skip) |
+| 18b | backup rotation | 가장 최근 3개만 유지 | ✅ (오래된 사본 자동 삭제) |
 | 19 | git 관리 권유 | `~/.claude/`가 git 저장소면 OK, 아니면 권유 | ⚠️ (강제 X) |
 
 **통과 기준**: 1~14가 ✓, 15~19는 자동 수복 가능. 0~14 중 하나라도 ✗면 exit 1.
