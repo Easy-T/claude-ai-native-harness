@@ -54,7 +54,7 @@ ACTIVE=""
 for plan in "$PLAN_DIR"/*.md; do
   [ ! -f "$plan" ] && continue
   # 1순위: 명시적 Status (있으면 우선)
-  STATUS=$(head -20 "$plan" | grep -m1 -E '^\*?\*?[Ss]tatus:?\*?\*?' | sed -E 's/^\*?\*?[Ss]tatus:?\*?\*?\s*//' | tr -d ' ')
+  STATUS=$(head -20 "$plan" | grep -m1 -E '^\*?\*?[Ss]tatus:?\*?\*?' | sed -E 's/^\*?\*?[Ss]tatus:?\*?\*?\s*//' | tr -d ' ' || true)
   case "$STATUS" in
     completed|abandoned|archived|paused) continue ;;     # paused 명시 (체크박스 fallback 회피)
     active|in_progress) ACTIVE="$plan"; break ;;

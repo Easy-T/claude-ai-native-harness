@@ -20,9 +20,9 @@ echo "$CONTENT" | grep -q '^orchestrator_skill: true$' || {
 }
 
 # 4. 골격 검증 — 3가지 (Phase ≥3, Agent ≥1, Communication Protocol)
-PHASE_COUNT=$(echo "$CONTENT" | grep -cE '^# Phase ')
-AGENT_CALLS=$(echo "$CONTENT" | grep -cE 'Agent\(subagent_type=')
-HAS_CONTRACT=$(echo "$CONTENT" | grep -c 'Communication Protocol')
+PHASE_COUNT=$(echo "$CONTENT" | grep -cE '^# Phase ' || true)
+AGENT_CALLS=$(echo "$CONTENT" | grep -cE 'Agent\(subagent_type=' || true)
+HAS_CONTRACT=$(echo "$CONTENT" | grep -c 'Communication Protocol' || true)
 
 REASON=""
 if (( PHASE_COUNT < 3 )); then
