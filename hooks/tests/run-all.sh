@@ -88,6 +88,29 @@ Agent(subagent_type=z)
 - x
 ')"
 
+# 05-marker-no-agent: phases + protocol but no Agent() → BLOCK
+test_eo "05-marker-no-agent" 2 "$(mk_event Write /tmp/foo/skills/foo/SKILL.md '---
+orchestrator_skill: true
+---
+# Phase 1
+# Phase 2
+# Phase 3
+## Communication Protocol
+- x
+')"
+
+# 06-marker-no-protocol: phases + Agent() but no protocol → BLOCK
+test_eo "06-marker-no-protocol" 2 "$(mk_event Write /tmp/foo/skills/foo/SKILL.md '---
+orchestrator_skill: true
+---
+# Phase 1
+Agent(subagent_type=x)
+# Phase 2
+Agent(subagent_type=y)
+# Phase 3
+Agent(subagent_type=z)
+')"
+
 # ==================== STABLE-CLAUDE-MD ====================
 test_scm() {
   local name="$1"; local expected="$2"; local input="$3"
@@ -101,6 +124,9 @@ test_scm "01-root-edit" 0 "$(mk_event Edit "$SCRATCH/CLAUDE.md" "x" "$SCRATCH")"
 test_scm "04-global-claude" 0 "$(mk_event Edit "$HOME/.claude/CLAUDE.md" "x")"
 test_scm "08-similar-name" 0 "$(mk_event Edit "$SCRATCH/MY_CLAUDE.md" "x" "$SCRATCH")"
 
+# 02-root-write: Write tool (not Edit) on root CLAUDE.md → ALERT exit 0
+test_scm "02-root-write" 0 "$(mk_event Write "$SCRATCH/CLAUDE.md" "content" "$SCRATCH")"
+
 # ==================== ENFORCE-RPI-CYCLE ====================
 test_erc() {
   local name="$1"; local expected="$2"; local input="$3"
@@ -112,6 +138,9 @@ test_erc() {
 
 # 01-md-edit: docs file → pass
 test_erc "01-md-edit" 0 "$(mk_event Edit "$SCRATCH/foo.md" "x" "$SCRATCH")"
+
+# 02-gitignore: .gitignore whitelist → pass
+test_erc "02-gitignore" 0 "$(mk_event Edit "$SCRATCH/.gitignore" "x" "$SCRATCH")"
 
 # 06-rpi-skip
 test_erc_skip() {
@@ -198,6 +227,25 @@ new
 new
 new" "$SCRATCH")"
 
+# 11-abandoned: Status: abandoned → BLOCK
+cat > "$SCRATCH/docs/superpowers/plans/p.md" <<PLAN
+# P
+**Status:** abandoned
+- [ ] step1
+PLAN
+test_erc "11-abandoned" 2 "$(mk_edit "$SCRATCH/src/foo.ts" "long
+long
+long
+long
+long
+long" "new
+new
+new
+new
+new
+new
+new" "$SCRATCH")"
+
 # ==================== SESSION-START-AUDIT ====================
 test_ssa() {
   local name="$1"; local expected="$2"; local marker_date="${3:-}"
@@ -220,6 +268,24 @@ test_ssa "02-25-days-ago" 0 "$(date -d '25 days ago' +%Y-%m-%d 2>/dev/null || da
 test_ssa "04-31-days-ago" 0 "$(date -d '31 days ago' +%Y-%m-%d 2>/dev/null || date -v-31d +%Y-%m-%d)"
 test_ssa "05-bad-format" 0 "bad-date"
 test_ssa "07-future-date" 0 "2030-01-01"
+
+# 03-30-days-ago: boundary check (DAYS_AGO=30 is NOT > 30) → no alert
+test_ssa "03-30-days-ago" 0 "$(date -d '30 days ago' +%Y-%m-%d 2>/dev/null || date -v-30d +%Y-%m-%d)"
+
+# 06-multiple-markers: tail -1 picks last marker (recent) → no alert
+test_ssa_multi() {
+  TOTAL=$((TOTAL+1))
+  mkdir -p "$SCRATCH/.claude"
+  TODAY=$(date +%Y-%m-%d)
+  printf "Header
+<!-- audit: 2020-01-01 -->
+<!-- audit: %s -->
+" "$TODAY" > "$SCRATCH/.claude/CLAUDE.md"
+  local actual
+  actual=$(HOME="$SCRATCH" bash "$HOOKS/session-start-audit.sh" </dev/null >/dev/null 2>&1; echo $?)
+  [ "$actual" = "0" ] && PASSED=$((PASSED+1)) || FAILED_LIST+=("session-start-audit/06-multiple-markers (got=$actual)")
+}
+test_ssa_multi
 
 # ==================== AUTO-COMPACT-WATCH ====================
 test_acw() {
