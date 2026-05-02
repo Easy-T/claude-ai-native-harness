@@ -27,3 +27,6 @@ backups/
 cache/
 plugins/marketplaces/
 plugins/data/
+
+# Hook runtime logs (operational data, regenerated)
+hooks/.log/
