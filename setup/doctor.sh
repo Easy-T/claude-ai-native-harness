@@ -158,11 +158,27 @@ else
 fi
 
 # 18. backup directory (~/.claude.backup-YYYY-MM-DD/)
+# git이 ~/.claude/를 관리하면 백업 스킵 (롤백은 git으로 가능, 디스크 절약)
 BACKUP="$HOME/.claude.backup-$TODAY"
-if [ ! -d "$BACKUP" ]; then
+if [ -d "$HOME/.claude/.git" ]; then
+  check "backup directory" "PASS" "skipped (~/.claude is git-managed)"
+elif [ ! -d "$BACKUP" ]; then
   cp -r "$HOME/.claude" "$BACKUP" 2>/dev/null && check "backup directory" "PASS" "$BACKUP" || check "backup directory" "WARN" "cp failed"
 else
   check "backup directory" "PASS" "exists: $BACKUP"
+fi
+
+# 18b. backup rotation — 가장 최근 3개만 유지 (오래된 것부터 삭제)
+KEEP=3
+OLD_BACKUPS=$(ls -dt "$HOME"/.claude.backup-* 2>/dev/null | tail -n +$((KEEP+1)))
+if [ -n "$OLD_BACKUPS" ]; then
+  REMOVED=0
+  while IFS= read -r old; do
+    rm -rf "$old" 2>/dev/null && REMOVED=$((REMOVED+1))
+  done <<< "$OLD_BACKUPS"
+  check "backup rotation" "PASS" "removed $REMOVED old backup(s), kept $KEEP most recent"
+else
+  check "backup rotation" "PASS" "≤$KEEP backups, no rotation needed"
 fi
 
 # 19. ~/.claude/ git managed (recommended)
