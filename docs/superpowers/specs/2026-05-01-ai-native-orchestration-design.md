@@ -1531,9 +1531,10 @@ echo "$CONTENT" | grep -q '^orchestrator_skill: true$' || {
 }
 
 # 4. 골격 검증 — 3가지 (Phase ≥3, Agent ≥1, Communication Protocol)
-PHASE_COUNT=$(echo "$CONTENT" | grep -cE '^# Phase ')
-AGENT_CALLS=$(echo "$CONTENT" | grep -cE 'Agent\(subagent_type=')
-HAS_CONTRACT=$(echo "$CONTENT" | grep -c 'Communication Protocol')
+# Note: || true로 zero-match abort 방지 (set -euo pipefail 하에서 grep -c 0매치 = exit 1)
+PHASE_COUNT=$(echo "$CONTENT" | grep -cE '^# Phase ' || true)
+AGENT_CALLS=$(echo "$CONTENT" | grep -cE 'Agent\(subagent_type=' || true)
+HAS_CONTRACT=$(echo "$CONTENT" | grep -c 'Communication Protocol' || true)
 
 REASON=""
 if (( PHASE_COUNT < 3 )); then
@@ -1721,8 +1722,8 @@ fi
 ACTIVE=""
 for plan in "$PLAN_DIR"/*.md; do
   [ ! -f "$plan" ] && continue
-  # 1순위: 명시적 Status (있으면 우선)
-  STATUS=$(head -20 "$plan" | grep -m1 -E '^\*?\*?[Ss]tatus:?\*?\*?' | sed -E 's/^\*?\*?[Ss]tatus:?\*?\*?\s*//' | tr -d ' ')
+  # 1순위: 명시적 Status (있으면 우선). || true로 Status 부재 시 abort 방지.
+  STATUS=$(head -20 "$plan" | grep -m1 -E '^\*?\*?[Ss]tatus:?\*?\*?' | sed -E 's/^\*?\*?[Ss]tatus:?\*?\*?\s*//' | tr -d ' ' || true)
   case "$STATUS" in
     completed|abandoned|archived|paused) continue ;;     # paused 명시 (체크박스 fallback 회피)
     active|in_progress) ACTIVE="$plan"; break ;;
