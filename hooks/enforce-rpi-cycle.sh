@@ -4,8 +4,10 @@ require_node
 
 INPUT=$(read_input)
 FILE_PATH=$(echo "$INPUT" | json_get 'tool_input.file_path')
+FILE_PATH=$(normalize_path "$FILE_PATH")
 TOOL=$(echo "$INPUT" | json_get 'tool_name')
 CWD=$(echo "$INPUT" | json_get 'cwd')
+CWD=$(normalize_path "$CWD")
 [ -z "$CWD" ] && CWD="."
 
 # === 화이트리스트 1: 비코드 파일 통과 ===

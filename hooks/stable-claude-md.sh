@@ -4,7 +4,9 @@ require_node
 
 INPUT=$(read_input)
 FILE_PATH=$(echo "$INPUT" | json_get 'tool_input.file_path')
+FILE_PATH=$(normalize_path "$FILE_PATH")
 CWD=$(echo "$INPUT" | json_get 'cwd')
+CWD=$(normalize_path "$CWD")
 [ -z "$CWD" ] && CWD="."
 
 # 글로벌 ~/.claude/CLAUDE.md 제외 (글로벌은 별도 audit hook이 관리)

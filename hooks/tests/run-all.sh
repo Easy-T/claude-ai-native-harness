@@ -287,6 +287,12 @@ test_ssa_multi() {
 }
 test_ssa_multi
 
+# 19-windows-backslash: Windows path with backslashes inside .claude -> whitelisted via normalize_path
+test_erc "19-windows-backslash" 0 "$(FILE='C:\Users\foo\.claude\bar.sh' OLD='x' NEW='y' CWD='C:\Users\foo\.claude' node -e '
+const o = {tool_name:"Edit", tool_input:{file_path:process.env.FILE, old_string:process.env.OLD, new_string:process.env.NEW}, cwd:process.env.CWD};
+console.log(JSON.stringify(o));
+')"
+
 # ==================== AUTO-COMPACT-WATCH ====================
 test_acw() {
   local name="$1"; local expected="$2"; local input="$3"

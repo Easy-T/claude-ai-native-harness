@@ -50,3 +50,13 @@ require_node() {
 read_input() {
   cat
 }
+
+# --- normalize_path: cross-platform path normalization ---
+# Linux/WSL: no-op (no backslashes in path).
+# Windows (Git Bash): C:\Users\... → C:/Users/... so case patterns like
+# */.claude/* match uniformly. Required because Claude Code on Windows
+# may pass tool_input.file_path with backslashes.
+normalize_path() {
+  local p="${1:-}"
+  echo "${p//\\//}"
+}

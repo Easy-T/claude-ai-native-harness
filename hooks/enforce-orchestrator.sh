@@ -4,6 +4,7 @@ require_node
 
 INPUT=$(read_input)
 FILE_PATH=$(echo "$INPUT" | json_get 'tool_input.file_path')
+FILE_PATH=$(normalize_path "$FILE_PATH")
 
 # 1. 대상 path 확인 — */skills/*/SKILL.md
 [[ "$FILE_PATH" != */skills/*/SKILL.md ]] && exit 0
