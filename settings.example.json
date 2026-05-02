@@ -1,5 +1,6 @@
 {
-  "_comment_env": "Add your environment variables here (API tokens, model overrides, etc). For ccs proxy users, set ANTHROPIC_AUTH_TOKEN/ANTHROPIC_BASE_URL accordingly.",
+  "$schema": "https://claude.ai/schemas/claude-code-settings",
+  "_description": "Minimal settings for Claude AI-Native Harness. Copy to settings.json and customize. See README.md for plugin installation steps.",
   "env": {
     "DISABLE_BUG_COMMAND": "1",
     "DISABLE_ERROR_REPORTING": "1",
@@ -23,21 +24,6 @@
     ],
     "defaultMode": "default"
   },
-  "model": "opus",
-  "enabledPlugins": {
-    "superpowers@claude-plugins-official": true,
-    "skill-creator@claude-plugins-official": true,
-    "claude-md-management@claude-plugins-official": true
-  },
-  "extraKnownMarketplaces": {
-    "superpowers-dev": {
-      "source": {
-        "source": "git",
-        "url": "https://github.com/obra/superpowers.git"
-      }
-    }
-  },
-  "effortLevel": "max",
   "hooks": {
     "PreToolUse": [
       {

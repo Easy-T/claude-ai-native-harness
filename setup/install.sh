@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
 # install.sh — Claude AI-Native Harness installer
-# 새 PC 또는 기존 ~/.claude 위에 이 하네스를 설치.
+# Run after cloning the repo into ~/.claude/.
 #
 # Usage:
-#   1. git clone <this-repo> ~/.claude  (or copy files into ~/.claude/)
-#   2. bash ~/.claude/setup/install.sh
-#   3. Claude Code 세션 재시작
-#   4. bash ~/.claude/setup/verify-all.sh
+#   1. (backup existing if any) mv ~/.claude ~/.claude.pre-harness-$(date +%Y%m%d)
+#   2. git clone <this-repo-url> ~/.claude
+#   3. bash ~/.claude/setup/install.sh
+#   4. Restart Claude Code session
+#   5. Install required plugins (see README §Prerequisites)
+#   6. bash ~/.claude/setup/verify-all.sh
 
 set -euo pipefail
 
@@ -18,7 +20,7 @@ echo "  Claude AI-Native Harness installer"
 echo "=========================================="
 echo
 
-# --- 1. 사전 점검 ---
+# --- 1. 사전 도구 점검 ---
 echo "[1/6] 사전 도구 확인..."
 MISSING=""
 for cmd in node bash git; do
@@ -27,21 +29,23 @@ for cmd in node bash git; do
   fi
 done
 if [ -n "$MISSING" ]; then
-  echo "  ✗ 다음 도구가 필요합니다:$MISSING"
-  echo "  설치 후 다시 시도하세요."
+  echo "  ✗ 다음 도구가 없습니다:$MISSING"
+  echo "    설치 후 다시 시도하세요."
   exit 1
 fi
 
 # Claude Code 확인
 if ! command -v claude >/dev/null 2>&1; then
-  echo "  ⚠ claude CLI가 PATH에 없습니다. (https://claude.ai/code 에서 설치)"
-  echo "    설치 후 이 스크립트를 다시 실행하세요."
-  echo "    (그래도 진행하려면 Enter, 중단하려면 Ctrl+C)"
+  echo "  ⚠ claude CLI가 PATH에 없습니다."
+  echo "    https://claude.ai/code 에서 Claude Code를 설치한 뒤 진행하세요."
+  echo "    (계속 진행하려면 Enter, 중단 Ctrl+C)"
   read -r _
 fi
-echo "  ✓ node $(node --version), bash $(bash --version | head -1 | grep -oE '[0-9]+\.[0-9]+'), git OK"
+NODE_VER=$(node --version)
+BASH_VER=$(bash --version | head -1 | grep -oE '[0-9]+\.[0-9]+' | head -1)
+echo "  ✓ node $NODE_VER, bash $BASH_VER, git OK"
 
-# --- 2. 핵심 인프라 파일 존재 확인 ---
+# --- 2. 핵심 인프라 파일 점검 ---
 echo "[2/6] 하네스 파일 존재 확인..."
 REQUIRED=(
   "$TARGET/agents/explore-strict.md"
@@ -64,13 +68,10 @@ REQUIRED=(
 )
 MISSING_FILES=0
 for f in "${REQUIRED[@]}"; do
-  if [ ! -f "$f" ]; then
-    echo "  ✗ MISSING: $f"
-    MISSING_FILES=$((MISSING_FILES + 1))
-  fi
+  [ ! -f "$f" ] && { echo "  ✗ MISSING: $f"; MISSING_FILES=$((MISSING_FILES+1)); }
 done
 if [ "$MISSING_FILES" -gt 0 ]; then
-  echo "  ✗ $MISSING_FILES 개 파일이 누락. clone이 정상적으로 완료됐는지 확인하세요."
+  echo "  ✗ $MISSING_FILES 개 파일 누락. clone이 정상 완료됐는지 확인하세요."
   exit 1
 fi
 echo "  ✓ 17개 필수 파일 모두 존재"
@@ -85,30 +86,25 @@ echo "  ✓ chmod +x 완료"
 # --- 4. settings.json 생성 또는 병합 ---
 echo "[4/6] settings.json 처리..."
 if [ -f "$TARGET/settings.json" ]; then
-  # 기존 settings.json이 있음 → hooks 키만 병합 (나머지 사용자 값 보존)
+  # 기존 settings.json이 있음 → hooks 키만 병합 (사용자 값 보존)
   cp "$TARGET/settings.json" "$TARGET/settings.json.backup-$TODAY"
   echo "  → 기존 settings.json 백업: settings.json.backup-$TODAY"
 
-  node -e '
+  HOME_DIR="$HOME" node -e '
     const fs = require("fs");
-    const HOME = process.env.HOME;
+    const HOME = process.env.HOME_DIR;
     const cur = JSON.parse(fs.readFileSync(HOME + "/.claude/settings.json", "utf8"));
     const tpl = JSON.parse(fs.readFileSync(HOME + "/.claude/settings.example.json", "utf8"));
-
-    // 사용자 값 보존 + hooks 병합
     cur.hooks = tpl.hooks;
-
-    // hooks가 비어 있으면 보강
     if (!cur.permissions) cur.permissions = tpl.permissions;
-
     fs.writeFileSync(HOME + "/.claude/settings.json", JSON.stringify(cur, null, 2));
-    console.log("  ✓ hooks 키를 기존 settings.json에 병합 (env/permissions/model 보존)");
+    console.log("  ✓ hooks 키 병합 (env/permissions/model/enabledPlugins 등 보존)");
   '
 else
   # 새로 설치 → 템플릿을 그대로 복사
   cp "$TARGET/settings.example.json" "$TARGET/settings.json"
-  echo "  ✓ settings.example.json → settings.json 복사 (편집 권장)"
-  echo "  ⚠ ANTHROPIC_AUTH_TOKEN 등 env 값을 추가하세요."
+  echo "  ✓ settings.example.json → settings.json 복사"
+  echo "  ⚠ Claude Code 인증 (claude /login 또는 환경변수 ANTHROPIC_API_KEY 설정)을 별도로 진행하세요."
 fi
 
 # --- 5. doctor 실행 ---
@@ -116,25 +112,38 @@ echo "[5/6] doctor 실행 (환경 진단)..."
 echo
 bash "$TARGET/setup/doctor.sh" || {
   echo
-  echo "  ⚠ doctor에서 일부 항목이 FAIL. 위 메시지를 보고 수정 후 재실행하세요."
+  echo "  ⚠ doctor에서 일부 항목 FAIL. 위 메시지 보고 수정 후 재실행하세요."
 }
 
-# --- 6. 완료 안내 ---
+# --- 6. 완료 안내 + 의존 플러그인 안내 ---
 echo
 echo "=========================================="
 echo "  설치 완료"
 echo "=========================================="
 echo
-echo "다음 단계:"
-echo "  1. Claude Code 세션을 재시작하세요 (hook 등록 활성화)"
-echo "  2. 검증: bash ~/.claude/setup/verify-all.sh"
-echo "     → 'ALL PASS' 확인"
-echo "  3. 새 프로젝트 부트스트랩: /init-ai-ready <project_name>"
-echo "  4. 자세한 사용법: cat ~/.claude/README.md"
+echo "▶ 다음 단계 (반드시 따르세요):"
 echo
-echo "주의:"
-echo "  - settings.json은 .gitignore로 추적되지 않습니다 (개인 설정)"
-echo "  - 필요한 env 값(ANTHROPIC_AUTH_TOKEN 등)을 추가하세요"
-echo "  - hooks/.log/은 운영 로그라 자동 무시됩니다"
+echo "  [STEP 1] Claude Code 세션을 재시작"
+echo "           hook 5개가 settings.json에서 로드됩니다."
+echo
+echo "  [STEP 2] 의존 플러그인 설치 (필수, 미설치 시 RPI 사이클 작동 X)"
+echo "           새 세션에서 다음 명령으로 설치:"
+echo "             /plugin install superpowers@claude-plugins-official"
+echo "             /plugin install skill-creator@claude-plugins-official"
+echo "             /plugin install claude-md-management@claude-plugins-official"
+echo "           또는 settings.json의 enabledPlugins 키에 직접 추가."
+echo
+echo "  [STEP 3] 검증"
+echo "             bash ~/.claude/setup/verify-all.sh"
+echo "           기대 출력: 'ALL PASS — system meets §6.6 acceptance gate.'"
+echo
+echo "  [STEP 4] 첫 사용 (선택)"
+echo "             /init-ai-ready <project_name>     # 새 프로젝트 부트스트랩"
+echo "             또는 채팅에 \"기능 추가해줘\" → start-rpi-cycle 자동 발동"
+echo
+echo "▶ 참고:"
+echo "  - settings.json은 git에서 추적되지 않습니다 (개인 설정)."
+echo "  - hooks/.log/은 운영 로그라 자동 무시됩니다."
+echo "  - 자세한 사용법: cat ~/.claude/README.md"
 echo
 exit 0

@@ -55,40 +55,58 @@
 
 ---
 
-## ⚡ 빠른 설치 (3 단계)
+## ⚡ 빠른 설치 (4 단계)
 
 ### 사전 조건
 
-- [Claude Code](https://claude.ai/code) 2.1+
-- Node.js v18+
-- bash, git
-- 선택: gh CLI, jq (`doctor.sh`가 자동 설치 시도)
+| 항목 | 용도 |
+|---|---|
+| [Claude Code](https://claude.ai/code) 2.1+ | 런타임 — `claude` CLI 인증 (`claude /login` 또는 `ANTHROPIC_API_KEY` 환경변수) |
+| Node.js v18+ | hook의 JSON 파싱 |
+| bash, git | 인프라 운영 |
+| 선택: gh CLI, jq | `doctor.sh`가 자동 설치 시도 |
+
+**필수 플러그인** (하네스가 의존):
+
+| 플러그인 | 출처 | 사용처 |
+|---|---|---|
+| `superpowers` | [obra/superpowers](https://github.com/obra/superpowers) (claude-plugins-official) | brainstorming / writing-plans / executing-plans / subagent-driven-development / finishing-a-development-branch — start-rpi-cycle skill이 메인 세션에서 호출 |
+| `skill-creator` | claude-plugins-official | create-orchestrator-skill이 호출 |
+| `claude-md-management` (선택) | claude-plugins-official | CLAUDE.md 점검 자동화 |
+
+→ 미설치 시 RPI 사이클 일부가 작동하지 않습니다. 설치는 [STEP 4](#설치) 참조.
 
 ### 설치
 
 ```bash
-# 1. 기존 ~/.claude 백업 (있는 경우)
+# STEP 1. 기존 ~/.claude 백업 (있는 경우만)
 [ -d ~/.claude ] && mv ~/.claude ~/.claude.pre-harness-$(date +%Y%m%d)
 
-# 2. 하네스 clone
-git clone https://github.com/<your-username>/claude-ai-native-harness.git ~/.claude
+# STEP 2. 하네스 clone
+git clone https://github.com/Easy-T/claude-ai-native-harness.git ~/.claude
 
-# 3. 설치 스크립트 실행
+# STEP 3. 설치 스크립트 실행 (chmod, settings.json 생성/병합, doctor 실행)
 bash ~/.claude/setup/install.sh
 ```
 
-설치 후 **Claude Code 세션 재시작** → hooks가 런타임에 로드됨.
+```text
+# STEP 4. Claude Code 세션 재시작 후, 채팅에서 의존 플러그인 설치:
+/plugin install superpowers@claude-plugins-official
+/plugin install skill-creator@claude-plugins-official
+/plugin install claude-md-management@claude-plugins-official
+```
+
+(또는 `settings.json`의 `enabledPlugins` 키에 직접 추가하고 세션 재시작)
 
 ### 검증
 
-새 세션에서:
 ```bash
 bash ~/.claude/setup/verify-all.sh
 ```
 
 기대 출력: `ALL PASS — system meets §6.6 acceptance gate.`
 
-이 결과면 **즉시 사용 가능**.
+이 결과 + 4개 plugin 설치 완료면 **즉시 사용 가능**.
 
 ---
 
@@ -119,6 +137,8 @@ Claude Code 채팅에서:
 - Phase 4: "부트스트랩 완료" 안내
 
 ### 시나리오 2 — 기능 추가 (자동 RPI 사이클)
+
+> ⚠️ **사전 조건**: `superpowers` 플러그인 설치 필수 (Phase R/P/I에서 호출).
 
 채팅에 자연어로:
 ```
@@ -151,6 +171,8 @@ RPI_SKIP="hotfix-prod-incident" claude
 ```
 
 ### 시나리오 4 — 커스텀 skill 생성
+
+> ⚠️ **사전 조건**: `skill-creator` 플러그인 설치 필수.
 
 ```
 docs를 자동으로 정리하는 skill 만들어줘
@@ -355,7 +377,7 @@ create-orchestrator-skill이 자동으로 골격 주입 + enforce-orchestrator h
 # 새 저장소 만든 뒤:
 cd ~/.claude
 git remote rename origin upstream  # 원본 보존
-git remote add origin https://github.com/<your-username>/claude-ai-native-harness.git
+git remote add origin https://github.com/Easy-T/claude-ai-native-harness.git
 git push -u origin master
 ```
 
@@ -372,9 +394,9 @@ git status --short
 
 ### 3. README의 GitHub URL 교체
 
-이 README의 `<your-username>` 부분을 너의 username으로 바꿔서 다시 commit:
+이 README의 `Easy-T` 부분을 너의 username으로 바꿔서 다시 commit:
 ```bash
-sed -i.bak 's|<your-username>|YOUR_GITHUB_USERNAME|g' README.md
+sed -i.bak 's|Easy-T|YOUR_GITHUB_USERNAME|g' README.md
 rm README.md.bak
 git add README.md
 git commit -m "docs: update GitHub URL in README"
@@ -408,4 +430,4 @@ git push
 
 MIT (또는 너가 원하는 라이선스로 변경)
 
-문제·제안: [Issues](https://github.com/<your-username>/claude-ai-native-harness/issues)
+문제·제안: [Issues](https://github.com/Easy-T/claude-ai-native-harness/issues)
