@@ -1502,6 +1502,16 @@ require_node() {
 read_input() {
   cat
 }
+
+# --- normalize_path: cross-platform path normalization ---
+# Linux/WSL: no-op (no backslashes in path).
+# Windows (Git Bash): C:\Users\... → C:/Users/... so case patterns like
+# */.claude/* match uniformly. Required because Claude Code on Windows
+# may pass tool_input.file_path with backslashes.
+normalize_path() {
+  local p="${1:-}"
+  echo "${p//\\\\//}"
+}
 ```
 
 → 각 hook은 첫 줄에 `source "$HOME/.claude/hooks/_common.sh"` 한 줄로 모든 공통 기능 확보.
@@ -1515,6 +1525,7 @@ require_node
 
 INPUT=$(read_input)
 FILE_PATH=$(echo "$INPUT" | json_get 'tool_input.file_path')
+FILE_PATH=$(normalize_path "$FILE_PATH")  # Windows backslash → forward slash
 
 # 1. 대상 path 확인 — */skills/*/SKILL.md
 [[ "$FILE_PATH" != */skills/*/SKILL.md ]] && exit 0
@@ -1575,7 +1586,9 @@ require_node
 
 INPUT=$(read_input)
 FILE_PATH=$(echo "$INPUT" | json_get 'tool_input.file_path')
+FILE_PATH=$(normalize_path "$FILE_PATH")  # cross-platform
 CWD=$(echo "$INPUT" | json_get 'cwd')
+CWD=$(normalize_path "$CWD")
 [ -z "$CWD" ] && CWD="."
 
 # 글로벌 ~/.claude/CLAUDE.md 제외 (글로벌은 별도 audit hook이 관리)
@@ -1673,8 +1686,10 @@ require_node
 
 INPUT=$(read_input)
 FILE_PATH=$(echo "$INPUT" | json_get 'tool_input.file_path')
+FILE_PATH=$(normalize_path "$FILE_PATH")  # cross-platform
 TOOL=$(echo "$INPUT" | json_get 'tool_name')
 CWD=$(echo "$INPUT" | json_get 'cwd')
+CWD=$(normalize_path "$CWD")
 [ -z "$CWD" ] && CWD="."
 
 # === 화이트리스트 1: 비코드 파일 통과 ===
