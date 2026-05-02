@@ -9,6 +9,13 @@ FAIL=0
 WARN=0
 ITEMS=()
 
+CLAUDE_HOME="${CLAUDE_HOME:-$HOME/.claude}"
+WINDOWS_CLAUDE_HOME_CANDIDATE="/mnt/c/Users/12132/.claude"
+IS_WSL=0
+if [ -r /proc/version ] && grep -qiE 'microsoft|wsl' /proc/version; then
+  IS_WSL=1
+fi
+
 check() {
   local label="$1"; local result="$2"; local note="${3:-}"
   case "$result" in
@@ -16,6 +23,14 @@ check() {
     WARN) WARN=$((WARN+1)); ITEMS+=("⚠ $label${note:+ — $note}") ;;
     FAIL) FAIL=$((FAIL+1)); ITEMS+=("✗ $label${note:+ — $note}") ;;
   esac
+}
+
+report_results() {
+  echo
+  echo "[doctor] Results:"
+  for line in "${ITEMS[@]}"; do echo "  $line"; done
+  echo
+  echo "[doctor] PASS=$PASS  WARN=$WARN  FAIL=$FAIL"
 }
 
 echo "[doctor] AI-Native infrastructure diagnose..."
@@ -79,20 +94,36 @@ else
   check "disk space ≥1GB" "WARN" "low disk"
 fi
 
-# 11. ~/.claude/ writable
-if touch "$HOME/.claude/.write-test" 2>/dev/null && rm -f "$HOME/.claude/.write-test"; then
-  check "~/.claude/ writable" "PASS" ""
-else
-  check "~/.claude/ writable" "FAIL" "permission denied"
-fi
-
-# 12. OS detection
+# 11. OS detection
 case "$(uname -s)" in
   Linux*)   check "OS compatible" "PASS" "Linux" ;;
   Darwin*)  check "OS compatible" "PASS" "macOS" ;;
   MINGW*|MSYS*|CYGWIN*) check "OS compatible" "PASS" "Windows (Git Bash)" ;;
   *)        check "OS compatible" "WARN" "$(uname -s) untested" ;;
 esac
+
+if [ "$IS_WSL" -eq 1 ]; then
+  check "WSL environment detected" "PASS" "$(uname -r)"
+  if [ -d "$WINDOWS_CLAUDE_HOME_CANDIDATE" ]; then
+    if [ "$CLAUDE_HOME" = "$WINDOWS_CLAUDE_HOME_CANDIDATE" ]; then
+      check "Claude home namespace" "PASS" "$CLAUDE_HOME"
+    else
+      check "Claude home namespace" "FAIL" "WSL detected; run with HOME=/mnt/c/Users/12132 or CLAUDE_HOME=$WINDOWS_CLAUDE_HOME_CANDIDATE (current: $CLAUDE_HOME)"
+      report_results
+      echo "[doctor] FATAL: Claude home namespace mismatch." >&2
+      exit 1
+    fi
+  else
+    check "Windows Claude home candidate" "WARN" "$WINDOWS_CLAUDE_HOME_CANDIDATE not found"
+  fi
+fi
+
+# 12. ~/.claude/ writable
+if touch "$CLAUDE_HOME/.write-test" 2>/dev/null && rm -f "$CLAUDE_HOME/.write-test"; then
+  check "~/.claude/ writable" "PASS" ""
+else
+  check "~/.claude/ writable" "FAIL" "permission denied"
+fi
 
 # 13. python (optional)
 if command -v python3 >/dev/null 2>&1 || command -v python >/dev/null 2>&1; then
@@ -130,17 +161,17 @@ else
   if command -v jq >/dev/null 2>&1; then
     check "jq installed" "PASS" "auto-installed"
   else
-    check "jq installed" "WARN" "auto-install failed — hooks use node, jq is optional"
+    check "jq installed" "FAIL" "auto-install failed — required for bootstrap verification"
   fi
 fi
 
 # 16. .installed marker (auto-create)
-mkdir -p "$HOME/.claude/setup"
-touch "$HOME/.claude/setup/.installed"
+mkdir -p "$CLAUDE_HOME/setup"
+touch "$CLAUDE_HOME/setup/.installed"
 check ".installed marker" "PASS" "auto-created"
 
 # 17. audit marker in ~/.claude/CLAUDE.md
-CLAUDE_MD="$HOME/.claude/CLAUDE.md"
+CLAUDE_MD="$CLAUDE_HOME/CLAUDE.md"
 TODAY=$(date +%Y-%m-%d)
 if [ -f "$CLAUDE_MD" ]; then
   if grep -qE '<!-- audit: [0-9]{4}-[0-9]{2}-[0-9]{2} -->' "$CLAUDE_MD"; then
@@ -159,18 +190,18 @@ fi
 
 # 18. backup directory (~/.claude.backup-YYYY-MM-DD/)
 # git이 ~/.claude/를 관리하면 백업 스킵 (롤백은 git으로 가능, 디스크 절약)
-BACKUP="$HOME/.claude.backup-$TODAY"
-if [ -d "$HOME/.claude/.git" ]; then
+BACKUP="$CLAUDE_HOME.backup-$TODAY"
+if [ -d "$CLAUDE_HOME/.git" ]; then
   check "backup directory" "PASS" "skipped (~/.claude is git-managed)"
 elif [ ! -d "$BACKUP" ]; then
-  cp -r "$HOME/.claude" "$BACKUP" 2>/dev/null && check "backup directory" "PASS" "$BACKUP" || check "backup directory" "WARN" "cp failed"
+  cp -r "$CLAUDE_HOME" "$BACKUP" 2>/dev/null && check "backup directory" "PASS" "$BACKUP" || check "backup directory" "WARN" "cp failed"
 else
   check "backup directory" "PASS" "exists: $BACKUP"
 fi
 
 # 18b. backup rotation — 가장 최근 3개만 유지 (오래된 것부터 삭제)
 KEEP=3
-OLD_BACKUPS=$(ls -dt "$HOME"/.claude.backup-* 2>/dev/null | tail -n +$((KEEP+1)))
+OLD_BACKUPS=$({ ls -dt "$CLAUDE_HOME".backup-* 2>/dev/null || true; } | tail -n +$((KEEP+1)))
 if [ -n "$OLD_BACKUPS" ]; then
   REMOVED=0
   while IFS= read -r old; do
@@ -182,18 +213,14 @@ else
 fi
 
 # 19. ~/.claude/ git managed (recommended)
-if [ -d "$HOME/.claude/.git" ]; then
+if [ -d "$CLAUDE_HOME/.git" ]; then
   check "~/.claude git-managed" "PASS" ""
 else
   check "~/.claude git-managed" "WARN" "recommend: cd ~/.claude && git init"
 fi
 
 # Report
-echo
-echo "[doctor] Results:"
-for line in "${ITEMS[@]}"; do echo "  $line"; done
-echo
-echo "[doctor] PASS=$PASS  WARN=$WARN  FAIL=$FAIL"
+report_results
 
 if (( FAIL > 0 )); then
   echo "[doctor] FAIL items must be resolved before proceeding." >&2
