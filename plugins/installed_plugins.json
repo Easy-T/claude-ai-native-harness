@@ -14,30 +14,30 @@
     "context7@claude-plugins-official": [
       {
         "scope": "user",
-        "installPath": "C:\\Users\\12132\\.claude\\plugins\\cache\\claude-plugins-official\\context7\\e8cd82ccfa92",
-        "version": "e8cd82ccfa92",
+        "installPath": "C:\\Users\\12132\\.claude\\plugins\\cache\\claude-plugins-official\\context7\\d64e27054e30",
+        "version": "d64e27054e30",
         "installedAt": "2026-04-24T12:47:19.660Z",
-        "lastUpdated": "2026-05-01T08:56:49.230Z",
+        "lastUpdated": "2026-05-03T15:50:23.877Z",
         "gitCommitSha": "7bc347b89aaa7f1e02c03617b8d163243d86ecce"
       }
     ],
     "skill-creator@claude-plugins-official": [
       {
         "scope": "user",
-        "installPath": "C:\\Users\\12132\\.claude\\plugins\\cache\\claude-plugins-official\\skill-creator\\e8cd82ccfa92",
-        "version": "e8cd82ccfa92",
+        "installPath": "C:\\Users\\12132\\.claude\\plugins\\cache\\claude-plugins-official\\skill-creator\\d64e27054e30",
+        "version": "d64e27054e30",
         "installedAt": "2026-04-24T12:47:39.366Z",
-        "lastUpdated": "2026-05-01T08:56:49.320Z",
+        "lastUpdated": "2026-05-03T15:50:23.892Z",
         "gitCommitSha": "7bc347b89aaa7f1e02c03617b8d163243d86ecce"
       }
     ],
     "playwright@claude-plugins-official": [
       {
         "scope": "user",
-        "installPath": "C:\\Users\\12132\\.claude\\plugins\\cache\\claude-plugins-official\\playwright\\e8cd82ccfa92",
-        "version": "e8cd82ccfa92",
+        "installPath": "C:\\Users\\12132\\.claude\\plugins\\cache\\claude-plugins-official\\playwright\\d64e27054e30",
+        "version": "d64e27054e30",
         "installedAt": "2026-04-24T12:47:45.208Z",
-        "lastUpdated": "2026-05-01T08:56:49.221Z",
+        "lastUpdated": "2026-05-03T15:50:23.905Z",
         "gitCommitSha": "7bc347b89aaa7f1e02c03617b8d163243d86ecce"
       }
     ],
