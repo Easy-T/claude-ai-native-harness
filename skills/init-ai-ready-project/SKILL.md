@@ -2,7 +2,7 @@
 name: init-ai-ready-project
 description: |
   AI-Ready 프로젝트 부트스트랩. 사용자가 "새 프로젝트 셋업", "AI-ready 만들어줘",
-  "프로젝트 초기화" 등을 말하면 무조건 사용. 10개 파일 + 디렉터리 결정론적 생성.
+  "프로젝트 초기화" 등을 말하면 무조건 사용. 12개 파일 + 디렉터리 결정론적 생성.
 orchestrator_skill: true
 generated_by: built-in
 orchestrator_version: 1.0
@@ -41,7 +41,7 @@ Agent(subagent_type="explore-strict",
 - 충돌이 있으면 사용자에게 진행 여부 확인.
 - 스택 감지 결과를 Phase 2 변수 치환에 사용.
 
-# Phase 2 — Generate (10개 파일 + 디렉터리)
+# Phase 2 — Generate (12개 파일 + 디렉터리)
 templates/*.tpl을 변수 치환 후 결정론적 생성. 다른 파일이라 worktree 불필요. 병렬 호출 가능.
 
 생성 파일 (절대경로 기준):
@@ -55,11 +55,15 @@ templates/*.tpl을 변수 치환 후 결정론적 생성. 다른 파일이라 wo
 8. `<root>/.claude/hooks/pre-commit-deny.sh` ← templates/pre-commit-deny.sh.tpl (chmod +x)
 9. `<root>/.gitignore` ← templates/.gitignore.tpl
 10. `<root>/.claude/state.json` ← templates/state.json.tpl
+11. `<root>/scripts/check.sh` ← templates/scripts-check.sh.tpl (chmod +x)
+12. `<root>/.github/workflows/ci.yml` ← templates/github-ci.yml.tpl
 
 생성 디렉터리:
 - `<root>/docs/superpowers/specs/` (.gitkeep)
 - `<root>/docs/superpowers/plans/` (.gitkeep)
 - `<root>/.claude/hooks/` (실행권한 +x 보장)
+- `<root>/scripts/`
+- `<root>/.github/workflows/`
 
 변수 치환은 references/placeholder-spec.md, references/stack-presets.md 참조.
 
@@ -75,7 +79,7 @@ Agent(subagent_type="review-strict",
       task="스캐폴드 무결성 검증",
       context_paths=["<root>/CLAUDE.md", "<root>/docs/ai-context/", "<root>/.claude/"],
       success_criteria="
-        - 10개 파일 + 3개 디렉터리 모두 존재
+        - 12개 파일 + 5개 디렉터리 모두 존재
         - CLAUDE.md ≤200줄
         - deny-patterns.md의 ❌ 마커 ≥8개
         - non-obvious.md에 '아직 비어 있음' 텍스트
@@ -84,14 +88,18 @@ Agent(subagent_type="review-strict",
         - .claude/state.json schema_version=1, cycle.count=0
         - placeholder 잔존 0 (`grep -rE '{{[^}]+}}'` 결과 없음)
         - .gitignore ≥15줄
+        - scripts/check.sh 존재 + 실행권한
+        - .github/workflows/ci.yml 존재
+        - docs/ai-context/runbook.md에 'Local Quality Gate' + 'Merge Policy' 섹션 존재
       ")
 
 Phase 3 통과 못 하면 사용자에게 보고하고 재시도.
 
 # Phase 4 — Closing
 사용자 안내:
-> 부트스트랩 완료. 첫 사이클을 시작하려면 'start-rpi-cycle' 사용.
-> 예: "결제 모듈 만들어줘"
+> 부트스트랩 완료. scripts/check.sh로 로컬 gate 확인 후 첫 사이클 시작.
+> 예: "결제 모듈 만들어줘" → start-rpi-cycle 자동 발동.
+> PR 완료 후에는 'closeout-pr-cycle'이 merge까지 안내합니다.
 
 ## Communication Protocol
 - result: COMPLETE / FAIL

@@ -28,13 +28,13 @@ for a in explore-strict review-strict execute-strict; do
   grep -q '^model: inherit$' "$HOME/.claude/agents/$a.md" 2>/dev/null && ok "$a model:inherit" || fail "$a model"
 done
 
-# 6. 4 global skills
-for s in common-agent-contract create-orchestrator-skill init-ai-ready-project start-rpi-cycle; do
+# 6. 5 global skills
+for s in common-agent-contract create-orchestrator-skill init-ai-ready-project start-rpi-cycle closeout-pr-cycle; do
   [ -f "$HOME/.claude/skills/$s/SKILL.md" ] && ok "skill: $s" || fail "skill missing: $s"
 done
 
-# 7. orchestrator marker triple on 3 of 4 skills
-for s in create-orchestrator-skill init-ai-ready-project start-rpi-cycle; do
+# 7. orchestrator marker triple on 4 of 5 skills
+for s in create-orchestrator-skill init-ai-ready-project start-rpi-cycle closeout-pr-cycle; do
   f="$HOME/.claude/skills/$s/SKILL.md"
   if grep -q '^orchestrator_skill: true$' "$f" 2>/dev/null \
     && grep -q '^generated_by:' "$f" 2>/dev/null \
@@ -56,10 +56,23 @@ done
 # 10. /init-ai-ready command
 [ -f "$HOME/.claude/commands/init-ai-ready.md" ] && ok "command: init-ai-ready" || fail "command missing"
 
-# 11. 10 templates + 2 references
+# 11. 12 templates + 2 references
 T=$(find "$HOME/.claude/skills/init-ai-ready-project/templates/" -maxdepth 1 -type f 2>/dev/null | wc -l)
 R=$(find "$HOME/.claude/skills/init-ai-ready-project/references/" -maxdepth 1 -type f 2>/dev/null | wc -l)
-[ "$T" -ge 10 ] && [ "$R" -ge 2 ] && ok "templates=$T, refs=$R" || fail "templates=$T, refs=$R"
+[ "$T" -ge 12 ] && [ "$R" -ge 2 ] && ok "templates=$T, refs=$R" || fail "templates=$T (need 12), refs=$R"
+# 11b. PR lifecycle templates specifically
+[ -f "$HOME/.claude/skills/init-ai-ready-project/templates/scripts-check.sh.tpl" ] \
+  && ok "template: scripts-check.sh.tpl" || fail "template missing: scripts-check.sh.tpl"
+[ -f "$HOME/.claude/skills/init-ai-ready-project/templates/github-ci.yml.tpl" ] \
+  && ok "template: github-ci.yml.tpl" || fail "template missing: github-ci.yml.tpl"
+
+# 11c. runbook.md.tpl has PR lifecycle sections
+grep -q 'Local Quality Gate' "$HOME/.claude/skills/init-ai-ready-project/templates/runbook.md.tpl" 2>/dev/null \
+  && ok "runbook.tpl: Local Quality Gate" || fail "runbook.tpl missing: Local Quality Gate"
+grep -q 'Merge Policy' "$HOME/.claude/skills/init-ai-ready-project/templates/runbook.md.tpl" 2>/dev/null \
+  && ok "runbook.tpl: Merge Policy" || fail "runbook.tpl missing: Merge Policy"
+grep -q 'AI는 merge를 결정하지 않는다' "$HOME/.claude/skills/init-ai-ready-project/templates/runbook.md.tpl" 2>/dev/null \
+  && ok "runbook.tpl: merge policy principle" || fail "runbook.tpl missing merge policy principle"
 
 # 12. setup scripts executable
 for s in doctor.sh verify-setup.sh verify-integration.sh verify-all.sh; do

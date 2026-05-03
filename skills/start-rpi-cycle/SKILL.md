@@ -67,6 +67,26 @@ worktree 사용:
    finishing-a-development-branch skill을 호출. 그 결과를 받아 우리 Closeout이 보강 검증.
    (a)/(c)를 선택했다면 우리 Closeout이 단독으로 실행.
 
+## Step C-0: PR Closeout Gate (조건부)
+
+다음 조건을 모두 충족하면 closeout-pr-cycle skill 호출:
+- `git remote get-url origin` 성공 (원격 repo 존재)
+- `gh auth status` 성공 (gh 인증됨)
+- 현재 branch ≠ main/master
+
+조건 미충족 시:
+- local check만 실행 (`bash scripts/check.sh` 존재 시)
+- WARN: "PR lifecycle 미수행 — [이유: remote 없음/gh 미인증/main 브랜치]"
+- Step C-1 (drift check)로 계속
+
+closeout-pr-cycle 결과를 받아:
+- COMPLETE: merge 완료. Step C-1 진행.
+- ABANDONED: 사용자가 PR 닫기 선택. abandoned 기록.
+- PARTIAL: gh 없음 등. WARN 기록 후 계속.
+- FAIL: 오류 내용 사용자 보고 후 재시도 여부 확인.
+
+## Step C-1: Drift Check
+
 1. Agent(subagent_type="review-strict",
         task="사이클 마감 점검 (drift + 자산 갱신 검증)",
         context_paths=["docs/ai-context/architecture.md",
@@ -80,10 +100,10 @@ worktree 사용:
           - finishing-a-development-branch 산출물(브랜치/PR)이 존재 시 일관성 (선택)
         ")
 
-2. plan 헤더 갱신: **Status:** active → completed (메인이 직접 Edit)
+2. plan 헤더 갱신: **Status:** active → completed (또는 abandoned 시 abandoned) (메인이 직접 Edit)
 
 3. .claude/state.json 갱신 (메인이 jq 또는 node로 read-modify-write):
-   - cycle.count +1
+   - cycle.count +1 (abandoned 시 +0)
    - cycle.last_completed_at: today
    - audit.last_drift_check: today
 
