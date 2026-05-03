@@ -45,6 +45,10 @@ AI 실패 감지 시:
 - 확인된 용어 + 코드 식별자 매핑 → glossary 자동 추가
 - 같은 단어 다른 컨텍스트 → "Identical-Looking" 섹션에
 
+## §7. Response Language
+오케스트레이션 최종 보고(요약·선택 요구·완료 알림)는 한국어로 작성.
+내부 사고(thinking) 및 중간 과정은 영어 권장 (효율). 코드·커맨드·파일 경로는 언어 무관.
+
 ---
 
 ## Think Before Coding
