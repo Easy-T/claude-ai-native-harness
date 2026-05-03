@@ -5,7 +5,7 @@
 이 하네스를 설치하면 다음이 자동으로 작동합니다:
 
 - "**기능 추가해줘**" → R(Research) → P(Plan) → I(Implement) → Closeout 사이클을 메인 세션이 강제로 따름
-- "**새 프로젝트 셋업해줘**" → `/init-ai-ready <name>` 으로 10개 파일 + 3개 디렉터리가 결정론적으로 생성
+- "**새 프로젝트 셋업해줘**" → `/init-ai-ready <name>` 으로 12개 파일 + 5개 디렉터리가 결정론적으로 생성
 - 코드 변경 전 active plan 부재 → hook이 차단 (≤5라인 trivial 변경은 자동 통과)
 - 30일마다 글로벌 환경 self-audit, 컨텍스트 40% 도달 시 자동 `/compact` 알림
 
@@ -19,7 +19,7 @@
 
 | 진입점 | 발화 또는 명령 | 동작 |
 |---|---|---|
-| **`/init-ai-ready <name>`** | 슬래시 커맨드 | 빈 디렉터리에 AI-Ready 프로젝트 부트스트랩 (10 파일 + 디렉터리) |
+| **`/init-ai-ready <name>`** | 슬래시 커맨드 | 빈 디렉터리에 AI-Ready 프로젝트 부트스트랩 (12 파일 + 디렉터리) |
 | **start-rpi-cycle 자동 트리거** | "결제 모듈 추가해줘" / "버그 고쳐줘" / "리팩토링해줘" | RPI 사이클 강제 (R→P→I→Closeout) |
 | **create-orchestrator-skill 자동 트리거** | "이거 자주 쓸 것 같아 skill로 만들어줘" | skill-creator + orchestrator 골격 자동 주입 |
 | **doctor.sh** | `bash ~/.claude/setup/doctor.sh` | 19개 환경 진단·치료 (jq 자동 설치 등) |
@@ -36,12 +36,13 @@
 
 크로스 플랫폼 path 정규화(Windows backslash → forward slash) 내장 — Linux/WSL/Windows 모두 동일하게 작동.
 
-### 4개 orchestrator skill
+### 5개 orchestrator skill
 
 | Skill | 트리거 키워드 | Phase 구조 |
 |---|---|---|
 | `init-ai-ready-project` | "새 프로젝트", "AI-ready", "프로젝트 초기화" | 0(Self-Audit) → 1(Discover) → 2(Generate) → 3(Verify) → 4(Closing) |
 | `start-rpi-cycle` | "기능 추가", "이거 고쳐줘", "구현해줘", "리팩토링" | R(Research) → P(Plan) → I(Implement) → Closeout |
+| `closeout-pr-cycle` | "PR 만들어줘", "merge 준비해줘", "작업 마무리해줘" | Preflight → 1(Local Gate) → 2(PR Gate) → 3(CI Gate) → 4(Senior Review) → 5(User Approval) → 6(Merge/Cleanup) |
 | `create-orchestrator-skill` | "이거 skill로", "orchestrator", "<X> skill 만들어줘" | 1(Capture) → 2(skill-creator) → 3(Inject Skeleton) → 4(Verify) |
 | `common-agent-contract` | (자동 주입) | wrapper agent 3종에 Input/Output 표준 주입 |
 
@@ -126,12 +127,14 @@ Claude Code 채팅에서:
 자동으로:
 - Phase 0: doctor 환경 점검
 - Phase 1: 디렉터리 충돌 + 스택 감지 (Next.js / Python / Rust 등)
-- Phase 2: 10개 파일 결정론적 생성
+- Phase 2: 12개 파일 결정론적 생성
   ```
   CLAUDE.md
   docs/ai-context/{architecture, runbook, deny-patterns, non-obvious, domain-glossary}.md
   .claude/{settings.json, state.json, hooks/pre-commit-deny.sh}
   .gitignore
+  scripts/check.sh          ← 스택별 local quality gate
+  .github/workflows/ci.yml  ← multi-stack GitHub Actions CI
   ```
 - Phase 3: 무결성 검증
 - Phase 4: "부트스트랩 완료" 안내
@@ -149,7 +152,7 @@ start-rpi-cycle skill이 자동 발동:
 1. **Phase R (Research)**: brainstorming + explore-strict — 요구사항·접근법·디자인 정리
 2. **Phase P (Plan)**: writing-plans → `docs/superpowers/plans/YYYY-MM-DD-<topic>.md` 생성
 3. **Phase I (Implement)**: subagent-driven-development 또는 executing-plans
-4. **Phase Closeout**: review-strict → drift 검사 + 자산 갱신 + state.json 업데이트
+4. **Phase Closeout**: (조건부) `closeout-pr-cycle` → Local Gate → PR → CI → senior review → 사용자 승인 → merge. 이후 review-strict drift 검사 + 자산 갱신 + state.json 업데이트
 
 이 단계를 건너뛰고 바로 코드 쓰려고 하면 **enforce-rpi-cycle hook이 차단**:
 ```
@@ -186,13 +189,33 @@ create-orchestrator-skill skill이 발동:
 
 이렇게 만든 skill도 enforce-orchestrator hook의 검증을 자동으로 통과.
 
-### 시나리오 5 — 환경 점검 (이상하다 싶을 때)
+### 시나리오 5 — PR Closeout (merge까지)
+
+구현이 완료된 브랜치에서:
+```
+작업 마무리해줘
+```
+또는 `start-rpi-cycle` Phase Closeout에서 자동 발동 (remote + gh auth + non-main 브랜치 조건 충족 시).
+
+`closeout-pr-cycle` skill이 발동:
+1. **Phase 1 (Local Gate)**: `bash scripts/check.sh` 통과 확인 + uncommitted 없음 확인
+2. **Phase 2 (PR Gate)**: push + `gh pr create` + PR body 검증
+3. **Phase 3 (CI Gate)**: `gh pr checks --watch` — 실패 시 STOP
+4. **Phase 4 (Senior Review)**: review-strict subagent — Critical/Important/Minor/Suggestions 분류
+5. **Phase 5 (User Approval Gate)**: 사용자 명시 승인 없이는 **절대** Phase 6 진행 안 함
+6. **Phase 6 (Merge/Cleanup)**: `gh pr merge --squash --delete-branch` + 로컬 정리
+
+> AI는 merge를 결정하지 않는다. 사용자가 "1" 또는 명시 승인을 해야만 merge 실행.
+
+---
+
+### 시나리오 6 — 환경 점검 (이상하다 싶을 때)
 
 ```bash
 bash ~/.claude/setup/doctor.sh
 ```
 
-19개 항목 자동 진단:
+19개 이상 항목 자동 진단:
 - Claude Code / node / bash / git 버전
 - gh CLI 인증 상태
 - 인터넷 연결 / 디스크 공간
@@ -232,7 +255,7 @@ bash ~/.claude/setup/doctor.sh
 ├── setup/
 │   ├── doctor.sh                         환경 진단·치료
 │   ├── install.sh                        하네스 설치 스크립트
-│   ├── verify-setup.sh                   §6.3 32개 file/structure 체크
+│   ├── verify-setup.sh                   §6.3 39개 file/structure 체크
 │   ├── verify-integration.sh             §6.5 5개 E2E 시나리오
 │   ├── verify-all.sh                     4 stage acceptance gate
 │   └── tests/doctor.test.sh
@@ -241,10 +264,16 @@ bash ~/.claude/setup/doctor.sh
 │   ├── common-agent-contract/SKILL.md    Input/Output 표준 (자동 주입)
 │   ├── init-ai-ready-project/            부트스트랩 orchestrator
 │   │   ├── SKILL.md
-│   │   ├── templates/                    10 .tpl 파일
+│   │   ├── templates/                    12 .tpl 파일
 │   │   └── references/                   placeholder-spec, stack-presets
 │   ├── start-rpi-cycle/SKILL.md          RPI 사이클 orchestrator
+│   ├── closeout-pr-cycle/SKILL.md        PR Closeout orchestrator
 │   └── create-orchestrator-skill/SKILL.md
+│
+│
+│ (생성된 프로젝트 내)
+│   scripts/check.sh                      스택별 local quality gate
+│   .github/workflows/ci.yml             multi-stack GitHub Actions CI
 │
 ├── CLAUDE.md                             6 메타 룰 + 4 사용자 원칙
 ├── settings.json                         (개인 설정, .gitignore됨)
