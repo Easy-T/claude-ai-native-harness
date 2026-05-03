@@ -27,6 +27,6 @@ while IFS= read -r pattern; do
     echo "[deny-pattern] 출처: $DENY_FILE" >&2
     exit 2
   fi
-done < <(grep -E '^- ❌ ' "$DENY_FILE" | sed 's/^- ❌ //')
+done < <(grep -E '^- ❌ ' "$DENY_FILE" | sed 's/^- ❌ //' | sed 's/ ([^)]*)//' | sed 's/[[:space:]]*#.*//')
 
 exit 0
