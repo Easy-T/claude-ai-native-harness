@@ -2,6 +2,7 @@
 
 **Author:** Easy-T (with Claude Opus 4.7)
 **Created:** 2026-05-08
+**Last revised:** 2026-05-08 (v2 — final review)
 **Status:** Approved (brainstorming complete, ready for writing-plans)
 **Spec location:** `~/.claude/docs/superpowers/specs/2026-05-08-housing-benefits-app-design.md`
 **Target project dir:** WSL Ubuntu — `~/projects/housing-benefits-app` (created at handoff)
@@ -21,7 +22,7 @@
 | 청약홈 청약알리미 | 청약만, 1년 재신청, 관심지역 10개 제한, 자격 매칭 X |
 | SH/3기 신도시 알리미 | 권역 한정, 카톡만 |
 | 호갱노노/직방 | 단지 중심, 자격 매칭 X, 임대정책 통합 X |
-| 분양알리미류 민간 앱 | 마케팅 위주, 라이프이벤트 X |
+| 분양알리미류 민간 앱 | 신규 분양 정보 위주, 자격 매칭·라이프이벤트 트래킹 X |
 
 **결과**: 사용자가 본인 라이프 단계와 조건에 맞는 혜택을 자동으로 추적·알림 받을 수 없다.
 
@@ -32,8 +33,9 @@
 3. **두 레이어 분리**:
    - **가이드 레이어**: 모든 정부 주거 혜택의 항상 최신 카탈로그
    - **매칭/알림 레이어**: 우선순위 정책(청약 + 임대 필수)부터 단계적 구현
-4. 라이프 이벤트(혼인·출산·이사) 발생 시 자동 재매칭 + 미래 시점 시뮬레이션
-5. 부동산 정책 현황(토허재·LTV·DSR) 실시간 요약 표시
+4. 라이프 이벤트(혼인·출산·이사) 발생 시 자동 재매칭 + **What-if 시점 시뮬레이션** (1년 후·결혼 5년 후 등 미래 시점 자격 예측)
+5. 부동산 정책 현황(토허재·LTV·DSR) 실시간 요약을 웹 첫 화면 카드로 표시
+6. LLM 환각 방지를 위해 Verifier sub-agent (분리된 컨텍스트 + 웹서치 cross-check)로 정책 룰 추출 검증
 
 ### 0.3 비목표 (Non-Goals)
 
@@ -45,11 +47,11 @@
 
 ### 0.4 범위 — 정책 우선순위
 
-**Phase A 필수 구현**:
+**Phase A 필수 구현** (매칭 + 알림):
 - 매매 — 청약 (생애최초·신혼·다자녀·노부모·신생아 특공 + 일반공급)
 - 임대 — 공공 (행복주택 청년·신혼, 국민임대, 영구임대, 매입임대, 전세임대, 미리내집)
 
-**Phase A 후순위 카테고리** (가이드만, 매칭은 Phase B):
+**Phase A 후순위 카테고리** (가이드 레이어만 노출, 매칭은 Phase B):
 - 매매 — 디딤돌 / 신생아 특례 디딤돌
 - 전세 — 버팀목 / 청년·신혼·신생아 버팀목
 - 임대 — 민간 지원형
@@ -75,15 +77,15 @@ Phase B — 지인 베타 (5~20명)
   ├─ NextAuth 다중 사용자
   ├─ 스코어링 카테고리 확장 (교통·학군·호재·공급량·등급)
   ├─ HWP 파서 워커 (kordoc)
-  ├─ 청약 신청 추적기 (확장)
+  └─ 청약 신청 추적기 확장
               ↓
 Phase C — 공개 서비스
   ├─ 회원가입 / 약관 / 개인정보 처리방침 (KISA)
-  ├─ Phase C 진입 시 데이터 이용 협의 (정부 기관)
+  ├─ 데이터 이용 협의 (정부 기관)
   └─ 다국어, 결제 등
 ```
 
-**중요**: Phase A.1이 먼저, 배포는 가장 마지막. 기능 검증을 비용 0으로 끝낸 뒤 GCP 인프라에 진입.
+**중요**: Phase A.1이 먼저, 배포는 가장 마지막. 기능 검증을 비용 0으로 끝낸 뒤 GCP 인프라 진입.
 
 ---
 
@@ -103,7 +105,7 @@ Phase C — 공개 서비스
 │   - 사용자 프로필 × 활성 공고 × 룰 매칭                     │
 │   - 자격 충족 → 캘린더 + 웹푸시 알림                        │
 │   - 라이프 이벤트 → 자동 재매칭 + What-if 시뮬             │
-│   - 우선순위 정책만 (Phase A: 청약 + 임대)                  │
+│   - 우선순위 정책만 (Phase A: 청약 + 임대-공공)             │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -115,18 +117,19 @@ Phase C — 공개 서비스
 
 | 계층 | 역할 | Phase A 적용 |
 |------|------|------------|
-| **L1. 공공데이터포털 OpenAPI** | 마이홈 모집공고 + LH 단지정보 + 공동주택 정보 | 최우선 (정식 API) |
+| **L1. 공공데이터포털 OpenAPI** | 마이홈 모집공고 + LH 단지정보 + 공동주택 정보 + 국토부 실거래가 | 최우선 (정식 API) |
 | **L2. 핵심 사이트 직접 스크래핑** | 청약홈·SH(미리내집)·GH (Playwright) | 필수 보강 |
 | **L3-A. 자격 룰 변경 모니터링** | 보도자료 RSS/HTML → LLM 추출 → Verifier 검증 → 룰 DB 자동 갱신 | 필수 |
 | **L3-B. 거시 정책 모니터링** | 토허재·LTV·DSR·세제 → 매일 요약 → 웹 첫 화면 카드 | 필수 |
-| **L4. 공식 알림 미러링** | 청약홈 공식 알리미 카톡/SMS 수신 → 메시지 파싱 (백업) | 선택 |
-| **L5. PDF/HWP 자동 다운로드 + 파싱** | pdfplumber/pdfjs + (Phase B) kordoc → LLM 요약 → DB | 필수 (PDF만, HWP는 Phase B) |
+| **L4. 공식 알림 미러링** | 청약홈 공식 알리미 카톡/SMS 수신 → 메시지 파싱 (백업) | 선택 (Phase A 생략 가능) |
+| **L5. PDF/HWP 자동 다운로드 + 본문 파싱** | pdfjs-dist (Node) + (Phase A) LibreOffice HWP→PDF 변환 / (Phase B) kordoc → LLM 요약 → DB | 필수 (PDF 우선, HWP fallback) |
 
 **주요 외부 출처:**
 
 - 마이홈 OpenAPI: https://www.data.go.kr/data/15108420/openapi.do
 - LH 단지 OpenAPI: https://www.data.go.kr/data/15058476/openapi.do
 - 공동주택 OpenAPI: https://www.data.go.kr/data/15058453/openapi.do
+- 국토부 실거래가 OpenAPI: https://www.data.go.kr (스코어링 §11.1 ② 활용)
 - 청약홈: https://www.applyhome.co.kr
 - 마이홈포털: https://www.myhome.go.kr
 - LH 청약플러스: https://apply.lh.or.kr
@@ -139,8 +142,8 @@ Phase C — 공개 서비스
 **제약 사항:**
 
 - 공공 API 트래픽: 개발계정 1,000건/일 → 운영계정 신청 시 증가
-- 일부 API 국내 IP 한정 → GCP Seoul 리전 필수
-- 인증키 동기화 오류 (`SERVICE_KEY_IS_NOT_REGISTERED_ERROR`) 간헐 발생 → 재시도 로직
+- 일부 API 국내 IP 한정 → GCP Seoul 리전 필수 (Phase A.2)
+- 인증키 동기화 오류 (`SERVICE_KEY_IS_NOT_REGISTERED_ERROR`) 간헐 발생 → 지수적 재시도
 
 ---
 
@@ -156,7 +159,7 @@ Phase C — 공개 서비스
 │  - Service Worker (Web Push + 오프라인)  │
 │  - Server Actions + API Routes           │
 └──────────────────────────────────────────┘
-    │
+    │ ↕ (양방향)
     ▼
 ┌──────────────────────────────────────────┐
 │  Cloud SQL Postgres (asia-northeast3)    │
@@ -165,13 +168,15 @@ Phase C — 공개 서비스
 │  - rule_change_proposal / lookup_table   │
 │  - announcement_score / supply_breakdown │
 │  - policy_status / crawler_health        │
+│  - notification_log / user_settings 등   │
 └──────────────────────────────────────────┘
-    ▲
+    ▲ ↕ (양방향)
     │
 ┌──────────────────────────────────────────┐
 │  Cloud Scheduler (cron)                  │
 │  - 매일 N회 전수조사 트리거              │
-│  - 매일 1회 헬스체크                     │
+│  - 매일 1회 헬스체크 (09:00 KST)         │
+│  - 매일 1회 룰 변경 다이제스트 (08:00)   │
 └──────────────────────────────────────────┘
     │
     ▼
@@ -179,6 +184,7 @@ Phase C — 공개 서비스
 │  Cloud Run Jobs (워커)                   │
 │  ├─ Sweep Worker (API + Playwright)      │
 │  ├─ PDF Parser (pdfjs + LLM)             │
+│  ├─ HWP→PDF Converter (LibreOffice)      │
 │  ├─ Extractor (LLM)                      │
 │  ├─ Verifier Sub-Agent (웹서치 + LLM)    │
 │  ├─ Matcher (TS 함수 + JSON 룰)          │
@@ -201,30 +207,33 @@ Phase C — 공개 서비스
 └──────────────────────────────────────────┘
 ```
 
+→ App과 Workers 모두 DB에 양방향 접근. Workers의 출력이 App의 매칭 결과·정책 카드로 표시.
+
 ---
 
 ## §5. 기술 스택
 
 | 레이어 | 선택 | 비고 |
 |--------|------|------|
-| Frontend | Next.js 15 App Router + shadcn/ui + Tailwind v4 | 2026 표준 |
+| Frontend | Next.js 15 App Router + shadcn/ui + Tailwind CSS v4 | 2026 표준 |
 | 베이스 템플릿 | next-shadcn-dashboard-starter + Vercel Registry Starter | AI 코딩 도구 친화 |
 | Backend | Next.js Server Actions + API Routes | 모놀리스 |
 | DB | PostgreSQL 16 (Cloud SQL Seoul) | 로컬은 Docker Postgres |
 | ORM | Drizzle | TypeScript-first, SQL 직접 쓰기 좋음 |
-| Auth (Phase A) | 단일 세션 토큰 | Phase B에서 NextAuth |
+| Auth (Phase A) | 단일 세션 토큰 (env에 secret) | Phase B에서 NextAuth |
 | Scheduler | Cloud Scheduler → Cloud Run Job | 로컬은 node-cron |
-| Crawling | Playwright (Linux) | 청약홈·SH 동적 페이지 |
-| API client | 공공데이터포털 SDK (자체 wrapper) | |
-| PDF | `pdfjs-dist` (Node) | Phase B kordoc 추가 |
-| HWP | LLM Vision으로 우회 (Phase A) → kordoc (Phase B) | Windows 의존성 회피 |
-| LLM (Extractor/Summary) | Claude Sonnet 4.6 (기본) — env 교체 가능 | 비용 균형 |
-| LLM (Judge/Verifier) | Claude Opus 4.7 또는 GPT-5.5 | 추론력 우선 |
+| Crawling | Playwright (Linux 컨테이너) | 청약홈·SH 동적 페이지 |
+| API client | 공공데이터포털 자체 wrapper (재시도·rate limit·캐싱 포함) | |
+| PDF | `pdfjs-dist` (Node) | 텍스트 추출 |
+| HWP (Phase A) | LibreOffice 컨테이너로 HWP→PDF 변환 → pdfjs (실패 시 본문 미파싱 표시 + 원문 링크만) | Hancom 의존성 회피 |
+| HWP (Phase B) | kordoc 워커 (정밀) | 별도 워커, Windows·Hancom 분리 운영 |
+| LLM (Extractor/Summary) | Claude Sonnet 4.6 (기본) — env 교체 가능 | 비용·정확도 균형 |
+| LLM (Judge/Verifier) | Claude Opus 4.7 / GPT-5.5 (둘 중 하나) | 추론력 우선 |
 | Verifier 웹서치 | Tavily API (1000 req/월 무료) | |
 | Push | Web Push (VAPID 자체 생성) | iOS 16.4+ 호환 |
-| Calendar | Google Calendar API (OAuth) | |
-| 헬스체크 | Telegram Bot | 즉시성 |
-| CI/CD | GitHub Actions → Cloud Build → Cloud Run | Phase A.2 |
+| Calendar | Google Calendar API (OAuth 2.0) | |
+| 헬스체크 알림 | Telegram Bot | 즉시성, 무료 |
+| CI/CD (Phase A.2) | GitHub Actions → Cloud Build → Cloud Run | |
 | Observability | Cloud Logging + Sentry (무료 티어) | |
 | Local Dev | WSL Ubuntu 24.04 + Node 22 + pnpm + Docker + ngrok | |
 
@@ -237,8 +246,13 @@ Phase C — 공개 서비스
 ```sql
 household (
   household_id        PK,
-  user_id             INT NOT NULL DEFAULT 1,  -- Phase B 대비 미리 추가
+  user_id             INT NOT NULL DEFAULT 1,  -- Phase B 멀티유저 대비 미리 추가
   household_type      ENUM('SINGLE', 'COUPLE', 'SINGLE_PARENT', 'PRE_NEWLYWED'),
+  -- household_type별 person 구성:
+  --   SINGLE: PRIMARY 1명 (SPOUSE 없음)
+  --   COUPLE: PRIMARY + SPOUSE
+  --   SINGLE_PARENT: PRIMARY 1명 + children
+  --   PRE_NEWLYWED: PRIMARY + SPOUSE (혼인신고 전, 입주 전 신고 약속)
   created_at, updated_at
 )
 
@@ -250,8 +264,8 @@ person (
   nationality          ENUM('KOR', 'FOREIGNER'),
   income_yearly        BIGINT,           -- 세전 연소득 (원), 암호화
   income_source_type   ENUM('LABOR','BUSINESS','MIXED','RETIRED'),
-  years_of_employment  INT,
-  military_service_months INT DEFAULT 0,
+  years_of_employment  INT,              -- 5년 근로(생애최초) 산정용
+  military_service_months INT DEFAULT 0, -- 군 복무 기간, 5년 근로에 합산
   assets_real_estate   BIGINT,           -- 공시가 (원), 암호화
   assets_vehicle       BIGINT,
   assets_financial     BIGINT,
@@ -259,29 +273,32 @@ person (
   subscription_account_type ENUM('GENERAL', 'YOUTH'),
   subscription_open_at DATE,
   subscription_payment_count INT,
-  subscription_payment_total BIGINT,
-  homeless_since       DATE,             -- 무주택 시작일
+  subscription_payment_total BIGINT,     -- 암호화
+  subscription_canceled_within_1y BOOLEAN,
+  homeless_since       DATE,             -- 무주택 시작일 (NULL이면 유주택)
   residence_sido,
   residence_sigungu,
   residence_dong,
   residence_since      DATE,
   is_household_head    BOOLEAN,
-  credit_score_kcb     INT,              -- 옵션
-  credit_score_nice    INT,              -- 옵션
+  is_separated_household BOOLEAN,        -- 세대 분리 여부
+  credit_score_kcb     INT,              -- 옵션, 암호화
+  credit_score_nice    INT,              -- 옵션, 암호화
   has_existing_didimdol_loan BOOLEAN,
   has_existing_jeonse_loan BOOLEAN,
+  has_existing_lh_rental BOOLEAN,
+  has_housing_subsidy  BOOLEAN,
   existing_loan_balance BIGINT,
-  is_subscription_winner_within_5y BOOLEAN,
-  -- 등 50+ 컬럼
+  is_subscription_winner_within_5y BOOLEAN  -- 5년 내 청약 당첨 이력 (사용자 입력)
 )
 
 child (
   child_id             PK,
   household_id         FK,
   birth_date,
-  disposition_date,    -- 사망/입양취소 시
-  disposition_type     ENUM('DEATH','ADOPTION_REVOKED', NULL),
-  is_adopted           BOOLEAN
+  is_adopted           BOOLEAN DEFAULT false,
+  disposition_date     DATE NULL,        -- 사망/입양취소 시
+  disposition_type     ENUM('DEATH','ADOPTION_REVOKED', NULL)
 )
 
 household_event (
@@ -298,7 +315,7 @@ household_event (
     'HOUSEHOLD_TYPE_CHANGE'
   ),
   event_date           DATE NOT NULL,
-  meta                 JSONB
+  meta                 JSONB             -- 이벤트별 부가 정보
 )
 ```
 
@@ -308,7 +325,7 @@ household_event (
 
 ```sql
 policy (
-  policy_id            PK (예: 'loan-didimdol-newlywed:2026.04'),
+  policy_id            VARCHAR(80) PK,    -- 'match-newlywed-special:2026.04' 형식
   category             ENUM(
     '매매-청약','매매-대출',
     '전세-대출',
@@ -316,13 +333,13 @@ policy (
     '정책현황'
   ),
   name                 VARCHAR(200),
-  issuing_org,
+  issuing_org          VARCHAR(100),
   status               ENUM('ACTIVE','DEPRECATED','SUPERSEDED'),
   effective_from       DATE,
   effective_to         DATE NULL,
-  supersedes           FK NULL,           -- 이전 버전 룰
+  supersedes           VARCHAR(80) NULL,  -- 이전 버전 policy_id
   source_url,
-  description_md       TEXT,
+  description_md       TEXT,              -- 가이드 레이어용 사용자 설명
   rule_json            JSONB NOT NULL,    -- §7 룰 형식
   verifier_status      ENUM('VERIFIED','WEAK_VERIFIED','AMBIGUOUS','CONTRADICTED'),
   last_verified_at     TIMESTAMP,
@@ -331,9 +348,10 @@ policy (
 
 announcement (
   announcement_id      PK,
-  policy_id            FK,
+  policy_id            FK → policy,
+  announcement_type    ENUM('SALE','RENTAL'),  -- 청약 분양 vs 임대 공고 구분
   source               ENUM('API','CRAWL'),
-  source_external_id,                    -- 외부 사이트의 ID
+  source_external_id   VARCHAR(200),     -- 외부 사이트의 ID
   title,
   publish_date,
   apply_start          DATE,
@@ -355,10 +373,10 @@ match (
   announcement_id      FK,
   match_status         ENUM('ELIGIBLE','LIKELY_ELIGIBLE','NEEDS_REVIEW','INELIGIBLE'),
   confidence           INT,              -- 0-100
-  criterion_results    JSONB,            -- 조건별 통과/실패
+  criterion_results    JSONB,            -- 조건별 통과/실패 + 환산 값
   applied_rule_version VARCHAR(50),      -- 어떤 룰 버전으로 매칭됐는지
   applied_at           TIMESTAMP,
-  valid_until          TIMESTAMP NULL,
+  valid_until          TIMESTAMP NULL,   -- 룰 변경 시 무효화
   calendar_event_id    VARCHAR(255),
   notification_sent_at TIMESTAMP,
   is_dismissed         BOOLEAN DEFAULT false,
@@ -375,14 +393,14 @@ rule_change_proposal (
   proposed_rule_json   JSONB,
   source_news_url,
   source_pdf_url,
-  extracted_fields_evidence JSONB,       -- {field, snippet, offset}[]
+  extracted_fields_evidence JSONB,       -- [{field, snippet, offset}]
   extractor_confidence FLOAT,
-  verifier_findings    JSONB,            -- {web_results[], contradictions[], score}
+  verifier_findings    JSONB,            -- {web_results[], contradictions[], independence_score}
   status               ENUM('PENDING','AUTO_APPLIED','NEEDS_REVIEW','REJECTED'),
   reviewed_at, applied_at
 )
 
-policy_status (                          -- L3-B: 토허재/LTV/DSR
+policy_status (                          -- L3-B: 토허재/LTV/DSR (대시보드 카드용)
   status_id            PK,
   status_type          ENUM('토허재','LTV규제','DSR규제','세제','규제지역'),
   region               JSONB,
@@ -395,7 +413,7 @@ policy_status (                          -- L3-B: 토허재/LTV/DSR
 )
 
 lookup_table (                           -- 도시근로자 소득표·디딤돌 금리표·LTV/DSR 표
-  table_id             PK,               -- 'urban_worker_income_yearly_2026'
+  table_id             VARCHAR(80) PK,   -- 'urban_worker_income_yearly_2026'
   version,
   effective_from       DATE,
   data                 JSONB,            -- {key: value, ...}
@@ -405,42 +423,51 @@ lookup_table (                           -- 도시근로자 소득표·디딤돌
 )
 ```
 
-### 6.3 스코어 + 공급 구조
+### 6.3 스코어 + 공급 구조 (매매 + 임대 분기)
 
 ```sql
 announcement_score (
   score_id             PK,
   announcement_id      FK,
   score_type           ENUM('COMPETITION','PRICE_VALUE','LIQUIDITY','COMPOSITE'),
-  normalized_score     INT 0-100,
+  normalized_score     INT,              -- 0-100
   details              JSONB,            -- 산정 근거
   source_urls          JSONB,
   computed_at,
-  expires_at
+  expires_at                             -- 시세·경쟁률은 시점 종속, 만료 시 재계산
 )
 
 announcement_supply_breakdown (
   breakdown_id         PK,
   announcement_id      FK,
-  total_units          INT,
-  general_supply       JSONB,            -- {total, score_units, lottery_units}
-  special_supply       JSONB,            -- {category: units, ...}
-  unranked_units       INT,              -- 무순위
+  supply_type          ENUM('SALE','RENTAL'),  -- announcement.announcement_type와 일치
+
+  -- SALE (매매-청약) 구조:
+  sale_general_supply  JSONB,            -- {total, score_units, lottery_units}
+  sale_special_supply  JSONB,            -- {생애최초, 신혼부부, 다자녀, 노부모, 신생아, 기관추천, ...}
+  sale_unranked_units  INT,              -- 무순위 잔여
+
+  -- RENTAL (임대-공공) 구조:
+  rental_priority_lanes JSONB,           -- {청년, 신혼, 신생아, 다자녀, 우선공급, 일반공급, 예비입주}
+
+  -- 공통:
   area_distribution    JSONB,            -- {평형: 호수}
   source_urls          JSONB,
   parsed_at
 )
 ```
 
+→ `announcement_supply_breakdown.supply_type`이 SALE이면 sale_* 필드 사용, RENTAL이면 rental_* 필드 사용. 둘 중 한쪽만 채워짐.
+
 ### 6.4 운영·헬스체크·사용자 학습
 
 ```sql
 crawler_health (
-  source_id            PK,                -- 'applyhome', 'sh', 'lh', ...
+  source_id            VARCHAR(50) PK,    -- 'applyhome', 'sh', 'lh', ...
   selector_path,
   last_success_at,
   last_failure_at,
-  consecutive_failures INT,
+  consecutive_failures INT DEFAULT 0,
   status               ENUM('HEALTHY','DEGRADED','BROKEN')
 )
 
@@ -452,7 +479,7 @@ match_dismissed (                         -- "관심 없음" 학습
   expires_at                              -- 30일 후 자동 해제
 )
 
-match_report (                            -- 사용자 신고
+match_report (                            -- 사용자 신고 ("이 매칭 잘못됨")
   report_id            PK,
   match_id             FK,
   reason               TEXT,
@@ -460,7 +487,7 @@ match_report (                            -- 사용자 신고
   status               ENUM('PENDING','REVIEWED','APPLIED')
 )
 
-notification_log (                        -- 알림 이력
+notification_log (                        -- 알림 이력 (검색·디버깅용)
   log_id               PK,
   household_id         FK,
   channel              ENUM('PUSH','CALENDAR','TELEGRAM'),
@@ -478,6 +505,16 @@ user_settings (
   enabled_categories   JSONB,             -- {매매-청약: true, 전세-대출: false, ...}
   theme                ENUM('AUTO','LIGHT','DARK')
 )
+
+llm_cost_log (                            -- 비용 추적 (헬스체크 임계값 평가용)
+  log_id               PK,
+  date                 DATE,
+  model                VARCHAR(50),
+  task_type            ENUM('EXTRACT','JUDGE','SUMMARIZE'),
+  input_tokens         INT,
+  output_tokens        INT,
+  cost_usd             DECIMAL(10,4)
+)
 ```
 
 **모든 사용자 데이터 테이블에 `user_id` 또는 `household_id` 추가** — Phase B 멀티유저 마이그레이션 부담 0.
@@ -490,39 +527,46 @@ user_settings (
 
 ### 7.1 룰 JSON V2.1 스키마
 
+예시 정책: **신혼부부 특별공급** (Phase A 매매-청약 필수 정책)
+
 ```json
 {
-  "policy_id": "loan-didimdol-newlywed:2026.04",
+  "policy_id": "match-newlywed-special:2026.04",
   "version": "2026.04",
-  "name": "신혼부부 디딤돌 대출",
+  "name": "신혼부부 특별공급",
+  "category": "매매-청약",
   "effective_from": "2026-04-01",
   "effective_to": null,
-  "supersedes": "loan-didimdol-newlywed:2025.10",
+  "supersedes": "match-newlywed-special:2025.10",
+
   "transition_rules": {
-    "applications_before": "2026-01-01",
-    "applications_after": "2026-01-01"
+    "cutoff_date": "2026-04-01",
+    "applications_before_cutoff": "use_predecessor_rule",
+    "applications_on_or_after_cutoff": "use_this_rule"
   },
 
   "criteria": {
     "all": [
       { "field": "household.type", "op": "eq", "value": "COUPLE" },
       { "field": "household.years_since_marriage", "op": "lte", "value": 7 },
+      { "field": "household.all_members_homeless", "op": "eq", "value": true },
       {
         "field": "household.combined_income_yearly",
         "op": "lookup_lte",
         "table": "urban_worker_income_yearly_2026",
         "key": "household.member_count",
         "multiplier_formula": {
-          "base": 1.0,
-          "modifiers": [
-            { "if": "household.is_dual_earner", "set_base": 2.0 },
-            { "else": true, "set_base": 1.3 },
-            { "per_unit": "household.children_count", "add": 0.10 }
+          "evaluation_order": ["set_base_first", "then_per_unit_add"],
+          "set_base": [
+            { "if": "household.is_dual_earner", "value": 2.0 },
+            { "else_default": 1.3 }
+          ],
+          "per_unit_add": [
+            { "field": "household.children_count", "add_per_unit": 0.10 }
           ]
         }
       },
       { "field": "household.combined_assets", "op": "lte", "value": 506000000 },
-      { "field": "household.all_members_homeless", "op": "eq", "value": true },
       { "any": [
         { "field": "primary.has_subscription_account", "op": "eq", "value": true },
         { "field": "spouse.has_subscription_account", "op": "eq", "value": true }
@@ -531,16 +575,39 @@ user_settings (
   },
 
   "disqualifiers": [
-    { "field": "primary.is_subscription_winner_within_5y", "op": "eq", "value": true },
-    { "field": "primary.has_existing_didimdol_loan", "op": "eq", "value": true }
+    { "field": "primary.is_subscription_winner_within_5y", "op": "eq", "value": true }
   ],
 
+  "outputs": {
+    "priority_lane": {
+      "type": "fixed",
+      "value": "특별공급-신혼부부"
+    }
+  },
+
+  "score_formula": null,
+
+  "applies_to_announcement": {
+    "category": "매매-청약",
+    "region": "*"
+  }
+}
+```
+
+**예시 2 (outputs.computed 활용)** — 신혼부부 디딤돌 (Phase B 매칭 대상이지만 룰 형식 확장 예시):
+
+```json
+{
+  "policy_id": "loan-didimdol-newlywed:2026.04",
   "outputs": {
     "loan_limit": {
       "type": "computed",
       "regional_thresholds": {
         "수도권": { "formula": "min(target_house_price * 0.7, 400000000)" },
         "지방":   { "formula": "min(target_house_price * 0.7, 300000000)" }
+      },
+      "input_variables": {
+        "target_house_price": "사용자가 매물 시뮬 시 입력하는 값 (UI에서 받음)"
       }
     },
     "interest_rate": {
@@ -548,13 +615,6 @@ user_settings (
       "table": "didimdol_rate_2026.04",
       "key": ["household.combined_income_yearly", "household.has_newborn"]
     }
-  },
-
-  "score_formula": null,
-
-  "applies_to_announcement": {
-    "category": "매매-대출",
-    "region": "*"
   }
 }
 ```
@@ -563,15 +623,34 @@ user_settings (
 
 `eq | neq | lt | lte | gt | gte | in | not_in | between | contains | regex_match | lookup_eq | lookup_lte | regional_lte | regional_eq`
 
-### 7.3 평가기 시그니처
+### 7.3 multiplier_formula 평가 순서
+
+```
+1. evaluation_order의 첫 단계 ("set_base_first") 실행:
+   - set_base 배열을 순서대로 평가
+   - 첫 번째 매치되는 조건의 value를 base로 채택
+   - else_default가 있고 매치된 게 없으면 default 사용
+2. evaluation_order의 두 번째 단계 ("then_per_unit_add") 실행:
+   - per_unit_add 배열을 평가
+   - field의 값 × add_per_unit을 base에 누적
+3. 최종 multiplier 결정 → lookup_lte 임계값에 곱함
+```
+
+예: `set_base = 1.3 (외벌이) + per_unit_add (자녀 2명 × 0.10) = 1.5` → 도시근로자 소득표 × 1.5가 임계값.
+
+### 7.4 평가기 시그니처
 
 ```typescript
+type Fact = number | string | boolean | Date;
+type Facts = Record<string, Fact>;
+
 type CriterionResult = {
   passed: boolean;
   field: string;
   operator: string;
   expected: Fact;
   actual: Fact;
+  computed_threshold?: Fact;  // multiplier_formula 등 적용 후 실제 임계값
   reason?: string;
 };
 
@@ -595,47 +674,48 @@ function evaluate(
 
 ---
 
-## §8. Computed Fields (106개, 12 카테고리)
+## §8. Computed Fields (107개, 12 카테고리)
 
-매칭 시 today 기준으로 동적 산출. DB에 저장 X.
+매칭 시 today 기준으로 동적 산출. DB에 저장 X. `computeFacts(household, today)` 한 번 호출로 모두 산출.
 
-### 카테고리 1. 세대 구성 (8)
-`household.type, member_count, children_count, minor_children_count, is_multi_child, youngest_child_age_months, has_newborn, has_pregnancy`
+### 카테고리 1. 세대 구성 (9)
+`household.type, household.member_count, household.children_count, household.minor_children_count, household.is_multi_child (3+), household.youngest_child_age_months, household.has_newborn (≤24m), household.has_pregnancy, household.is_dual_earner (PRIMARY+SPOUSE 모두 income_source_type IN (LABOR,BUSINESS))`
 
 ### 카테고리 2. 소득 (10) — Lookup table 의존
-`primary.income_yearly, spouse.income_yearly, household.combined_income_yearly, combined_income_monthly_avg, income_pct_of_urban_avg (lookup), income_decile, primary.income_source_type, primary.is_employed, primary.years_of_employment, household.has_dependent_elderly`
+`primary.income_yearly, spouse.income_yearly, household.combined_income_yearly, household.combined_income_monthly_avg, household.income_pct_of_urban_avg (lookup), household.income_decile, primary.income_source_type, primary.is_employed (5년 근로 — military 합산), primary.years_of_employment_total (= years_of_employment + military_service_months/12), household.has_dependent_elderly (만 65세 이상 직계존속 3년 이상 동거)`
 
 ### 카테고리 3. 자산 (9)
 `primary.assets_real_estate_official, primary.assets_vehicle, primary.assets_financial, spouse.assets_real_estate_official, spouse.assets_vehicle, spouse.assets_financial, household.combined_assets, household.combined_assets_minus_debt, household.has_subscription_account_balance_ge_24m`
 
-### 카테고리 4. 무주택·주택 보유 이력 (12)
-`primary.is_homeless, primary.homeless_since, primary.homeless_period_years, primary.homeless_score, spouse.is_homeless, spouse.homeless_period_years, household.all_members_homeless, primary.had_house_in_past_5y, primary.is_subscription_winner_5y, primary.has_owned_house_5y_old_30plus, primary.house_disposed_pending, household.disqualified_under_recent_winner_rule`
+### 카테고리 4. 무주택·주택 보유 이력 (11)
+`primary.is_homeless, primary.homeless_since, primary.homeless_period_years, primary.homeless_score (32만점, 가점 산출), spouse.is_homeless, spouse.homeless_period_years, household.all_members_homeless, primary.had_house_in_past_5y, primary.has_owned_house_5y_old_30plus, primary.house_disposed_pending, household.disqualified_under_recent_winner_rule`
+*(중복 제거: `is_subscription_winner_5y`는 카테고리 11로 통합)*
 
 ### 카테고리 5. 거주 (8)
-`primary.residence_sido, primary.residence_sigungu, primary.residence_dong, primary.residence_since, primary.residence_years, primary.residence_in_metro, primary.residence_in_regulated_zone (lookup), primary.residence_in_toheoja (lookup)`
+`primary.residence_sido, primary.residence_sigungu, primary.residence_dong, primary.residence_since, primary.residence_years, primary.residence_in_metro, primary.residence_in_regulated_zone (lookup, 시점별), primary.residence_in_toheoja (lookup, 시점별)`
 
 ### 카테고리 6. 혼인·자녀 (10)
-`primary.marriage_date, household.years_since_marriage, household.is_pre_newlywed, household.is_newlywed, household.is_post_newlywed, household.children, household.has_child_in_school, household.is_single_parent, household.is_grandparent_household, household.is_multicultural`
+`primary.marriage_date, household.years_since_marriage, household.is_pre_newlywed (혼인신고 전 + 입주 전 신고 약속), household.is_newlywed (혼인 7년 이내), household.is_post_newlywed, household.children_birth_dates[] (자녀 생년월일 배열, 카테고리 1의 children_count와 다른 데이터), household.has_child_in_school, household.is_single_parent, household.is_grandparent_household, household.is_multicultural`
 
 ### 카테고리 7. 청약통장 (10)
-`primary.subscription_account_type, primary.subscription_open_at, primary.subscription_age_months, primary.subscription_age_score, primary.subscription_payment_count, primary.subscription_payment_total, primary.subscription_recognized_amount, primary.subscription_youth_type, spouse.subscription_account_type, household.has_any_subscription_account`
+`primary.subscription_account_type, primary.subscription_open_at, primary.subscription_age_months, primary.subscription_age_score (17만점, 가점), primary.subscription_payment_count, primary.subscription_payment_total, primary.subscription_recognized_amount, primary.subscription_youth_type, spouse.subscription_account_type, household.has_any_subscription_account`
 
-### 카테고리 8. 청약 가점 (5) — Computed
-`primary.score_homeless (32만점), primary.score_dependents (35만점), primary.score_subscription (17만점), primary.score_total (84만점), primary.dependents_count`
+### 카테고리 8. 청약 가점 — Computed (5)
+`primary.score_homeless (32만점), primary.score_dependents (35만점), primary.score_subscription (17만점), primary.score_total (84만점), primary.dependents_count (직계존속+직계비속+배우자, 가구원 정의 기반)`
 
 ### 카테고리 9. 특별공급 / 우선공급 자격 (15)
-`life_first, newlywed_special, newlywed_hope_town, multi_child, elder_parent, institution_recommended, newborn, youth_happy_house, newlywed_happy_house, elderly_purchase, basic_living, lower_class, disabled, national_merit, north_korea_defector`
+`eligibility.life_first, eligibility.newlywed_special, eligibility.newlywed_hope_town, eligibility.multi_child, eligibility.elder_parent, eligibility.institution_recommended, eligibility.newborn, eligibility.youth_happy_house, eligibility.newlywed_happy_house, eligibility.elderly_purchase, eligibility.basic_living, eligibility.lower_class, eligibility.disabled, eligibility.national_merit, eligibility.north_korea_defector`
 
 ### 카테고리 10. 대출 한도·자격 (8) — Lookup table 의존
-`loan.ltv_max_for_region (lookup), loan.dsr_max, loan.dsr_stress_rate, primary.existing_loan_balance, primary.existing_didimdol_loan, primary.existing_jeonse_loan, primary.credit_score_kcb, primary.credit_score_nice`
+`loan.ltv_max_for_region (lookup, 시점별 + 지역별 + 주택가격대별), loan.dsr_max, loan.dsr_stress_rate, primary.existing_loan_balance, primary.existing_didimdol_loan, primary.existing_jeonse_loan, primary.credit_score_kcb, primary.credit_score_nice`
 
 ### 카테고리 11. 신분·자격·이력 (8)
-`primary.nationality, primary.is_separated_household, primary.is_household_head, primary.is_subscription_winner_within_5y, primary.subscription_account_canceled_within_1y, primary.has_existing_lh_rental, primary.has_housing_subsidy, primary.is_youth`
+`primary.nationality, primary.is_separated_household, primary.is_household_head, primary.is_subscription_winner_within_5y, primary.subscription_account_canceled_within_1y, primary.has_existing_lh_rental, primary.has_housing_subsidy, primary.is_youth (만 19~39세)`
 
 ### 카테고리 12. 시점별 정책 매핑 (3)
 `policy_timeline.toheoja_zones_today, policy_timeline.regulated_zones_today, policy_timeline.ltv_dsr_rules_today`
 
-→ **합계 약 106개**. 평가기는 `computeFacts(household, today)` 호출로 한 번에 모두 산출.
+→ **합계 약 107개**.
 
 ---
 
@@ -651,7 +731,7 @@ function evaluate(
 
 ### 9.2 GPT 사용 시
 
-GPT는 항상 GPT-5.5 사용 (4.1 등 하위 모델 사용 X). 비용 예산 안에서 정확도 최우선.
+GPT 사용처는 항상 **GPT-5.5**. 4.1 등 하위 모델 사용 금지. 비용 예산 안에서 정확도 최우선.
 
 ### 9.3 인터페이스
 
@@ -663,51 +743,67 @@ export interface LLMProvider {
 }
 
 export function createLLM(): LLMProvider {
-  // env로 모델 선택
+  // env로 모델 선택, Anthropic / OpenAI 둘 다 지원
 }
 ```
 
 ### 9.4 PII 마스킹 강제
 
-LLM 호출 wrapper가 입력 텍스트에서 사용자 PII 패턴 검출 시 throw. 정책 텍스트만 LLM 입력.
+`callLLM(text)` wrapper가 입력 텍스트에서 다음 패턴 검출 시 **즉시 throw**:
+
+| 패턴 | 정규식 (요지) |
+|------|--------------|
+| 주민등록번호 | `\d{6}[-\s]?\d{7}` |
+| 전화번호 (휴대폰) | `01[016789][-\s]?\d{3,4}[-\s]?\d{4}` |
+| 전화번호 (지역) | `0\d{1,2}[-\s]?\d{3,4}[-\s]?\d{4}` |
+| 계좌번호 | `\d{2,4}[-\s]?\d{2,6}[-\s]?\d{2,8}` (3 그룹 이상) |
+| 이메일 | RFC 5322 단순 |
+| 카드번호 | `\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}` |
+
+→ LLM에는 정책·공고 텍스트만. 사용자 PII는 절대 프롬프트에 X. wrapper 통과 검증을 단위 테스트로 강제.
 
 ---
 
 ## §10. 사용자 플로우
 
-### 10.1 온보딩 (5~7단계 위저드, 4~6분)
+### 10.1 온보딩 위저드 (5~7단계, 4~6분)
 
-1. 세대 유형 (1인 / 부부 / 한부모 / 예비 신혼)
-2. 본인 정보 (생년월일, 주민등록 시군구·동, 거주 시작일, 직업·학력·근로기간)
-3. 소득·자산 (세전 연소득, 부동산 공시가, 자동차, 금융, 기존 대출, 신용점수 옵션)
-4. 청약·주택 이력 (통장 종류·가입일·총납입, 무주택 시작일, 5년 내 당첨/취소)
-5. (부부) 배우자 동일 항목
-6. 자녀·라이프 이벤트 (자녀 생년월일, 임신 중, 입양, 한부모 사유)
-7. 권한 (웹푸시 + Google Calendar OAuth)
+가구 유형·자녀 유무에 따라 일부 단계 동적 스킵.
 
-→ 첫 매칭 즉시 실행 → 결과 화면.
+| 단계 | 입력 | 노출 조건 |
+|------|------|----------|
+| 1. 세대 유형 | 1인 / 부부 / 한부모 / 예비 신혼 | 모두 |
+| 2. 본인 정보 | 생년월일, 주민등록 시군구·동, 거주 시작일, 직업 유형, 학력, 근로기간, 군 복무 | 모두 |
+| 3. 소득·자산 | 세전 연소득 / 부동산 공시가 / 자동차 / 금융자산 / 기존 대출 / 신용점수(옵션) | 모두 |
+| 4. 청약·주택 이력 | 통장 종류·가입일·총납입, 무주택 시작일, 5년 내 당첨/취소 | 모두 |
+| 5. 배우자 정보 | 2~4단계 동일 (자동 복사 후 차이 입력) | COUPLE / PRE_NEWLYWED |
+| 6. 자녀·라이프 이벤트 | 자녀 생년월일, 임신, 입양, 한부모 사유 | SINGLE_PARENT / 자녀 있음 |
+| 7. 권한 | 웹푸시 + Google Calendar OAuth | 모두 |
 
-### 10.2 일일 홈 대시보드
+→ 1인 가구 ≈ 4분, 부부+자녀 ≈ 6분. 첫 매칭 즉시 실행 → 결과 화면.
+
+### 10.2 일일 홈 대시보드 (모바일 우선)
 
 ```
 🏛️ 오늘의 부동산 정책 현황 카드
    - 토허재 / LTV / DSR / 규제지역 요약
 🆕 매칭 공고 목록 (마감 임박 정렬)
-   - 자격 충족 / 자격 임박 / 미충족 분리
+   - 자격 충족 / 자격 임박(시뮬) / 미충족 분리
 📊 내 자격 요약
    - 청약 가점 64/84
    - 도시근로자 평균 대비 110%
    - 무주택 기간, 통장 가입기간
 📚 전체 혜택 가이드 (카탈로그)
    - 카테고리별 + 검색·필터
+   - 매칭 자격 없는 정책도 모두 노출 (백과사전)
 ```
 
 ### 10.3 푸시 → 상세 → 캘린더
 
 푸시 알림 (35~42자 이내) → 탭 → 공고 상세:
 - 공고 요약 (LLM 3줄)
-- 자격 조건별 통과/실패 (criterion breakdown — 숫자 표시)
-- **공급 구조 분석** (특공/일반공급/추첨제 분배)
+- 자격 조건별 통과/실패 (criterion breakdown — 환산 값 표시)
+- **공급 구조 분석** (매매-청약: 특공/일반/추첨 / 임대-공공: lane별)
 - **스코어** (경쟁률·안전마진·유동성 + 종합)
 - 신청 방법 (외부 사이트 링크)
 - PDF 원문 다운로드/뷰어
@@ -718,12 +814,12 @@ LLM 호출 wrapper가 입력 텍스트에서 사용자 PII 패턴 검출 시 thr
 이벤트 입력 → 백그라운드 재매칭 (5~10초) → 변화 요약:
 - 🎉 새 자격 N건
 - ⚠️ 자격 강화·완화 M건
-- 🔮 1년 후 / 결혼 5년 후 시뮬 자격 (`evaluate(rule, computeFacts(household, future_date))`)
-- ⏳ 만료 임박 자격 (혼인 7년 만료 D-365 등)
+- 🔮 미래 시뮬: 1년 후 / 결혼 5년 후 / 거주 1년 후 자격 (`evaluate(rule, computeFacts(household, future_date))`)
+- ⏳ 만료 임박 자격 (혼인 7년 만료 D-365, 청년 39세 만료 등)
 
 ### 10.5 룰 변경 일일 다이제스트
 
-매일 오전 8시 1회. `WEAK_VERIFIED / AMBIGUOUS / NEW_RULE / DEPRECATE`만 큐에 표시:
+매일 오전 8시 (user_settings.digest_time). `WEAK_VERIFIED / AMBIGUOUS / NEW_RULE / DEPRECATE`만 큐에 표시:
 - 변경 내용 + Verifier 결과 + 출처
 - diff 표시
 - 적용 / 거부 / 나중에 버튼
@@ -734,21 +830,27 @@ LLM 호출 wrapper가 입력 텍스트에서 사용자 PII 패턴 검출 시 thr
 
 ## §11. 스코어링 + 공급 구조 분석
 
-### 11.1 Phase A 수치 스코어 3개 + 종합
+### 11.1 Phase A 수치 스코어 3개 + 종합 — 매매·임대 분기
 
-| 스코어 | 산정 |
-|--------|------|
-| **① 경쟁률** | 같은 단지·평형 과거 경쟁률 + 동급 단지 평균 → 0~100 (낮을수록 ↑) |
-| **② 시세 대비 가격 (안전마진)** ⭐ | (주변 신축 실거래가 - 분양가) / 분양가 % → 0~100 |
-| **③ 유동성** | 단지 규모(세대수) + 거래 회전 + 환금성 → 0~100 |
-| **종합** | 가중평균 (30% / 50% / 20% — 안전마진 강조) |
+| 스코어 | 매매-청약 산정 | 임대-공공 산정 |
+|--------|--------------|-------------|
+| **① 경쟁률** | 같은 단지·평형 과거 경쟁률 + 동급 단지 평균 → 0~100 (낮을수록 ↑) | 동급 임대 단지(같은 시군구, 동일 type) 과거 경쟁률 → 0~100 |
+| **② 시세 대비 가격 (안전마진)** ⭐ | (주변 신축 실거래가 - 분양가) / 분양가 % → 0~100 | (주변 동급 임대 시세 - 공고 임대료) / 임대료 % → 0~100 (보증금+월세 환산) |
+| **③ 유동성** | 단지 규모(세대수) + 거래 회전 + 환금성 → 0~100 | 단지 규모 + 교통 접근성 + 임차 회전율 → 0~100 |
+| **종합** | 가중평균 30/50/20 (안전마진 강조) | 동일 가중치 |
 
-**주변 신축 실거래가 매칭 알고리즘:**
-- 동일 시군구 + 도보 1km 이내 + 입주 5년 이내 신축
-- 평균 또는 중간값 평당가
-- 매칭 단지 < 3개면 "데이터 부족" 표시
+**주변 비교 단지 매칭 알고리즘 (공통):**
+- 동일 시군구 + 도보 1km 이내
+- 매매: 입주 5년 이내 신축
+- 임대: 동일 임대 type (행복주택/국민임대/매입 등)
+- 평균 또는 중간값 평당가/평당 임대료
+- 매칭 단지 < 3개면 "데이터 부족" 표시 (스코어 X)
 
-### 11.2 공급 구조 분석 패널 (수치 X, 정보)
+**임대료 환산** (보증금+월세 → 단일 비교값): 전월세 환산률 (한국부동산원 공시 환산률 사용, lookup_table에 저장)
+
+### 11.2 공급 구조 분석 패널 (수치 X, 정보) — 매매·임대 분기
+
+#### 매매-청약 (announcement_type = SALE)
 
 ```
 🎯 공급 구조 분석 — 당신이 진입 가능한 Lane
@@ -766,9 +868,9 @@ LLM 호출 wrapper가 입력 텍스트에서 사용자 PII 패턴 검출 시 thr
 │  └─ 추첨제 25% (37호)    ✓ 진입 가능
 └─ 무순위 잔여 시 별도
 
-🛣️ 추천 진입 경로
-  1순위: 신혼특공 (150호)
-  2순위: 생애최초 (100호)
+🛣️ 추천 진입 경로 (자격 lane 중 호수 많은 순)
+  1순위: 신혼특공 (150호) — 본인 청약 가점 64점, 추정 컷라인 56점, 마진 +8
+  2순위: 생애최초 (100호) — 추첨제, 가점 영향 X
   3순위: 일반공급 추첨제 (37호)
 
 📐 면적별 분배
@@ -776,11 +878,38 @@ LLM 호출 wrapper가 입력 텍스트에서 사용자 PII 패턴 검출 시 thr
   → 본인 거주 인원 권장: 49㎡ 또는 59㎡
 ```
 
-→ **숫자 점수보다 "어디로 들어가야 하나"를 직접 보여주는 게 진짜 가치**.
+#### 임대-공공 (announcement_type = RENTAL)
 
-### 11.3 Phase B/C 추가 스코어 (후순위)
+```
+🎯 공급 구조 분석 — 임대 Lane
 
-`TRANSIT (교통), SCHOOL (학군), CATALYST (호재), SUPPLY_CONTEXT (공급량 컨텍스트), GRADE_ABC (단지 등급 A/B/C), LIQUIDITY 확장` — `score_type` ENUM 확장만으로 추가.
+총 200호 모집
+├─ 청년 (만 19~39세)        50 (25%) ✗ (배우자 있음, 청년형 X)
+├─ 신혼부부 (혼인 7년)      80 (40%) ✅ 자격 (우선)
+├─ 신생아 우선              30 (15%) ⚠ 24개월 후
+├─ 다자녀                   20 (10%) ✗
+├─ 우선공급 (기타 가산)     10 (5%)  ✗
+├─ 일반공급                 10 (5%)  ✓
+└─ 예비입주자               (별도 모집)
+
+🛣️ 추천 진입 경로
+  1순위: 신혼특공 (80호)
+  2순위: 일반공급 (10호)
+
+📐 호형(평형)별 분배
+  26㎡ 50호 / 36㎡ 100호 / 46㎡ 50호
+```
+
+### 11.3 추천 진입 경로 산정 로직
+
+1. 사용자 자격 충족 lane만 후보로 채택 (computeFacts + evaluate 결과 활용)
+2. 후보 lane을 **호수 내림차순**으로 정렬
+3. 동률 시 **과거 경쟁률 낮은 순**으로 우선
+4. 청약 가점 컷라인 정보가 있으면 안전마진 (내 가점 - 추정 컷라인) 표시 (참고)
+
+### 11.4 Phase B/C 추가 스코어 (후순위)
+
+`TRANSIT (교통), SCHOOL (학군), CATALYST (호재), SUPPLY_CONTEXT (공급량 컨텍스트), GRADE_ABC (단지 등급 A/B/C)` — `score_type` ENUM 확장만으로 추가.
 
 ---
 
@@ -788,14 +917,16 @@ LLM 호출 wrapper가 입력 텍스트에서 사용자 PII 패턴 검출 시 thr
 
 | 항목 | 정책 |
 |------|------|
-| 무소음 시간대 | 기본 22:00~07:00, 사용자 조정 가능 |
-| 카테고리별 알림 ON/OFF | 매매-청약 / 매매-대출 / 전세-대출 / 임대-공공 / 임대-매입 / 정책 변경 |
-| 다이제스트 시간 | 기본 08:00 |
-| 다크 모드 | 자동 / 켜기 / 끄기 |
-| 알림 텍스트 한도 | 35~42자 (모바일 미리보기 기준) |
-| 캘린더 이벤트 | 1 공고 = 1 이벤트 (apply_start ~ apply_end 멀티데이) |
+| 무소음 시간대 | 기본 22:00~07:00, 사용자 조정 가능 (user_settings) |
+| 카테고리별 알림 ON/OFF | 매매-청약 / 매매-대출 / 전세-대출 / 임대-공공 / 임대-매입 / 정책 변경 다이제스트 |
+| 다이제스트 시간 | 기본 08:00 KST (user_settings) |
+| 다크 모드 | 자동(시스템) / 켜기 / 끄기 |
+| 알림 텍스트 한도 | 35~42자 (모바일 lock screen 미리보기 기준) |
+| 캘린더 이벤트 | 1 공고 = 1 멀티데이 이벤트 (apply_start ~ apply_end) |
 | 마감 임박 알림 | 웹푸시만 (캘린더 X), D-7 / D-3 / D-1 |
+| 알림 이력 보관 | 90일 (notification_log 테이블) |
 | 면책 문구 | "최종 자격은 해당 기관에 직접 확인하세요" — 매칭 결과·푸시·PDF 뷰어 모두에 명시 |
+| 사용자 신고 | 매칭 카드에 "이 매칭 잘못됨" 버튼 → match_report 큐 |
 
 ---
 
@@ -806,47 +937,48 @@ LLM 호출 wrapper가 입력 텍스트에서 사용자 PII 패턴 검출 시 thr
 | # | 실패 모드 | 대응 |
 |---|----------|------|
 | 1 | 사이트 구조 변경 → 셀렉터 깨짐 | `crawler_health` + 24h 무결과 알림 |
-| 2 | 마이홈 API 응답 지연/장애 | API 우선 + 크롤링 폴백 + 재시도 큐 |
-| 3 | 공공 API 트래픽 1,000건/일 초과 | 운영계정 신청 + 캐싱 + diff 전송 |
-| 4 | HWP 공고문 | Phase A: LLM Vision 우회 / Phase B: kordoc 워커 |
-| 5 | 스캔 PDF (OCR 필요) | LLM Vision 또는 별도 OCR |
-| 6 | 국내 IP 제약 | GCP Seoul 리전 / Phase A.1은 본인 PC |
-| 7 | LLM 정책 추출 환각 | Verifier (independent 출처 ≥ 2) + 신뢰도 + 원본 PDF 링크 |
-| 8 | 시간 의존 필드 동기화 누락 | events에서 매칭 시 today 기준 재계산 |
-| 9 | 로그인 필요 정보 | Phase A 본인 계정 자동 로그인 / Phase B 공식 API 우선 |
-| 10 | 알림 피로도 | 다이제스트 + 카테고리 ON/OFF + 무소음 시간 |
-| 11 | 개인정보 보안 | application-level AES-256-GCM 컬럼 암호화 |
-| 12 | Google Calendar API quota | 일괄 생성 + 중복 감지 |
+| 2 | 마이홈 API 응답 지연/장애 | API 우선 + 크롤링 폴백 + 재시도 큐 (지수 backoff) |
+| 3 | 공공 API 트래픽 1,000건/일 초과 | 운영계정 신청 + 응답 캐싱 + diff 전송 (변경된 항목만 재요청) |
+| 4 | HWP 공고문 | **Phase A**: LibreOffice 컨테이너로 HWP→PDF 자동 변환 시도 → pdfjs로 텍스트 추출. 변환 실패 시 본문 미파싱 표시 + 원문 링크만 노출 (매칭은 진행 — 메타데이터로). **Phase B**: kordoc 워커 추가, 정밀 표·구조 추출 |
+| 5 | 스캔 PDF (OCR 필요) | LLM Vision API로 텍스트 추출 (비용 추적) 또는 별도 OCR (Phase B Tesseract) |
+| 6 | 국내 IP 제약 | GCP Seoul 리전 / Phase A.1은 본인 PC (자동 충족) |
+| 7 | LLM 정책 추출 환각 | Verifier (independent 출처 ≥ 2 + 정부 공식 ≥ 1) + 신뢰도 점수 + 원본 PDF 링크 항상 노출 |
+| 8 | 시간 의존 필드 동기화 누락 | 매칭 시 events에서 today 기준 재계산. DB에 저장하지 않음 |
+| 9 | 로그인 필요 정보 | Phase A: 본인 인증서 자동 로그인 / Phase B: 공식 API 우선, 위임 불가 정보는 사용자 알림 |
+| 10 | 알림 피로도 | 다이제스트 모드 + 카테고리 ON/OFF + 무소음 시간 + match_dismissed 학습 |
+| 11 | 개인정보 보안 | application-level AES-256-GCM 컬럼 암호화 + TLS 강제 + PII LLM 마스킹 |
+| 12 | Google Calendar API quota | 일괄 생성 + 중복 감지 (calendar_event_id 캐시) |
 
-### 13.2 헬스체크 cron (매일 09:00)
+### 13.2 헬스체크 cron — 매일 09:00 KST
 
 ```typescript
 async function healthCheck() {
   const checks = {
-    sweep_recent_24h: await countAnnouncementsSeenLast24h(),
-    crawler_errors_24h: await countCrawlerErrorsLast24h(),
-    api_errors_24h: await countAPIErrorsLast24h(),
-    rule_proposals_pending_72h: await countOldProposals(),
-    llm_cost_daily: await sumLLMCostToday(),
-    db_size_pct: await getDBSizePct(),
+    sweep_recent_24h: await countAnnouncementsSeenLast24h(),     // ALERT if 0
+    crawler_errors_24h: await countCrawlerErrorsLast24h(),       // ALERT if > 5
+    api_errors_24h: await countAPIErrorsLast24h(),               // ALERT if > 10
+    rule_proposals_pending_72h: await countOldProposals(72),     // ALERT if > 0
+    llm_cost_today_usd: await sumLLMCostToday(),                 // ALERT if > 5
+    db_size_pct: await getDBSizePct(),                           // ALERT if > 80
+    crawler_broken_count: await countBrokenCrawlers(),           // ALERT if > 0
   };
-  await sendTelegramAlertIfBad(checks);
+  await sendTelegramAlert(checks);  // 항상 송신 — 침묵하면 헬스체크 자체 죽음
 }
 ```
 
-→ **Telegram Bot**으로 본인에게 매일 ✅/⚠️ 요약. 침묵하면 정상.
+→ **Telegram Bot**으로 본인에게 매일 ✅/⚠️ 요약. 모든 임계값 통과 시 짧은 ✅ 메시지. 위반 시 상세 표시.
 
 ### 13.3 사이트 구조 변경 감지
 
-각 크롤러 셀렉터별 마지막 success/fail 기록. 3회 연속 실패 또는 24h 무결과 → BROKEN + 헬스체크 알림.
+각 크롤러 셀렉터별 마지막 success/fail 기록 (`crawler_health`). **3회 연속 실패** 또는 **24h 무결과** → status=BROKEN + 헬스체크에서 즉시 알림.
 
 ### 13.4 데이터 정합성
 
-- 동일 공고 중복: `(issuing_org, source_external_id)` 정규화 키 + fuzzy match
-- 공고 수정: `body_hash` 변경 감지 → 재매칭 + 변경 알림
-- API vs 크롤링 충돌: API 우선
-- 룰 변경 후 기존 매칭: `applied_rule_version` 비교 → 백그라운드 재평가 → 결과 변경된 매칭만 알림
-- 사용자 신고 (`match_report`): 본인 검토 후 룰 수정 후보로
+- 동일 공고 중복: `(issuing_org, source_external_id)` 정규화 키 + fuzzy match (제목 Levenshtein < 5 + 동일 publish_date)
+- 공고 수정 (자격 완화·연장): `body_hash` SHA-256 변경 감지 → `last_changed_at` 갱신 + 재매칭 + 변경 알림 ("이 공고 자격이 완화됐습니다")
+- API vs 크롤링 충돌: API 우선. 충돌 시 로그 경고 + 큐
+- 룰 변경 후 기존 매칭: `applied_rule_version` ≠ `policy.current_version` → 백그라운드 재평가 → 결과 변경된 매칭만 알림
+- 사용자 신고 (`match_report`): 본인(또는 운영자) 검토 후 룰 수정 후보로
 
 ---
 
@@ -854,16 +986,16 @@ async function healthCheck() {
 
 | 항목 | Phase | 구현 |
 |------|-------|------|
-| **D1. 민감 컬럼 암호화** | A | `income_*`, `assets_*`, `credit_score_*`, `subscription_payment_*` → AES-256-GCM application-level |
-| **D2. TLS 강제** | A | Next.js HSTS + Cloud Run 자동 HTTPS / 로컬은 ngrok |
-| **D3. 데이터 export** | A | "내 데이터 다운로드" → JSON 전체 |
-| **D4. 데이터 삭제** | A | 이중 확인 → 하드 딜리트 + 30일 후 백업 제거 |
-| **D5. LLM PII 마스킹** | A | wrapper 강제 — PII 패턴 검출 시 throw |
-| **D6. KISA 표준 준수** | C | 개인정보 처리방침 정식 작성 |
+| **D1. 민감 컬럼 암호화** | A | `income_*`, `assets_*`, `credit_score_*`, `subscription_payment_total` → AES-256-GCM application-level. 키는 Phase A.1 `.env.local` / Phase A.2 Secret Manager |
+| **D2. TLS 강제** | A | Next.js HSTS 헤더 + Cloud Run 자동 HTTPS / 로컬은 ngrok HTTPS |
+| **D3. 데이터 export** | A | "내 데이터 다운로드" 버튼 → JSON 전체 (모든 테이블의 본인 데이터) |
+| **D4. 데이터 삭제** | A | "전체 삭제" 버튼 (이중 확인) → 하드 딜리트 + 30일 후 백업까지 제거 |
+| **D5. LLM PII 마스킹** | A | wrapper 강제 — §9.4 패턴 검출 시 throw, 정책 텍스트만 LLM 입력 |
+| **D6. KISA 표준 준수** | C | 개인정보 처리방침 정식 작성 (KISA 양식) |
 
 ---
 
-## §15. 엣지 케이스 처리 (필요 컬럼만)
+## §15. 엣지 케이스 처리
 
 | 케이스 | 처리 |
 |--------|------|
@@ -871,33 +1003,40 @@ async function healthCheck() {
 | 자녀 사망/입양취소 | `child.disposition_date`, `disposition_type` |
 | 무주택 ↔ 유주택 반복 | events HOMELESS_START/END → 현재 상태 derive |
 | 다주택 처분 진행 | events HOUSE_DISPOSAL_START/END + `is_disposal_in_progress` derive |
-| 시도 이주 | events RELOCATION → 거주 시작일 reset |
+| 시도 이주 | events RELOCATION → 거주 시작일 reset (수도권 거주 충족 카운트) |
 | 외국인 배우자 | `person.nationality` = FOREIGNER → 일부 정책 결격 자동 |
 | 사업자 vs 근로자 | `person.income_source_type` |
-| 군 복무 | `person.military_service_months` (5년 근로 산정 합산) |
+| 군 복무 | `person.military_service_months` (5년 근로 산정 시 합산: `years_of_employment + military_service_months/12`) |
 
 ---
 
 ## §16. 비용 추정 (Phase A 월간)
 
-| 항목 | 무료 티어 | 예상 |
-|------|----------|------|
+### Phase A.1 (로컬 개발·검증)
+
+| 항목 | 비용 |
+|------|------|
+| 본인 PC 전기료 (24/7 구동 시) | ~$5/월 (대략) |
+| Anthropic Claude API | ~$15/월 (Sonnet Extractor + 본인 1명 사용) |
+| Verifier 모델 (Opus / GPT-5.5) | ~$8~10/월 |
+| Tavily Search (1000 req/월 무료) | $0 |
+| Telegram Bot / Web Push / Calendar | $0 |
+| **합계 Phase A.1** | **~$25~30/월** |
+
+### Phase A.2 (GCP Seoul 배포 후)
+
+| 항목 | 무료 티어 | 예상 비용 |
+|------|----------|---------|
 | Cloud Run (PWA + API) | 2M req/월 | $0 |
-| Cloud Run Jobs (sweep) | 동일 | $0 |
+| Cloud Run Jobs (sweep + worker들) | 동일 | $0 |
 | Cloud Scheduler | 3 job/월 | $0 |
 | Cloud SQL Postgres (db-f1-micro) | 유료 | ~$10/월 |
-| Cloud Storage (PDF) | 5GB | $0 |
+| Cloud Storage (PDF 보관) | 5GB | $0 |
 | Cloud Logging/Monitoring | 50GB | $0 |
 | Secret Manager | 6 secrets | $0 |
-| Anthropic Claude (Extractor: Sonnet) | — | ~$15/월 |
-| Verifier (Opus 또는 GPT-5.5) | — | ~$8~10/월 |
-| Tavily Search | 1000 req/월 | $0 |
-| Web Push VAPID | 자체 운영 | $0 |
-| Google Calendar API | 무료 | $0 |
-| Telegram Bot | 무료 | $0 |
+| LLM API (위 동일) | — | ~$23~25/월 |
 | 도메인 (선택) | — | ~$1/월 |
-| **합계 Phase A.2 배포 후** | — | **~$35~40/월** |
-| **Phase A.1 (로컬)** | — | **~$25/월 (LLM API만)** |
+| **합계 Phase A.2** | — | **~$35~40/월** |
 
 ---
 
@@ -909,19 +1048,20 @@ async function healthCheck() {
 ~/projects/housing-benefits-app/
 ├─ docs/
 │  ├─ design.md              ← 이 문서 복사
-│  ├─ architecture.md        ← 다이어그램 분리
+│  ├─ architecture.md        ← §2, §4 분리
 │  ├─ data-model.md          ← §6 분리
-│  ├─ rule-format.md         ← §7 분리
-│  ├─ user-flows.md          ← §10 분리
-│  └─ ops-runbook.md         ← §13 + 운영 가이드
+│  ├─ rule-format.md         ← §7, §8 분리
+│  ├─ user-flows.md          ← §10, §11 분리
+│  └─ ops-runbook.md         ← §13, §14 + 운영 가이드
 ├─ plans/
 │  └─ phase-a-implementation.md  ← writing-plans skill 산출물
 ├─ env.example               ← 환경변수 템플릿
-├─ docker-compose.yml        ← Postgres + 앱 + 워커
-├─ package.json              ← Next.js 15 + Drizzle + Playwright + Anthropic SDK
+├─ docker-compose.yml        ← Postgres + 앱 + 워커 + LibreOffice
+├─ package.json              ← Next.js 15 + Drizzle + Playwright + Anthropic SDK + pdfjs-dist
 ├─ scripts/
-│  ├─ bootstrap.sh           ← 초기 셋업
-│  └─ healthcheck.sh
+│  ├─ bootstrap.sh           ← 초기 셋업 자동화
+│  ├─ healthcheck.sh
+│  └─ generate-vapid.sh
 ├─ src/
 │  └─ (Phase A.1 1단계 task 결과)
 └─ .gitignore
@@ -929,34 +1069,41 @@ async function healthCheck() {
 
 ### 17.1 사전 발급 필요 키
 
-1. **공공데이터포털 인증키** (data.go.kr 가입 → 마이홈/LH API 활용신청 — 1~2시간 승인)
-2. **Anthropic API key**
+1. **공공데이터포털 인증키** (data.go.kr 가입 → 마이홈/LH/실거래가 API 활용신청 — 1~2시간 승인)
+2. **Anthropic API key** (Extractor + Verifier)
 3. **OpenAI API key** (선택, GPT-5.5 사용 시)
-4. **Tavily API key**
+4. **Tavily API key** (Verifier 웹서치)
 5. **Google OAuth Client ID/Secret** (Calendar API)
-6. **VAPID 키 쌍** (`web-push generate-vapid-keys`)
-7. **Telegram Bot Token** (BotFather에서 생성)
-8. (Phase A.2) GCP 프로젝트 + 서비스 계정 + Cloud SQL 인스턴스
+6. **VAPID 키 쌍** (`web-push generate-vapid-keys`로 자체 생성)
+7. **Telegram Bot Token** (BotFather에서 생성, 본인 chat_id도 확인)
+8. (Phase A.2 시점) GCP 프로젝트 + 서비스 계정 + Cloud SQL 인스턴스
 
 ### 17.2 Phase A.1 마일스톤 (로컬 검증 — 13단계)
 
-1. 프로젝트 스캐폴드 (Next.js 15 + shadcn/ui + Drizzle)
-2. DB 스키마 + 마이그레이션
-3. 온보딩 위저드 (5~7단계)
-4. 룰 평가기 + Computed Fields (106개)
-5. 공공데이터 API 클라이언트 (마이홈, LH)
-6. 청약홈/SH/GH Playwright 크롤러
-7. 보도자료 RSS + Extractor + Verifier 흐름
-8. 매칭 엔진 + 스코어링 (Phase A 3개)
-9. 공급 구조 분석 (특공/일반/추첨)
-10. 푸시 + Google Calendar 연동
-11. 룰 변경 ACK 큐 + 다이제스트
+1. 프로젝트 스캐폴드 (Next.js 15 + shadcn/ui + Drizzle + ESLint + Prettier)
+2. DB 스키마 + 마이그레이션 (`drizzle-kit`)
+3. 온보딩 위저드 (5~7단계, 동적 분기)
+4. 룰 평가기 + Computed Fields 107개 + 단위 테스트
+5. 공공데이터 API 클라이언트 (마이홈, LH, 실거래가) + 캐싱·재시도
+6. 청약홈/SH/GH Playwright 크롤러 + crawler_health 추적
+7. PDF 파서 + LibreOffice HWP→PDF + 보도자료 RSS + Extractor + Verifier 흐름
+8. 매칭 엔진 + Phase A 스코어링 3개 + 종합
+9. 공급 구조 분석 (매매-청약 / 임대-공공 분기)
+10. 웹푸시 + Google Calendar 연동
+11. 룰 변경 ACK 큐 + 다이제스트 (08:00)
 12. 헬스체크 cron + Telegram Bot 알림 + 사이트 구조 변경 감지
-13. 보안 (D1~D5 — 암호화·TLS·export·삭제·PII 마스킹) + 1~2주 본인 운영 검증
+13. 보안 (D1~D5: 암호화·TLS·export·삭제·PII 마스킹) + **1~2주 본인 운영 안정성 검증**
 
-### 17.3 Phase A.2 마일스톤 (배포)
+### 17.3 Phase A.2 마일스톤 (배포 — 8단계)
 
-GCP 인프라 셋업 + Cloud SQL 마이그레이션 + Cloud Run 배포 + Cloud Scheduler + Secret Manager + GitHub Actions CI/CD + 도메인 연결 (선택)
+1. GCP 프로젝트 생성 (Seoul 리전 asia-northeast3)
+2. Cloud SQL Postgres 인스턴스 생성 + 스키마 마이그레이션
+3. Secret Manager에 환경변수 이전 (.env.local → Secret Manager)
+4. Cloud Run 첫 배포 (Dockerfile + Cloud Build)
+5. Cloud Scheduler → Cloud Run Jobs 연결 (cron 스케줄링)
+6. GitHub Actions CI/CD 파이프라인 구성
+7. (선택) 도메인 연결 + Cloud DNS
+8. 운영 검증 (헬스체크 정상 동작, 알림 정상 도달)
 
 ---
 
@@ -1008,6 +1155,7 @@ GCP 인프라 셋업 + Cloud SQL 마이그레이션 + Cloud Run 배포 + Cloud S
 
 ## 변경 이력
 
-| 일자 | 변경 |
-|------|------|
-| 2026-05-08 | 초안 작성 (브레인스토밍 합성) |
+| 일자 | 버전 | 변경 |
+|------|------|------|
+| 2026-05-08 | v1 | 초안 작성 (브레인스토밍 합성) |
+| 2026-05-08 | v2 | 최종 검토 보강:<br>• §0.1 분양알리미 표현 정리<br>• §0.2 목표 6번 (Verifier sub-agent) 명시 추가<br>• §3 L4 "선택 (생략 가능)" 명시 / L5 HWP fallback 명확화<br>• §4 양방향 데이터 흐름 표시 + HWP→PDF Converter 워커 추가<br>• §5 HWP Phase A/B 분리 (LibreOffice + kordoc)<br>• §6.1 household_type별 person 구성 주석 + 누락 필드 추가 (subscription_canceled_within_1y, has_existing_lh_rental, has_housing_subsidy, is_separated_household)<br>• §6.2 announcement.announcement_type ENUM 추가 (SALE/RENTAL)<br>• §6.3 announcement_supply_breakdown 매매·임대 분기 (sale_* / rental_priority_lanes)<br>• §6.4 llm_cost_log 테이블 추가 (헬스체크 임계값 평가용)<br>• §7.1 transition_rules 같은 날짜 모순 수정 (cutoff_date 1개 + before/after 명시)<br>• §7.1 룰 예시를 신혼부부 디딤돌(Phase B) → 신혼부부 특별공급(Phase A 필수)로 교체. 디딤돌 outputs 예시는 별도 §7.1 예시 2로 분리<br>• §7.1 outputs.loan_limit input_variables 명시 (target_house_price 출처)<br>• §7.3 multiplier_formula 평가 순서 명시 추가 신설<br>• §7.4 평가기 시그니처에 computed_threshold 필드 추가<br>• §8 카테고리 1에 `household.is_dual_earner` 추가 (107개 → 일관)<br>• §8 카테고리 4 `is_subscription_winner_5y` 중복 제거 (카테고리 11로 통합)<br>• §8 카테고리 6 `children_birth_dates[]` (배열) vs 카테고리 1 `children_count` (숫자) 명확화<br>• §8 카테고리 2 `years_of_employment_total = years_of_employment + military_service_months/12` 명시<br>• §9.4 PII 마스킹 패턴 표 추가 (주민번호·전화·계좌·이메일·카드번호)<br>• §10.1 5~7단계 동적 분기 표 추가 (가구 유형·자녀 유무에 따른 단계 노출)<br>• §11.1 매매·임대 분기 표로 재작성 + 전월세 환산 명시<br>• §11.2 매매·임대 두 가지 공급 구조 패널 분리 표시<br>• §11.3 추천 진입 경로 산정 로직 (호수 내림차순 + 경쟁률 동률 처리) 명시<br>• §12 알림 이력 보관 90일 + 사용자 신고 항목 추가<br>• §13.1 #4 HWP 처리 — Phase A LibreOffice→PDF fallback 정확화<br>• §13.2 헬스체크 임계값 명시 (각 metric별 ALERT 조건)<br>• §16 Phase A.1 / A.2 비용 분리 + 본인 PC 전기료 추가<br>• §17.3 Phase A.2 마일스톤 8단계로 분해<br>• §18.1 국토부 실거래가 OpenAPI 항목 추가 (스코어링 §11.1 ② 활용) |
