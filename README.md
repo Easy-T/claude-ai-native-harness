@@ -15,11 +15,12 @@
 
 ## 🎯 무엇을 얻는가
 
-### 4개 진입점
+### 5개 진입점
 
 | 진입점 | 발화 또는 명령 | 동작 |
 |---|---|---|
 | **`/init-ai-ready <name>`** | 슬래시 커맨드 | 빈 디렉터리에 AI-Ready 프로젝트 부트스트랩 (12 파일 + 디렉터리) |
+| **`/improve-architecture`** | 슬래시 커맨드 | 코드베이스 구조 개선 + README 생성 (RPIC 5 배수 시 자동 제안) |
 | **start-rpi-cycle 자동 트리거** | "결제 모듈 추가해줘" / "버그 고쳐줘" / "리팩토링해줘" | RPI 사이클 강제 (R→P→I→Closeout) |
 | **create-orchestrator-skill 자동 트리거** | "이거 자주 쓸 것 같아 skill로 만들어줘" | skill-creator + orchestrator 골격 자동 주입 |
 | **doctor.sh** | `bash ~/.claude/setup/doctor.sh` | 19개 환경 진단·치료 (jq 자동 설치 등) |
@@ -36,7 +37,7 @@
 
 크로스 플랫폼 path 정규화(Windows backslash → forward slash) 내장 — Linux/WSL/Windows 모두 동일하게 작동.
 
-### 5개 orchestrator skill
+### 7개 orchestrator skill
 
 | Skill | 트리거 키워드 | Phase 구조 |
 |---|---|---|
@@ -44,6 +45,8 @@
 | `start-rpi-cycle` | "기능 추가", "이거 고쳐줘", "구현해줘", "리팩토링" | R(Research) → P(Plan) → I(Implement) → Closeout |
 | `closeout-pr-cycle` | "PR 만들어줘", "merge 준비해줘", "작업 마무리해줘" | Preflight → 1(Local Gate) → 2(PR Gate) → 3(CI Gate) → 4(Senior Review) → 5(User Approval) → 6(Merge/Cleanup) |
 | `create-orchestrator-skill` | "이거 skill로", "orchestrator", "<X> skill 만들어줘" | 1(Capture) → 2(skill-creator) → 3(Inject Skeleton) → 4(Verify) |
+| `improve-codebase-architecture` | "아키텍처 개선해줘", "README 만들어줘", "코드 구조 점검" | Preflight → 1(Explore) → 2(Candidates) → 3(Execute, optional) → 4(README) |
+| `ui-design` | UI/UX 컴포넌트, Tailwind, CSS, "디자인 만들어줘", "예쁘게" | 1(Load Reference) → 2(Apply) → 3(Verify) |
 | `common-agent-contract` | (자동 주입) | wrapper agent 3종에 Input/Output 표준 주입 |
 
 ### 3개 wrapper sub-agent
@@ -235,7 +238,8 @@ bash ~/.claude/setup/doctor.sh
 │   └── execute-strict.md                  Scoped 변경
 │
 ├── commands/
-│   └── init-ai-ready.md                 슬래시 커맨드 entry point
+│   ├── init-ai-ready.md                 슬래시 커맨드 entry point
+│   └── improve-architecture.md          /improve-architecture 슬래시 커맨드
 │
 ├── docs/superpowers/
 │   ├── specs/2026-05-01-*-design.md     상세 설계 (3000+ 줄)
@@ -268,14 +272,19 @@ bash ~/.claude/setup/doctor.sh
 │   │   └── references/                   placeholder-spec, stack-presets
 │   ├── start-rpi-cycle/SKILL.md          RPI 사이클 orchestrator
 │   ├── closeout-pr-cycle/SKILL.md        PR Closeout orchestrator
-│   └── create-orchestrator-skill/SKILL.md
+│   ├── create-orchestrator-skill/SKILL.md
+│   ├── improve-codebase-architecture/SKILL.md  구조 개선 + README orchestrator
+│   └── ui-design/                        UI/UX 디자인 orchestrator
+│       ├── SKILL.md
+│       └── design.md                     디자인 토큰 + Anti-Slop Checklist
 │
 │
 │ (생성된 프로젝트 내)
 │   scripts/check.sh                      스택별 local quality gate
 │   .github/workflows/ci.yml             multi-stack GitHub Actions CI
 │
-├── CLAUDE.md                             6 메타 룰 + 4 사용자 원칙
+├── CLAUDE.md                             8 메타 룰 + 4 사용자 원칙
+├── state.json                            사이클 카운터 + audit 마커
 ├── settings.json                         (개인 설정, .gitignore됨)
 ├── settings.example.json                 템플릿
 ├── README.md                             이 문서
@@ -358,7 +367,7 @@ Windows에서 backslash path가 hook 화이트리스트를 못 통과하면:
 ### 글로벌 행동 규칙 변경
 
 `~/.claude/CLAUDE.md` 편집:
-- §1~§6 메타 룰 (캐시 안정성 / orchestrator / RPI / non-obvious / ADR / 도메인 용어)
+- §1~§8 메타 룰 (캐시 안정성 / orchestrator / RPI / non-obvious / ADR / 도메인 용어 / 응답 언어 / UI 디자인)
 - 사용자 원칙 4개 (Think Before Coding / Simplicity First / Surgical Changes / Goal-Driven Execution)
 
 ⚠️ 변경 시 prefix 캐시 무효화 → 다음 세션 1회 cache miss 비용 (≈20배). 한 번에 모아서 수정.

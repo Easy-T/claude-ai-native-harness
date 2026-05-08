@@ -10,8 +10,8 @@ L=$(wc -l < "$HOME/.claude/CLAUDE.md" 2>/dev/null || echo 9999)
 [ -f "$HOME/.claude/CLAUDE.md" ] && [ "$L" -le 200 ] && ok "CLAUDE.md exists, $L lines" || fail "CLAUDE.md size $L"
 
 # 2. 6 meta rule markers
-R=$(grep -c '^## §[1-6]\.' "$HOME/.claude/CLAUDE.md" 2>/dev/null || echo 0)
-[ "$R" -eq 6 ] && ok "6 meta rules present" || fail "meta rules=$R"
+R=$(grep -c '^## §[1-8]\.' "$HOME/.claude/CLAUDE.md" 2>/dev/null || echo 0)
+[ "$R" -eq 8 ] && ok "8 meta rules present" || fail "meta rules=$R"
 
 # 3. 3 wrapper agents
 for a in explore-strict review-strict execute-strict; do
@@ -29,12 +29,12 @@ for a in explore-strict review-strict execute-strict; do
 done
 
 # 6. 5 global skills
-for s in common-agent-contract create-orchestrator-skill init-ai-ready-project start-rpi-cycle closeout-pr-cycle improve-codebase-architecture; do
+for s in common-agent-contract create-orchestrator-skill init-ai-ready-project start-rpi-cycle closeout-pr-cycle improve-codebase-architecture ui-design; do
   [ -f "$HOME/.claude/skills/$s/SKILL.md" ] && ok "skill: $s" || fail "skill missing: $s"
 done
 
-# 7. orchestrator marker triple on 5 of 6 skills
-for s in create-orchestrator-skill init-ai-ready-project start-rpi-cycle closeout-pr-cycle improve-codebase-architecture; do
+# 7. orchestrator marker triple on 6 of 7 skills
+for s in create-orchestrator-skill init-ai-ready-project start-rpi-cycle closeout-pr-cycle improve-codebase-architecture ui-design; do
   f="$HOME/.claude/skills/$s/SKILL.md"
   if grep -q '^orchestrator_skill: true$' "$f" 2>/dev/null \
     && grep -q '^generated_by:' "$f" 2>/dev/null \

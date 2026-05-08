@@ -4,40 +4,40 @@
     "superpowers@claude-plugins-official": [
       {
         "scope": "user",
-        "installPath": "C:\\Users\\12132\\.claude\\plugins\\cache\\claude-plugins-official\\superpowers\\5.0.7",
-        "version": "5.0.7",
+        "installPath": "C:\\Users\\12132\\.claude\\plugins\\cache\\claude-plugins-official\\superpowers\\5.1.0",
+        "version": "5.1.0",
         "installedAt": "2026-04-24T12:47:11.155Z",
-        "lastUpdated": "2026-04-27T15:10:06.275Z",
+        "lastUpdated": "2026-05-07T12:53:33.111Z",
         "gitCommitSha": "6efe32c9e2dd002d0c394e861e0529675d1ab32e"
       }
     ],
     "context7@claude-plugins-official": [
       {
         "scope": "user",
-        "installPath": "C:\\Users\\12132\\.claude\\plugins\\cache\\claude-plugins-official\\context7\\d64e27054e30",
-        "version": "d64e27054e30",
+        "installPath": "C:\\Users\\12132\\.claude\\plugins\\cache\\claude-plugins-official\\context7\\81dc65250fe0",
+        "version": "81dc65250fe0",
         "installedAt": "2026-04-24T12:47:19.660Z",
-        "lastUpdated": "2026-05-03T15:50:23.877Z",
+        "lastUpdated": "2026-05-08T16:03:38.283Z",
         "gitCommitSha": "7bc347b89aaa7f1e02c03617b8d163243d86ecce"
       }
     ],
     "skill-creator@claude-plugins-official": [
       {
         "scope": "user",
-        "installPath": "C:\\Users\\12132\\.claude\\plugins\\cache\\claude-plugins-official\\skill-creator\\d64e27054e30",
-        "version": "d64e27054e30",
+        "installPath": "C:\\Users\\12132\\.claude\\plugins\\cache\\claude-plugins-official\\skill-creator\\81dc65250fe0",
+        "version": "81dc65250fe0",
         "installedAt": "2026-04-24T12:47:39.366Z",
-        "lastUpdated": "2026-05-03T15:50:23.892Z",
+        "lastUpdated": "2026-05-08T16:03:38.279Z",
         "gitCommitSha": "7bc347b89aaa7f1e02c03617b8d163243d86ecce"
       }
     ],
     "playwright@claude-plugins-official": [
       {
         "scope": "user",
-        "installPath": "C:\\Users\\12132\\.claude\\plugins\\cache\\claude-plugins-official\\playwright\\d64e27054e30",
-        "version": "d64e27054e30",
+        "installPath": "C:\\Users\\12132\\.claude\\plugins\\cache\\claude-plugins-official\\playwright\\81dc65250fe0",
+        "version": "81dc65250fe0",
         "installedAt": "2026-04-24T12:47:45.208Z",
-        "lastUpdated": "2026-05-03T15:50:23.905Z",
+        "lastUpdated": "2026-05-08T16:03:38.273Z",
         "gitCommitSha": "7bc347b89aaa7f1e02c03617b8d163243d86ecce"
       }
     ],

@@ -22,6 +22,11 @@ plugins/install-counts-cache.json
 # Settings backups
 backups/
 *.backup-*
+settings.json.bak-*
+settings.json.bad-*
+
+# Runtime cleanup marker
+.last-cleanup
 
 # Cache
 cache/
