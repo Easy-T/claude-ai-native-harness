@@ -132,10 +132,11 @@ closeout-pr-cycle 결과를 받아:
    - cycle.last_completed_at: today
    - audit.last_drift_check: today
 
-4. 사용자 승인형 v2/v3 알림:
+4. 사용자 승인형 v2/v3 알림 + 아키텍처 개선 제안:
    - cycle.count == 5 && !v2_enabled && !v2_skipped_permanently → "v2 도입 가능" 묻기
    - cycle.count == 20 && !v3_enabled && !v3_skipped_permanently → "v3 도입 가능" 묻기
    - 사용자: 활성화 / 건너뛰기 / 영구 건너뛰기 (3택)
+   - cycle.count % 5 == 0 (단, cycle.count > 0) → "improve-codebase-architecture 실행 권장 시점입니다. 실행할까요?" 제안
 
 5. Non-obvious archive 검사:
    - active ≥ 30 항목 또는 ≥ 100줄 → 가장 오래된 비재발(카운터=0) 5개 archive로 이동
