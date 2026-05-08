@@ -43,7 +43,32 @@ plan 상단 헤더 주입 (writing-plans 표준 헤더 위에):
   **Started:** YYYY-MM-DD
 
 ## Gate P
-active plan 파일 존재 확인 (enforce-rpi-cycle hook이 의존)
+
+1. active plan 파일 존재 확인 (enforce-rpi-cycle hook이 의존)
+
+2. Agent(subagent_type="review-strict",
+        task="spec vs plan alignment verification",
+        context_paths=[
+          "<현재 spec 경로: docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md>",
+          "<현재 plan 경로: docs/superpowers/plans/YYYY-MM-DD-<topic>.md>"
+        ],
+        success_criteria="
+          PASS only if ALL:
+          - spec의 모든 핵심 요구사항이 plan task로 커버됨
+          - plan에 spec 범위 밖 scope creep 없음
+          - 각 task의 검증 기준이 명확함
+          - task 간 의존 순서가 논리적
+
+          FAIL with:
+          - 미커버 spec 요구사항 목록
+          - scope creep 의심 task 목록
+          - 불명확한 검증 기준 목록
+        ")
+
+   FAIL 시:
+   - 갭 목록을 사용자에게 제시
+   - plan 수정 후 Gate P 재실행 또는 사용자가 이유 명시하고 override
+   - override 문구 예시: "Gate P override: <이유>" 명시 시 Phase I 진행 허용
 
 # Phase I — Implement
 
