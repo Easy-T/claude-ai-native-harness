@@ -29,12 +29,12 @@ for a in explore-strict review-strict execute-strict; do
 done
 
 # 6. 5 global skills
-for s in common-agent-contract create-orchestrator-skill init-ai-ready-project start-rpi-cycle closeout-pr-cycle; do
+for s in common-agent-contract create-orchestrator-skill init-ai-ready-project start-rpi-cycle closeout-pr-cycle improve-codebase-architecture; do
   [ -f "$HOME/.claude/skills/$s/SKILL.md" ] && ok "skill: $s" || fail "skill missing: $s"
 done
 
-# 7. orchestrator marker triple on 4 of 5 skills
-for s in create-orchestrator-skill init-ai-ready-project start-rpi-cycle closeout-pr-cycle; do
+# 7. orchestrator marker triple on 5 of 6 skills
+for s in create-orchestrator-skill init-ai-ready-project start-rpi-cycle closeout-pr-cycle improve-codebase-architecture; do
   f="$HOME/.claude/skills/$s/SKILL.md"
   if grep -q '^orchestrator_skill: true$' "$f" 2>/dev/null \
     && grep -q '^generated_by:' "$f" 2>/dev/null \
