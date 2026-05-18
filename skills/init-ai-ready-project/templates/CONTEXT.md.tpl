@@ -37,3 +37,9 @@ _Avoid_: 동의어1, 동의어2
 ## Flagged ambiguities
 
 (모호하게 사용된 용어와 해소 내역. grill-with-docs 세션에서 채워집니다.)
+
+<!--
+형식:
+- **"결제(Payment)"** — 청구서 컨텍스트에서는 Invoice, 이체 컨텍스트에서는 Transfer를 의미
+  → 해소: 컨텍스트별 별도 용어로 분리
+-->
