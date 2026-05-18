@@ -77,6 +77,7 @@
 | `superpowers` | [obra/superpowers](https://github.com/obra/superpowers) (claude-plugins-official) | brainstorming / writing-plans / executing-plans / subagent-driven-development / finishing-a-development-branch — start-rpi-cycle skill이 메인 세션에서 호출 |
 | `skill-creator` | claude-plugins-official | create-orchestrator-skill이 호출 |
 | `claude-md-management` (선택) | claude-plugins-official | CLAUDE.md 점검 자동화 |
+| `mattpocock/skills` | [mattpocock/skills](https://github.com/mattpocock/skills) | grill-with-docs — Phase R.A 도메인 어휘 확립 (doctor.sh 자동 설치) |
 
 → 미설치 시 RPI 사이클 일부가 작동하지 않습니다. 설치는 [STEP 4](#설치) 참조.
 
@@ -152,7 +153,7 @@ Claude Code 채팅에서:
 ```
 
 start-rpi-cycle skill이 자동 발동:
-1. **Phase R (Research)**: brainstorming + explore-strict — 요구사항·접근법·디자인 정리
+1. **Phase R (Research)**: grill-with-docs(도메인 어휘 확립) + brainstorming + explore-strict — 요구사항·접근법·디자인 정리
 2. **Phase P (Plan)**: writing-plans → `docs/superpowers/plans/YYYY-MM-DD-<topic>.md` 생성
 3. **Phase I (Implement)**: subagent-driven-development 또는 executing-plans
 4. **Phase Closeout**: (조건부) `closeout-pr-cycle` → Local Gate → PR → CI → senior review → 사용자 승인 → merge. 이후 review-strict drift 검사 + 자산 갱신 + state.json 업데이트
@@ -268,7 +269,7 @@ bash ~/.claude/setup/doctor.sh
 │   ├── common-agent-contract/SKILL.md    Input/Output 표준 (자동 주입)
 │   ├── init-ai-ready-project/            부트스트랩 orchestrator
 │   │   ├── SKILL.md
-│   │   ├── templates/                    12 .tpl 파일
+│   │   ├── templates/                    13 .tpl 파일 (CONTEXT.md.tpl 포함)
 │   │   └── references/                   placeholder-spec, stack-presets
 │   ├── start-rpi-cycle/SKILL.md          RPI 사이클 orchestrator
 │   ├── closeout-pr-cycle/SKILL.md        PR Closeout orchestrator
