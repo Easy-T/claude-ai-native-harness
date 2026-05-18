@@ -219,6 +219,35 @@ else
   check "~/.claude git-managed" "WARN" "recommend: cd ~/.claude && git init"
 fi
 
+# 20. grill-with-docs skill (auto-install from mattpocock/skills)
+GRILL_SKILL="$CLAUDE_HOME/skills/grill-with-docs/SKILL.md"
+if [ -f "$GRILL_SKILL" ]; then
+  check "grill-with-docs skill" "PASS" ""
+else
+  echo "[doctor] grill-with-docs 미설치 — mattpocock/skills에서 설치 시도..."
+  if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
+    mkdir -p "$CLAUDE_HOME/skills/grill-with-docs"
+    INSTALL_OK=1
+    for gf in SKILL.md CONTEXT-FORMAT.md ADR-FORMAT.md; do
+      node -e "
+        const {execSync} = require('child_process');
+        try {
+          const out = execSync('gh api repos/mattpocock/skills/contents/skills/engineering/grill-with-docs/$gf', {encoding:'utf8'});
+          const b64 = JSON.parse(out).content.replace(/\n/g,'');
+          process.stdout.write(Buffer.from(b64,'base64').toString('utf8'));
+        } catch(e) { process.exit(1); }
+      " 2>/dev/null > "$CLAUDE_HOME/skills/grill-with-docs/$gf" || { INSTALL_OK=0; break; }
+    done
+    if [ "$INSTALL_OK" -eq 1 ] && [ -f "$GRILL_SKILL" ]; then
+      check "grill-with-docs skill" "PASS" "auto-installed from mattpocock/skills"
+    else
+      check "grill-with-docs skill" "WARN" "auto-install 실패 — 수동: https://github.com/mattpocock/skills/tree/main/skills/engineering/grill-with-docs"
+    fi
+  else
+    check "grill-with-docs skill" "WARN" "gh 미인증 — 수동: https://github.com/mattpocock/skills/tree/main/skills/engineering/grill-with-docs"
+  fi
+fi
+
 # Report
 report_results
 
