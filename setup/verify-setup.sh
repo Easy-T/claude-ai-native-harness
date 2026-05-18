@@ -59,7 +59,7 @@ done
 # 11. 12 templates + 2 references
 T=$(find "$HOME/.claude/skills/init-ai-ready-project/templates/" -maxdepth 1 -type f 2>/dev/null | wc -l)
 R=$(find "$HOME/.claude/skills/init-ai-ready-project/references/" -maxdepth 1 -type f 2>/dev/null | wc -l)
-[ "$T" -ge 12 ] && [ "$R" -ge 2 ] && ok "templates=$T, refs=$R" || fail "templates=$T (need 12), refs=$R"
+[ "$T" -ge 13 ] && [ "$R" -ge 2 ] && ok "templates=$T, refs=$R" || fail "templates=$T (need 13), refs=$R"
 # 11b. PR lifecycle templates specifically
 [ -f "$HOME/.claude/skills/init-ai-ready-project/templates/scripts-check.sh.tpl" ] \
   && ok "template: scripts-check.sh.tpl" || fail "template missing: scripts-check.sh.tpl"
