@@ -42,8 +42,8 @@ AI 실패 감지 시:
 ## §6. Domain Glossary 의미 확인
 사용자가 도메인 용어 사용 시:
 - 의미 confidence < 80% → 즉시 확인 질문
-- 확인된 용어 + 코드 식별자 매핑 → glossary 자동 추가
-- 같은 단어 다른 컨텍스트 → "Identical-Looking" 섹션에
+- 확인된 용어 → CONTEXT.md 갱신 → domain-glossary.md 메타데이터 sync
+- 같은 단어 다른 컨텍스트 → CONTEXT.md "Flagged ambiguities"에
 
 ## §7. Response Language
 오케스트레이션 최종 보고(요약·선택 요구·완료 알림)는 한국어로 작성.
