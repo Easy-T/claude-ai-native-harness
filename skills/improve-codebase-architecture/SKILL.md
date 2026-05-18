@@ -34,6 +34,7 @@ orchestrator_version: 1.0
 Agent(subagent_type="explore-strict",
       task="codebase architecture friction analysis",
       context_paths=[
+        "CONTEXT.md",
         "docs/ai-context/architecture.md",
         "docs/ai-context/domain-glossary.md",
         "docs/ai-context/non-obvious.md"
@@ -95,8 +96,9 @@ git commit -m "refactor: improve codebase architecture — <요약>"
 Phase 3 실행 여부와 무관하게 항상 실행.
 
 입력 파일 로드:
+- CONTEXT.md (canonical 용어 — README에서 일관된 vocabulary 사용)
 - docs/ai-context/architecture.md (아키텍처 다이어그램, 모듈 설명)
-- docs/ai-context/domain-glossary.md (도메인 용어)
+- docs/ai-context/domain-glossary.md (도메인 용어 메타데이터)
 - docs/ai-context/runbook.md (설치, 실행, 운영 절차)
 - 코드베이스 진입점 (main.py / index.ts / Cargo.toml / README 힌트 등)
 
