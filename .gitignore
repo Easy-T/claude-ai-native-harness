@@ -36,6 +36,9 @@ plugins/data/
 # Hook runtime logs (operational data, regenerated)
 hooks/.log/
 
+# External skills (auto-installed by doctor.sh, managed upstream)
+skills/grill-with-docs/
+
 # Personal Claude Code config (user-specific tokens, env vars)
 # Use settings.example.json as template; install.sh handles merge.
 settings.json
