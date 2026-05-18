@@ -128,6 +128,7 @@ closeout-pr-cycle 결과를 받아:
 2. plan 헤더 갱신: **Status:** active → completed (또는 abandoned 시 abandoned) (메인이 직접 Edit)
 
 3. .claude/state.json 갱신 (메인이 jq 또는 node로 read-modify-write):
+   ※ 전체 스키마: `.claude/state.schema.json` (v2/v3 optional 필드 포함)
    - cycle.count +1 (abandoned 시 +0)
    - cycle.last_completed_at: today
    - audit.last_drift_check: today

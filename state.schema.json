@@ -1,0 +1,48 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Claude Harness State",
+  "description": "~/.claude/state.json 스키마. start-rpi-cycle Closeout C-1이 관리.",
+  "type": "object",
+  "required": ["cycle", "audit"],
+  "properties": {
+    "cycle": {
+      "type": "object",
+      "required": ["count"],
+      "properties": {
+        "count": {
+          "type": "integer", "minimum": 0,
+          "description": "완료된 RPI 사이클 수 (abandoned 미포함)"
+        },
+        "last_completed_at": {
+          "type": "string", "format": "date",
+          "description": "마지막 완료 날짜 (YYYY-MM-DD)"
+        },
+        "v2_enabled": {
+          "type": "boolean",
+          "description": "count=5 도달 시 사용자 활성화. 부재 시 false로 간주."
+        },
+        "v2_skipped_permanently": {
+          "type": "boolean",
+          "description": "v2 영구 건너뛰기 선택 시 설정"
+        },
+        "v3_enabled": {
+          "type": "boolean",
+          "description": "count=20 도달 시 사용자 활성화"
+        },
+        "v3_skipped_permanently": {
+          "type": "boolean",
+          "description": "v3 영구 건너뛰기 선택 시 설정"
+        }
+      }
+    },
+    "audit": {
+      "type": "object",
+      "properties": {
+        "last_drift_check": {
+          "type": "string", "format": "date",
+          "description": "마지막 drift check 날짜"
+        }
+      }
+    }
+  }
+}
