@@ -1,24 +1,18 @@
 # Domain Glossary — {{PROJECT_NAME}}
 
-> 사내 용어 ↔ 코드 식별자 매핑. AI가 도메인 언어를 정확히 사용하도록.
-> 새 용어 등장 시 메인이 confidence < 80%면 사용자에게 확인 후 자동 추가.
+> 도메인 어휘 정의는 프로젝트 루트의 `CONTEXT.md`가 소유.
+> 이 파일은 하네스 메타데이터(confidence·RPIC·코드 식별자)만 관리.
 
-## Domain → Code
+## Primary Vocabulary
+→ [CONTEXT.md](../../CONTEXT.md) 참조 (grill-with-docs 관리)
 
-| 도메인 용어 | 코드 식별자 | 비고 |
-|---|---|---|
-{{#TERMS}}
-| {{domain_term}} | `{{code_identifier}}` | {{note}} |
-{{/TERMS}}
+## Harness Metadata
 
-(부트스트랩 시 비어 있음. 모듈 추가 시 동시에 갱신)
+| 용어 | 첫 등장 날짜 | RPIC | Confidence | 코드 식별자 |
+|---|---|---|---|---|
 
-## Identical-Looking, Different Meaning
+(부트스트랩 시 비어 있음. Phase R grill-with-docs 완료 후 메인이 기록)
 
-(같은 단어인데 컨텍스트마다 의미가 다른 경우. 예: price vs amount)
+## Flagged for Review
 
-{{#AMBIGUITIES}}
-- **{{term}}**:
-  - `{{context_a}}`: {{meaning_a}}
-  - `{{context_b}}`: {{meaning_b}}
-{{/AMBIGUITIES}}
+(미해소 모호 용어. CONTEXT.md "Flagged ambiguities"와 연동)
