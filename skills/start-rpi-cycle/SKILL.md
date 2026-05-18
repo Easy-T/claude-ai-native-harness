@@ -17,21 +17,29 @@ orchestrator_version: 1.0
 
 # Phase R — Research
 
-A. brainstorming skill 절차 (메인이 직접 따름) — 외향적 (요구·접근법·디자인)
+A. grill-with-docs skill 절차 (메인이 직접 따름) — 도메인 용어 확립
+   ※ 미설치 시: `bash ~/.claude/setup/doctor.sh` 로 자동 설치
+   → 산출물: CONTEXT.md 갱신 (프로젝트 루트), docs/adr/*.md (조건부)
+   → grill 세션 종료 후 메인이 직접: domain-glossary.md 메타데이터 테이블에 신규 용어 기록
+
+B. brainstorming skill 절차 (메인이 직접 따름) — 외향적 (요구·접근법·디자인)
+   ※ CONTEXT.md에 확정된 용어를 언어 기반으로 사용
    → 산출물: docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md
 
-B. Agent(subagent_type="explore-strict",
+C. Agent(subagent_type="explore-strict",
         task="<요청 분석>",
-        context_paths=["docs/ai-context/architecture.md",
+        context_paths=["CONTEXT.md",
+                       "docs/ai-context/architecture.md",
                        "docs/ai-context/domain-glossary.md",
                        "docs/ai-context/non-obvious.md",
                        "docs/ai-context/deny-patterns.md"],
         success_criteria="발견사항·영향 모듈·신규 도메인 용어·deny pattern 충돌 식별")
    ※ CLAUDE.md는 메인이 자동 로드하므로 context_paths에 미포함 (중복 회피)
-   ※ A와 B는 병렬·교차 가능
+   ※ B와 C는 병렬·교차 가능 (A 완료 후)
 
 ## Gate R
-- 새 도메인 용어 confidence < 80% → 사용자 확인 → glossary 자동 추가 (메인이 직접 Edit)
+- CONTEXT.md 갱신 확인 (A 완료 검증)
+- 신규 도메인 용어 confidence < 80% → 사용자 확인 → domain-glossary.md 메타데이터 추가
 - 아키텍처 영향 → ADR 초안 작성 권유 (architecture.md append-only)
 
 # Phase P — Plan
@@ -114,10 +122,12 @@ closeout-pr-cycle 결과를 받아:
 
 1. Agent(subagent_type="review-strict",
         task="사이클 마감 점검 (drift + 자산 갱신 검증)",
-        context_paths=["docs/ai-context/architecture.md",
+        context_paths=["CONTEXT.md",
+                       "docs/ai-context/architecture.md",
                        "docs/ai-context/domain-glossary.md",
                        "docs/ai-context/non-obvious.md"],
         success_criteria="
+          - CONTEXT.md 갱신 (신규 용어 추가됨) 또는 변경 없음 확인
           - architecture.md 갱신 (모듈/의존성 변경 반영) 또는 변경 없음 확인
           - domain-glossary.md 갱신 또는 변경 없음 확인
           - 사이클 중 발생한 실패가 5 Whys 통과 후 non-obvious.md 누적 (또는 명시 면제)
