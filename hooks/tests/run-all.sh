@@ -246,6 +246,15 @@ new
 new
 new" "$SCRATCH")"
 
+# 15-write-tiny: Write ≤5 lines to new code file with active plan → PASS (trivial bypass)
+cat > "$SCRATCH/docs/superpowers/plans/p.md" <<PLAN
+# P
+**Status:** active
+- [ ] step1
+PLAN
+test_erc "15-write-tiny" 0 "$(mk_event Write "$SCRATCH/src/new_file.ts" "const x = 1;
+const y = 2;" "$SCRATCH")"
+
 # ==================== SESSION-START-AUDIT ====================
 test_ssa() {
   local name="$1"; local expected="$2"; local marker_date="${3:-}"

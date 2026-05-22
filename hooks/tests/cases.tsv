@@ -46,6 +46,7 @@ enforce-rpi-cycle	11-abandoned	2	gen_erc_abandoned
 enforce-rpi-cycle	12-paused	2	gen_erc_paused
 enforce-rpi-cycle	13-mixed-plans	0	gen_erc_mixed
 enforce-rpi-cycle	14-write-new-code	2	gen_erc_write_new
+enforce-rpi-cycle	15-write-tiny	0	gen_erc_write_tiny
 enforce-rpi-cycle	15-py-extension	2	gen_erc_py
 enforce-rpi-cycle	16-dockerfile	2	gen_erc_dockerfile
 enforce-rpi-cycle	17-config-file	2	gen_erc_config

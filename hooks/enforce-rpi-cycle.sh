@@ -20,9 +20,14 @@ case "$FILE_PATH" in
 esac
 
 # === 화이트리스트 2: trivial change (≤5 라인) ===
+OLD="" NEW=""
 if [[ "$TOOL" == "Edit" ]]; then
   OLD=$(echo "$INPUT" | json_get 'tool_input.old_string')
   NEW=$(echo "$INPUT" | json_get 'tool_input.new_string')
+elif [[ "$TOOL" == "Write" ]]; then
+  NEW=$(echo "$INPUT" | json_get 'tool_input.content')
+fi
+if [[ -n "$OLD$NEW" ]]; then
   TOTAL_LINES=$(printf '%s\n%s\n' "$OLD" "$NEW" | wc -l)
   (( TOTAL_LINES <= 5 )) && {
     hook_log "enforce-rpi-cycle" "$FILE_PATH" "PASS" "trivial"

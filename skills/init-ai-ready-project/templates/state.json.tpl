@@ -6,15 +6,10 @@
   "cycle": {
     "count": 0,
     "last_completed_at": null,
-    "last_cycle_id": null
-  },
-
-  "features": {
+    "last_cycle_id": null,
     "v2_enabled": false,
-    "v2_enabled_at": null,
     "v2_skipped_permanently": false,
     "v3_enabled": false,
-    "v3_enabled_at": null,
     "v3_skipped_permanently": false
   },
 

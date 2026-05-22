@@ -159,6 +159,7 @@ closeout-pr-cycle 결과를 받아:
 - completed: 완료
 - abandoned: 중단 (cycle.count 증가 없음)
 - paused: 일시 중지 (enforce-rpi-cycle이 active로 인식 안 함)
+  재개: plan **Status:** paused → active 로 직접 수정
 
 ## Communication Protocol
 - result: COMPLETE / FAIL
