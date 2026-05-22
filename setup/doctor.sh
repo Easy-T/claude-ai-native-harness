@@ -248,7 +248,31 @@ else
   fi
 fi
 
-# 21. CLAUDE_AUTOCOMPACT_PCT_OVERRIDE in settings.json
+# 21. hook 파일 존재 + 실행권한
+REQUIRED_HOOKS=(
+  "enforce-orchestrator.sh"
+  "stable-claude-md.sh"
+  "enforce-rpi-cycle.sh"
+  "auto-compact-watch.sh"
+  "session-start-audit.sh"
+  "_common.sh"
+)
+HOOK_FAIL=0
+for hf in "${REQUIRED_HOOKS[@]}"; do
+  fp="$CLAUDE_HOME/hooks/$hf"
+  if [ ! -f "$fp" ]; then
+    check "hook: $hf" "FAIL" "파일 없음 — $fp"
+    HOOK_FAIL=1
+  elif [ ! -x "$fp" ]; then
+    check "hook: $hf" "FAIL" "실행권한 없음 — chmod +x $fp"
+    HOOK_FAIL=1
+  else
+    check "hook: $hf" "PASS" ""
+  fi
+done
+[ "$HOOK_FAIL" -eq 0 ] && check "all hooks present+executable" "PASS" "${#REQUIRED_HOOKS[@]}개" || true
+
+# 23. CLAUDE_AUTOCOMPACT_PCT_OVERRIDE in settings.json
 SETTINGS_JSON="$CLAUDE_HOME/settings.json"
 if [ -f "$SETTINGS_JSON" ]; then
   compact_val=$(node -e "try{const s=JSON.parse(require('fs').readFileSync('$SETTINGS_JSON','utf8'));console.log(s.env&&s.env.CLAUDE_AUTOCOMPACT_PCT_OVERRIDE||'')}catch(e){}" 2>/dev/null || echo "")

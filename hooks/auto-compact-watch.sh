@@ -45,7 +45,7 @@ if (( USED >= THRESHOLD )); then
   hook_log "auto-compact-watch" "session=$SESSION_ID" "ALERT" "${PCT}%"
   cat >&2 <<EOF
 [auto-compact] 컨텍스트 사용률 ${PCT}% (${USED}/${LIMIT}).
-  /compact 사용을 권장합니다 (강의 기준 40% 임계).
+  early-warning (40% 임계): 60% 도달 시 native auto-compact 자동 발동.
   세션당 1회만 알립니다.
 EOF
 fi

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ~/.claude/hooks/tests/run-all.sh
-# Runs all 65 fixture cases against the actual hook scripts.
+# Runs implemented fixture cases against the actual hook scripts.
 
 set -uo pipefail
 HOOKS="$HOME/.claude/hooks"
@@ -310,6 +310,26 @@ test_acw() {
   actual=$(echo "$input" | "$HOOKS/auto-compact-watch.sh" >/dev/null 2>&1; echo $?)
   [ "$actual" = "$expected" ] && PASSED=$((PASSED+1)) || FAILED_LIST+=("auto-compact-watch/$name (got=$actual)")
 }
+
+# 03-41pct: token usage above 40% threshold → alert (exit 0)
+test_acw_threshold() {
+  local name="$1"; local tokens="$2"
+  TOTAL=$((TOTAL+1))
+  local tf; tf=$(mktemp "$SCRATCH/transcript-XXXXXX.jsonl")
+  printf '{"message":{"usage":{"input_tokens":%d,"cache_read_input_tokens":0,"cache_creation_input_tokens":0}}}\n' "$tokens" > "$tf"
+  local SID="threshold-$$"
+  rm -f "/tmp/compact-alerted-$SID"
+  local actual
+  actual=$(echo "{\"session_id\":\"$SID\",\"transcript_path\":\"$tf\"}" | "$HOOKS/auto-compact-watch.sh" >/dev/null 2>&1; echo $?)
+  rm -f "/tmp/compact-alerted-$SID"
+  [ "$actual" = "0" ] && PASSED=$((PASSED+1)) || FAILED_LIST+=("auto-compact-watch/$name (got=$actual)")
+}
+# 30pct (60000 of 200000): below threshold → no alert, still exit 0
+test_acw_threshold "01-30pct" 60000
+# 41pct (82000 of 200000): above 40% threshold → alert, exit 0
+test_acw_threshold "03-41pct" 82000
+# 80pct (160000 of 200000): well above threshold → alert, exit 0
+test_acw_threshold "04-80pct" 160000
 
 # 05-no-transcript
 test_acw "05-no-transcript" 0 '{"session_id":"abc"}'
