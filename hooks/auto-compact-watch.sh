@@ -43,10 +43,6 @@ if (( USED >= THRESHOLD )); then
   PCT=$(( USED * 100 / LIMIT ))
   touch "$ALERT_MARKER"
   hook_log "auto-compact-watch" "session=$SESSION_ID" "ALERT" "${PCT}%"
-  cat >&2 <<EOF
-[auto-compact] 컨텍스트 사용률 ${PCT}% (${USED}/${LIMIT}).
-  early-warning (40% 임계): 60% 도달 시 native auto-compact 자동 발동.
-  세션당 1회만 알립니다.
-EOF
+  node -e "process.stdout.write(JSON.stringify({systemMessage:'[auto-compact] 컨텍스트 사용률 '+${PCT}+'% ('+${USED}+'/'+${LIMIT}+'). 60% 도달 시 native auto-compact 자동 발동. 지금 /compact 실행을 권장합니다.'}))"
 fi
 exit 0
