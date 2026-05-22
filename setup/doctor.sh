@@ -248,6 +248,19 @@ else
   fi
 fi
 
+# 21. CLAUDE_AUTOCOMPACT_PCT_OVERRIDE in settings.json
+SETTINGS_JSON="$CLAUDE_HOME/settings.json"
+if [ -f "$SETTINGS_JSON" ]; then
+  compact_val=$(node -e "try{const s=JSON.parse(require('fs').readFileSync('$SETTINGS_JSON','utf8'));console.log(s.env&&s.env.CLAUDE_AUTOCOMPACT_PCT_OVERRIDE||'')}catch(e){}" 2>/dev/null || echo "")
+  if [ -n "$compact_val" ]; then
+    check "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE" "PASS" "${compact_val}%"
+  else
+    check "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE" "WARN" "미설정 — 기본값 95%. settings.json env에 \"CLAUDE_AUTOCOMPACT_PCT_OVERRIDE\": \"60\" 추가 권장"
+  fi
+else
+  check "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE" "WARN" "settings.json 없음 — settings.example.json 복사 후 설정"
+fi
+
 # Report
 report_results
 
