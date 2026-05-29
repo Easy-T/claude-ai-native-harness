@@ -4,19 +4,31 @@ require_node
 
 INPUT=$(read_input)
 FILE_PATH=$(echo "$INPUT" | json_get 'tool_input.file_path')
+# NotebookEdit는 file_path 대신 notebook_path를 사용 → fallback 해석
+[ -z "$FILE_PATH" ] && FILE_PATH=$(echo "$INPUT" | json_get 'tool_input.notebook_path')
 FILE_PATH=$(normalize_path "$FILE_PATH")
 TOOL=$(echo "$INPUT" | json_get 'tool_name')
 CWD=$(echo "$INPUT" | json_get 'cwd')
 CWD=$(normalize_path "$CWD")
 [ -z "$CWD" ] && CWD="."
 
-# === 화이트리스트 1: 비코드 파일 통과 ===
+# === 화이트리스트 1: 비실행 산출물은 확장자 기준으로 항상 통과 (디렉터리 무관) ===
 case "$FILE_PATH" in
   *.md|*.txt|*.gitignore|*/CLAUDE.md|*/README*|*/.gitkeep) exit 0 ;;
-  */docs/*) exit 0 ;;
-  */.claude/*) exit 0 ;;          # 프로젝트 .claude 설정
-  */.github/*) exit 0 ;;          # CI 설정
-  */superpowers/*) exit 0 ;;      # superpowers 디렉터리
+esac
+
+# === 화이트리스트 2: infra/config 디렉터리는 '비코드 파일'에 한해 통과 ===
+# 실행/코드 확장자는 어떤 디렉터리에 있어도 디렉터리-면제를 받지 못함
+# → docs//.claude//.github/ 로의 코드 밀반입(S5) + governance hook 자기수정(S11) 차단.
+# 참고: docs/superpowers/* 의 plan·spec은 .md이므로 화이트리스트1에서 이미 통과.
+#       따라서 기존 */superpowers/* 디렉터리 면제는 제거 → vendor/superpowers/x.py 우회(S16)도 차단.
+case "$FILE_PATH" in
+  *.sh|*.bash|*.zsh|*.py|*.rb|*.js|*.mjs|*.cjs|*.ts|*.tsx|*.jsx|*.go|*.rs|*.php|*.pl|*.ps1|*.psm1|*.c|*.cc|*.cpp|*.h|*.hpp|*.java|*.kt|*.swift|*.scala|*.lua|*.sql|*.ipynb|*/Dockerfile|Dockerfile) : ;;  # 코드 → 디렉터리 면제 없이 plan 게이트로 낙하
+  *)
+    case "$FILE_PATH" in
+      */.claude/*|*/docs/*|*/.github/*) exit 0 ;;   # 비코드 config/doc만 통과
+    esac
+    ;;
 esac
 
 # === 화이트리스트 2: trivial change (≤5 라인) ===
@@ -56,33 +68,17 @@ EOF
   exit 2
 fi
 
-# 활성 plan 식별 (우선순위)
-ACTIVE=""
-for plan in "$PLAN_DIR"/*.md; do
-  [ ! -f "$plan" ] && continue
-  # 1순위: 명시적 Status (있으면 우선)
-  STATUS=$(head -20 "$plan" | grep -m1 -E '^\*?\*?[Ss]tatus:?\*?\*?' | sed -E 's/^\*?\*?[Ss]tatus:?\*?\*?\s*//' | tr -d ' ' || true)
-  case "$STATUS" in
-    completed|abandoned|archived|paused) continue ;;     # paused 명시 (체크박스 fallback 회피)
-    active|in_progress) ACTIVE="$plan"; break ;;
-  esac
-  # 2순위: frontmatter 없으면 미완료 체크박스 존재 여부로 판별
-  if grep -qE '^- \[ \]' "$plan"; then
-    ACTIVE="$plan"
-    break
-  fi
-done
+# 활성 plan 식별 (로직은 _common.sh has_active_plan 으로 공유 — enforce-rpi-bash 와 동일 기준)
+if ACTIVE=$(has_active_plan "$CWD"); then
+  hook_log "enforce-rpi-cycle" "$FILE_PATH" "PASS" "plan=$(basename "$ACTIVE")"
+  exit 0
+fi
 
-if [ -z "$ACTIVE" ]; then
-  hook_log "enforce-rpi-cycle" "$FILE_PATH" "BLOCK" "no-active-plan"
-  cat >&2 <<EOF
+hook_log "enforce-rpi-cycle" "$FILE_PATH" "BLOCK" "no-active-plan"
+cat >&2 <<EOF
 [rpi] 차단: 활성 plan 없음 (docs/superpowers/plans/*.md).
   start-rpi-cycle을 사용해 R→P 단계를 먼저 완료하세요.
   trivial 변경(≤5라인) 또는 docs 변경은 자동 허용.
   명시 우회: export RPI_SKIP="<이유>"
 EOF
-  exit 2
-fi
-
-hook_log "enforce-rpi-cycle" "$FILE_PATH" "PASS" "plan=$(basename "$ACTIVE")"
-exit 0
+exit 2

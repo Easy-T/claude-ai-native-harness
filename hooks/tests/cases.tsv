@@ -58,3 +58,20 @@ session-start-audit	04-31-days-ago	0	gen_ssa_31
 session-start-audit	05-bad-format	0	gen_ssa_bad
 session-start-audit	06-multiple-markers	0	gen_ssa_multi
 session-start-audit	07-future-date	0	gen_ssa_future
+# Patch A (2026-05-29) — side-door + whitelist hardening regression cases
+enforce-rpi-cycle	20-docs-py-block	2	gen_erc_docs_py
+enforce-rpi-cycle	21-claude-sh-block	2	gen_erc_claude_sh
+enforce-rpi-cycle	22-superpowers-py-block	2	gen_erc_superpowers_py
+enforce-rpi-cycle	23-docs-md-pass	0	gen_erc_docs_md
+enforce-rpi-cycle	24-claude-json-pass	0	gen_erc_claude_json
+enforce-rpi-cycle	25-notebook-block	2	gen_erc_nb_block
+enforce-rpi-cycle	26-notebook-pass	0	gen_erc_nb_pass
+enforce-rpi-cycle	27-claude-sh-plan-pass	0	gen_erc_claude_sh_plan
+enforce-rpi-bash	30-heredoc-code-noplan	2	gen_erb_heredoc
+enforce-rpi-bash	31-redirect-md-noplan	0	gen_erb_md
+enforce-rpi-bash	32-devnull	0	gen_erb_devnull
+enforce-rpi-bash	33-tee-code-noplan	2	gen_erb_tee
+enforce-rpi-bash	34-no-redirect	0	gen_erb_noredirect
+enforce-rpi-bash	35-heredoc-code-plan	0	gen_erb_plan
+enforce-rpi-bash	36-rpi-skip	0	gen_erb_skip
+enforce-orchestrator	13-lowercase-skill-md	2	gen_eo_lowercase

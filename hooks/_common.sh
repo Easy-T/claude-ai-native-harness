@@ -60,3 +60,26 @@ normalize_path() {
   local p="${1:-}"
   echo "${p//\\//}"
 }
+
+# --- has_active_plan: <cwd>의 docs/superpowers/plans에 active plan이 있으면 경로 출력+return 0 ---
+# Usage: if PLAN=$(has_active_plan "$CWD"); then ...; fi
+# enforce-rpi-cycle 와 enforce-rpi-bash 가 공유 (로직 drift 방지). 판별 우선순위는
+# 기존 enforce-rpi-cycle 인라인 로직과 동일: 명시 Status > 미완료 체크박스 fallback.
+has_active_plan() {
+  local cwd="${1:-.}"
+  local plan_dir="$cwd/docs/superpowers/plans"
+  [ -d "$plan_dir" ] || return 1
+  local plan status
+  for plan in "$plan_dir"/*.md; do
+    [ -f "$plan" ] || continue
+    # 1순위: 명시적 Status
+    status=$(head -20 "$plan" | grep -m1 -E '^\*?\*?[Ss]tatus:?\*?\*?' | sed -E 's/^\*?\*?[Ss]tatus:?\*?\*?\s*//' | tr -d ' ' || true)
+    case "$status" in
+      completed|abandoned|archived|paused) continue ;;
+      active|in_progress) printf '%s' "$plan"; return 0 ;;
+    esac
+    # 2순위: 미완료 체크박스 존재
+    if grep -qE '^- \[ \]' "$plan"; then printf '%s' "$plan"; return 0; fi
+  done
+  return 1
+}

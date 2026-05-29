@@ -29,6 +29,22 @@ mk_edit() {
   '
 }
 
+# Bash tool event (command field) — for enforce-rpi-bash (Patch A)
+mk_bash_event() {
+  local cmd="$1"; local cwd="${2:-$SCRATCH}"
+  cat <<JSON
+{"tool_name":"Bash","tool_input":{"command":$(printf '%s' "$cmd" | node -e 'let d="";process.stdin.on("data",c=>d+=c);process.stdin.on("end",()=>{process.stdout.write(JSON.stringify(d))})')},"cwd":"$cwd"}
+JSON
+}
+
+# NotebookEdit event (notebook_path + new_source) — for enforce-rpi-cycle matcher (Patch A)
+mk_nb_event() {
+  local file="$1"; local src="$2"; local cwd="${3:-$SCRATCH}"
+  cat <<JSON
+{"tool_name":"NotebookEdit","tool_input":{"notebook_path":"$file","new_source":$(printf '%s' "$src" | node -e 'let d="";process.stdin.on("data",c=>d+=c);process.stdin.on("end",()=>{process.stdout.write(JSON.stringify(d))})')},"cwd":"$cwd"}
+JSON
+}
+
 # Body for orchestrator skill (variations)
 ORCH_COMPLETE='---
 name: x
@@ -254,6 +270,51 @@ cat > "$SCRATCH/docs/superpowers/plans/p.md" <<PLAN
 PLAN
 test_erc "15-write-tiny" 0 "$(mk_event Write "$SCRATCH/src/new_file.ts" "const x = 1;
 const y = 2;" "$SCRATCH")"
+
+# ==================== PATCH-A: WHITELIST HARDENING (enforce-rpi-cycle) ====================
+# Isolated projects so we don't couple to the mutated $SCRATCH plan state above.
+NP="$SCRATCH/np"; mkdir -p "$NP/docs/superpowers" "$NP/.claude/hooks" "$NP/vendor/superpowers" "$NP/src" "$NP/skills/foo"   # NO plans dir
+WP="$SCRATCH/wp"; mkdir -p "$WP/docs/superpowers/plans" "$WP/.claude/hooks"
+printf '# p\n**Status:** active\n- [ ] s\n' > "$WP/docs/superpowers/plans/p.md"
+BIG=$'a=1\nb=2\nc=3\nd=4\ne=5\nf=6\ng=7\nh=8'   # 8-line code body (non-trivial)
+
+# Code under whitelisted dirs must now require a plan (closes S5/S11/S16 smuggling + self-modification)
+test_erc "20-docs-py-block"        2 "$(mk_event Write "$NP/docs/gen.py" "$BIG" "$NP")"
+test_erc "21-claude-sh-block"      2 "$(mk_event Write "$NP/.claude/hooks/evil.sh" "$BIG" "$NP")"
+test_erc "22-superpowers-py-block" 2 "$(mk_event Write "$NP/vendor/superpowers/x.py" "$BIG" "$NP")"
+# Non-code under whitelisted dirs still passes (no false positives)
+test_erc "23-docs-md-pass"         0 "$(mk_event Write "$NP/docs/notes.md" "$BIG" "$NP")"
+test_erc "24-claude-json-pass"     0 "$(mk_event Write "$NP/.claude/settings.json" "$BIG" "$NP")"
+# NotebookEdit now routed + path resolved from notebook_path (closes S2)
+test_erc "25-notebook-block"       2 "$(mk_nb_event "$NP/nb.ipynb" "$BIG" "$NP")"
+test_erc "26-notebook-pass"        0 "$(mk_nb_event "$WP/nb.ipynb" "$BIG" "$WP")"
+# With an active plan, code under .claude/ is allowed (governance change via RPI)
+test_erc "27-claude-sh-plan-pass"  0 "$(mk_event Write "$WP/.claude/hooks/x.sh" "$BIG" "$WP")"
+
+# ==================== PATCH-A: BASH SIDE-DOOR (enforce-rpi-bash) ====================
+test_erb() {
+  local name="$1"; local expected="$2"; local input="$3"; local env_pfx="${4:-}"
+  TOTAL=$((TOTAL+1))
+  local actual
+  if [ -n "$env_pfx" ]; then
+    actual=$(echo "$input" | env $env_pfx "$HOOKS/enforce-rpi-bash.sh" >/dev/null 2>&1; echo $?)
+  else
+    actual=$(echo "$input" | "$HOOKS/enforce-rpi-bash.sh" >/dev/null 2>&1; echo $?)
+  fi
+  [ "$actual" = "$expected" ] && PASSED=$((PASSED+1)) || FAILED_LIST+=("enforce-rpi-bash/$name (expected=$expected, got=$actual)")
+}
+HEREDOC_PY=$'cat > out.py <<EOF\nprint(1)\nEOF'
+test_erb "30-heredoc-code-noplan" 2 "$(mk_bash_event "$HEREDOC_PY" "$NP")"
+test_erb "31-redirect-md-noplan"  0 "$(mk_bash_event 'echo hi > notes.md' "$NP")"
+test_erb "32-devnull"             0 "$(mk_bash_event 'foo > /dev/null' "$NP")"
+test_erb "33-tee-code-noplan"     2 "$(mk_bash_event 'echo x | tee app.js' "$NP")"
+test_erb "34-no-redirect"         0 "$(mk_bash_event 'npm run build' "$NP")"
+test_erb "35-heredoc-code-plan"   0 "$(mk_bash_event "$HEREDOC_PY" "$WP")"
+test_erb "36-rpi-skip"            0 "$(mk_bash_event "$HEREDOC_PY" "$NP")" "RPI_SKIP=hotfix"
+
+# ==================== PATCH-A: ORCHESTRATOR CASE-INSENSITIVE (enforce-orchestrator) ====================
+SK_BAD=$'---\norchestrator_skill: true\n---\n# Phase 1\nonly one phase'
+test_eo "13-lowercase-skill-md" 2 "$(mk_event Write "$NP/skills/foo/skill.md" "$SK_BAD" "$NP")"
 
 # ==================== SESSION-START-AUDIT ====================
 test_ssa() {

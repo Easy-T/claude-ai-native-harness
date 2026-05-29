@@ -6,8 +6,10 @@ INPUT=$(read_input)
 FILE_PATH=$(echo "$INPUT" | json_get 'tool_input.file_path')
 FILE_PATH=$(normalize_path "$FILE_PATH")
 
-# 1. 대상 path 확인 — */skills/*/SKILL.md
-[[ "$FILE_PATH" != */skills/*/SKILL.md ]] && exit 0
+# 1. 대상 path 확인 — */skills/*/SKILL.md (대소문자 무시: skill.md/Skill.md 등도 검증, S13)
+shopt -s nocasematch
+if [[ "$FILE_PATH" != */skills/*/skill.md ]]; then shopt -u nocasematch; exit 0; fi
+shopt -u nocasematch
 
 # 2. 작성될 컨텐츠 추출
 CONTENT=$(echo "$INPUT" | json_get 'tool_input.content')

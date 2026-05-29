@@ -253,6 +253,7 @@ REQUIRED_HOOKS=(
   "enforce-orchestrator.sh"
   "stable-claude-md.sh"
   "enforce-rpi-cycle.sh"
+  "enforce-rpi-bash.sh"
   "auto-compact-watch.sh"
   "session-start-audit.sh"
   "_common.sh"
