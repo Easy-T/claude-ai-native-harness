@@ -254,6 +254,7 @@ REQUIRED_HOOKS=(
   "stable-claude-md.sh"
   "enforce-rpi-cycle.sh"
   "enforce-rpi-bash.sh"
+  "enforce-secret-scan.sh"
   "auto-compact-watch.sh"
   "session-start-audit.sh"
   "_common.sh"
@@ -284,6 +285,24 @@ if [ -f "$SETTINGS_JSON" ]; then
   fi
 else
   check "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE" "WARN" "settings.json 없음 — settings.example.json 복사 후 설정"
+fi
+
+# 24. .credentials.json 권한 (POSIX 소유자 전용 권장; Patch C)
+CREDS="$CLAUDE_HOME/.credentials.json"
+if [ -f "$CREDS" ]; then
+  case "$(uname -s)" in
+    MINGW*|MSYS*|CYGWIN*)
+      check ".credentials.json perms" "WARN" "Windows(NTFS) — chmod no-op; ACL/EFS로 보호 권장" ;;
+    *)
+      MODE=$(stat -c '%a' "$CREDS" 2>/dev/null || stat -f '%Lp' "$CREDS" 2>/dev/null || echo "")
+      if [ "$MODE" = "600" ] || [ "$MODE" = "400" ]; then
+        check ".credentials.json perms" "PASS" "$MODE"
+      elif chmod 600 "$CREDS" 2>/dev/null; then
+        check ".credentials.json perms" "PASS" "tightened to 600 (was ${MODE:-unknown})"
+      else
+        check ".credentials.json perms" "WARN" "loose (${MODE:-unknown}) — run: chmod 600 $CREDS"
+      fi ;;
+  esac
 fi
 
 # Report

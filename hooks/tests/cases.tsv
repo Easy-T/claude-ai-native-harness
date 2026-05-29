@@ -75,3 +75,10 @@ enforce-rpi-bash	34-no-redirect	0	gen_erb_noredirect
 enforce-rpi-bash	35-heredoc-code-plan	0	gen_erb_plan
 enforce-rpi-bash	36-rpi-skip	0	gen_erb_skip
 enforce-orchestrator	13-lowercase-skill-md	2	gen_eo_lowercase
+# Patch C (2026-05-29) — secret-scan content guard regression cases
+enforce-secret-scan	40-write-anthropic-key	2	gen_ess_ant
+enforce-secret-scan	41-write-aws-key	2	gen_ess_aws
+enforce-secret-scan	42-bash-key-redirect	2	gen_ess_bash
+enforce-secret-scan	43-placeholder-pass	0	gen_ess_placeholder
+enforce-secret-scan	44-clean-pass	0	gen_ess_clean
+enforce-secret-scan	45-skip-override	0	gen_ess_skip

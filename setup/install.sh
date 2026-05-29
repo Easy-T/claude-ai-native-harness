@@ -61,6 +61,7 @@ REQUIRED=(
   "$TARGET/hooks/auto-compact-watch.sh"
   "$TARGET/hooks/enforce-rpi-cycle.sh"
   "$TARGET/hooks/enforce-rpi-bash.sh"
+  "$TARGET/hooks/enforce-secret-scan.sh"
   "$TARGET/hooks/session-start-audit.sh"
   "$TARGET/setup/doctor.sh"
   "$TARGET/commands/init-ai-ready.md"
@@ -75,7 +76,7 @@ if [ "$MISSING_FILES" -gt 0 ]; then
   echo "  ✗ $MISSING_FILES 개 파일 누락. clone이 정상 완료됐는지 확인하세요."
   exit 1
 fi
-echo "  ✓ 18개 필수 파일 모두 존재"
+echo "  ✓ 19개 필수 파일 모두 존재"
 
 # --- 3. 실행 권한 부여 ---
 echo "[3/6] 스크립트 실행 권한 부여..."

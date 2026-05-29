@@ -316,6 +316,30 @@ test_erb "36-rpi-skip"            0 "$(mk_bash_event "$HEREDOC_PY" "$NP")" "RPI_
 SK_BAD=$'---\norchestrator_skill: true\n---\n# Phase 1\nonly one phase'
 test_eo "13-lowercase-skill-md" 2 "$(mk_event Write "$NP/skills/foo/skill.md" "$SK_BAD" "$NP")"
 
+# ==================== PATCH-C: SECRET SCAN (enforce-secret-scan) ====================
+test_ess() {
+  local name="$1"; local expected="$2"; local input="$3"; local env_pfx="${4:-}"
+  TOTAL=$((TOTAL+1))
+  local actual
+  if [ -n "$env_pfx" ]; then
+    actual=$(echo "$input" | env $env_pfx "$HOOKS/enforce-secret-scan.sh" >/dev/null 2>&1; echo $?)
+  else
+    actual=$(echo "$input" | "$HOOKS/enforce-secret-scan.sh" >/dev/null 2>&1; echo $?)
+  fi
+  [ "$actual" = "$expected" ] && PASSED=$((PASSED+1)) || FAILED_LIST+=("enforce-secret-scan/$name (expected=$expected, got=$actual)")
+}
+# Fake-but-matching secrets built at RUNTIME so this test file holds NO literal secret
+# (otherwise the scanner would self-trip when run-all.sh is later edited).
+FAKE_ANT="sk-ant-oat01-$(printf 'a%.0s' $(seq 1 60))"
+FAKE_AKIA="AKIA$(printf 'A%.0s' $(seq 1 16))"
+PLACEHOLDER_ANT="sk-ant-oat01-$(printf 'X%.0s' $(seq 1 44))"
+test_ess "40-write-anthropic-key" 2 "$(mk_event Write "$SCRATCH/x.txt" "token = $FAKE_ANT" "$SCRATCH")"
+test_ess "41-write-aws-key"       2 "$(mk_event Write "$SCRATCH/x.txt" "aws = $FAKE_AKIA" "$SCRATCH")"
+test_ess "42-bash-key-redirect"   2 "$(mk_bash_event "echo $FAKE_ANT > /tmp/leak.env" "$SCRATCH")"
+test_ess "43-placeholder-pass"    0 "$(mk_event Write "$SCRATCH/x.txt" "token = $PLACEHOLDER_ANT" "$SCRATCH")"
+test_ess "44-clean-pass"          0 "$(mk_event Write "$SCRATCH/x.txt" "just normal code here, no secrets" "$SCRATCH")"
+test_ess "45-skip-override"       0 "$(mk_event Write "$SCRATCH/x.txt" "token = $FAKE_ANT" "$SCRATCH")" "SECRET_SCAN_SKIP=approved"
+
 # ==================== SESSION-START-AUDIT ====================
 test_ssa() {
   local name="$1"; local expected="$2"; local marker_date="${3:-}"
