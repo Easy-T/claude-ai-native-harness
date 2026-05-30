@@ -463,6 +463,10 @@ LIBREGEX=$(bash -c 'source "$HOME/.claude/hooks/_common.sh"; code_ext_regex')
 test_lib "75-redirect-code"      "out.py" "$(CMD='cat > out.py <<EOF' CODE_EXT_REGEX="$LIBREGEX" node "$LIB/redirect-targets.js")"
 test_lib "76-redirect-doc"       ""       "$(CMD='echo hi > notes.md' CODE_EXT_REGEX="$LIBREGEX" node "$LIB/redirect-targets.js")"
 test_lib "77-redirect-devnull"   ""       "$(CMD='foo > /dev/null'    CODE_EXT_REGEX="$LIBREGEX" node "$LIB/redirect-targets.js")"
+# model-window.js: 모델명 -> 컨텍스트 창 (CONTEXT_LIMIT override)
+test_lib "78-modelwin-opus"     "1000000" "$(node "$LIB/model-window.js" claude-opus-4-8)"
+test_lib "79-modelwin-default"  "200000"  "$(node "$LIB/model-window.js" claude-sonnet-4-6)"
+test_lib "80-modelwin-override" "300000"  "$(CONTEXT_LIMIT=300000 node "$LIB/model-window.js" claude-sonnet-4-6)"
 
 # ==================== SESSION-START-AUDIT ====================
 test_ssa() {
@@ -553,6 +557,19 @@ if [ ${#FAILED_LIST[@]} -gt 0 ]; then
   echo "Failures:"
   for f in "${FAILED_LIST[@]}"; do echo "  - $f"; done
 fi
+# ==================== CASES.TSV <-> RUN-ALL RECONCILIATION ([4]) ====================
+# 모든 cases.tsv 선언 케이스 ID가 run-all.sh 에 실재해야 함 (phantom 카탈로그 항목 = drift 차단).
+RECON_FAIL=0
+while IFS=$'\t' read -r rhook rid rrest; do
+  case "$rhook" in \#*|'') continue ;; esac
+  grep -qF "$rid" "$TESTS_DIR/run-all.sh" || { echo "  reconcile: declared-but-not-run → $rhook/$rid"; RECON_FAIL=1; }
+done < "$TESTS_DIR/cases.tsv"
+if [ "$RECON_FAIL" -ne 0 ]; then
+  echo "cases.tsv <-> run-all 정합 실패 (위 케이스를 구현하거나 cases.tsv에서 제거)."
+  exit 1
+fi
+echo "cases.tsv <-> run-all 정합 OK ($(grep -cvE '^#' "$TESTS_DIR/cases.tsv") declared cases all present)"
+
 PCT=$(( PASSED * 100 / TOTAL ))
 if (( PCT < 95 )); then
   echo "Pass rate ${PCT}% < 95% (spec §6.6 threshold). FAIL."

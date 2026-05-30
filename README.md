@@ -5,7 +5,7 @@
 이 하네스를 설치하면 다음이 자동으로 작동합니다:
 
 - "**기능 추가해줘**" → R(Research) → P(Plan) → I(Implement) → Closeout 사이클을 메인 세션이 강제로 따름
-- "**새 프로젝트 셋업해줘**" → `/init-ai-ready <name>` 으로 12개 파일 + 5개 디렉터리가 결정론적으로 생성
+- "**새 프로젝트 셋업해줘**" → `/init-ai-ready <name>` 으로 13개 파일 + 5개 디렉터리가 결정론적으로 생성
 - 코드 변경 전 active plan 부재 → hook이 차단 (≤5라인 trivial 변경은 자동 통과)
 - 30일마다 글로벌 환경 self-audit, 컨텍스트 임계(모델-인지 창 기준) 도달 시 `/compact` 알림
 
@@ -136,9 +136,10 @@ Claude Code 채팅에서:
 자동으로:
 - Phase 0: doctor 환경 점검
 - Phase 1: 디렉터리 충돌 + 스택 감지 (Next.js / Python / Rust 등)
-- Phase 2: 12개 파일 결정론적 생성
+- Phase 2: 13개 파일 결정론적 생성
   ```
   CLAUDE.md
+  CONTEXT.md                ← 프로젝트 canonical 용어 (grill-with-docs가 갱신)
   docs/ai-context/{architecture, runbook, deny-patterns, non-obvious, domain-glossary}.md
   .claude/{settings.json, state.json, hooks/pre-commit-deny.sh}
   .gitignore
@@ -252,7 +253,7 @@ bash ~/.claude/setup/doctor.sh
 │   └── plans/2026-05-01-*.md            13단계 빌드 plan
 │
 ├── hooks/
-│   ├── _common.sh                        json_get / hook_log / normalize_path / has_active_plan
+│   ├── _common.sh                        json_get(_many) / hook_log / normalize / has_active_plan / is_code_path / resolve_cwd / session_marker / emit_system_message
 │   ├── enforce-orchestrator.sh           orchestrator 골격 검증 (Edit 결과파일 + 주석 strip)
 │   ├── enforce-rpi-cycle.sh              RPI 사이클 강제 (코드 확장자 디렉터리 면제 없음)
 │   ├── enforce-rpi-bash.sh               Bash 사이드도어 봉인 (코드 리다이렉션 차단)
@@ -261,9 +262,14 @@ bash ~/.claude/setup/doctor.sh
 │   ├── auto-compact-watch.sh             모델-인지 컨텍스트 임계 알림
 │   ├── verify-loop-watch.sh              검증/closeout 환기 (Stop, advisory)
 │   ├── session-start-audit.sh            30일 audit 알림
+│   ├── lib/                              추출된 단위테스트 가능 파서 (node)
+│   │   ├── redirect-targets.js            셸 리다이렉션 코드작성 탐지
+│   │   ├── skeleton-scan.js               orchestrator 골격 권위 checker
+│   │   ├── transcript-usage.js            컨텍스트 토큰+모델 추출
+│   │   └── model-window.js                모델→컨텍스트 창 매핑
 │   └── tests/
-│       ├── cases.tsv                     94 case 카탈로그 (현재 68 구현)
-│       └── run-all.sh                    단위 테스트 러너
+│       ├── cases.tsv                     79 case (run-all과 1:1 정합, 100% 구현)
+│       └── run-all.sh                    단위 테스트 러너 (+ cases.tsv 정합 검사)
 │
 ├── setup/
 │   ├── doctor.sh                         환경 진단·치료
@@ -490,7 +496,7 @@ git push
 
 - 설계 명세: [`docs/superpowers/specs/2026-05-01-ai-native-orchestration-design.md`](docs/superpowers/specs/2026-05-01-ai-native-orchestration-design.md) (3,000+ 줄)
 - 13단계 빌드 plan: [`docs/superpowers/plans/2026-05-01-ai-native-orchestration.md`](docs/superpowers/plans/2026-05-01-ai-native-orchestration.md)
-- Hook 단위 테스트: `hooks/tests/cases.tsv` (94 케이스 카탈로그 / 68 구현, 100% 통과). 원 설계 명세: spec §6.2
+- Hook 단위 테스트: `hooks/tests/cases.tsv` (79 케이스, run-all과 1:1 정합, 100% 통과). 원 설계 명세(65 case): spec §6.2
 
 ---
 

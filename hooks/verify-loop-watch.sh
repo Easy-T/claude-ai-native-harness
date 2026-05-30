@@ -19,10 +19,10 @@ STOP_ACTIVE=$(echo "$INPUT" | json_get 'stop_hook_active')
 
 # 2) 세션당 1회
 SESSION_ID=$(echo "$INPUT" | json_get 'session_id'); [ -z "$SESSION_ID" ] && SESSION_ID="unknown"
-MARKER="/tmp/verify-reminded-${SESSION_ID}"
+MARKER="$(session_marker verify-reminded "$SESSION_ID")"
 [ -f "$MARKER" ] && exit 0
 
-CWD=$(echo "$INPUT" | json_get 'cwd'); CWD=$(normalize_path "$CWD"); [ -z "$CWD" ] && CWD="."
+CWD=$(echo "$INPUT" | resolve_cwd) || exit 0   # cwd 불명 → advisory 스킵 (S12: "." 미사용)
 
 # 3) active plan
 PLAN=$(has_active_plan "$CWD") || exit 0
@@ -35,5 +35,5 @@ DIRTY=$(git -C "$CWD" status --porcelain 2>/dev/null | grep -vE '\.(md|txt|gitig
 
 touch "$MARKER" 2>/dev/null || true
 hook_log "verify-loop-watch" "plan=$(basename "$PLAN")" "ALERT" "dirty=$DIRTY"
-node -e "process.stdout.write(JSON.stringify({systemMessage:'[verify-loop] 미검증 코드 변경 '+${DIRTY}+'건 + active plan 감지. 마무리 전에 scripts/check.sh 실행 + closeout(review-strict drift + state.json 갱신)을 권장합니다. (1세션 1회 advisory — 차단 아님)'}))"
+emit_system_message "[verify-loop] 미검증 코드 변경 ${DIRTY}건 + active plan 감지. 마무리 전에 scripts/check.sh 실행 + closeout(review-strict drift + state.json 갱신)을 권장합니다. (1세션 1회 advisory — 차단 아님)"
 exit 0

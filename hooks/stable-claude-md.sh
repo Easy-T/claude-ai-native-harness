@@ -5,9 +5,7 @@ require_node
 INPUT=$(read_input)
 FILE_PATH=$(echo "$INPUT" | json_get 'tool_input.file_path')
 FILE_PATH=$(normalize_path "$FILE_PATH")
-CWD=$(echo "$INPUT" | json_get 'cwd')
-CWD=$(normalize_path "$CWD")
-[ -z "$CWD" ] && CWD="."
+CWD=$(echo "$INPUT" | resolve_cwd) || CWD=""   # cwd 불명 → "." 기본값 미사용; 아래 "./CLAUDE.md"/"CLAUDE.md" 리터럴 케이스는 유지
 
 # 글로벌 ~/.claude/CLAUDE.md 제외 (글로벌은 별도 audit hook이 관리)
 [[ "$FILE_PATH" == "$HOME/.claude/CLAUDE.md" ]] && exit 0

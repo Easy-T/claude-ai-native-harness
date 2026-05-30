@@ -28,12 +28,12 @@ for a in explore-strict review-strict execute-strict; do
   grep -q '^model: inherit$' "$HOME/.claude/agents/$a.md" 2>/dev/null && ok "$a model:inherit" || fail "$a model"
 done
 
-# 6. 5 global skills
+# 6. 7 tracked global skills (grill-with-docs는 doctor가 upstream에서 auto-install → gitignore라 제외)
 for s in common-agent-contract create-orchestrator-skill init-ai-ready-project start-rpi-cycle closeout-pr-cycle improve-codebase-architecture ui-design; do
   [ -f "$HOME/.claude/skills/$s/SKILL.md" ] && ok "skill: $s" || fail "skill missing: $s"
 done
 
-# 7. orchestrator marker triple on 6 of 7 skills
+# 7. orchestrator marker triple (위 7개 중 common-agent-contract는 contract라 마커 없음 — opt-out, 그래서 6개 검사)
 for s in create-orchestrator-skill init-ai-ready-project start-rpi-cycle closeout-pr-cycle improve-codebase-architecture ui-design; do
   f="$HOME/.claude/skills/$s/SKILL.md"
   if grep -q '^orchestrator_skill: true$' "$f" 2>/dev/null \
@@ -95,7 +95,7 @@ COUNT=$(node -e '
 [ -f "$HOME/.claude/SECURITY.md" ] && ok "SECURITY.md" || fail "SECURITY.md missing"
 
 # 16. hooks/lib extracted parsers (load-bearing — hooks fail-open silently if missing)
-for j in redirect-targets skeleton-scan transcript-usage; do
+for j in redirect-targets skeleton-scan transcript-usage model-window; do
   [ -f "$HOME/.claude/hooks/lib/$j.js" ] && ok "lib: $j" || fail "hooks/lib/$j.js missing"
 done
 

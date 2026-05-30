@@ -2,7 +2,7 @@
 name: init-ai-ready-project
 description: |
   AI-Ready 프로젝트 부트스트랩. 사용자가 "새 프로젝트 셋업", "AI-ready 만들어줘",
-  "프로젝트 초기화" 등을 말하면 무조건 사용. 12개 파일 + 디렉터리 결정론적 생성.
+  "프로젝트 초기화" 등을 말하면 무조건 사용. 파일 + 디렉터리 결정론적 생성.
 orchestrator_skill: true
 generated_by: built-in
 orchestrator_version: 1.0

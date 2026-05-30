@@ -3,18 +3,12 @@ source "$HOME/.claude/hooks/_common.sh"
 require_node
 
 INPUT=$(read_input)
-FILE_PATH=$(echo "$INPUT" | json_get 'tool_input.file_path')
-# NotebookEdit는 file_path 대신 notebook_path를 사용 → fallback 해석
-[ -z "$FILE_PATH" ] && FILE_PATH=$(echo "$INPUT" | json_get 'tool_input.notebook_path')
+# 스칼라 필드(file_path/notebook_path/tool_name)를 node 1회로 추출 ([10] json_get_many)
+IFS=$'\037' read -r FILE_PATH NB_PATH TOOL <<< "$(echo "$INPUT" | json_get_many tool_input.file_path tool_input.notebook_path tool_name)"
+[ -z "$FILE_PATH" ] && FILE_PATH="$NB_PATH"   # NotebookEdit는 file_path 대신 notebook_path 사용
 FILE_PATH=$(normalize_path "$FILE_PATH")
-TOOL=$(echo "$INPUT" | json_get 'tool_name')
-CWD=$(echo "$INPUT" | json_get 'cwd')
-CWD=$(normalize_path "$CWD")
-# 빈/누락 cwd → plan 위치 판단 불가 → fail-open (비결정적 "." 해석 회피, S12)
-if [ -z "$CWD" ]; then
-  hook_log "enforce-rpi-cycle" "$FILE_PATH" "PASS" "no-cwd-failopen"
-  exit 0
-fi
+# 빈/누락 cwd → plan 위치 판단 불가 → fail-open (S12, resolve_cwd 공유)
+CWD=$(echo "$INPUT" | resolve_cwd) || { hook_log "enforce-rpi-cycle" "$FILE_PATH" "PASS" "no-cwd-failopen"; exit 0; }
 
 # === 화이트리스트 1: 비실행 산출물은 확장자 기준으로 항상 통과 (디렉터리 무관) ===
 case "$FILE_PATH" in

@@ -26,6 +26,27 @@ json_get() {
   ' "$1"
 }
 
+# --- json_get_many <path1> <path2> ...: stdin JSON에서 여러 dot-path를 US(\x1f) 구분 한 줄로 출력 (node 1회) ---
+# Usage: IFS=$'\037' read -r A B C <<< "$(echo "$INPUT" | json_get_many p1 p2 p3)"
+# 구분자는 US(0x1f) — TAB/스페이스가 IFS면 bash read가 연속 구분자를 합쳐 빈 필드를 버리므로
+# 비공백 US를 써서 중간 빈 필드(예: notebook_path 미존재)도 보존한다.
+# 주의: 개행 없는 '스칼라' 필드 전용(file_path/tool_name 등). 다중행 값(content/new_string)엔 json_get 사용.
+json_get_many() {
+  node -e '
+    let data = "";
+    process.stdin.on("data", c => data += c);
+    process.stdin.on("end", () => {
+      let obj = {}; try { obj = JSON.parse(data); } catch (e) { /* graceful */ }
+      const out = process.argv.slice(1).map(p => {
+        let v = obj;
+        for (const k of p.split(".")) v = v?.[k];
+        return (v === undefined || v === null) ? "" : (typeof v === "string" ? v : JSON.stringify(v));
+      });
+      process.stdout.write(out.join("\x1f"));
+    });
+  ' "$@"
+}
+
 # --- hook_log: ~/.claude/hooks/.log/YYYY-MM.log에 한 줄 누적 ---
 # Usage: hook_log "<hook-name>" "<target>" "<verdict>" "[<reason>]"
 hook_log() {
@@ -101,3 +122,18 @@ is_code_path() {
 
 # code_ext_regex: CODE_EXTS 로부터 JS 정규식 `\.(ext1|ext2|...)$` 생성 (enforce-rpi-bash node 용).
 code_ext_regex() { printf '\\.(%s)$' "$(printf '%s' "$CODE_EXTS" | tr ' ' '|')"; }
+
+# --- session_marker <name> <session_id>: 1세션-1회 알림 마커 경로 (auto-compact-watch / verify-loop-watch 공유) ---
+session_marker() { printf '/tmp/%s-%s' "$1" "${2:-unknown}"; }
+
+# --- emit_system_message <msg>: systemMessage JSON 을 stdout 에 안전 출력 (hook→UI 알림 프로토콜 단일화) ---
+emit_system_message() { MSG="$1" node -e 'process.stdout.write(JSON.stringify({systemMessage:process.env.MSG}))'; }
+
+# --- resolve_cwd: stdin JSON 의 cwd 를 정규화해 출력. 비면 비-zero return (호출자가 fail-open/skip 결정, S12) ---
+# Usage: CWD=$(echo "$INPUT" | resolve_cwd) || { <empty 처리>; }
+# 비결정적 "." 기본값을 쓰지 않도록 cwd 해석을 4개 hook 에서 단일화.
+resolve_cwd() {
+  local c; c=$(json_get 'cwd'); c=$(normalize_path "$c")
+  [ -z "$c" ] && return 1
+  printf '%s' "$c"
+}
