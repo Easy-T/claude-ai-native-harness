@@ -51,3 +51,6 @@ plugins/installed_plugins.json
 plugins/known_marketplaces.json
 # Native plan-mode storage (transient; harness RPI plans live in docs/superpowers/plans/)
 /plans/
+
+# Ad-hoc diagnostic/debug scratch dirs at repo root (e.g. _diag/, _repro/) — not source
+/_*/
