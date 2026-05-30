@@ -33,22 +33,24 @@ orchestrator_version: 1.0
 → 메인이 이 draft를 받아 Phase 3에서 후처리
 
 # Phase 3 — Inject Orchestrator Skeleton
+※ 골격 계약의 **권위 정의 = `hooks/lib/skeleton-scan.js`** (enforce-orchestrator hook 이 그대로 사용).
+  아래는 그 checker를 통과시키기 위한 최소 주입이며, 수치의 진짜 기준은 checker다 (여기서 재정의하지 말 것).
 draft에 다음을 자동 주입:
 1. frontmatter에 마커 3줄: `orchestrator_skill: true`, `generated_by: create-orchestrator-skill`, `orchestrator_version: 1.0`
-2. body에 Phase 1 / Phase 2 / Phase 3 섹션 (없으면 추가)
-3. 각 Phase에 최소 1개 Agent(subagent_type=...) 호출 (없으면 권유)
-4. body 끝에 Communication Protocol 섹션
+2. body에 `# Phase ` 헤더 ≥ 3개 (예: Phase 1 / Phase 2 / Phase 3)
+3. body에 **실제** `Agent(subagent_type=...)` 호출 ≥ 1개 (HTML 주석 안의 호출은 checker가 무시하므로 실제 호출로)
+4. body 끝에 `Communication Protocol` 섹션
 
 # Phase 4 — Verify
 Agent(subagent_type="review-strict",
       task="orchestrator 골격 검증",
       context_paths=["<생성된 skill 파일 경로>"],
       success_criteria="
-        - frontmatter에 orchestrator_skill: true, generated_by, orchestrator_version 3줄 모두 존재
-        - body에 # Phase 마커 ≥ 3
-        - body에 Agent(subagent_type=) 호출 ≥ 1
-        - body에 Communication Protocol 섹션 존재
-        - enforce-orchestrator hook 통과 조건 만족
+        권위 검증(재정의 금지) — 생성된 skill 파일 내용을 hooks/lib/skeleton-scan.js 로 직접 통과시킨다:
+        Write 이벤트 JSON(content=파일 내용)을 stdin 으로 주면 skeleton-scan.js 가
+        '<hasMarker> <phase> <agent> <contract>' 를 출력 → hasMarker=1 && phase>=3 && agent>=1 && contract>=1 이면 통과.
+        이 4개 수치의 정의는 skeleton-scan.js 단일 소스이며 enforce-orchestrator hook 과 동일하다.
+        보조: frontmatter 마커 3줄 존재 + 의미 타당성.
       ")
 
 통과 시에만 파일 생성 (Phase 4 통과 못 하면 draft 보존, 사용자에게 보고).

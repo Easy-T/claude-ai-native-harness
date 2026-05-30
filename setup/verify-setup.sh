@@ -94,6 +94,11 @@ COUNT=$(node -e '
 # 15. SECURITY.md threat-model doc exists
 [ -f "$HOME/.claude/SECURITY.md" ] && ok "SECURITY.md" || fail "SECURITY.md missing"
 
+# 16. hooks/lib extracted parsers (load-bearing — hooks fail-open silently if missing)
+for j in redirect-targets skeleton-scan transcript-usage; do
+  [ -f "$HOME/.claude/hooks/lib/$j.js" ] && ok "lib: $j" || fail "hooks/lib/$j.js missing"
+done
+
 echo
 echo "verify-setup: PASS=$PASS FAIL=$FAIL"
 exit $FAIL

@@ -64,6 +64,9 @@ REQUIRED=(
   "$TARGET/hooks/enforce-secret-scan.sh"
   "$TARGET/hooks/verify-loop-watch.sh"
   "$TARGET/hooks/session-start-audit.sh"
+  "$TARGET/hooks/lib/redirect-targets.js"
+  "$TARGET/hooks/lib/skeleton-scan.js"
+  "$TARGET/hooks/lib/transcript-usage.js"
   "$TARGET/setup/doctor.sh"
   "$TARGET/commands/init-ai-ready.md"
   "$TARGET/CLAUDE.md"
@@ -78,7 +81,7 @@ if [ "$MISSING_FILES" -gt 0 ]; then
   echo "  ✗ $MISSING_FILES 개 파일 누락. clone이 정상 완료됐는지 확인하세요."
   exit 1
 fi
-echo "  ✓ 21개 필수 파일 모두 존재"
+echo "  ✓ 24개 필수 파일 모두 존재"
 
 # --- 3. 실행 권한 부여 ---
 echo "[3/6] 스크립트 실행 권한 부여..."

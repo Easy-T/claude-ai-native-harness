@@ -440,6 +440,30 @@ test_acw_model() {
 test_acw_model "60-opus48-1M"   claude-opus-4-8   480000 1000000
 test_acw_model "61-sonnet-200k" claude-sonnet-4-6 100000 200000
 
+# ==================== PATCH-F: hooks/lib unit tests (extracted parsers, directly testable) ====================
+LIB="$HOME/.claude/hooks/lib"
+test_lib() {
+  local name="$1"; local expected="$2"; local actual="$3"
+  TOTAL=$((TOTAL+1))
+  [ "$actual" = "$expected" ] && PASSED=$((PASSED+1)) || FAILED_LIST+=("hooks-lib/$name (exp=[$expected] got=[$actual])")
+}
+# transcript-usage.js: max(input+cache_read+cache_creation) over messages + last model
+TUF=$(mktemp "$SCRATCH/tu-XXXXXX.jsonl")
+printf '{"message":{"model":"claude-opus-4-8","usage":{"input_tokens":300000,"cache_read_input_tokens":180000,"cache_creation_input_tokens":0}}}\n' > "$TUF"
+test_lib "70-transcript-usage"   "$(printf '480000\tclaude-opus-4-8')" "$(node "$LIB/transcript-usage.js" "$TUF")"
+test_lib "71-transcript-missing" "$(printf '0\t')"                     "$(node "$LIB/transcript-usage.js" /nonexistent/x.jsonl 2>/dev/null)"
+# skeleton-scan.js: "<marker> <phase> <agent> <protocol>" (Write uses content; HTML comments stripped before agent count)
+SKMD=$'---\norchestrator_skill: true\n---\n# Phase 1\nAgent(subagent_type="x")\n# Phase 2\nAgent(subagent_type="y")\n# Phase 3\nAgent(subagent_type="z")\n## Communication Protocol\n- ok'
+test_lib "72-skeleton-complete"  "1 3 3 1" "$(mk_event Write "/tmp/x/skills/foo/SKILL.md" "$SKMD" "/tmp/x" | node "$LIB/skeleton-scan.js")"
+SKCOM=$'---\norchestrator_skill: true\n---\n# Phase 1\n# Phase 2\n# Phase 3\n<!-- Agent(subagent_type="x") -->\n## Communication Protocol'
+test_lib "73-skeleton-commented" "1 3 0 1" "$(mk_event Write "/tmp/x/skills/foo/SKILL.md" "$SKCOM" "/tmp/x" | node "$LIB/skeleton-scan.js")"
+test_lib "74-skeleton-err"       "ERR"     "$(printf 'not json' | node "$LIB/skeleton-scan.js")"
+# redirect-targets.js: first redirection/tee target with a code extension (CODE_EXT_REGEX from _common SSOT, via subshell)
+LIBREGEX=$(bash -c 'source "$HOME/.claude/hooks/_common.sh"; code_ext_regex')
+test_lib "75-redirect-code"      "out.py" "$(CMD='cat > out.py <<EOF' CODE_EXT_REGEX="$LIBREGEX" node "$LIB/redirect-targets.js")"
+test_lib "76-redirect-doc"       ""       "$(CMD='echo hi > notes.md' CODE_EXT_REGEX="$LIBREGEX" node "$LIB/redirect-targets.js")"
+test_lib "77-redirect-devnull"   ""       "$(CMD='foo > /dev/null'    CODE_EXT_REGEX="$LIBREGEX" node "$LIB/redirect-targets.js")"
+
 # ==================== SESSION-START-AUDIT ====================
 test_ssa() {
   local name="$1"; local expected="$2"; local marker_date="${3:-}"

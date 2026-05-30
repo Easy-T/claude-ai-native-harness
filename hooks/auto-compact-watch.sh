@@ -13,26 +13,8 @@ SESSION_ID=$(echo "$INPUT" | json_get 'session_id')
 ALERT_MARKER="/tmp/compact-alerted-${SESSION_ID}"
 [ -f "$ALERT_MARKER" ] && exit 0
 
-# transcript에서 누적 토큰(USED) + 마지막 모델명 추출 (item5: 모델-인지)
-READ=$(node -e '
-  const fs = require("fs");
-  try {
-    const lines = fs.readFileSync(process.argv[1], "utf8").trim().split("\n");
-    let last = 0, model = "";
-    for (const ln of lines) {
-      try {
-        const obj = JSON.parse(ln);
-        const u = obj?.message?.usage;
-        if (u) {
-          const total = (u.input_tokens || 0) + (u.cache_read_input_tokens || 0) + (u.cache_creation_input_tokens || 0);
-          if (total > last) last = total;
-        }
-        if (obj?.message?.model) model = obj.message.model;
-      } catch (e) { /* skip bad lines */ }
-    }
-    process.stdout.write(last + "\t" + model);
-  } catch (e) { process.stdout.write("0\t"); }
-' "$TRANSCRIPT")
+# transcript에서 누적 토큰(USED) + 마지막 모델명 추출 (item5: 모델-인지). 파서는 hooks/lib/transcript-usage.js.
+READ=$(node "$HOME/.claude/hooks/lib/transcript-usage.js" "$TRANSCRIPT")
 USED="${READ%%$'\t'*}"; MODEL="${READ#*$'\t'}"
 [ -z "$USED" ] && USED=0
 

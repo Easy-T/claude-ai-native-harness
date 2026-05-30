@@ -98,3 +98,12 @@ enforce-orchestrator	14-s3-gut-via-edit	2	gen_eo_s3_gut
 enforce-orchestrator	15-s4-commented-agent	2	gen_eo_s4_comment
 auto-compact-watch	60-opus48-1M	alert-win-1000000	gen_acw_opus48
 auto-compact-watch	61-sonnet-200k	alert-win-200000	gen_acw_sonnet
+# Patch F (2026-05-30) — hooks/lib extracted-parser unit tests (cycle-8 [3])
+hooks-lib	70-transcript-usage	output	gen_lib_70
+hooks-lib	71-transcript-missing	output	gen_lib_71
+hooks-lib	72-skeleton-complete	output	gen_lib_72
+hooks-lib	73-skeleton-commented	output	gen_lib_73
+hooks-lib	74-skeleton-err	output	gen_lib_74
+hooks-lib	75-redirect-code	output	gen_lib_75
+hooks-lib	76-redirect-doc	output	gen_lib_76
+hooks-lib	77-redirect-devnull	output	gen_lib_77

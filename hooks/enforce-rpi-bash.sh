@@ -32,19 +32,9 @@ if [ -n "${RPI_SKIP:-}" ]; then
   exit 0
 fi
 
-# 코드 파일을 셸로 작성하는 패턴 탐지 (리다이렉션/tee 대상이 코드 확장자)
-# node 로 정밀 파싱 (grep 정규식 이식성 회피).
-TARGET=$(CMD="$CMD" node -e '
-  const cmd = process.env.CMD || "";
-  const codeExt = /\.(sh|bash|zsh|py|rb|js|mjs|cjs|ts|tsx|jsx|go|rs|php|pl|ps1|psm1|c|cc|cpp|h|hpp|java|kt|swift|scala|lua|sql|ipynb)$/i;
-  const targets = [];
-  // > file | >> file | tee [-a] file  (>&fd, >&-, 2> 등 fd 리다이렉션은 대상이 코드 확장자가 아니라 자동 제외)
-  const re = /(?:>>?|\btee\s+(?:-a\s+)?)\s*("?)([^\s">|;&()]+)\1/g;
-  let m;
-  while ((m = re.exec(cmd)) !== null) targets.push(m[2]);
-  const hit = targets.find(p => codeExt.test(p) && !/^\/dev\/null$/.test(p));
-  if (hit) process.stdout.write(hit);
-' 2>/dev/null || true)
+# 코드 파일을 셸로 작성하는 패턴 탐지. 파서는 hooks/lib/redirect-targets.js (단위테스트 가능).
+# 코드 확장자 집합은 _common.sh 의 SSOT (code_ext_regex).
+TARGET=$(CMD="$CMD" CODE_EXT_REGEX="$(code_ext_regex)" node "$HOME/.claude/hooks/lib/redirect-targets.js" 2>/dev/null || true)
 
 # 코드 작성 의도 없음 → 통과
 [ -z "$TARGET" ] && exit 0

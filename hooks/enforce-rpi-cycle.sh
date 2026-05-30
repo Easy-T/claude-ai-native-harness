@@ -26,14 +26,13 @@ esac
 # → docs//.claude//.github/ 로의 코드 밀반입(S5) + governance hook 자기수정(S11) 차단.
 # 참고: docs/superpowers/* 의 plan·spec은 .md이므로 화이트리스트1에서 이미 통과.
 #       따라서 기존 */superpowers/* 디렉터리 면제는 제거 → vendor/superpowers/x.py 우회(S16)도 차단.
-case "$FILE_PATH" in
-  *.sh|*.bash|*.zsh|*.py|*.rb|*.js|*.mjs|*.cjs|*.ts|*.tsx|*.jsx|*.go|*.rs|*.php|*.pl|*.ps1|*.psm1|*.c|*.cc|*.cpp|*.h|*.hpp|*.java|*.kt|*.swift|*.scala|*.lua|*.sql|*.ipynb|*/Dockerfile|Dockerfile) : ;;  # 코드 → 디렉터리 면제 없이 plan 게이트로 낙하
-  *)
-    case "$FILE_PATH" in
-      */.claude/*|*/docs/*|*/.github/*) exit 0 ;;   # 비코드 config/doc만 통과
-    esac
-    ;;
-esac
+if is_code_path "$FILE_PATH"; then
+  :   # 코드/실행 확장자 → 디렉터리 면제 없이 plan 게이트로 낙하 (SSOT: _common.sh CODE_EXTS)
+else
+  case "$FILE_PATH" in
+    */.claude/*|*/docs/*|*/.github/*) exit 0 ;;   # 비코드 config/doc만 통과
+  esac
+fi
 
 # === 화이트리스트 2: trivial change (≤5 라인) ===
 OLD="" NEW=""

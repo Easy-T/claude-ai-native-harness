@@ -83,3 +83,21 @@ has_active_plan() {
   done
   return 1
 }
+
+# --- 코드/실행 확장자 단일 정의 (SSOT) ---
+# enforce-rpi-cycle(is_code_path) 과 enforce-rpi-bash(code_ext_regex) 가 공유한다.
+# 새 언어 추가 시 이 한 줄만 수정 → 두 게이트가 자동 동기화 (Write vs Bash 비대칭 우회 방지).
+CODE_EXTS="sh bash zsh py rb js mjs cjs ts tsx jsx go rs php pl ps1 psm1 c cc cpp h hpp java kt swift scala lua sql ipynb"
+
+# is_code_path <path>: 코드/실행 파일이면 return 0 (Dockerfile 포함).
+is_code_path() {
+  local p="${1:-}" ext
+  case "$p" in */Dockerfile|Dockerfile) return 0 ;; esac
+  for ext in $CODE_EXTS; do
+    case "$p" in *."$ext") return 0 ;; esac
+  done
+  return 1
+}
+
+# code_ext_regex: CODE_EXTS 로부터 JS 정규식 `\.(ext1|ext2|...)$` 생성 (enforce-rpi-bash node 용).
+code_ext_regex() { printf '\\.(%s)$' "$(printf '%s' "$CODE_EXTS" | tr ' ' '|')"; }
