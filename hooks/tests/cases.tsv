@@ -82,3 +82,10 @@ enforce-secret-scan	42-bash-key-redirect	2	gen_ess_bash
 enforce-secret-scan	43-placeholder-pass	0	gen_ess_placeholder
 enforce-secret-scan	44-clean-pass	0	gen_ess_clean
 enforce-secret-scan	45-skip-override	0	gen_ess_skip
+# Patch B (2026-05-30) — verify-loop-watch advisory Stop hook (output-based)
+verify-loop-watch	40-alert-all-conditions	alert	gen_vlw_alert
+verify-loop-watch	41-stop-active	silent	gen_vlw_stopactive
+verify-loop-watch	42-dedup-marker	silent	gen_vlw_dedup
+verify-loop-watch	43-clean-repo	silent	gen_vlw_clean
+verify-loop-watch	44-no-plan	silent	gen_vlw_noplan
+verify-loop-watch	45-no-checksh	silent	gen_vlw_nocheck

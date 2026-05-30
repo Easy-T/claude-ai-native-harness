@@ -340,6 +340,47 @@ test_ess "43-placeholder-pass"    0 "$(mk_event Write "$SCRATCH/x.txt" "token = 
 test_ess "44-clean-pass"          0 "$(mk_event Write "$SCRATCH/x.txt" "just normal code here, no secrets" "$SCRATCH")"
 test_ess "45-skip-override"       0 "$(mk_event Write "$SCRATCH/x.txt" "token = $FAKE_ANT" "$SCRATCH")" "SECRET_SCAN_SKIP=approved"
 
+# ==================== PATCH-B: VERIFY-LOOP-WATCH (advisory Stop hook) ====================
+# Output-based: assert systemMessage emitted (alert) vs not (silent) — exit is always 0.
+rm -f /tmp/verify-reminded-vlwt* 2>/dev/null
+test_vlw() {
+  local name="$1"; local want="$2"; local input="$3"
+  TOTAL=$((TOTAL+1))
+  local out got=silent
+  out=$(echo "$input" | "$HOOKS/verify-loop-watch.sh" 2>/dev/null)
+  echo "$out" | grep -q 'verify-loop' && got=alert
+  [ "$got" = "$want" ] && PASSED=$((PASSED+1)) || FAILED_LIST+=("verify-loop-watch/$name (want=$want got=$got)")
+}
+vlw_ev() { printf '{"session_id":"%s","stop_hook_active":%s,"cwd":"%s","transcript_path":"/x"}' "$1" "$2" "$3"; }
+
+# full project: git + active plan + scripts/check.sh + uncommitted code change
+VP="$SCRATCH/vlw_full"; mkdir -p "$VP/docs/superpowers/plans" "$VP/scripts" "$VP/src"
+git -C "$VP" init -q 2>/dev/null; git -C "$VP" config user.email t@t 2>/dev/null; git -C "$VP" config user.name t 2>/dev/null
+printf '# p\n**Status:** active\n- [ ] s\n' > "$VP/docs/superpowers/plans/p.md"
+printf '#!/bin/bash\necho ok\n' > "$VP/scripts/check.sh"
+printf 'x=1\n' > "$VP/src/a.py"
+git -C "$VP" add -A >/dev/null 2>&1; git -C "$VP" commit -qm init >/dev/null 2>&1
+printf 'x=2\ny=3\n' > "$VP/src/a.py"
+test_vlw "40-alert-all-conditions" alert  "$(vlw_ev vlwt40 false "$VP")"; rm -f /tmp/verify-reminded-vlwt40
+test_vlw "41-stop-active"          silent "$(vlw_ev vlwt41 true  "$VP")"
+touch /tmp/verify-reminded-vlwt42; test_vlw "42-dedup-marker" silent "$(vlw_ev vlwt42 false "$VP")"; rm -f /tmp/verify-reminded-vlwt42
+
+# clean repo (no uncommitted change) -> silent
+VPC="$SCRATCH/vlw_clean"; mkdir -p "$VPC/docs/superpowers/plans" "$VPC/scripts" "$VPC/src"
+git -C "$VPC" init -q 2>/dev/null; git -C "$VPC" config user.email t@t 2>/dev/null; git -C "$VPC" config user.name t 2>/dev/null
+printf '# p\n**Status:** active\n- [ ] s\n' > "$VPC/docs/superpowers/plans/p.md"
+printf '#!/bin/bash\n' > "$VPC/scripts/check.sh"; printf 'x=1\n' > "$VPC/src/a.py"
+git -C "$VPC" add -A >/dev/null 2>&1; git -C "$VPC" commit -qm init >/dev/null 2>&1
+test_vlw "43-clean-repo" silent "$(vlw_ev vlwt43 false "$VPC")"; rm -f /tmp/verify-reminded-vlwt43
+
+# no active plan (exits before git) -> silent
+VPNP="$SCRATCH/vlw_noplan"; mkdir -p "$VPNP/scripts"; printf '#!/bin/bash\n' > "$VPNP/scripts/check.sh"
+test_vlw "44-no-plan" silent "$(vlw_ev vlwt44 false "$VPNP")"; rm -f /tmp/verify-reminded-vlwt44
+
+# active plan but no scripts/check.sh -> silent
+VPNC="$SCRATCH/vlw_nocheck"; mkdir -p "$VPNC/docs/superpowers/plans"; printf '# p\n**Status:** active\n- [ ] s\n' > "$VPNC/docs/superpowers/plans/p.md"
+test_vlw "45-no-checksh" silent "$(vlw_ev vlwt45 false "$VPNC")"; rm -f /tmp/verify-reminded-vlwt45
+
 # ==================== SESSION-START-AUDIT ====================
 test_ssa() {
   local name="$1"; local expected="$2"; local marker_date="${3:-}"

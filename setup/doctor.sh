@@ -256,6 +256,7 @@ REQUIRED_HOOKS=(
   "enforce-rpi-bash.sh"
   "enforce-secret-scan.sh"
   "auto-compact-watch.sh"
+  "verify-loop-watch.sh"
   "session-start-audit.sh"
   "_common.sh"
 )

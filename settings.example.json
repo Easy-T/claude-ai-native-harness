@@ -82,6 +82,16 @@
           }
         ]
       }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/verify-loop-watch.sh"
+          }
+        ]
+      }
     ]
   }
 }

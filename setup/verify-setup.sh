@@ -45,8 +45,8 @@ for s in create-orchestrator-skill init-ai-ready-project start-rpi-cycle closeou
   fi
 done
 
-# 8. 7 hook scripts executable
-for h in enforce-orchestrator stable-claude-md auto-compact-watch enforce-rpi-cycle enforce-rpi-bash enforce-secret-scan session-start-audit; do
+# 8. 8 hook scripts executable
+for h in enforce-orchestrator stable-claude-md auto-compact-watch enforce-rpi-cycle enforce-rpi-bash enforce-secret-scan verify-loop-watch session-start-audit; do
   [ -x "$HOME/.claude/hooks/$h.sh" ] && ok "hook: $h" || fail "hook missing or non-executable: $h"
 done
 
@@ -82,14 +82,14 @@ done
 # 13. .installed marker
 [ -f "$HOME/.claude/setup/.installed" ] && ok ".installed marker" || fail ".installed missing"
 
-# 14. settings.json has >=8 hook command entries (4 PreToolUse Write|Edit|NotebookEdit + 2 Bash + 1 PostToolUse + 1 SessionStart)
+# 14. settings.json has >=9 hook command entries (4 PreToolUse Write|Edit|NotebookEdit + 2 Bash + 1 PostToolUse + 1 SessionStart + 1 Stop)
 COUNT=$(node -e '
   const cfg = JSON.parse(require("fs").readFileSync(process.env.HOME + "/.claude/settings.json", "utf8"));
   const all = [];
   for (const phase of Object.values(cfg.hooks||{})) for (const e of phase) for (const h of (e.hooks||[])) all.push(h.command);
   console.log(all.filter(c => /\.claude\/hooks\/.*\.sh/.test(c)).length);
 ' 2>/dev/null || echo 0)
-[ "$COUNT" -ge 8 ] && ok "settings.json: $COUNT hooks" || fail "settings.json hooks=$COUNT"
+[ "$COUNT" -ge 9 ] && ok "settings.json: $COUNT hooks" || fail "settings.json hooks=$COUNT"
 
 echo
 echo "verify-setup: PASS=$PASS FAIL=$FAIL"
