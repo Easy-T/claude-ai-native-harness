@@ -7,7 +7,7 @@
 - "**기능 추가해줘**" → R(Research) → P(Plan) → I(Implement) → Closeout 사이클을 메인 세션이 강제로 따름
 - "**새 프로젝트 셋업해줘**" → `/init-ai-ready <name>` 으로 12개 파일 + 5개 디렉터리가 결정론적으로 생성
 - 코드 변경 전 active plan 부재 → hook이 차단 (≤5라인 trivial 변경은 자동 통과)
-- 30일마다 글로벌 환경 self-audit, 컨텍스트 40% 도달 시 자동 `/compact` 알림
+- 30일마다 글로벌 환경 self-audit, 컨텍스트 임계(모델-인지 창 기준) 도달 시 `/compact` 알림
 
 기반: Claude Code 2.1+, [superpowers](https://github.com/obra/superpowers), skill-creator
 
@@ -23,16 +23,19 @@
 | **`/improve-architecture`** | 슬래시 커맨드 | 코드베이스 구조 개선 + README 생성 (RPIC 5 배수 시 자동 제안) |
 | **start-rpi-cycle 자동 트리거** | "결제 모듈 추가해줘" / "버그 고쳐줘" / "리팩토링해줘" | RPI 사이클 강제 (R→P→I→Closeout) |
 | **create-orchestrator-skill 자동 트리거** | "이거 자주 쓸 것 같아 skill로 만들어줘" | skill-creator + orchestrator 골격 자동 주입 |
-| **doctor.sh** | `bash ~/.claude/setup/doctor.sh` | 19개 환경 진단·치료 (jq 자동 설치 등) |
+| **doctor.sh** | `bash ~/.claude/setup/doctor.sh` | 24개 환경 진단·치료 (jq 자동 설치, 자격증명 권한 점검 등) |
 
-### 5개 hook (활성)
+### 8개 hook (활성)
 
 | Hook | 모드 | 발동 시점 | 효과 |
 |---|---|---|---|
-| `enforce-orchestrator` | 차단 | Write/Edit on `*/skills/*/SKILL.md` | orchestrator 골격(Phase ≥3, Agent ≥1, Communication Protocol) 누락 시 차단 |
-| `enforce-rpi-cycle` | 차단 | Write/Edit on 코드 파일 | active plan 없으면 차단. `*.md`, `*/.claude/*`, `*/docs/*`, `*/superpowers/*` 등은 화이트리스트 |
+| `enforce-orchestrator` | 차단 | Write/Edit/NotebookEdit on `*/skills/*/SKILL.md` (대소문자 무시) | orchestrator 골격(Phase ≥3, Agent ≥1, Communication Protocol) 누락 시 차단. Edit는 결과 파일 전체로 검증, HTML 주석 속 `Agent()`는 불인정 |
+| `enforce-rpi-cycle` | 차단 | Write/Edit/NotebookEdit on 코드 파일 | active plan 없으면 차단. 비실행 확장자(`*.md` 등)·비코드 config만 화이트리스트 — **코드 확장자는 디렉터리 면제 없음**. trivial = 변경 라인 max(old,new) ≤5 |
+| `enforce-rpi-bash` | 차단 | Bash | 셸 리다이렉션(`>`/`>>`/`tee`/heredoc)으로 코드 파일 작성 시 active plan 없으면 차단 (Write/Edit 우회 봉인). `RPI_SKIP` 우회 |
+| `enforce-secret-scan` | 차단 | Write/Edit/NotebookEdit + Bash | 고-특이도 시크릿(API 키/토큰/PEM private key) 감지 시 차단(종류만 보고). `SECRET_SCAN_SKIP` 우회 |
 | `stable-claude-md` | 알림 | 루트 CLAUDE.md 수정 | "캐시 비용 ≈20배" 환기 (작업은 허용) |
-| `auto-compact-watch` | 알림 | Read/Bash/Agent 후 | 컨텍스트 40% 초과 시 `/compact` 권장 (1세션 1회) |
+| `auto-compact-watch` | 알림 | Read/Bash/Agent 후 | **모델-인지** 컨텍스트 창(opus-4-7/4-8→1M, 그 외 200K; `CONTEXT_LIMIT` override) 기준 임계 도달 시 `/compact` 권장. 경고 %는 `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE`에서 도출 (1세션 1회) |
+| `verify-loop-watch` | 알림 | Stop (턴 종료) | active plan + 미검증 코드 변경 시 `scripts/check.sh`+closeout 권장 (1세션 1회, advisory) |
 | `session-start-audit` | 알림 | 세션 시작 | CLAUDE.md audit 마커 30일 초과 시 알림 |
 
 크로스 플랫폼 path 정규화(Windows backslash → forward slash) 내장 — Linux/WSL/Windows 모두 동일하게 작동.
@@ -219,7 +222,7 @@ create-orchestrator-skill skill이 발동:
 bash ~/.claude/setup/doctor.sh
 ```
 
-19개 이상 항목 자동 진단:
+24개 이상 항목 자동 진단:
 - Claude Code / node / bash / git 버전
 - gh CLI 인증 상태
 - 인터넷 연결 / 디스크 공간
@@ -247,20 +250,23 @@ bash ~/.claude/setup/doctor.sh
 │   └── plans/2026-05-01-*.md            13단계 빌드 plan
 │
 ├── hooks/
-│   ├── _common.sh                        json_get / hook_log / normalize_path
-│   ├── enforce-orchestrator.sh           orchestrator 골격 검증
-│   ├── enforce-rpi-cycle.sh              RPI 사이클 강제
+│   ├── _common.sh                        json_get / hook_log / normalize_path / has_active_plan
+│   ├── enforce-orchestrator.sh           orchestrator 골격 검증 (Edit 결과파일 + 주석 strip)
+│   ├── enforce-rpi-cycle.sh              RPI 사이클 강제 (코드 확장자 디렉터리 면제 없음)
+│   ├── enforce-rpi-bash.sh               Bash 사이드도어 봉인 (코드 리다이렉션 차단)
+│   ├── enforce-secret-scan.sh            시크릿/키 유출 차단 (Write/Edit/Bash)
 │   ├── stable-claude-md.sh               캐시 무효화 알림
-│   ├── auto-compact-watch.sh             40% 임계 알림
+│   ├── auto-compact-watch.sh             모델-인지 컨텍스트 임계 알림
+│   ├── verify-loop-watch.sh              검증/closeout 환기 (Stop, advisory)
 │   ├── session-start-audit.sh            30일 audit 알림
 │   └── tests/
-│       ├── cases.tsv                     65 case 데이터 (현재 28 구현)
+│       ├── cases.tsv                     94 case 카탈로그 (현재 68 구현)
 │       └── run-all.sh                    단위 테스트 러너
 │
 ├── setup/
 │   ├── doctor.sh                         환경 진단·치료
 │   ├── install.sh                        하네스 설치 스크립트
-│   ├── verify-setup.sh                   §6.3 39개 file/structure 체크
+│   ├── verify-setup.sh                   §6.3 file/structure 체크 (현재 46 PASS)
 │   ├── verify-integration.sh             §6.5 5개 E2E 시나리오
 │   ├── verify-all.sh                     4 stage acceptance gate
 │   └── tests/doctor.test.sh
@@ -452,7 +458,7 @@ git push
 
 - 설계 명세: [`docs/superpowers/specs/2026-05-01-ai-native-orchestration-design.md`](docs/superpowers/specs/2026-05-01-ai-native-orchestration-design.md) (3,000+ 줄)
 - 13단계 빌드 plan: [`docs/superpowers/plans/2026-05-01-ai-native-orchestration.md`](docs/superpowers/plans/2026-05-01-ai-native-orchestration.md)
-- Hook 단위 테스트 65 case 명세: spec §6.2
+- Hook 단위 테스트: `hooks/tests/cases.tsv` (94 케이스 카탈로그 / 68 구현, 100% 통과). 원 설계 명세: spec §6.2
 
 ---
 
