@@ -89,3 +89,12 @@ verify-loop-watch	42-dedup-marker	silent	gen_vlw_dedup
 verify-loop-watch	43-clean-repo	silent	gen_vlw_clean
 verify-loop-watch	44-no-plan	silent	gen_vlw_noplan
 verify-loop-watch	45-no-checksh	silent	gen_vlw_nocheck
+# Patch D (2026-05-30) — audit-residual fixes (S14/S7/S3/S4/item5)
+enforce-rpi-cycle	50-s14-completed-trailing-block	2	gen_erc_s14_completed
+enforce-rpi-cycle	51-s14-active-trailing-pass	0	gen_erc_s14_active
+enforce-rpi-cycle	52-s7-3x3-trivial-pass	0	gen_erc_s7_3x3
+enforce-rpi-cycle	53-s7-6x6-block	2	gen_erc_s7_6x6
+enforce-orchestrator	14-s3-gut-via-edit	2	gen_eo_s3_gut
+enforce-orchestrator	15-s4-commented-agent	2	gen_eo_s4_comment
+auto-compact-watch	60-opus48-1M	alert-win-1000000	gen_acw_opus48
+auto-compact-watch	61-sonnet-200k	alert-win-200000	gen_acw_sonnet

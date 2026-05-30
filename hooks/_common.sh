@@ -72,8 +72,8 @@ has_active_plan() {
   local plan status
   for plan in "$plan_dir"/*.md; do
     [ -f "$plan" ] || continue
-    # 1순위: 명시적 Status
-    status=$(head -20 "$plan" | grep -m1 -E '^\*?\*?[Ss]tatus:?\*?\*?' | sed -E 's/^\*?\*?[Ss]tatus:?\*?\*?\s*//' | tr -d ' ' || true)
+    # 1순위: 명시적 Status — 첫 단어만 추출(소문자). "completed - cleanup pending" 같은 후행 텍스트도 정확 인식(S14)
+    status=$(head -20 "$plan" | grep -m1 -iE '^\*?\*?status:?\*?\*?' | sed -E 's/^\*?\*?[Ss]tatus:?\*?\*?[[:space:]]*//' | awk '{print tolower($1)}' | tr -d '*' || true)
     case "$status" in
       completed|abandoned|archived|paused) continue ;;
       active|in_progress) printf '%s' "$plan"; return 0 ;;

@@ -381,6 +381,65 @@ test_vlw "44-no-plan" silent "$(vlw_ev vlwt44 false "$VPNP")"; rm -f /tmp/verify
 VPNC="$SCRATCH/vlw_nocheck"; mkdir -p "$VPNC/docs/superpowers/plans"; printf '# p\n**Status:** active\n- [ ] s\n' > "$VPNC/docs/superpowers/plans/p.md"
 test_vlw "45-no-checksh" silent "$(vlw_ev vlwt45 false "$VPNC")"; rm -f /tmp/verify-reminded-vlwt45
 
+# ==================== PATCH-D: AUDIT-RESIDUAL FIXES ====================
+# S14 — Status trailing-text parsed by first word (via enforce-rpi-cycle plan gate)
+DST="$SCRATCH/d_s14"; mkdir -p "$DST/docs/superpowers/plans" "$DST/src"
+printf '# x\n**Status:** completed - cleanup pending\n- [ ] leftover\n' > "$DST/docs/superpowers/plans/p.md"
+test_erc "50-s14-completed-trailing-block" 2 "$(mk_edit "$DST/src/a.ts" $'a\nb\nc\nd\ne\nf' $'x\ny\nz\nw\nv\nu' "$DST")"
+printf '# y\n**Status:** active (wip today)\n- [ ] s\n' > "$DST/docs/superpowers/plans/p.md"
+test_erc "51-s14-active-trailing-pass"     0 "$(mk_edit "$DST/src/a.ts" $'a\nb\nc\nd\ne\nf' $'x\ny\nz\nw\nv\nu' "$DST")"
+
+# S7 — trivial = max(OLD,NEW) lines (no plans dir)
+DNP="$SCRATCH/d_noplan"; mkdir -p "$DNP/src"
+test_erc "52-s7-3x3-trivial-pass" 0 "$(mk_edit "$DNP/src/a.ts" $'a\nb\nc' $'x\ny\nz' "$DNP")"
+test_erc "53-s7-6x6-block"        2 "$(mk_edit "$DNP/src/a.ts" $'a\nb\nc\nd\ne\nf' $'x\ny\nz\nw\nv\nu' "$DNP")"
+
+# S3 — orchestrator gut via Edit on an on-disk 3-phase skill -> BLOCK (validates reconstructed file)
+DSKROOT="$SCRATCH/d_skill"; mkdir -p "$DSKROOT/skills/foo"
+cat > "$DSKROOT/skills/foo/SKILL.md" <<'SK'
+---
+orchestrator_skill: true
+---
+# Phase 1
+Agent(subagent_type="x")
+# Phase 2
+Agent(subagent_type="y")
+# Phase 3
+Agent(subagent_type="z")
+## Communication Protocol
+- ok
+SK
+S3OLD=$(cat <<'O'
+# Phase 1
+Agent(subagent_type="x")
+# Phase 2
+Agent(subagent_type="y")
+# Phase 3
+Agent(subagent_type="z")
+## Communication Protocol
+- ok
+O
+)
+test_eo "14-s3-gut-via-edit" 2 "$(mk_edit "$DSKROOT/skills/foo/SKILL.md" "$S3OLD" $'# Phase 1\nonly one now' "$DSKROOT")"
+
+# S4 — Agent() only inside an HTML comment -> BLOCK (stripped before count)
+S4BODY=$'---\norchestrator_skill: true\n---\n# Phase 1\n# Phase 2\n# Phase 3\n<!-- Agent(subagent_type="x") -->\n## Communication Protocol\n- ok'
+test_eo "15-s4-commented-agent" 2 "$(mk_event Write "$DSKROOT/skills/foo/SKILL.md" "$S4BODY" "$DSKROOT")"
+
+# item5 — auto-compact-watch model-aware window (output-based: assert the window denominator)
+test_acw_model() {
+  local name="$1"; local model="$2"; local tokens="$3"; local want_win="$4"
+  TOTAL=$((TOTAL+1))
+  local tf; tf=$(mktemp "$SCRATCH/tr-XXXXXX.jsonl")
+  printf '{"message":{"model":"%s","usage":{"input_tokens":%d,"cache_read_input_tokens":0,"cache_creation_input_tokens":0}}}\n' "$model" "$tokens" > "$tf"
+  local sid="im5-$$-$name"; rm -f "/tmp/compact-alerted-$sid"
+  local out; out=$(echo "{\"session_id\":\"$sid\",\"transcript_path\":\"$tf\"}" | CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=55 "$HOOKS/auto-compact-watch.sh" 2>&1)
+  rm -f "/tmp/compact-alerted-$sid" "$tf"
+  echo "$out" | grep -q "/$want_win" && PASSED=$((PASSED+1)) || FAILED_LIST+=("auto-compact-watch/$name (want win=$want_win, got: $out)")
+}
+test_acw_model "60-opus48-1M"   claude-opus-4-8   480000 1000000
+test_acw_model "61-sonnet-200k" claude-sonnet-4-6 100000 200000
+
 # ==================== SESSION-START-AUDIT ====================
 test_ssa() {
   local name="$1"; local expected="$2"; local marker_date="${3:-}"

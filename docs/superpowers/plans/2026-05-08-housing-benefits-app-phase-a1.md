@@ -1,5 +1,8 @@
 # Housing Benefits PWA — Phase A.1 Implementation Plan
 
+**Status:** paused
+<!-- harness housekeeping (2026-05-30): marked paused so this stray plan no longer holds the ~/.claude RPI gate open. This is a WSL project plan that landed in the Windows config home. Resume anytime by changing Status to active. -->
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Build a working local-PC PWA that matches Korean government housing benefits to the user's profile, sends notifications via Web Push + Google Calendar, and auto-updates policy rules via LLM extraction with verifier sub-agent — all running on WSL Ubuntu with Docker, before any cloud deployment.

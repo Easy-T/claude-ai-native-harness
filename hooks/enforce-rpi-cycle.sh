@@ -40,8 +40,12 @@ elif [[ "$TOOL" == "Write" ]]; then
   NEW=$(echo "$INPUT" | json_get 'tool_input.content')
 fi
 if [[ -n "$OLD$NEW" ]]; then
-  TOTAL_LINES=$(printf '%s\n%s\n' "$OLD" "$NEW" | wc -l)
-  (( TOTAL_LINES <= 5 )) && {
+  # 변경 라인 수 = max(OLD 라인, NEW 라인). OLD+NEW 합산이 아니라 '바뀐 라인' 기준(S7).
+  # → "≤5 라인 변경" 정책과 일치 (3↔3 교체는 trivial).
+  OLD_LINES=$(printf '%s' "$OLD" | awk 'END{print NR}')
+  NEW_LINES=$(printf '%s' "$NEW" | awk 'END{print NR}')
+  CHANGED_LINES=$(( OLD_LINES > NEW_LINES ? OLD_LINES : NEW_LINES ))
+  (( CHANGED_LINES <= 5 )) && {
     hook_log "enforce-rpi-cycle" "$FILE_PATH" "PASS" "trivial"
     exit 0
   }
