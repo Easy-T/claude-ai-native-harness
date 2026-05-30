@@ -42,3 +42,12 @@ skills/grill-with-docs/
 # Personal Claude Code config (user-specific tokens, env vars)
 # Use settings.example.json as template; install.sh handles merge.
 settings.json
+
+# Machine-local state managed by Claude Code (regenerated; not source).
+# Plugin manifests perpetually drift — enablement is captured in settings.example.json.
+.last-update-result.json
+.update.lock
+plugins/installed_plugins.json
+plugins/known_marketplaces.json
+# Native plan-mode storage (transient; harness RPI plans live in docs/superpowers/plans/)
+/plans/

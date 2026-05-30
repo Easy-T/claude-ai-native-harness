@@ -454,9 +454,8 @@ git push -u origin master
 
 ```bash
 git status --short
-# 정상 출력:
-#  M plugins/installed_plugins.json   ← Claude Code 자동 관리
-#  M plugins/known_marketplaces.json  ← Claude Code 자동 관리
+# 정상: 출력 없음 (clean).
+# plugins/*.json(자동관리 매니페스트), /plans/(native plan-mode), 업데이트 아티팩트는 .gitignore 처리됨.
 ```
 
 `settings.json`, `hooks/.log/`, `projects/` 등 개인 데이터는 모두 `.gitignore` 처리됨.
