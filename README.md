@@ -40,7 +40,9 @@
 
 크로스 플랫폼 path 정규화(Windows backslash → forward slash) 내장 — Linux/WSL/Windows 모두 동일하게 작동.
 
-### 7개 orchestrator skill
+> ⚠️ **멀티 HOME 주의**: `settings.json`(env knobs 포함)은 **HOME별로 독립**입니다. Windows `~/.claude`와 WSL `/home/<user>/.claude`는 각각 따로 설정해야 합니다 — path 정규화는 *경로만* 통일할 뿐 설정은 상속되지 않습니다 (WSL의 bare config가 autocompact 폭주 원인이었음). 또한 **새 hook/matcher 추가 시 세션 재시작 필요**, 이미 등록된 hook 본문 수정은 즉시 반영.
+
+### 6개 orchestrator skill + 1개 공유 계약 (contract)
 
 | Skill | 트리거 키워드 | Phase 구조 |
 |---|---|---|
@@ -306,7 +308,7 @@ bash ~/.claude/setup/doctor.sh
 
 ### Hook이 발동 안 함
 
-1. **Claude Code 세션 재시작** — hooks는 세션 시작 시 settings.json에서 로드
+1. **Claude Code 세션 재시작** — hooks는 세션 시작 시 settings.json에서 로드. (**새 hook 파일/matcher 추가 → 재시작 필요. 이미 등록된 hook 본문 수정 → 즉시 반영.**)
 2. settings.json 검증:
    ```bash
    node -e 'const c = JSON.parse(require("fs").readFileSync(process.env.HOME+"/.claude/settings.json","utf8")); console.log("hooks:", JSON.stringify(c.hooks).length, "bytes")'
@@ -322,11 +324,19 @@ bash ~/.claude/setup/doctor.sh
 ### "차단: 활성 plan 없음" — 단순 작업인데 막힘
 
 - **≤5라인이면 자동 통과** — Edit으로 5줄 이하만 변경하면 hook이 trivial로 분류
-- **문서 변경**: `*.md`, `*.txt`, `*/docs/*`, `*/.claude/*`, `*/.github/*`, `*/superpowers/*` 자동 화이트리스트
+- **문서 변경**: `*.md`, `*.txt`, `*/docs/*`, `*/.claude/*`, `*/.github/*` 자동 화이트리스트 — 단, **코드/실행 확장자(`.sh`/`.ts`/`.py` 등)는 디렉터리 위치와 무관하게 면제 없음** (active plan 필요). `*/superpowers/*`는 더 이상 디렉터리 면제 아님 (plan/spec은 `.md`라 통과)
 - **명시 우회 (1회성)**:
   ```bash
   export RPI_SKIP="hotfix-typo"
   ```
+
+### Bash 명령이 차단됨 — 리다이렉션으로 코드 작성
+
+`echo ... > file.py` / `cat <<EOF > script.sh` 처럼 셸로 코드 파일을 쓰면 `enforce-rpi-bash`가 active plan 없을 때 차단합니다 (Write/Edit 우회 봉인). active plan을 만들거나 `RPI_SKIP="이유"` 설정 후 진행.
+
+### 시크릿 감지로 차단됨 (false positive)
+
+파일/명령에 실제 키 포맷(`AKIA…`, `sk-ant-…`, PEM private key 등)이 보이면 `enforce-secret-scan`이 차단합니다 (값은 로그 안 하고 **종류만** 보고). placeholder(`XXXX`/`EXAMPLE` 등)는 통과. 오탐이거나 의도된 경우 `SECRET_SCAN_SKIP="이유"` 설정.
 
 ### settings.json 깨짐
 
@@ -381,6 +391,8 @@ Windows에서 backslash path가 hook 화이트리스트를 못 통과하면:
 
 ### Hook enforcement 조정
 
+> ⚠️ hook/스크립트(`.sh`)는 **코드로 분류**되어 `enforce-rpi-cycle`/`enforce-rpi-bash`가 차단합니다 — 수정 전 active plan을 만들거나 `RPI_SKIP="tune-hook"`을 설정하세요 (하네스가 자기 자신을 보호하는 의도된 동작).
+
 예: `enforce-rpi-cycle.sh`의 화이트리스트에 `*.yaml` 추가
 ```bash
 case "$FILE_PATH" in
@@ -396,9 +408,9 @@ bash ~/.claude/hooks/tests/run-all.sh
 
 ### Trivial 임계 조정
 
-`enforce-rpi-cycle.sh`의 5라인 임계:
+`enforce-rpi-cycle.sh`의 5라인 임계 (`CHANGED_LINES` = max(OLD 라인, NEW 라인) — 변경 라인 기준):
 ```bash
-(( TOTAL_LINES <= 5 )) && {
+(( CHANGED_LINES <= 5 )) && {
   hook_log "..." "trivial"; exit 0
 }
 ```
@@ -411,6 +423,18 @@ bash ~/.claude/hooks/tests/run-all.sh
 "이거 자주 쓸 것 같아 skill로 만들어줘"
 ```
 create-orchestrator-skill이 자동으로 골격 주입 + enforce-orchestrator hook 통과까지 검증.
+
+### 환경 변수 (env knobs)
+
+하네스의 차단/알림 동작을 우회·튜닝하는 사용자 설정. 인라인(`VAR=값 claude`) 또는 `settings.json`의 `env` 블록에 설정.
+
+| 변수 | 효과 | 설정 위치 |
+|---|---|---|
+| `RPI_SKIP` | enforce-rpi-cycle/enforce-rpi-bash의 active-plan 게이트 1회 우회 (핫픽스 등) | 인라인 `RPI_SKIP=이유 claude` |
+| `SECRET_SCAN_SKIP` | enforce-secret-scan 1회 우회 (오탐/의도된 경우) | 인라인 |
+| `CONTEXT_LIMIT` | auto-compact-watch의 컨텍스트 창을 토큰 수로 강제 (모델 자동 도출 override) | settings.json env |
+| `COMPACT_WARN_PCT` | auto-compact-watch 경고 % (기본 = native override − 10) | settings.json env |
+| `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE` | native auto-compact 발동 % (기본 95; 낮출수록 일찍 compact). **HOME별 독립** | settings.json env (Windows + WSL 각각) |
 
 ---
 
@@ -450,7 +474,16 @@ git push
 
 ### 4. 다른 PC에서 설치 흐름 검증
 
-위의 [⚡ 빠른 설치](#-빠른-설치-3-단계) 절차를 따라 새 환경에서 한 번 돌려보고 작동하면 끝.
+위의 [⚡ 빠른 설치](#-빠른-설치-4-단계) 절차를 따라 새 환경에서 한 번 돌려보고 작동하면 끝.
+
+---
+
+## 🔒 보안 모델
+
+이 하네스는 `defaultMode: "bypassPermissions"` + `skipDangerousModePermissionPrompt: true`로 동작합니다 — **권한 프롬프트 없이 모든 안전장치를 커스텀 hook에 집중**시킨 단일-운영자(single trusted operator) 가정의 **의도된 트레이드오프**입니다. 이 하네스 채택 = 이 자세를 의식적으로 수용하는 것.
+
+- 완화: `enforce-secret-scan`(시크릿 유출 차단) + `enforce-rpi-bash`(셸 코드작성 게이트).
+- 잔여 위험·CCS 프록시 의존·자격증명 처리·secret-scan 한계 → **[`SECURITY.md`](SECURITY.md)** 참조.
 
 ---
 

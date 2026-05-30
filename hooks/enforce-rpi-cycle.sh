@@ -10,7 +10,11 @@ FILE_PATH=$(normalize_path "$FILE_PATH")
 TOOL=$(echo "$INPUT" | json_get 'tool_name')
 CWD=$(echo "$INPUT" | json_get 'cwd')
 CWD=$(normalize_path "$CWD")
-[ -z "$CWD" ] && CWD="."
+# 빈/누락 cwd → plan 위치 판단 불가 → fail-open (비결정적 "." 해석 회피, S12)
+if [ -z "$CWD" ]; then
+  hook_log "enforce-rpi-cycle" "$FILE_PATH" "PASS" "no-cwd-failopen"
+  exit 0
+fi
 
 # === 화이트리스트 1: 비실행 산출물은 확장자 기준으로 항상 통과 (디렉터리 무관) ===
 case "$FILE_PATH" in

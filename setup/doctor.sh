@@ -185,7 +185,7 @@ if [ -f "$CLAUDE_MD" ]; then
     check "audit marker" "PASS" "appended $TODAY"
   fi
 else
-  check "audit marker" "WARN" "CLAUDE.md missing (will be created in Task 12)"
+  check "audit marker" "WARN" "CLAUDE.md missing — run install.sh 또는 백업에서 복원"
 fi
 
 # 18. backup directory (~/.claude.backup-YYYY-MM-DD/)

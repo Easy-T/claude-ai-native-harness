@@ -3,7 +3,7 @@
 > 이 파일은 모든 Claude 세션의 prefix에 자동 로드됩니다. ≤200줄.
 > 변경은 의식적으로 — 변경 시 캐시 무효화 (다음 세션 비용 ~20배).
 
-<!-- audit: 2026-05-19 -->
+<!-- audit: 2026-05-30 -->
 
 ---
 
@@ -89,4 +89,4 @@ Define success criteria. Loop until verified.
 이 파일이 작동하는 기준:
 - 새 프로젝트마다 /init-ai-ready Phase 0이 이 파일을 점검
 - 30일 이상 audit 마커 미갱신 시 session-start-audit이 알림
-- 200줄 초과 시 doctor.sh가 경고
+- 200줄 초과 시 verify-setup.sh가 경고 (init-ai-ready Phase 0도 점검)

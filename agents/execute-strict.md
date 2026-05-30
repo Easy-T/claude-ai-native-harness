@@ -5,7 +5,7 @@ description: |
   사용 시점: orchestrator skill의 Phase 2(Generate) / Phase I(Implement)의 task 위임.
   scope 외 변경 금지 — task에 적힌 파일만 수정.
   <example>
-  Context: 부트스트랩 시 9개 파일 생성
+  Context: 부트스트랩 시 13개 파일 생성
   call: Agent(subagent_type="execute-strict",
               task="docs/ai-context/architecture.md 생성",
               context_paths=["templates/architecture.md.tpl"],

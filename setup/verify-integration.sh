@@ -66,6 +66,37 @@ EVENT=$(node -e '
 RC=$(echo "$EVENT" | "$HOME/.claude/hooks/enforce-orchestrator.sh" >/dev/null 2>&1; echo $?)
 [ "$RC" = "2" ] && ok "E2E.E: enforce-orchestrator blocks malformed skill" || fail "E2E.E: rc=$RC"
 
+# E2E.F — enforce-rpi-bash blocks code authored via shell redirection (no plan)
+FRESH_F=$(mktemp -d)
+EVENT=$(node -e '
+  const o = {tool_name:"Bash", tool_input:{command:"cat > app.py <<EOF\nprint(1)\nEOF"}, cwd:process.argv[1]};
+  process.stdout.write(JSON.stringify(o));
+' "$FRESH_F")
+RC=$(echo "$EVENT" | "$HOME/.claude/hooks/enforce-rpi-bash.sh" >/dev/null 2>&1; echo $?)
+[ "$RC" = "2" ] && ok "E2E.F: enforce-rpi-bash blocks shell-authored code without plan" || fail "E2E.F: rc=$RC"
+
+# E2E.G — enforce-secret-scan blocks a secret in a Bash command (fake key built at runtime)
+AWSK="AKIA"; AWSK="${AWSK}ZZ1234567890ABCD"
+EVENT=$(node -e '
+  const o = {tool_name:"Bash", tool_input:{command:"echo "+JSON.stringify(process.argv[1])}, cwd:"/tmp"};
+  process.stdout.write(JSON.stringify(o));
+' "$AWSK")
+RC=$(echo "$EVENT" | "$HOME/.claude/hooks/enforce-secret-scan.sh" >/dev/null 2>&1; echo $?)
+[ "$RC" = "2" ] && ok "E2E.G: enforce-secret-scan blocks a secret in a Bash command" || fail "E2E.G: rc=$RC"
+
+# E2E.H — verify-loop-watch advises (systemMessage) on unverified code changes
+VL=$(mktemp -d)
+( cd "$VL"; git init -q; git config user.email t@t; git config user.name t
+  mkdir -p docs/superpowers/plans scripts src
+  printf '# p\n**Status:** active\n- [ ] s\n' > docs/superpowers/plans/p.md
+  printf '#!/bin/sh\n' > scripts/check.sh; printf 'x=1\n' > src/a.py
+  git add -A >/dev/null 2>&1; git commit -qm init >/dev/null 2>&1
+  printf 'x=2\ny=3\n' > src/a.py )
+rm -f /tmp/verify-reminded-e2eH
+OUT=$(echo "{\"session_id\":\"e2eH\",\"stop_hook_active\":false,\"cwd\":\"$VL\"}" | "$HOME/.claude/hooks/verify-loop-watch.sh" 2>/dev/null)
+rm -f /tmp/verify-reminded-e2eH
+echo "$OUT" | grep -q 'verify-loop' && ok "E2E.H: verify-loop-watch advises on unverified changes" || fail "E2E.H: no advice emitted"
+
 echo
 echo "verify-integration: PASS=$PASS FAIL=$FAIL"
 exit $FAIL

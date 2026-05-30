@@ -68,6 +68,7 @@ REQUIRED=(
   "$TARGET/commands/init-ai-ready.md"
   "$TARGET/CLAUDE.md"
   "$TARGET/settings.example.json"
+  "$TARGET/SECURITY.md"
 )
 MISSING_FILES=0
 for f in "${REQUIRED[@]}"; do
@@ -77,7 +78,7 @@ if [ "$MISSING_FILES" -gt 0 ]; then
   echo "  ✗ $MISSING_FILES 개 파일 누락. clone이 정상 완료됐는지 확인하세요."
   exit 1
 fi
-echo "  ✓ 20개 필수 파일 모두 존재"
+echo "  ✓ 21개 필수 파일 모두 존재"
 
 # --- 3. 실행 권한 부여 ---
 echo "[3/6] 스크립트 실행 권한 부여..."
@@ -127,7 +128,7 @@ echo
 echo "▶ 다음 단계 (반드시 따르세요):"
 echo
 echo "  [STEP 1] Claude Code 세션을 재시작"
-echo "           hook 5개가 settings.json에서 로드됩니다."
+echo "           hook 8개(9개 등록 항목)가 settings.json에서 로드됩니다."
 echo
 echo "  [STEP 2] 의존 플러그인 설치 (필수, 미설치 시 RPI 사이클 작동 X)"
 echo "           새 세션에서 다음 명령으로 설치:"

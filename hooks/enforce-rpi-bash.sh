@@ -17,7 +17,11 @@ INPUT=$(read_input)
 CMD=$(echo "$INPUT" | json_get 'tool_input.command')
 CWD=$(echo "$INPUT" | json_get 'cwd')
 CWD=$(normalize_path "$CWD")
-[ -z "$CWD" ] && CWD="."
+# 빈/누락 cwd → fail-open (비결정적 "." 해석 회피, S12)
+if [ -z "$CWD" ]; then
+  hook_log "enforce-rpi-bash" "bash" "PASS" "no-cwd-failopen"
+  exit 0
+fi
 
 # 빈 명령 → 통과 (fail-safe)
 [ -z "$CMD" ] && exit 0

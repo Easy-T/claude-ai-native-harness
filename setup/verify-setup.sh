@@ -9,7 +9,7 @@ ok()   { echo "✓ $1"; PASS=$((PASS+1)); }
 L=$(wc -l < "$HOME/.claude/CLAUDE.md" 2>/dev/null || echo 9999)
 [ -f "$HOME/.claude/CLAUDE.md" ] && [ "$L" -le 200 ] && ok "CLAUDE.md exists, $L lines" || fail "CLAUDE.md size $L"
 
-# 2. 6 meta rule markers
+# 2. 8 meta rule markers
 R=$(grep -c '^## §[1-8]\.' "$HOME/.claude/CLAUDE.md" 2>/dev/null || echo 0)
 [ "$R" -eq 8 ] && ok "8 meta rules present" || fail "meta rules=$R"
 
@@ -90,6 +90,9 @@ COUNT=$(node -e '
   console.log(all.filter(c => /\.claude\/hooks\/.*\.sh/.test(c)).length);
 ' 2>/dev/null || echo 0)
 [ "$COUNT" -ge 9 ] && ok "settings.json: $COUNT hooks" || fail "settings.json hooks=$COUNT"
+
+# 15. SECURITY.md threat-model doc exists
+[ -f "$HOME/.claude/SECURITY.md" ] && ok "SECURITY.md" || fail "SECURITY.md missing"
 
 echo
 echo "verify-setup: PASS=$PASS FAIL=$FAIL"
