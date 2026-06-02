@@ -99,6 +99,21 @@ for j in redirect-targets skeleton-scan transcript-usage model-window; do
   [ -f "$HOME/.claude/hooks/lib/$j.js" ] && ok "lib: $j" || fail "hooks/lib/$j.js missing"
 done
 
+# 17. RPI phase vocabulary: CLAUDE.md §3 must name every tool start-rpi-cycle Phase R names.
+#     content drift guard — skill body = SSOT, §3 asserted as superset. "§3 omits grill" 클래스 봉인.
+SK17="$HOME/.claude/skills/start-rpi-cycle/SKILL.md"
+PR17=$(awk '/^# Phase R/{f=1;next} /^# Phase /{f=0} f' "$SK17" 2>/dev/null)
+S3_17=$(awk '/^## §3\./{f=1;next} /^## §[0-9]/{f=0} f' "$HOME/.claude/CLAUDE.md" 2>/dev/null)
+if [ -z "$PR17" ] || [ -z "$S3_17" ]; then
+  fail "drift-guard #17: Phase R 또는 §3 섹션 추출 실패 (헤더 변경?)"
+else
+  MISS17=""
+  for t in grill-with-docs brainstorming explore-strict; do
+    printf '%s' "$PR17" | grep -q "$t" && ! printf '%s' "$S3_17" | grep -q "$t" && MISS17="$MISS17 $t"
+  done
+  [ -z "$MISS17" ] && ok "§3 ↔ start-rpi-cycle Phase R tools agree" || fail "§3 omits Phase-R tool(s):$MISS17 (drift vs start-rpi-cycle)"
+fi
+
 echo
 echo "verify-setup: PASS=$PASS FAIL=$FAIL"
 exit $FAIL

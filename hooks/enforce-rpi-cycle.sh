@@ -10,6 +10,22 @@ FILE_PATH=$(normalize_path "$FILE_PATH")
 # 빈/누락 cwd → plan 위치 판단 불가 → fail-open (S12, resolve_cwd 공유)
 CWD=$(echo "$INPUT" | resolve_cwd) || { hook_log "enforce-rpi-cycle" "$FILE_PATH" "PASS" "no-cwd-failopen"; exit 0; }
 
+# === Spec-before-plan 게이트 (cycle-12): Phase-P plan은 Phase-R design spec을 전제 ===
+# plans/*.md 작성 시 sibling specs/*.md 가 없으면 차단 (grill→spec 역류 누락의 기계적 바닥).
+case "$FILE_PATH" in
+  */docs/superpowers/plans/*.md)
+    if [ -z "${RPI_SKIP:-}" ] && ! ls "$CWD/docs/superpowers/specs"/*.md >/dev/null 2>&1; then
+      hook_log "enforce-rpi-cycle" "$FILE_PATH" "BLOCK" "no-spec-before-plan"
+      cat >&2 <<EOF
+[rpi] 차단: plan 작성 전 design spec 없음 (docs/superpowers/specs/*.md).
+  Phase R(brainstorming→grill→spec 역류)로 spec을 먼저 만든 뒤 writing-plans로 진행하세요.
+  명시 우회: export RPI_SKIP="<이유>"
+EOF
+      exit 2
+    fi
+    ;;
+esac
+
 # === 화이트리스트 1: 비실행 산출물은 확장자 기준으로 항상 통과 (디렉터리 무관) ===
 case "$FILE_PATH" in
   *.md|*.txt|*.gitignore|*/CLAUDE.md|*/README*|*/.gitkeep) exit 0 ;;

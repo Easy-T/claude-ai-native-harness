@@ -19,7 +19,7 @@
 
 | 진입점 | 발화 또는 명령 | 동작 |
 |---|---|---|
-| **`/init-ai-ready <name>`** | 슬래시 커맨드 | 빈 디렉터리에 AI-Ready 프로젝트 부트스트랩 (12 파일 + 디렉터리) |
+| **`/init-ai-ready <name>`** | 슬래시 커맨드 | 빈 디렉터리에 AI-Ready 프로젝트 부트스트랩 (13 파일 + 디렉터리) |
 | **`/improve-architecture`** | 슬래시 커맨드 | 코드베이스 구조 개선 + README 생성 (RPIC 5 배수 시 자동 제안) |
 | **start-rpi-cycle 자동 트리거** | "결제 모듈 추가해줘" / "버그 고쳐줘" / "리팩토링해줘" | RPI 사이클 강제 (R→P→I→Closeout) |
 | **create-orchestrator-skill 자동 트리거** | "이거 자주 쓸 것 같아 skill로 만들어줘" | skill-creator + orchestrator 골격 자동 주입 |
@@ -82,7 +82,7 @@
 | `superpowers` | [obra/superpowers](https://github.com/obra/superpowers) (claude-plugins-official) | brainstorming / writing-plans / executing-plans / subagent-driven-development / finishing-a-development-branch — start-rpi-cycle skill이 메인 세션에서 호출 |
 | `skill-creator` | claude-plugins-official | create-orchestrator-skill이 호출 |
 | `claude-md-management` (선택) | claude-plugins-official | CLAUDE.md 점검 자동화 |
-| `mattpocock/skills` | [mattpocock/skills](https://github.com/mattpocock/skills) | grill-with-docs — Phase R.A 도메인 어휘 확립 (doctor.sh 자동 설치) |
+| `mattpocock/skills` | [mattpocock/skills](https://github.com/mattpocock/skills) | grill-with-docs — Phase R.B design stress-test (도메인 어휘 확립, doctor.sh 자동 설치) |
 
 → 미설치 시 RPI 사이클 일부가 작동하지 않습니다. 설치는 [STEP 4](#설치) 참조.
 
@@ -159,7 +159,7 @@ Claude Code 채팅에서:
 ```
 
 start-rpi-cycle skill이 자동 발동:
-1. **Phase R (Research)**: grill-with-docs(도메인 어휘 확립) + brainstorming + explore-strict — 요구사항·접근법·디자인 정리
+1. **Phase R (Research)**: brainstorming → grill-with-docs(design을 도메인 모델에 stress-test, CONTEXT.md/ADR) → explore-strict — 요구사항·접근법·디자인 정리
 2. **Phase P (Plan)**: writing-plans → `docs/superpowers/plans/YYYY-MM-DD-<topic>.md` 생성
 3. **Phase I (Implement)**: subagent-driven-development 또는 executing-plans
 4. **Phase Closeout**: (조건부) `closeout-pr-cycle` → Local Gate → PR → CI → senior review → 사용자 승인 → merge. 이후 review-strict drift 검사 + 자산 갱신 + state.json 업데이트

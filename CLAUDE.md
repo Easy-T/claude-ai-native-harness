@@ -3,7 +3,7 @@
 > 이 파일은 모든 Claude 세션의 prefix에 자동 로드됩니다. ≤200줄.
 > 변경은 의식적으로 — 변경 시 캐시 무효화 (다음 세션 비용 ~20배).
 
-<!-- audit: 2026-05-31 -->
+<!-- audit: 2026-06-02 -->
 
 ---
 
@@ -19,7 +19,7 @@
 
 ## §3. RPI Cycle Mandate
 변경 작업(기능 추가·버그 수정·리팩토링)은 항상 R→P→I→Closeout.
-- Research: brainstorming + explore-strict
+- Research: brainstorming → grill-with-docs → explore-strict
 - Plan: writing-plans
 - Implement: executing-plans 또는 execute-strict
 - Closeout: review-strict drift 검사 + 자산 갱신

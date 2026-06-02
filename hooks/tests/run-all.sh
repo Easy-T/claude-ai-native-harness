@@ -550,6 +550,21 @@ test_acw "05-no-transcript" 0 '{"session_id":"abc"}'
 # 06-missing-file
 test_acw "06-missing-file" 0 '{"session_id":"abc","transcript_path":"/nonexistent/path"}'
 
+# ==================== PATCH-H: SPEC-BEFORE-PLAN GATE (enforce-rpi-cycle) ====================
+SBP_NO="$SCRATCH/sbp_nospec"; mkdir -p "$SBP_NO/docs/superpowers/plans"
+SBP_OK="$SCRATCH/sbp_spec";  mkdir -p "$SBP_OK/docs/superpowers/plans" "$SBP_OK/docs/superpowers/specs"
+printf '# d\n' > "$SBP_OK/docs/superpowers/specs/x-design.md"
+PLANBODY=$'# Plan\n**Status:** active\n- [ ] step1\n- [ ] step2'
+test_erc "28-plan-no-spec-block"  2 "$(mk_event Write "$SBP_NO/docs/superpowers/plans/p.md" "$PLANBODY" "$SBP_NO")"
+test_erc "29-plan-with-spec-pass" 0 "$(mk_event Write "$SBP_OK/docs/superpowers/plans/p.md" "$PLANBODY" "$SBP_OK")"
+test_erc_plan_skip() {
+  local input; input=$(mk_event Write "$SBP_NO/docs/superpowers/plans/p.md" "$PLANBODY" "$SBP_NO")
+  TOTAL=$((TOTAL+1))
+  local actual; actual=$(echo "$input" | RPI_SKIP=hotfix "$HOOKS/enforce-rpi-cycle.sh" >/dev/null 2>&1; echo $?)
+  [ "$actual" = "0" ] && PASSED=$((PASSED+1)) || FAILED_LIST+=("enforce-rpi-cycle/30-plan-no-spec-skip (got=$actual)")
+}
+test_erc_plan_skip
+
 # ==================== Summary ====================
 echo
 echo "Hook tests: $PASSED / $TOTAL passed"

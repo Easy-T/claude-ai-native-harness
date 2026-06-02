@@ -17,14 +17,17 @@ orchestrator_version: 1.0
 
 # Phase R — Research
 
-A. grill-with-docs skill 절차 (메인이 직접 따름) — 도메인 용어 확립
-   ※ 미설치 시: `bash ~/.claude/setup/doctor.sh` 로 자동 설치
-   → 산출물: CONTEXT.md 갱신 (프로젝트 루트), docs/adr/*.md (조건부)
-   → grill 세션 종료 후 메인이 직접: domain-glossary.md 메타데이터 테이블에 신규 용어 기록
+A. brainstorming skill 절차 (메인이 직접 따름) — 외향적 (요구·접근법·디자인)
+   → 산출물: docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md (design spec)
+   ※ 누적 CONTEXT.md가 있으면 그 어휘를 기반으로 사용
 
-B. brainstorming skill 절차 (메인이 직접 따름) — 외향적 (요구·접근법·디자인)
-   ※ CONTEXT.md에 확정된 용어를 언어 기반으로 사용
-   → 산출물: docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md
+B. grill-with-docs skill 절차 (메인이 직접 따름) — A의 design을 도메인 모델·코드에 비춰 stress-test
+   ※ 미설치 시: `bash ~/.claude/setup/doctor.sh` 로 자동 설치
+   → 산출물: CONTEXT.md 갱신(용어집), ADR(조건부)
+   ※ ADR은 docs/ai-context/architecture.md (append-only, §5 SSOT)에 기록 — grill 기본 docs/adr/ 대신 하네스 SSOT 사용
+   → grill 종료 후 메인이 직접: domain-glossary.md 메타데이터 테이블에 신규 용어 기록
+   ★ spec 역류(reconcile): grill에서 깎인 용어·확정된 design 결정을 A의 spec 문서에 직접 Edit 반영.
+     grill은 spec을 건드리지 않으므로 이 역류를 빠뜨리면 writing-plans가 낡은 spec을 읽는다.
 
 C. Agent(subagent_type="explore-strict",
         task="<요청 분석>",
@@ -35,12 +38,23 @@ C. Agent(subagent_type="explore-strict",
                        "docs/ai-context/deny-patterns.md"],
         success_criteria="발견사항·영향 모듈·신규 도메인 용어·deny pattern 충돌 식별")
    ※ CLAUDE.md는 메인이 자동 로드하므로 context_paths에 미포함 (중복 회피)
-   ※ B와 C는 병렬·교차 가능 (A 완료 후)
+   ※ C는 B와 병렬·교차 가능 (A 완료 후)
 
-## Gate R
-- CONTEXT.md 갱신 확인 (A 완료 검증)
-- 신규 도메인 용어 confidence < 80% → 사용자 확인 → domain-glossary.md 메타데이터 추가
-- 아키텍처 영향 → ADR 초안 작성 권유 (architecture.md append-only)
+## Gate R (차단형 — review-strict)
+1. Agent(subagent_type="review-strict",
+        task="spec ↔ 도메인 어휘/grill 결과 일관성 검증",
+        context_paths=["CONTEXT.md",
+                       "<현재 spec: docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md>"],
+        success_criteria="
+          PASS only if ALL:
+          - design spec 파일 존재
+          - spec 도메인 용어가 CONTEXT.md canonical과 일치 (_Avoid_ 별칭 누출 0)
+          - grill에서 확정된 design 결정이 spec에 반영됨 (spec 역류 완료)
+          - CONTEXT.md 갱신됨 또는 신규 용어 없음(no-op) 명시
+          FAIL with: 누락 용어·미반영 결정·spec 부재 목록")
+   FAIL 시: spec 역류/CONTEXT.md 보강 후 재실행 (또는 사용자가 \"Gate R override: <이유>\" 명시)
+2. 신규 도메인 용어 confidence < 80% → 사용자 확인 → domain-glossary.md 메타데이터 추가
+3. 아키텍처 영향 → ADR을 architecture.md(append-only)에 작성 권유
 
 # Phase P — Plan
 
@@ -153,6 +167,9 @@ closeout-pr-cycle 결과를 받아:
    - active ≥ 30 항목 또는 ≥ 100줄 → 가장 오래된 비재발(카운터=0) 5개 archive로 이동
    - archive ≥ 500줄 → "archive 정리할까요?" 묻기
    - v2 활성 시: archive 항목이 다시 매칭되면 active로 복귀 + High Priority 즉시 승격
+
+6. 전역 하네스(~/.claude) 자체를 수정한 사이클이면: `bash ~/.claude/setup/verify-setup.sh` 실행 →
+   PASS 확인 (cross-doc drift 게이트 #17: §3↔Phase R 포함). FAIL이면 문서 불일치 수정 후 재실행.
 
 ## Sub-cycle states
 - active / in_progress: 진행 중
