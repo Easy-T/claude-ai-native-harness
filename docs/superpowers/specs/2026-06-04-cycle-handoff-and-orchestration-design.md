@@ -34,7 +34,7 @@
     2. **post-compact 필수 읽기 문서** — `/compact`를 가정하고 다음 사이클 진입 전 반드시 읽을 문서를 *존재하는 것만* 절대경로로 나열: 작업 대상 subsystem durable spec(+관련 §), CONTEXT.md, architecture.md(+관련 ADR), 직전 plan, non-obvious.md, 관련 CLAUDE.md §섹션.
     3. **자율 best-practice 진행 directive** — goal 실행 중 선택 분기는 멈추지 말고 best-practice로 판단해 진행(scope 내). 멈춤은 진짜 사용자 결정이 필요할 때만.
 
-- **D-P3 (ultracode workflow로 Phase I 구동 — advisory + ultracode-gated, *후속 사이클*):** Phase I에 옵션 (d) 추가. ultracode ON일 때만 표면화. canonical 2-stage 파이프라인(plan task 순): stage1 `agentType='execute-strict'`, stage2 `agentType='review-strict'`, **둘 다 schema 금지**(StructuredOutput 부재 → 실패 — [[feedback_workflow_agenttype_schema]]). wrapper는 self-spawn 불가라 execute→verify는 반드시 2 스테이지. 같은 파일 동시수정 ≥2면 `isolation:'worktree'`. ≥5 task일 때만 권장. **본 cycle-14에서는 미구현 — 후속 plan으로.**
+- **D-P3 (ultracode workflow로 Phase I 구동 — advisory + ultracode-gated, *후속 사이클*):** Phase I에 옵션 (d) 추가. ultracode ON일 때만 표면화. canonical 2-stage 파이프라인(plan task 순): stage1 `agentType='execute-strict'`, stage2 `agentType='review-strict'`, **둘 다 schema 금지**(StructuredOutput 부재 → 실패 — [[feedback_workflow_agenttype_schema]]). wrapper는 self-spawn 불가라 execute→verify는 반드시 2 스테이지. **데이터 의존(load-bearing):** stage2(읽기전용 review-strict)는 stage1 산출(diff/파일)을 context_paths로 받아야 함(안 먹이면 stale 검증 → false PASS). 같은 파일 동시수정 ≥2면 `isolation:'worktree'` + **stage2는 짝 stage1과 같은 worktree에서 리뷰**(base 읽으면 false PASS/FAIL). 우회 불가 근거는 enforce-rpi-cycle이 PreToolUse Write|Edit 매처라 서브에이전트 execute-strict 쓰기에도 동일 발화 + 디스패치 시 plan·spec 이미 존재. ≥5 task일 때만 권장. **cycle-15에서 구현됨** (verify 적대 리뷰가 데이터-의존·worktree-스코프 누락을 잡아 보강) (plan: `docs/superpowers/plans/2026-06-04-ultracode-phase-i-option.md`).
 
 ## Non-Goals (그리고 anti-pattern 방어)
 
@@ -59,7 +59,8 @@
 - Communication Protocol에 **고유 필수 필드 `next-cycle-goal`** 존재(cycle≥1); zero-open은 수집 근거 동반; unknowns와 분리(복합 필드 누출 방지); goal 초안은 `goal:`/`read-before:`/`autonomy:` 3 라벨 하위줄(내부 누출 차단).
 - item 4 cycle%5가 sub-step 7로 위임됨(중복 묻기 제거); cycle%5는 zero-open이어도 적용.
 
-## P3 — 후속 사이클 Acceptance (미구현, 참고)
+## P3 — Acceptance (구현됨 cycle-15)
 
-- Phase I 옵션 (d) 추가: ultracode ON일 때만 표면. 2-stage(execute-strict→review-strict, schema 금지) 명시. ≥5 task 권장 조건. ultracode OFF 시 비활성.
-- 기존 plan-존재·spec-before-plan 게이트가 메인 세션 Workflow 디스패치 *전*에 작동 → P3가 우회 못 함을 명시.
+- Phase I 옵션 (d) 추가: ultracode ON일 때만 표면, OFF 시 비활성(항상-on 권유 없음). 2-stage(execute-strict→review-strict, schema 금지) + wrapper self-spawn 불가 명시. **데이터 의존**(stage2가 stage1 diff를 context_paths로 수령) + **worktree 스코프**(stage2는 짝 stage1 worktree에서 리뷰) 명시. 같은 파일 동시수정 ≥2면 worktree. ≥5 task 권장.
+- plan-존재·spec-before-plan 게이트(PreToolUse Write|Edit 매처)가 Workflow 서브에이전트 쓰기에도 동일 발화 + 디스패치 시 plan·spec 이미 존재 → P3 우회 불가.
+- (§3 Implement 줄 "executing-plans 또는 execute-strict"는 *도구 프리미티브* 수준 요약 — (a)/(c)/(d)는 모두 execute-strict를, (d)는 review-strict(§3 Closeout 줄)도 합성 → §3 정확, 편집 불요/§1 캐시비용 회피.)
