@@ -49,3 +49,17 @@
 - `bash ~/.claude/setup/verify-setup.sh` → §3 수정 후 PASS=0 FAIL (이전엔 #17으로 RED).
 - `bash ~/.claude/setup/verify-all.sh` → ALL PASS (§3 수정 후).
 - start-rpi-cycle Phase R가 brainstorm→grill→spec역류→explore 순; Gate R가 spec↔CONTEXT.md 검증을 차단 기준으로 명시.
+
+## 개정 2026-06-04 (cycle 13) — spec 라이프사이클 모델 교정
+
+**Supersedes** 이 spec의 암묵 가정("사이클당 새 dated spec"). 원전(superpowers brainstorming L74 "Each sub-project gets its own spec → plan → implementation cycle", writing-plans L23 one-spec→many-plans) + second_brain_project 실측(specs 3개 inception 1회·plan만 사이클당)으로 삼각검증된 **참 모델**:
+
+- **spec = 서브시스템당 durable 진실원천** (inception 1회, 사이클 간 재사용, R이 *새 design을 발견할 때만* in-place 개정). **사이클당인 건 plan** (RPI-Cycle: N은 plan 헤더·state.json이 소유).
+- 따라서 cycle-12가 넣은 `★spec 역류`/Gate R 문구가 "매 사이클 spec 새로 씀"을 전제 → **재진입 사이클엔 mis-framed.** 조건부로 교정.
+- 폐기: per-cycle `Verified-Cycle: N` 스탬프 아이디어 (durable spec churn + SSOT 위반 = #17이 막는 클래스).
+
+**원래 우려(재검증 R→바로 P)의 실체 = 2케이스:**
+- Case A (새 design이 plan에 들어옴): 이미 Gate P scope-creep이 잡음 → 버그 아님. Gate P 처방 문구만 교정(정당한 신규 결정이면 plan 깎지 말고 spec/ADR 갱신).
+- Case B (R이 이해를 바꿨으나 plan은 낡은 spec 안에 머묾): 기계 추적 흔적 없음 → Phase R ★의 이진 단언(delta? spec/ADR : no-op)으로만 닫음. 새 hook 금지.
+
+**cycle-13 변경 (SKILL.md only, 새 hook 0):** ① Phase R.A 조건부化(신규 subsystem→새 spec / 재진입→durable 재사용·delta시만 개정), `<topic>`→`<subsystem>`. ② Phase R.B ★ 이진 spec-delta 단언(YES→개정/ADR, NO→no-op 명시). ③ Gate R "design 결정 반영됨"→"delta 있으면 반영; 없으면 no-op 명시". ④ Gate P FAIL 처방: 정당한 신규 design이면 plan 축소가 아니라 spec/ADR 갱신 후 재실행. spec-before-plan hook(존재 검사)·#17은 durable 모델에서 옳으므로 유지.

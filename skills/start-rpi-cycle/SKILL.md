@@ -18,7 +18,10 @@ orchestrator_version: 1.0
 # Phase R — Research
 
 A. brainstorming skill 절차 (메인이 직접 따름) — 외향적 (요구·접근법·디자인)
-   → 산출물: docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md (design spec)
+   ※ spec은 서브시스템당 durable 진실원천 (사이클당 아님 — 사이클당인 건 plan).
+     · 신규 subsystem → 새 spec 생성: docs/superpowers/specs/YYYY-MM-DD-<subsystem>-design.md
+     · 기존 subsystem 재진입 → 해당 durable spec 재사용(읽기), 새로 쓰지 않음.
+       (여러 독립 subsystem이면 brainstorming이 sub-project spec으로 분할 — superpowers 규약)
    ※ 누적 CONTEXT.md가 있으면 그 어휘를 기반으로 사용
 
 B. grill-with-docs skill 절차 (메인이 직접 따름) — A의 design을 도메인 모델·코드에 비춰 stress-test
@@ -26,8 +29,11 @@ B. grill-with-docs skill 절차 (메인이 직접 따름) — A의 design을 도
    → 산출물: CONTEXT.md 갱신(용어집), ADR(조건부)
    ※ ADR은 docs/ai-context/architecture.md (append-only, §5 SSOT)에 기록 — grill 기본 docs/adr/ 대신 하네스 SSOT 사용
    → grill 종료 후 메인이 직접: domain-glossary.md 메타데이터 테이블에 신규 용어 기록
-   ★ spec 역류(reconcile): grill에서 깎인 용어·확정된 design 결정을 A의 spec 문서에 직접 Edit 반영.
-     grill은 spec을 건드리지 않으므로 이 역류를 빠뜨리면 writing-plans가 낡은 spec을 읽는다.
+   ★ spec delta 결정 (이진, 필수 — 재진입 사이클의 핵심):
+     이번 R(grill 포함)이 durable spec에 없던 design 결정·교정된 의미·새 제약을 드러냈는가?
+     · YES → writing-plans 전에 durable spec에 in-place 개정(개정일+근거 ADR) 또는 §5 ADR 추가.
+     · NO  → "spec 재확인, delta 없음(no-op)" 명시 후 진행 (재진입 사이클의 정상 경로).
+     (grill은 spec을 안 건드리므로, delta가 있는데 이 역류를 빠뜨리면 writing-plans가 낡은 spec을 읽는다.)
 
 C. Agent(subagent_type="explore-strict",
         task="<요청 분석>",
@@ -44,12 +50,12 @@ C. Agent(subagent_type="explore-strict",
 1. Agent(subagent_type="review-strict",
         task="spec ↔ 도메인 어휘/grill 결과 일관성 검증",
         context_paths=["CONTEXT.md",
-                       "<현재 spec: docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md>"],
+                       "<재사용 중인 subsystem spec: docs/superpowers/specs/YYYY-MM-DD-<subsystem>-design.md>"],
         success_criteria="
           PASS only if ALL:
           - design spec 파일 존재
           - spec 도메인 용어가 CONTEXT.md canonical과 일치 (_Avoid_ 별칭 누출 0)
-          - grill에서 확정된 design 결정이 spec에 반영됨 (spec 역류 완료)
+          - spec delta가 있으면 durable spec/ADR에 반영됨; 없으면 "delta 없음(no-op)" 명시
           - CONTEXT.md 갱신됨 또는 신규 용어 없음(no-op) 명시
           FAIL with: 누락 용어·미반영 결정·spec 부재 목록")
    FAIL 시: spec 역류/CONTEXT.md 보강 후 재실행 (또는 사용자가 \"Gate R override: <이유>\" 명시)
@@ -71,7 +77,7 @@ plan 상단 헤더 주입 (writing-plans 표준 헤더 위에):
 2. Agent(subagent_type="review-strict",
         task="spec vs plan alignment verification",
         context_paths=[
-          "<현재 spec 경로: docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md>",
+          "<재사용 중인 subsystem spec: docs/superpowers/specs/YYYY-MM-DD-<subsystem>-design.md>",
           "<현재 plan 경로: docs/superpowers/plans/YYYY-MM-DD-<topic>.md>"
         ],
         success_criteria="
@@ -89,7 +95,9 @@ plan 상단 헤더 주입 (writing-plans 표준 헤더 위에):
 
    FAIL 시:
    - 갭 목록을 사용자에게 제시
-   - plan 수정 후 Gate P 재실행 또는 사용자가 이유 명시하고 override
+   - scope creep이 정당하지 않으면 → plan을 spec 범위로 축소
+   - R이 발견한 정당한 신규 design이면 → plan을 깎지 말고 durable spec에 in-place 개정 또는 §5 ADR 추가 후 Gate P 재실행
+   - 미커버 spec 요구사항 → plan 보강 후 재실행
    - override 문구 예시: "Gate P override: <이유>" 명시 시 Phase I 진행 허용
 
 # Phase I — Implement
