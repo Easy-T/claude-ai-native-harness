@@ -114,6 +114,22 @@ else
   [ -z "$MISS17" ] && ok "§3 ↔ start-rpi-cycle Phase R tools agree" || fail "§3 omits Phase-R tool(s):$MISS17 (drift vs start-rpi-cycle)"
 fi
 
+# 18. next-cycle-goal 라벨 parity: sub-step 7(절차)와 Communication Protocol(출력 계약)이 같은 3 라벨을 열거해야.
+#     둘 다 설계상 필수(계약에 라벨 없으면 report-time 표면화 약화)라 dedupe 불가 → #17 패턴의 파일-내 인스턴스로 봉인.
+#     ("모든 중복 비교" generalized 프레임워크 아님 — 특정 인스턴스, grill spec이 남긴 확장 여지 내.)
+SK18="$HOME/.claude/skills/start-rpi-cycle/SKILL.md"
+C1_18=$(awk '/^## Step C-1/{f=1;next} /^## Sub-cycle states/{f=0} f' "$SK18" 2>/dev/null)
+CP_18=$(awk '/^## Communication Protocol/{f=1} f' "$SK18" 2>/dev/null)
+if [ -z "$C1_18" ] || [ -z "$CP_18" ]; then
+  fail "drift-guard #18: Step C-1 또는 Communication Protocol 섹션 추출 실패 (헤더 변경?)"
+else
+  MISS18=""
+  for t in 'goal:' 'read-before:' 'autonomy:'; do
+    printf '%s' "$C1_18" | grep -q "$t" && printf '%s' "$CP_18" | grep -q "$t" || MISS18="$MISS18 $t"
+  done
+  [ -z "$MISS18" ] && ok "next-cycle-goal 라벨 ↔ sub-step 7/Communication Protocol parity" || fail "next-cycle-goal 라벨 drift:$MISS18 (sub-step 7 ↔ Communication Protocol 불일치)"
+fi
+
 echo
 echo "verify-setup: PASS=$PASS FAIL=$FAIL"
 exit $FAIL

@@ -165,11 +165,11 @@ closeout-pr-cycle 결과를 받아:
    - cycle.last_completed_at: today
    - audit.last_drift_check: today
 
-4. 사용자 승인형 v2/v3 알림 + 아키텍처 개선 제안:
+4. 사용자 승인형 v2/v3 알림:
    - cycle.count == 5 && !v2_enabled && !v2_skipped_permanently → "v2 도입 가능" 묻기
    - cycle.count == 20 && !v3_enabled && !v3_skipped_permanently → "v3 도입 가능" 묻기
    - 사용자: 활성화 / 건너뛰기 / 영구 건너뛰기 (3택)
-   - cycle.count % 5 == 0 (단, cycle.count > 0) → "improve-codebase-architecture 실행 권장 시점입니다. 실행할까요?" 제안
+   - cycle.count % 5 == 0 (단, cycle.count > 0) → 별도 묻지 않음. sub-step 7이 처리(아래 단일 소스 — 중복 제거, 하나의 "다음 액션" 블록으로 병합)
 
 5. Non-obvious archive 검사:
    - active ≥ 30 항목 또는 ≥ 100줄 → 가장 오래된 비재발(카운터=0) 5개 archive로 이동
@@ -178,6 +178,28 @@ closeout-pr-cycle 결과를 받아:
 
 6. 전역 하네스(~/.claude) 자체를 수정한 사이클이면: `bash ~/.claude/setup/verify-setup.sh` 실행 →
    PASS 확인 (cross-doc drift 게이트 #17: §3↔Phase R 포함). FAIL이면 문서 불일치 수정 후 재실행.
+
+7. 다음 사이클 goal 초안 (advisory — cycle.count ≥ 1일 때 필수; 출력 = Communication Protocol `next-cycle-goal` **고유 필수 필드**):
+   ※ 목적: 1단계처럼 길게 한 사이클을 돈 뒤, 사용자가 다음 사이클을 큰 흐름(goal)으로 제어하고,
+     사이클 사이 `/compact`를 끼워도 컨텍스트를 재구성할 수 있게, 직전 사이클이 다음 작업을 goal 프롬프트로 초안화.
+   ※ advisory인 이유: 다음 사이클 시작 시점엔 검증할 plan/spec 아티팩트가 없어 하드 게이트가 friction만 됨.
+     대신 보고의 *고유 필수 필드*로 두어, 생략하면 명명된 필수 필드가 빠져 보고가 구조적으로 불완전 → 자가-표면화.
+     (unknowns에 접지 않음 — 복합 필드는 다른 절반만 채워 누락을 가릴 수 있으므로 반드시 별도 필드.)
+   - cycle.count == 0 → 이 필드 생략 (첫 사이클 마감엔 핸드오프 대상 없음).
+   - 열린 항목 수집: 미완료/유예된 plan task · Step C-1 drift review가 남긴 후속 · non-obvious action item ·
+     Phase R/Closeout이 남긴 unknowns. **4개 소스를 실제로 점검**하고, 모두 0일 때만 "제안 없음"을 *수집 근거와 함께* 출력
+     (근거 없는 빈 "제안 없음" 금지 — under-collection 위장 방지).
+   - cycle.count % 5 == 0 (item 4에서 위임) → "improve-codebase-architecture 실행"이 **항상 열린 항목에 포함**된다
+     (∴ cycle%5에선 zero-open 경로로 빠지지 않음). goal 주제 = improve-codebase-architecture.
+   goal 초안은 `next-cycle-goal` 필드에 **3개 라벨 하위줄로** 출력 (라벨 누락 = 구조적 불완전 → 필드 누락과 동급으로 표면화; 셋 다 있어야 유효):
+   ① `goal:` 상세 목표 — 한 줄 금지. 관찰가능 success criteria(무엇이 PASS/완료인지) 명시.
+   ② `read-before:` post-compact 필수 읽기 문서 — `/compact` 가정. 다음 사이클 진입 전 반드시 읽을 문서를 *존재하는 것만* 절대경로로 나열:
+      작업 대상 subsystem durable spec(+관련 §) · CONTEXT.md · docs/ai-context/architecture.md(+관련 ADR) ·
+      직전 plan · docs/ai-context/non-obvious.md · 관련 CLAUDE.md §섹션.
+   ③ `autonomy:` 자율 best-practice 진행 directive —
+      "goal 실행 중 선택 분기는 멈추지 말고 best-practice로 판단해 진행(scope 내). 멈춤은 진짜 사용자 결정이 필요할 때만."
+   ※ 정지점: 구조는 세 라벨의 *존재*를 표면화(요소 누락 = conspicuous). 각 라벨 *내용*의 완전성(필수 문서 빠짐없음 등)은
+     hook 없이 구조로 강제 불가 → 수락된 advisory 잔여(필드-레벨 잔여와 동급).
 
 ## Sub-cycle states
 - active / in_progress: 진행 중
@@ -190,3 +212,12 @@ closeout-pr-cycle 결과를 받아:
 - result: COMPLETE / FAIL
 - evidence: Phase별 산출물 경로 + Closeout review-strict 결과
 - unknowns: 사용자에게 추가 결정 권고
+- next-cycle-goal: **고유 필수 필드** (cycle.count ≥ 1). 정확히 아래 중 하나 — 생략하면 보고가 구조적으로 불완전
+  (고유 필드라 unknowns 등 다른 필드 내용으로 대체 불가 → 누락이 표면화).
+  · 열린 항목 0 → "다음 사이클 제안 없음 (열린 항목 0 — 수집 근거: 미완료 plan task 0 · drift 후속 0 · non-obvious action 0 · R/Closeout unknowns 0)"
+  · 그 외 → Step C-1 sub-step 7의 goal 초안. **3개 라벨 하위줄 모두** 포함(라벨 누락 = 구조적 불완전, 필드 누락과 동급):
+      - `goal:` 상세 목표 + 관찰가능 success criteria (한 줄 금지)
+      - `read-before:` post-compact 필수 읽기 문서 (존재하는 것만 절대경로)
+      - `autonomy:` 자율 best-practice 진행 directive
+  · (cycle.count == 0이면 이 필드 생략 — 핸드오프 대상 없음)
+  ※ 라벨 *존재*는 구조로 표면화; 각 라벨 내용 완전성은 수락된 advisory 잔여(hook 없이 강제 불가).
