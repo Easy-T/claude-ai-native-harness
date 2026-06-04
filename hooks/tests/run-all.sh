@@ -291,6 +291,10 @@ test_erc "26-notebook-pass"        0 "$(mk_nb_event "$WP/nb.ipynb" "$BIG" "$WP")
 # With an active plan, code under .claude/ is allowed (governance change via RPI)
 test_erc "27-claude-sh-plan-pass"  0 "$(mk_event Write "$WP/.claude/hooks/x.sh" "$BIG" "$WP")"
 
+# cycle-17 F2: README 가 코드 확장자면 게이트 낙하 (이름 면제 없음), 문서 README 는 통과
+test_erc "94-readme-code-block" 2 "$(mk_event Write "$NP/lib/README.sh" "$BIG" "$NP")"
+test_erc "95-readme-doc-pass"   0 "$(mk_event Write "$NP/docs/README.md" "$BIG" "$NP")"
+
 # ==================== PATCH-A: BASH SIDE-DOOR (enforce-rpi-bash) ====================
 test_erb() {
   local name="$1"; local expected="$2"; local input="$3"; local env_pfx="${4:-}"
@@ -311,6 +315,9 @@ test_erb "33-tee-code-noplan"     2 "$(mk_bash_event 'echo x | tee app.js' "$NP"
 test_erb "34-no-redirect"         0 "$(mk_bash_event 'npm run build' "$NP")"
 test_erb "35-heredoc-code-plan"   0 "$(mk_bash_event "$HEREDOC_PY" "$WP")"
 test_erb "36-rpi-skip"            0 "$(mk_bash_event "$HEREDOC_PY" "$NP")" "RPI_SKIP=hotfix"
+# cycle-17 F3: sed -i / cp 로 코드파일 쓰기 (no plan) → BLOCK
+test_erb "102-sed-code-noplan" 2 "$(mk_bash_event 'sed -i s/a/b/ app.js' "$NP")"
+test_erb "103-cp-code-noplan"  2 "$(mk_bash_event 'cp template.txt deploy.sh' "$NP")"
 
 # ==================== PATCH-A: ORCHESTRATOR CASE-INSENSITIVE (enforce-orchestrator) ====================
 SK_BAD=$'---\norchestrator_skill: true\n---\n# Phase 1\nonly one phase'
@@ -463,6 +470,13 @@ LIBREGEX=$(bash -c 'source "$HOME/.claude/hooks/_common.sh"; code_ext_regex')
 test_lib "75-redirect-code"      "out.py" "$(CMD='cat > out.py <<EOF' CODE_EXT_REGEX="$LIBREGEX" node "$LIB/redirect-targets.js")"
 test_lib "76-redirect-doc"       ""       "$(CMD='echo hi > notes.md' CODE_EXT_REGEX="$LIBREGEX" node "$LIB/redirect-targets.js")"
 test_lib "77-redirect-devnull"   ""       "$(CMD='foo > /dev/null'    CODE_EXT_REGEX="$LIBREGEX" node "$LIB/redirect-targets.js")"
+# cycle-17 F3: sed -i / cp / mv / python -c open(...,"w") 로 코드파일 쓰기 탐지
+test_lib "96-sed-i-code"   "app.js"    "$(CMD='sed -i s/a/b/ app.js' CODE_EXT_REGEX="$LIBREGEX" node "$LIB/redirect-targets.js")"
+test_lib "97-cp-code"      "deploy.sh" "$(CMD='cp template.txt deploy.sh' CODE_EXT_REGEX="$LIBREGEX" node "$LIB/redirect-targets.js")"
+test_lib "98-mv-code"      "b.sh"      "$(CMD='mv a.txt b.sh' CODE_EXT_REGEX="$LIBREGEX" node "$LIB/redirect-targets.js")"
+test_lib "99-pyc-code"     "gen.py"    "$(CMD=$'python3 -c "open(\'gen.py\',\'w\').write(x)"' CODE_EXT_REGEX="$LIBREGEX" node "$LIB/redirect-targets.js")"
+test_lib "100-sed-i-doc"   ""          "$(CMD='sed -i s/a/b/ notes.md' CODE_EXT_REGEX="$LIBREGEX" node "$LIB/redirect-targets.js")"
+test_lib "101-cp-doc"      ""          "$(CMD='cp a.txt b.md' CODE_EXT_REGEX="$LIBREGEX" node "$LIB/redirect-targets.js")"
 # model-window.js: 모델명 -> 컨텍스트 창 (CONTEXT_LIMIT override)
 test_lib "78-modelwin-opus"     "1000000" "$(node "$LIB/model-window.js" claude-opus-4-8)"
 test_lib "79-modelwin-default"  "200000"  "$(node "$LIB/model-window.js" claude-sonnet-4-6)"

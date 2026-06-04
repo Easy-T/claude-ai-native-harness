@@ -146,6 +146,55 @@ else
   fi
 fi
 
+# 20. cases.tsv 실측 == README 선언 카운트 (재드리프트 봉인). README 가 cases.tsv 를 언급한 줄의
+#     '<N> 케이스/case' 숫자가 실측과 다르면 FAIL. (historical "원안 65개"는 케이스/case 미동반이라 비매칭.)
+ACT_CASES=$(grep -vcE '^[[:space:]]*(#|$)' "$HOME/.claude/hooks/tests/cases.tsv")
+BAD20=$(grep -E 'cases\.tsv' "$HOME/.claude/README.md" 2>/dev/null \
+        | grep -oE '[0-9]+ ?(케이스|cases?)' | grep -oE '^[0-9]+' | grep -vx "$ACT_CASES" | head -1)
+[ -z "$BAD20" ] && ok "README cases 카운트 == 실측($ACT_CASES)" || fail "README cases drift: 선언 $BAD20 ≠ 실측 $ACT_CASES"
+
+# 21. verify-integration E2E 실측 == README 선언 카운트.
+ACT_E2E=$(grep -cE 'ok "E2E\.' "$HOME/.claude/setup/verify-integration.sh")
+BAD21=$(grep -oE '[0-9]+개 E2E' "$HOME/.claude/README.md" 2>/dev/null | grep -oE '^[0-9]+' | grep -vx "$ACT_E2E" | head -1)
+[ -z "$BAD21" ] && ok "README E2E 카운트 == 실측($ACT_E2E)" || fail "README E2E drift: 선언 $BAD21 ≠ 실측 $ACT_E2E"
+
+# 22. phase-skills 필드 parity: Step C-1(sub-step 8) ↔ Communication Protocol 두 곳 'phase-skills' 토큰 필연 중복 (#18/#19 인스턴스).
+SK22="$HOME/.claude/skills/start-rpi-cycle/SKILL.md"
+C1_22=$(awk '/^## Step C-1/{f=1;next} /^## Sub-cycle states/{f=0} f' "$SK22" 2>/dev/null)
+CP_22=$(awk '/^## Communication Protocol/{f=1} f' "$SK22" 2>/dev/null)
+if [ -z "$C1_22" ] || [ -z "$CP_22" ]; then
+  fail "drift-guard #22: Step C-1 또는 Communication Protocol 섹션 추출 실패"
+elif printf '%s' "$C1_22" | grep -q 'phase-skills' && printf '%s' "$CP_22" | grep -q 'phase-skills'; then
+  ok "phase-skills 필드 ↔ Step C-1/Communication Protocol parity"
+else
+  fail "phase-skills 필드 drift (Step C-1 ↔ Communication Protocol 불일치)"
+fi
+
+# 23. settings.json ↔ settings.example.json hook command basename 순서+이름 parity (값/시크릿 미접근).
+sj_hooks() {
+  node -e '
+    let c={}; try{c=JSON.parse(require("fs").readFileSync(process.argv[1],"utf8"))}catch(e){process.exit(0)}
+    const out=[]; for(const ph of Object.values(c.hooks||{})) for(const e of ph) for(const h of (e.hooks||[])) out.push(String(h.command||"").split("/").pop());
+    process.stdout.write(out.join(","));
+  ' "$1" 2>/dev/null
+}
+HA=$(sj_hooks "$HOME/.claude/settings.json")
+HB=$(sj_hooks "$HOME/.claude/settings.example.json")
+if [ -z "$HB" ]; then
+  fail "settings.example.json hook 추출 실패"
+elif [ "$HA" = "$HB" ]; then
+  ok "settings.json ↔ example hook parity"
+else
+  fail "settings/example hook drift (순서/이름 불일치)"
+fi
+
+# 24. doctor REQUIRED_HOOKS 가 디스크의 모든 hooks/*.sh 를 커버하는가 (F4b 재발 방지; disk=SSOT, _common 제외).
+DISK_H=$(for f in "$HOME/.claude/hooks/"*.sh; do basename "$f" .sh; done | grep -v '^_common$' | sort -u)
+DOC_H=$(awk '/REQUIRED_HOOKS=\(/{f=1;next} /^\)/{f=0} f' "$HOME/.claude/setup/doctor.sh" 2>/dev/null \
+        | grep -oE '[a-z_-]+\.sh' | sed 's/\.sh$//' | grep -v '^_common$' | sort -u)
+MISS24=$(comm -23 <(printf '%s\n' "$DISK_H") <(printf '%s\n' "$DOC_H"))
+[ -z "$MISS24" ] && ok "doctor REQUIRED_HOOKS ⊇ hooks/*.sh" || fail "doctor REQUIRED_HOOKS omits:$(printf ' %s' $MISS24)"
+
 echo
 echo "verify-setup: PASS=$PASS FAIL=$FAIL"
 exit $FAIL

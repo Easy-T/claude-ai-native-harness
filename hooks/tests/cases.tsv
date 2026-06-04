@@ -94,3 +94,13 @@ surface-constitution	90-section5-manifest	alert	gen_sc_s5
 surface-constitution	91-section8-ui	alert	gen_sc_s8
 surface-constitution	92-nonmatch-silent	silent	gen_sc_silent
 surface-constitution	93-dedup-silent	silent	gen_sc_dedup
+enforce-rpi-cycle	94-readme-code-block	2	gen_erc_readme_code
+enforce-rpi-cycle	95-readme-doc-pass	0	gen_erc_readme_doc
+hooks-lib	96-sed-i-code	output	gen_lib_96
+hooks-lib	97-cp-code	output	gen_lib_97
+hooks-lib	98-mv-code	output	gen_lib_98
+hooks-lib	99-pyc-code	output	gen_lib_99
+hooks-lib	100-sed-i-doc	output	gen_lib_100
+hooks-lib	101-cp-doc	output	gen_lib_101
+enforce-rpi-bash	102-sed-code-noplan	2	gen_erb_sed
+enforce-rpi-bash	103-cp-code-noplan	2	gen_erb_cp

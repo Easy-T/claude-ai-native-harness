@@ -12,7 +12,7 @@ orchestrator_version: 1.0
 # start-rpi-cycle
 
 ※ superpowers의 brainstorming / writing-plans / executing-plans는 모두 **메인 세션의 skill**.
-   sub-agent에 위임 X — 메인이 절차를 따름.
+   sub-agent에 위임 X — 메인이 **Skill 도구로 호출**해 절차를 따름("절차 체화"가 아니라 실제 호출 — Closeout `phase-skills:` 로 선언).
    sub-agent 위임은 explore-strict / review-strict / execute-strict (우리 wrapper)만.
 
 # Phase R — Research
@@ -169,10 +169,10 @@ closeout-pr-cycle 결과를 받아:
 2. plan 헤더 갱신: **Status:** active → completed (또는 abandoned 시 abandoned) (메인이 직접 Edit)
 
 3. .claude/state.json 갱신 (메인이 jq 또는 node로 read-modify-write):
-   ※ 전체 스키마: `.claude/state.schema.json` (v2/v3 optional 필드 포함)
+   ※ 전체 스키마: `state.schema.json` (state.json 과 같은 디렉터리 — 프로젝트는 `.claude/`, 전역 하네스는 루트)
    - cycle.count +1 (abandoned 시 +0)
    - cycle.last_completed_at: today
-   - audit.last_drift_check: today
+   - audit.last_drift_check: today (**단, Step C-1 drift review(sub-step 1)가 실제 수행된 경우에만** — abandoned/미수행 사이클은 미갱신. 하네스 사이클은 sub-step 6 harness-verify 결과와 의미적 연동: 점검 안 한 사이클이 "오늘 점검함"으로 위장 불가.)
 
 4. 사용자 승인형 v2/v3 알림:
    - cycle.count == 5 && !v2_enabled && !v2_skipped_permanently → "v2 도입 가능" 묻기
@@ -211,6 +211,11 @@ closeout-pr-cycle 결과를 받아:
    ※ 정지점: 구조는 세 라벨의 *존재*를 표면화(요소 누락 = conspicuous). 각 라벨 *내용*의 완전성(필수 문서 빠짐없음 등)은
      hook 없이 구조로 강제 불가 → 수락된 advisory 잔여(필드-레벨 잔여와 동급).
 
+8. phase-skills 선언 (Communication Protocol `phase-skills:` 필드로 출력):
+   - 이번 사이클 각 Phase(R/P/I/Gate/Closeout)에서 **실제 Skill 도구로 호출한** skill을 `invoked`, 호출 안 한 필수 skill은 `skipped: <이유>` 로 명시.
+   - 목적: RPI phase 실행(어느 skill을 실제 호출했나)은 plan-FILE proxy로 증명 불가(enforce-rpi-cycle은 plan 존재만 검사) → 보고의 *고유 필수 필드*로 자가-표면. 누락/무사유 skip = 구조적 불완전.
+   - 정지점: 자가-표면은 skip을 *눈에 띄는 선언*으로 바꿀 뿐 호출을 물리 강제하진 않음(수락된 advisory 잔여).
+
 ## Sub-cycle states
 - active / in_progress: 진행 중
 - completed: 완료
@@ -235,3 +240,9 @@ closeout-pr-cycle 결과를 받아:
   · 이번 사이클이 ~/.claude(전역 하네스)를 수정 → `PASS=<N> FAIL=0 (#17·#18·#19 green)` (Step C-1 sub-step 6 실행 결과).
   · 비-하네스 사이클 → "N/A — 이번 사이클은 ~/.claude를 수정하지 않음".
   · 생략 = 명명된 필수 필드 누락 = 보고 구조적 불완전(복합 evidence로 대체 불가 → 자가-표면화). [cycle-14 마스킹 클래스 재발 방지 — F1/#19]
+- phase-skills: **고유 필수 필드** (모든 사이클). 각 Phase에서 호출한 skill을 능동 선언 — 복합/암묵 필드에 접지 않음(누락=구조적 불완전, harness-verify·next-cycle-goal 선례). 형식:
+  · `R: brainstorming=<invoked|skipped:이유>, grill-with-docs=<…>, explore-strict=<…>`
+  · `P: writing-plans=<…>`
+  · `I: <executing-plans|execute-strict|subagent-driven|workflow(d)>=<…>`
+  · `Closeout: review-strict=<…>`
+  무사유 skip 또는 필드 생략 = 자가-표면화(silent-skip 불가). ※ hook 물리 강제는 불가(PreToolUse는 Skill 호출 히스토리·skill명 미제공·`/skill` bypass — claude-code-guide 공식 docs) → advisory 상한 수락. [F12]

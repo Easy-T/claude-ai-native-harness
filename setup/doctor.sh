@@ -258,6 +258,7 @@ REQUIRED_HOOKS=(
   "auto-compact-watch.sh"
   "verify-loop-watch.sh"
   "session-start-audit.sh"
+  "surface-constitution.sh"
   "_common.sh"
 )
 HOOK_FAIL=0

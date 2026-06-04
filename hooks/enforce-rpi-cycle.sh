@@ -28,7 +28,7 @@ esac
 
 # === 화이트리스트 1: 비실행 산출물은 확장자 기준으로 항상 통과 (디렉터리 무관) ===
 case "$FILE_PATH" in
-  *.md|*.txt|*.gitignore|*/CLAUDE.md|*/README*|*/.gitkeep) exit 0 ;;
+  *.md|*.txt|*.gitignore|*/CLAUDE.md|*/README|*/README.rst|*/README.adoc|*/README.markdown|*/README.org|*/.gitkeep) exit 0 ;;
 esac
 
 # === 화이트리스트 2: infra/config 디렉터리는 '비코드 파일'에 한해 통과 ===
