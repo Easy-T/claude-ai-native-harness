@@ -1,15 +1,14 @@
 #!/usr/bin/env bash
-# End-to-end integration verification using ~/Documents/test-ai-ready/
+# End-to-end integration verification in a per-run isolated temp dir (mktemp -d).
 set -uo pipefail
-TEST_DIR="$HOME/Documents/test-ai-ready"
+TEST_DIR=$(mktemp -d)
+trap 'rm -rf "$TEST_DIR"' EXIT
 PASS=0
 FAIL=0
 ok()   { echo "✓ $1"; PASS=$((PASS+1)); }
 fail() { echo "✗ $1"; FAIL=$((FAIL+1)); }
 
-# Reset
-rm -rf "$TEST_DIR"
-mkdir -p "$TEST_DIR"
+# Fresh isolated dir from mktemp -d above — no shared-path reset needed.
 cd "$TEST_DIR"
 git init -q
 
