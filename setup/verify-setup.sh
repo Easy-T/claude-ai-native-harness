@@ -195,6 +195,17 @@ DOC_H=$(awk '/REQUIRED_HOOKS=\(/{f=1;next} /^\)/{f=0} f' "$HOME/.claude/setup/do
 MISS24=$(comm -23 <(printf '%s\n' "$DISK_H") <(printf '%s\n' "$DOC_H"))
 [ -z "$MISS24" ] && ok "doctor REQUIRED_HOOKS ⊇ hooks/*.sh" || fail "doctor REQUIRED_HOOKS omits:$(printf ' %s' $MISS24)"
 
+# 25. verify-integration.sh per-run 격리 봉인 (cycle-18 회귀 방지): 메인 TEST_DIR이
+#     mktemp -d로 할당 + 고정 $HOME 경로 미사용. 서브픽스처(BAD_SKILL=/FRESH_F=/VL=)는
+#     ^TEST_DIR= 앵커로 비매칭 → 메인 격리만 단언. (#17/#19/#22 content-drift 패턴 + 부정 단언.)
+VI="$HOME/.claude/setup/verify-integration.sh"
+if grep -qE '^TEST_DIR=\$\(mktemp -d\)' "$VI" 2>/dev/null \
+   && ! grep -qE '^TEST_DIR=.*\$HOME' "$VI" 2>/dev/null; then
+  ok "verify-integration TEST_DIR mktemp-isolated (고정 \$HOME 없음)"
+else
+  fail "verify-integration TEST_DIR 격리 drift (mktemp 부재 또는 고정 \$HOME 복원 — cycle-18 회귀)"
+fi
+
 echo
 echo "verify-setup: PASS=$PASS FAIL=$FAIL"
 exit $FAIL
