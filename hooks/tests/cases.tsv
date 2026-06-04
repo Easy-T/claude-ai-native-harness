@@ -89,3 +89,8 @@ hooks-lib	80-modelwin-override	output	gen_lib_80
 enforce-rpi-cycle	28-plan-no-spec-block	2	gen_erc_plan_nospec
 enforce-rpi-cycle	29-plan-with-spec-pass	0	gen_erc_plan_spec
 enforce-rpi-cycle	30-plan-no-spec-skip	0	gen_erc_plan_skip
+# cycle-16 (2026-06-04) — surface-constitution advisory §5/§8 JIT (output-based)
+surface-constitution	90-section5-manifest	alert	gen_sc_s5
+surface-constitution	91-section8-ui	alert	gen_sc_s8
+surface-constitution	92-nonmatch-silent	silent	gen_sc_silent
+surface-constitution	93-dedup-silent	silent	gen_sc_dedup

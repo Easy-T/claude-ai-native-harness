@@ -565,6 +565,25 @@ test_erc_plan_skip() {
 }
 test_erc_plan_skip
 
+# ==================== CYCLE-16: SURFACE-CONSTITUTION (advisory §5/§8 JIT) ====================
+# Output-based: assert additionalContext emitted (alert) vs not (silent). Exit always 0.
+rm -f /tmp/surface-adr-sct* /tmp/surface-ui-sct* 2>/dev/null
+sc_ev() { printf '{"session_id":"%s","tool_name":"Write","tool_input":{"file_path":"%s"}}' "$1" "$2"; }
+test_sc() {
+  local name="$1"; local want="$2"; local input="$3"; local pat="${4:-additionalContext}"
+  TOTAL=$((TOTAL+1))
+  local out got=silent
+  out=$(echo "$input" | "$HOOKS/surface-constitution.sh" 2>/dev/null)
+  echo "$out" | grep -qF "$pat" && got=alert
+  [ "$got" = "$want" ] && PASSED=$((PASSED+1)) || FAILED_LIST+=("surface-constitution/$name (want=$want got=$got)")
+}
+test_sc "90-section5-manifest" alert  "$(sc_ev sct90 "$SCRATCH/proj/package.json")" "ADR"
+test_sc "91-section8-ui"       alert  "$(sc_ev sct91 "$SCRATCH/proj/Button.tsx")"   "ui-design"
+test_sc "92-nonmatch-silent"   silent "$(sc_ev sct92 "$SCRATCH/proj/README.md")"
+touch /tmp/surface-adr-sct93 2>/dev/null
+test_sc "93-dedup-silent"      silent "$(sc_ev sct93 "$SCRATCH/proj/package.json")"
+rm -f /tmp/surface-adr-sct93 2>/dev/null
+
 # ==================== Summary ====================
 echo
 echo "Hook tests: $PASSED / $TOTAL passed"

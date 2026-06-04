@@ -129,6 +129,11 @@ session_marker() { printf '/tmp/%s-%s' "$1" "${2:-unknown}"; }
 # --- emit_system_message <msg>: systemMessage JSON 을 stdout 에 안전 출력 (hook→UI 알림 프로토콜 단일화) ---
 emit_system_message() { MSG="$1" node -e 'process.stdout.write(JSON.stringify({systemMessage:process.env.MSG}))'; }
 
+# --- emit_additional_context <msg>: PreToolUse additionalContext JSON 을 stdout 에 안전 출력 ---
+# systemMessage(=사용자 UI 경고)와 달리 additionalContext 는 "모델 컨텍스트에 주입"되는 유일한 비차단 경로.
+# (공식 hooks 문서: PreToolUse exit 0 시 stdout JSON 만 파싱; stderr 는 모델에 도달 안 함.)
+emit_additional_context() { MSG="$1" node -e 'process.stdout.write(JSON.stringify({hookSpecificOutput:{hookEventName:"PreToolUse",additionalContext:process.env.MSG}}))'; }
+
 # --- resolve_cwd: stdin JSON 의 cwd 를 정규화해 출력. 비면 비-zero return (호출자가 fail-open/skip 결정, S12) ---
 # Usage: CWD=$(echo "$INPUT" | resolve_cwd) || { <empty 처리>; }
 # 비결정적 "." 기본값을 쓰지 않도록 cwd 해석을 4개 hook 에서 단일화.

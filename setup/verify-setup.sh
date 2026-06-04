@@ -45,8 +45,8 @@ for s in create-orchestrator-skill init-ai-ready-project start-rpi-cycle closeou
   fi
 done
 
-# 8. 8 hook scripts executable
-for h in enforce-orchestrator stable-claude-md auto-compact-watch enforce-rpi-cycle enforce-rpi-bash enforce-secret-scan verify-loop-watch session-start-audit; do
+# 8. 9 hook scripts executable
+for h in enforce-orchestrator stable-claude-md auto-compact-watch enforce-rpi-cycle enforce-rpi-bash enforce-secret-scan verify-loop-watch session-start-audit surface-constitution; do
   [ -x "$HOME/.claude/hooks/$h.sh" ] && ok "hook: $h" || fail "hook missing or non-executable: $h"
 done
 
@@ -128,6 +128,22 @@ else
     printf '%s' "$C1_18" | grep -q "$t" && printf '%s' "$CP_18" | grep -q "$t" || MISS18="$MISS18 $t"
   done
   [ -z "$MISS18" ] && ok "next-cycle-goal 라벨 ↔ sub-step 7/Communication Protocol parity" || fail "next-cycle-goal 라벨 drift:$MISS18 (sub-step 7 ↔ Communication Protocol 불일치)"
+fi
+
+# 19. harness-verify 필드 parity: sub-step 6(verify-setup 실행 절차)과 Communication Protocol(출력 계약)이
+#     같은 'harness-verify' 토큰을 가져야. 둘 다 필수 — 계약에 토큰 없으면 verify-setup PASS가 복합 evidence에
+#     접혀 cycle-14 마스킹 클래스 재발(F1/F6) → dedupe 불가 → #18 패턴의 파일-내 인스턴스로 봉인.
+SK19="$HOME/.claude/skills/start-rpi-cycle/SKILL.md"
+C1_19=$(awk '/^## Step C-1/{f=1;next} /^## Sub-cycle states/{f=0} f' "$SK19" 2>/dev/null)
+CP_19=$(awk '/^## Communication Protocol/{f=1} f' "$SK19" 2>/dev/null)
+if [ -z "$C1_19" ] || [ -z "$CP_19" ]; then
+  fail "drift-guard #19: Step C-1 또는 Communication Protocol 섹션 추출 실패 (헤더 변경?)"
+else
+  if printf '%s' "$C1_19" | grep -q 'harness-verify' && printf '%s' "$CP_19" | grep -q 'harness-verify'; then
+    ok "harness-verify 필드 ↔ sub-step 6/Communication Protocol parity"
+  else
+    fail "harness-verify 필드 drift (sub-step 6 ↔ Communication Protocol 불일치)"
+  fi
 fi
 
 echo

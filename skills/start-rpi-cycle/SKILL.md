@@ -186,7 +186,8 @@ closeout-pr-cycle 결과를 받아:
    - v2 활성 시: archive 항목이 다시 매칭되면 active로 복귀 + High Priority 즉시 승격
 
 6. 전역 하네스(~/.claude) 자체를 수정한 사이클이면: `bash ~/.claude/setup/verify-setup.sh` 실행 →
-   PASS 확인 (cross-doc drift 게이트 #17: §3↔Phase R 포함). FAIL이면 문서 불일치 수정 후 재실행.
+   PASS 확인 (cross-doc drift 게이트 #17: §3↔Phase R, #18: next-cycle-goal, #19: harness-verify 포함). FAIL이면 문서 불일치 수정 후 재실행.
+   → 결과는 Communication Protocol `harness-verify:` **전용 필드**로 보고(복합 evidence에 접지 않음 — 누락 시 구조적 불완전).
 
 7. 다음 사이클 goal 초안 (advisory — cycle.count ≥ 1일 때 필수; 출력 = Communication Protocol `next-cycle-goal` **고유 필수 필드**):
    ※ 목적: 1단계처럼 길게 한 사이클을 돈 뒤, 사용자가 다음 사이클을 큰 흐름(goal)으로 제어하고,
@@ -230,3 +231,7 @@ closeout-pr-cycle 결과를 받아:
       - `autonomy:` 자율 best-practice 진행 directive
   · (cycle.count == 0이면 이 필드 생략 — 핸드오프 대상 없음)
   ※ 라벨 *존재*는 구조로 표면화; 각 라벨 내용 완전성은 수락된 advisory 잔여(hook 없이 강제 불가).
+- harness-verify: **고유 필수 필드** (모든 사이클). verify-setup PASS를 복합 evidence에 접지 않고 별도 표면화 — 정확히 아래 중 하나:
+  · 이번 사이클이 ~/.claude(전역 하네스)를 수정 → `PASS=<N> FAIL=0 (#17·#18·#19 green)` (Step C-1 sub-step 6 실행 결과).
+  · 비-하네스 사이클 → "N/A — 이번 사이클은 ~/.claude를 수정하지 않음".
+  · 생략 = 명명된 필수 필드 누락 = 보고 구조적 불완전(복합 evidence로 대체 불가 → 자가-표면화). [cycle-14 마스킹 클래스 재발 방지 — F1/#19]
