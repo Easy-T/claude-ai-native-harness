@@ -854,7 +854,7 @@ AI 실패 감지 시:
 
 ### 2.8 Templates (init-ai-ready-project 안 bundled)
 
-13개 .tpl 파일 + 2개 references. 본문은 §3에서 정의 (PR-lifecycle 3개 본문은 cycle-20 예정 — §3.1 각주).
+13개 .tpl 파일 + 2개 references. 본문은 §3에서 정의 (PR-lifecycle 3개는 genesis 이후 추가분 — 본문 대신 `.tpl`+runbook이 SSOT; §3.1 각주·상단 Model-1 노트).
 
 ```
 ~/.claude/skills/init-ai-ready-project/templates/
@@ -983,7 +983,7 @@ test-ai-ready 검증 환경 ──── verify-* 스크립트 통과 후
 ### 2.11 §2 마감
 
 §2는 글로벌 인프라의 정확한 인터페이스. 다음 섹션에서:
-- §3 — 프로젝트 템플릿 13개 목록 + 본문 10개 (PR-lifecycle 3개 본문은 §3.1 각주 참조, cycle-20)
+- §3 — 프로젝트 템플릿 13개 목록 + 본문 10개 (PR-lifecycle 3개는 genesis 이후 추가분, §3.1 각주·Model-1)
 - §4 — Hook 5개의 의사코드와 운영 정책
 - §5 — Non-Obvious v1/v2/v3 / drift / RPI 라이프사이클
 
@@ -1011,7 +1011,7 @@ test-ai-ready 검증 환경 ──── verify-* 스크립트 통과 후
 | 12 | `github-ci.yml.tpl` | `.github/workflows/ci.yml` | CI 워크플로 † |
 | 13 | `CONTEXT.md.tpl` | `<root>/CONTEXT.md` | 프로젝트 컨텍스트·글로서리 (grill-with-docs) † |
 
-† 11~13은 PR-lifecycle 자산. `.tpl`은 templates/에 존재하나 §3 본문 미수록 — 골격은 `templates/<name>.tpl` 직접 참조, 본문 작성은 cycle-20 예정.
+† 11~13은 genesis(2026-05-01) 이후 추가된 PR-lifecycle 자산. genesis §3 상세 본문은 원안 10개만 다룬다 — 이 3개의 명세 SSOT는 `templates/<name>.tpl` 파일 자체 + `runbook.md.tpl`(PR-lifecycle 섹션)이다. 상단 genesis 노트의 Model-1 원칙(genesis 이후 성장분은 genesis 본문에 소급하지 않음)을 따른다.
 
 추가로 디렉터리 5개 생성:
 - `docs/superpowers/specs/` (`.gitkeep`)
@@ -2664,7 +2664,7 @@ echo "ALL PASS"
 | 의존 | 없음 (자립 — 정적 파일) |
 | 검증 | 파일 존재 + Mustache 문법 valid (placeholder 매칭 균형) |
 | 롤백 비용 | 거의 0 (디렉터리 삭제) |
-| 주의 | state.json.tpl 포함 (13개 .tpl 중 하나; scripts-check/github-ci/CONTEXT는 PR-lifecycle 추가분, 본문은 cycle-20 — §3.1 각주). placeholder-spec.md와 stack-presets.md는 §3.12, §3.13 본문 그대로 |
+| 주의 | state.json.tpl 포함 (13개 .tpl 중 하나; scripts-check/github-ci/CONTEXT는 genesis 이후 PR-lifecycle 추가분, 본문 대신 .tpl+runbook이 SSOT — §3.1 각주·Model-1). placeholder-spec.md와 stack-presets.md는 §3.12, §3.13 본문 그대로 |
 
 #### 단계 3 — `common-agent-contract` skill 작성
 
@@ -3092,6 +3092,7 @@ bash ~/.claude/setup/doctor.sh
 | 2026-05-01 | 최초 작성 (브레인스토밍 합의 후) |
 | 2026-06-05 | cycle-19: init-ai-ready 산출물 카운트 genesis-내부 정합 (문서 내 자기모순 교정, in-place). |
 | 2026-06-05 | cycle-21: 상단 genesis-record 노트 추가 + global-count를 Model-1(genesis 보존, 현재 카운트 SSOT=README+verify-setup #2/#6/#8)로 확정. v1 설계 수량 본문 무변경. |
+| 2026-06-05 | cycle-21 후속: §3.1 각주 및 본문 3개 교차참조의 stale "본문 cycle-20 예정" IOU 은퇴 — PR-lifecycle 3 템플릿은 genesis 이후 추가분, .tpl+runbook이 SSOT(Model-1). |
 
 ---
 
