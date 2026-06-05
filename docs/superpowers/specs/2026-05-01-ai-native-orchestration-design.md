@@ -5,6 +5,12 @@
 **Status:** Implemented (2026-05-01)
 **Spec location:** `~/.claude/docs/superpowers/specs/2026-05-01-ai-native-orchestration-design.md`
 
+> **📍 문서 성격 — genesis 설계 기록 (v1).** 이 문서는 2026-05-01 AI-native 오케스트레이션 인프라의 **최초(genesis) 설계 기록**이다. 본문이 기술하는 컴포넌트 수량(hook·skill·메타룰·빌드 단계 등)은 *설계 당시(v1)의 상태*이며 역사 기록으로 보존된다 — 시간이 지나며 늘어난 현재 수량으로 in-place 현행화하지 않는다.
+>
+> **현재 활성 카운트의 SSOT:** `README.md` + `setup/verify-setup.sh`의 봉인 검사 **#2(메타룰)·#6(skill)·#8(hook)**. 이후 추가·확장된 컴포넌트는 이 live SSOT와 `docs/superpowers/specs/`의 후속 spec에서 추적된다. 본문의 v1 수량과 현재 수량이 다른 것은 drift가 아니라 *의도된 genesis-vs-현재 구분*이다.
+>
+> **in-place 정정 경계:** 이 genesis 기록에 허용되는 수정은 두 종류뿐이다 — (1) genesis 설계 *내부*의 자기모순 교정(예: 같은 문서 안에서 서로 다른 산출물 카운트를 주장하던 init-ai-ready를 cycle-19에서 통일), (2) 본 노트 같은 상단 해석/포인터 추가. 둘 다 v1 설계 수량 자체는 건드리지 않는다. 컴포넌트 수량의 *현행화*는 본문 재작성이 아니라 위 live SSOT가 담당한다. 주요 in-place 정정 이력은 §A.4에 기록한다.
+
 ---
 
 ## §0. 개요
@@ -3084,6 +3090,8 @@ bash ~/.claude/setup/doctor.sh
 | 일자 | 변경 |
 |---|---|
 | 2026-05-01 | 최초 작성 (브레인스토밍 합의 후) |
+| 2026-06-05 | cycle-19: init-ai-ready 산출물 카운트 genesis-내부 정합 (문서 내 자기모순 교정, in-place). |
+| 2026-06-05 | cycle-21: 상단 genesis-record 노트 추가 + global-count를 Model-1(genesis 보존, 현재 카운트 SSOT=README+verify-setup #2/#6/#8)로 확정. v1 설계 수량 본문 무변경. |
 
 ---
 
