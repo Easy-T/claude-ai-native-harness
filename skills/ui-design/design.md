@@ -211,11 +211,22 @@ body {
 # 5. Icons
 아이콘은 **Coolicons** 단일 라이브러리를 사용합니다. // from: Coolicons
 
-### Installation & CSS CDN
-```html
-<!-- Coolicons CSS -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/krystonschwarze/coolicons@v4.1/coolicons.css">
+### Installation
+
+> ⚠️ **웹폰트 CDN 부재**(2026-06-06 확인, P6): coolicons는 `coolicons.css` 웹폰트를 jsdelivr CDN으로 제공하지 **않는다** — `@v4.1`/`@4.1`/`@master` 어느 태그에도 CSS·폰트 파일이 없다(PNG만 또는 404). 따라서 기존 `<link href=".../coolicons.css">`·`@import` 방식은 **작동하지 않으며 아이콘이 미렌더된다**. 아래 방식을 사용한다.
+
+**React 프로젝트 (권장)** — `react-coolicons`(coolicons 4.1 기반 React 컴포넌트):
+```bash
+npm install react-coolicons
 ```
+```tsx
+import { SearchMagnifyingGlass, ChevronRight, User01, Sun, Moon } from "react-coolicons";
+// 색은 SVG currentColor 상속 — 부모 요소의 text-* 클래스로 제어. 크기는 width/height.
+<SearchMagnifyingGlass width={20} height={20} />
+```
+정확한 export명은 `node_modules/react-coolicons` 타입정의로 확인(예: `ci-search`→`SearchMagnifyingGlass`, `ci-user`→`User01`, `ci-close_big`→`CloseLg`, `ci-warning`→`Warning`). 아래 §Semantic Icon Mapping의 `ci-*`명은 *의미 참조*이며, React에선 대응 컴포넌트로 매핑한다.
+
+**비-React / 정적 HTML** — coolicons.cool에서 webfont zip을 받아 `coolicons.css` + `/fonts`를 **자가호스팅**(로컬 `@font-face`). CDN `@import` 의존 금지.
 
 ### Icon Rules
 - **사이즈 토큰**: 16px, 20px, 24px
