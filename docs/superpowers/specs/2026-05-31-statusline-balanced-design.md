@@ -1,85 +1,124 @@
-# Status line — "Balanced" single-line redesign
+# Status line — design spec (durable, statusline subsystem)
 
-**Date:** 2026-05-31
-**Author:** RPI Cycle 11 (Research/Design phase)
-**Source authority:** https://code.claude.com/docs/en/statusline (full field schema + best-practice examples)
+**Date:** 2026-05-31 (v1, RPI cycle 11) — **revised in-place 2026-06-11 (v2, RPI cycle 22)**
+**Source authority:** https://code.claude.com/docs/en/statusline + live OAuth usage API probe (2026-06-11)
+**v2 rationale:** user requested screenshot-parity multiline redesign (Desktop/statusline.png) with
+5h/7d rate-limit bars, Fable 5 mapping, icons/colors. v1 "Out of scope" items (multi-line,
+rate limits) are now in scope by explicit user request; v1 single-line layout is **superseded**.
 
-## Problem
-
-The current `statusline.sh` (cycle: ad-hoc, pre-RPI) shows only `dim model · dir basename · cyan branch`.
-User asked to redesign it following best practices so the most useful information is visible and efficient.
-User's stated priorities: context-window usage visibility; works through a CCS proxy with model routing.
-
-## Decision (user-selected: Option A — Balanced single-line)
-
-Single-line layout, ANSI colors, no emoji, `·` separators (Windows Git Bash safe):
+## v2 Decision (user-approved 2026-06-11): 5-line layout, emoji icons, two accounts side-by-side
 
 ```
-{model} · {dir} ({branch} +{staged}~{modified}) · {bar} {pct}% {usedk}/{sizek} · ${cost}
+⚡ Fable 5 [1M] ✦ max ⏵ default 🧠
+📁 ~/.claude ⎇ master +2~1 💰 $2.27 ⏱ 14m ✚172 ✖12
+⚡ Context  ███████░░░░░░░░ 37% (74k/200k)
+🕐 5H Limit biz ████░░░░ 25% · indie ██░░░░░░ 13% (3h30m)
+📅 7D Limit biz ████░░░░ 26% · indie ███░░░░░ 20% (6/12·6/13)
 ```
 
-Example: `Opus 4.8 · .claude (master) +2~1 · ▓▓▓░░░░░░░ 28% 56k/200k · $0.42`
+User selections (AskUserQuestion, 2026-06-11): 풀 5줄 / 두 계정 나란히 / 이모지 아이콘.
 
-## Field mapping (authoritative)
-
+### Line 1 — model & session mode
 | Segment | JSON source | Rendering |
-|---------|-------------|-----------|
-| model | `model.display_name` | bold |
-| dir | `workspace.current_dir // .cwd` → basename, backslash-normalized | plain |
-| branch | `git -C $dir branch --show-current` | cyan `(name)` |
-| staged | `git diff --cached --numstat` line count | green `+N` (hidden if 0) |
-| modified | `git diff --numstat` line count | yellow `~N` (hidden if 0) |
-| bar/pct | `context_window.used_percentage` (// 0, floor) | 10-char ▓/░, threshold-colored |
-| tokens | `context_window.total_input_tokens` / `context_window_size` | dim `{usedk}/{sizek}` (1M→"1M") |
-| cost | `cost.total_cost_usd` | dim `$%.2f`, **hidden when 0** |
+|---|---|---|
+| model | `model.display_name` | ⚡ bold |
+| 1M variant | `model.id` ends with `[1m]` | dim cyan `[1M]` chip (id is SSOT, display_name identical for both variants) |
+| effort | `effort.level` | ✦ + color: max=bright magenta, xhigh=orange(208), high=yellow, else dim |
+| output style | `output_style.name` | ⏵ dim cyan (shown always, per approved preview) |
+| thinking | `thinking.enabled == true` | 🧠 (hidden when false/absent) |
 
-## Color thresholds — tuned to THIS user
+### Line 2 — workspace & session stats
+| Segment | JSON source | Rendering |
+|---|---|---|
+| path | `workspace.current_dir // .cwd`, backslash→slash, `$HOME`→`~` | 📁 bright blue, full path (not basename) |
+| branch +staged~modified | git, cached per session_id 5s TTL (v1 mechanism unchanged) | ⎇ cyan, green `+N`, yellow `~N` (zeros hidden) |
+| cost | `cost.total_cost_usd` | 💰 dim `$%.2f`, hidden when 0 |
+| duration | `cost.total_duration_ms` | ⏱ dim `Xm` / `XhYm`, hidden when <60s |
+| lines | `cost.total_lines_added` / `_removed` | ✚ green / ✖ red, zeros hidden |
 
-Context bar/pct color keyed to the user's **autocompact override = 55%** (not generic 70/90):
-- `< 40%` → green (comfortable)
-- `40–54%` → yellow (approaching the 55% autocompact point)
-- `>= 55%` → red (at/past autocompact)
+### Line 3 — context window
+- 15-cell gradient bar + `PCT% (usedk/sizek)` (1M → "1M").
+- **Gradient bar semantics (all bars):** filled cells are colored by *their position on the scale*
+  (not one flat color), empty cells dim gray `░`. Context ramp keyed to autocompact 55%:
+  position <40% → green(114), 40–54% → yellow(221), ≥55% → red(196). So a 60% bar visually
+  shows the danger zone. 5H/7D ramp: <50% green, 50–79% yellow, ≥80% red.
+- 256-color ANSI (`\033[38;5;Nm`) — supported by Windows Terminal & mintty.
 
-## Best practices applied (from docs)
+### Lines 4/5 — Claude rate limits (5-hour / 7-day), both CCS accounts
+- Data: **OAuth usage API** `GET https://api.anthropic.com/api/oauth/usage`
+  headers `Authorization: Bearer <access_token>` + `anthropic-beta: oauth-2025-04-20`.
+  Response fields used: `five_hour.utilization`, `five_hour.resets_at`,
+  `seven_day.utilization`, `seven_day.resets_at` (floats 0–100, ISO8601 with fractional secs).
+  Verified live 2026-06-11: HTTP 200 on both accounts.
+- Accounts (script-top config array, easily editable):
+  `~/.ccs/cliproxy/auth/claude-bizdev@nice.co.kr.json` → tag `biz` (blue),
+  `~/.ccs/cliproxy/auth/claude-indietogo@gmail.com.json` → tag `indie` (magenta).
+  Tokens are CCS-proxy-managed (auto-refreshed); the script only *reads* `access_token` —
+  read-only usage GET, no refresh grant → no token-family revocation risk
+  ([[project_ccs_codex_token_family_revocation]] class does not apply).
+  `~/.claude/.credentials.json` (pro, expired) is intentionally **not** shown.
+- Per-account 8-cell mini-bars side by side: `biz ████░░░░ 25% · indie ██░░░░░░ 13%`.
+- Reset display: 5H → relative `(3h30m)`; 7D → local date `(6/12)`, no leading zeros.
+  If the two accounts' display strings are equal → show once; else `(biz·indie)` joined by `·`.
+  Timezone: epoch + tz-offset (bash `printf '%(%z)T'` builtin) + `gmtime` in jq — no
+  `localtime` dependency (mingw jq tz unreliable).
 
-1. **git status cached** per `session_id` (5s TTL) in `${TMPDIR:-/tmp}` — script runs every ~300ms, uncached git would lag. Never use `$$` (changes per invocation, defeats cache).
-2. **Absolute tokens shown** (`56k/200k`) so `%` basis is explicit → resolves the user's known proxy "100% 착시" (ambiguity over 200K vs 1M basis).
-3. **Single line** — docs warn multi-line + escapes are more prone to render glitches; single line also leaves the right side free for system notifications.
-4. **Windows**: forward-slash path in settings command, backslash normalization in script, `printf` for output.
-5. **Null-safe**: every field uses `// fallback`; `current_usage`/`used_percentage` can be null early or post-`/compact`.
-6. **Hide zero-cost** noise (CCS proxy frequently reports `$0.00`).
+## v2 caching & performance architecture (Windows spawn cost is the constraint)
 
-## Addendum (cycle 11, post-implementation): context window is per-MODEL, not per-effort
+Process spawn on Windows Git Bash is ~30–80ms; statusline refreshes every ~300ms. Budget:
+**no new foreground processes vs v1.** Design:
 
-User reported the live line showed `95% 190k/200k` on Opus while actually on the 1M window.
-Investigation + official-source research established:
+1. **Single jq pass** computes everything: stdin fields + both usage caches via
+   `--slurpfile` + reset strings (`sub("\\..*";"Z")|fromdateiso8601`, `now`, `gmtime/strftime`)
+   + per-cache staleness + `refresh_needed` flag. Caches ensured to exist (`{}` seeded) before jq.
+2. **Usage cache files** (account-global, *not* session-scoped — usage is per-account):
+   `${TMPDIR:-/tmp}/ccstatus-usage-<tag>.json` = `{"fetched_at": <epoch>, "data": <api json>}`.
+   TTL 60s, age computed *inside* jq from `fetched_at` (no stat call).
+3. **Background refresh**: when stale, fire one detached subshell
+   (`(...) >/dev/null 2>&1 &`) that, per account: jq-extracts token, `curl -fs --max-time 8`,
+   writes tmp + atomic `mv` (only on HTTP 2xx, `-f`). Stampede guard: `mkdir` lock dir;
+   stuck lock (>5min, checked only in this rare path) force-removed. Current tick renders
+   stale/placeholder data — next tick picks up fresh cache.
+4. **No `date` spawns**: epoch & tz-offset via bash `printf '%(%s)T' / '%(%z)T'` builtins.
+5. First run (no cache): lines 4/5 render `…` placeholder; refresh fires; fills next tick.
+6. Staleness marker: cache age >15min → dim `(stale)` suffix (e.g. CCS down / token invalid;
+   failed curl never overwrites last good cache).
 
-- **`effort.level` (low/…/xhigh/max) does NOT change the context window.** Effort governs how many
-  *thinking* tokens are spent *within* the window; the window is a fixed per-model/config budget.
-  (Anthropic + OpenAI docs, 2026-05.) The earlier "ultracode = 1M" impression was correlation:
-  ultracode (xhigh) was being used together with Opus, whose real window is 1M.
-- **The CCS proxy under-reports `context_window_size`** (e.g. 200000), so Claude Code's own
-  `used_percentage` and built-in "context used" indicator are computed against the wrong ceiling.
-  The accurate signal is `context_window.total_input_tokens` (the real token count).
+## v2 context-window mapping (supersedes v1 table *mechanism kept*: FLOOR, only raises)
 
-Official windows (researched 2026-05), reflecting this user's routing:
+| Match (priority order) | Window | Basis |
+|---|---|---|
+| `model.id` ends `[1m]` (any model) | 1,000,000 | Claude Code 1M picker variants (Fable/Opus/Sonnet via gateway discovery) |
+| display `*Opus*` | 1,000,000 | Anthropic 1M default; proxy under-reports 200K (v1 addendum still valid) |
+| display `*GPT-5.5*`/`*gpt-5.5*` | 272,000 | OpenAI standard tier (custom slot) |
+| display `*Haiku*`/`*mini*` | 272,000 | gpt-5.4-mini (haiku slot) |
+| `Fable 5` base, `Sonnet` (real), others | trust reported | Claude Code base Fable/Sonnet report 200,000 correctly (verified 2026-06-11 capture); [1m] variant is the 1M opt-in |
 
-| Model (slot → backend) | Real window | Source |
-|------------------------|-------------|--------|
-| Opus 4.8 (opus → claude-opus-4-8) | 1,000,000 (default) | Anthropic API/Bedrock/Vertex |
-| Claude Sonnet 4.6 (real) | 1,000,000 (GA 2026-03) | Anthropic |
-| GPT-5.5 (sonnet slot) | 272,000 standard / 1M opt-in / 400K Codex | OpenAI |
-| GPT-5.4-mini (haiku slot) | 272,000 standard / ~1.05M opt-in | OpenAI |
+% recomputed from `total_input_tokens` against the floored window (v1 mechanism).
 
-Implementation: a per-model **FLOOR** table keyed on `model.display_name` that only RAISES a
-too-small reported size (so an opt-in 1M reported by the proxy is still trusted), then recomputes
-`% = total_input_tokens · 100 / window`. Table is easily edited if routing changes.
+## v1 sections still in force
+- git status cache per session_id, 5s TTL, `\037` separators, printf output, null-safe jq.
+- Context color thresholds keyed to user's autocompact override 55% (40/55 breakpoints).
+- Hide-zero-noise rule (cost, staged/modified, lines, duration).
+- Addendum research: effort ≠ window; proxy under-reports `context_window_size`;
+  per-model FLOOR table approach. (Official windows table of 2026-05 retained as history;
+  v2 mapping above is current.)
+- "Not fixable from the status line": Claude Code's own bottom-bar % remains proxy-based.
 
-**Not fixable from the status line:** Claude Code's own bottom-bar "100% context used · /model"
-indicator uses the proxy's mis-reported size. Fixing that requires the CCS proxy to advertise the
-true window to Claude Code (proxy-level change), out of scope for `statusline.sh`.
+## v2 out of scope
+- Per-model 7d buckets (`seven_day_sonnet` etc.), `extra_usage` credits — only the two
+  headline gauges.
+- ChatGPT/codex quota for gpt-routed tiers (different auth family; lines 4/5 always show
+  the two Claude accounts regardless of active model).
+- `version`, `exceeds_200k_tokens`, fast_mode segments; COLUMNS-based truncation.
+- settings.json `statusLine` block — unchanged (`bash $HOME/.claude/statusline.sh`, padding 0).
 
-## Out of scope
-
-- Multi-line, rate_limits (proxy = no Claude.ai sub → field absent), PR badge, effort/vim/agent segments, OSC8 links, COLUMNS-based truncation. Can be added later if requested.
-- No change to `settings.json` `statusLine` block (current `bash $HOME/.claude/statusline.sh` + padding 0 is correct and already verified).
+## v2 test plan (Phase I verification criteria)
+1. Pipe captured base-Fable JSON (200K, effort max) → 5 lines, no errors, ctx 37% green.
+2. Pipe captured `[1m]` JSON (1M, 24%) → `[1M]` chip, `238k/1M`.
+3. Synthetic Opus JSON (200K reported) → floored to 1M.
+4. Missing caches → `…` placeholders + lock dir + bg job writes both caches (then 2 re-renders).
+5. Fresh caches → real utilization bars; reset strings match `(XhYm)` / `(M/D)` shapes.
+6. Stale cache (fetched_at −20min) → `(stale)` suffix; refresh fired.
+7. Non-git dir JSON → line 2 without branch segment.
+8. Render time: `time` the script ≤ ~1s on this machine (foreground path).

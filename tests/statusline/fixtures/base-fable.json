@@ -1,0 +1,25 @@
+{
+  "session_id": "test-base-fable",
+  "cwd": "C:\\Users\\12132\\.claude",
+  "effort": { "level": "max" },
+  "model": { "id": "claude-fable-5", "display_name": "Fable 5" },
+  "workspace": { "current_dir": "C:\\Users\\12132\\.claude", "project_dir": "C:\\Users\\12132\\.claude" },
+  "version": "2.1.172",
+  "output_style": { "name": "default" },
+  "cost": {
+    "total_cost_usd": 2.2729669999999995,
+    "total_duration_ms": 821563,
+    "total_api_duration_ms": 362730,
+    "total_lines_added": 0,
+    "total_lines_removed": 0
+  },
+  "context_window": {
+    "total_input_tokens": 74536,
+    "total_output_tokens": 35,
+    "context_window_size": 200000,
+    "used_percentage": 37,
+    "remaining_percentage": 63
+  },
+  "exceeds_200k_tokens": false,
+  "thinking": { "enabled": true }
+}

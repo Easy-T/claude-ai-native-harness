@@ -1,0 +1,11 @@
+{
+  "session_id": "test-nongit",
+  "cwd": "C:\\Windows",
+  "effort": { "level": "high" },
+  "model": { "id": "claude-sonnet-4-6", "display_name": "Sonnet 4.6" },
+  "workspace": { "current_dir": "C:\\Windows" },
+  "output_style": { "name": "default" },
+  "cost": { "total_cost_usd": 0.05, "total_duration_ms": 95000 },
+  "context_window": { "total_input_tokens": 12000, "context_window_size": 1000000, "used_percentage": 1 },
+  "thinking": { "enabled": true }
+}
