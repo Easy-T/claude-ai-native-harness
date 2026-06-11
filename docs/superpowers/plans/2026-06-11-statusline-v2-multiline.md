@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Status:** active
+**Status:** completed
 **RPI-Cycle:** 22
 **Started:** 2026-06-11
 
@@ -26,7 +26,7 @@
 - Create: `tests/statusline/fixtures/*.json` (4 files)
 - Create: `tests/statusline/run-tests.sh`
 
-- [ ] **Step 1.1: Create fixture `tests/statusline/fixtures/base-fable.json`** (real capture, trimmed; base Fable = 200K window, effort max, thinking on)
+- [x] **Step 1.1: Create fixture `tests/statusline/fixtures/base-fable.json`** (real capture, trimmed; base Fable = 200K window, effort max, thinking on)
 
 ```json
 {
@@ -56,7 +56,7 @@
 }
 ```
 
-- [ ] **Step 1.2: Create fixture `tests/statusline/fixtures/fable-1m.json`** (real capture from the 1M-variant session)
+- [x] **Step 1.2: Create fixture `tests/statusline/fixtures/fable-1m.json`** (real capture from the 1M-variant session)
 
 ```json
 {
@@ -86,7 +86,7 @@
 }
 ```
 
-- [ ] **Step 1.3: Create fixture `tests/statusline/fixtures/opus.json`** (synthetic: proxy under-reports 200K for Opus → must floor to 1M, recompute % = 74536*100/1000000 = 7)
+- [x] **Step 1.3: Create fixture `tests/statusline/fixtures/opus.json`** (synthetic: proxy under-reports 200K for Opus → must floor to 1M, recompute % = 74536*100/1000000 = 7)
 
 ```json
 {
@@ -102,7 +102,7 @@
 }
 ```
 
-- [ ] **Step 1.4: Create fixture `tests/statusline/fixtures/nongit.json`** (cwd exists but is not a git repo → no branch segment)
+- [x] **Step 1.4: Create fixture `tests/statusline/fixtures/nongit.json`** (cwd exists but is not a git repo → no branch segment)
 
 ```json
 {
@@ -118,7 +118,7 @@
 }
 ```
 
-- [ ] **Step 1.5: Create `tests/statusline/run-tests.sh`** (exact content below)
+- [x] **Step 1.5: Create `tests/statusline/run-tests.sh`** (exact content below)
 
 ```bash
 #!/usr/bin/env bash
@@ -221,7 +221,7 @@ echo "pass=$PASS fail=$FAIL"
 [ "$FAIL" -eq 0 ]
 ```
 
-- [ ] **Step 1.6: Run the suite — expect RED** (v1 prints 1 line, no emoji/limit lines)
+- [x] **Step 1.6: Run the suite — expect RED** (v1 prints 1 line, no emoji/limit lines)
 
 Run: `bash ~/.claude/tests/statusline/run-tests.sh`
 Expected: many `FAIL` lines (e.g. "T1 renders 5 lines" wants `^5$`, gets `1`), exit code 1.
@@ -231,7 +231,7 @@ Expected: many `FAIL` lines (e.g. "T1 renders 5 lines" wants `^5$`, gets `1`), e
 **Files:**
 - Rewrite: `statusline.sh` (full replacement; exact content below)
 
-- [ ] **Step 2.1: Replace `~/.claude/statusline.sh` with:**
+- [x] **Step 2.1: Replace `~/.claude/statusline.sh` with:**
 
 ```bash
 #!/usr/bin/env bash
@@ -463,28 +463,28 @@ Implementation notes locked by spec (do not deviate):
 
 ### Task 3: Run tests → GREEN
 
-- [ ] **Step 3.1: Run the suite**
+- [x] **Step 3.1: Run the suite**
 
 Run: `bash ~/.claude/tests/statusline/run-tests.sh`
 Expected: every line `ok   - ...`, final `pass=N fail=0`, exit 0.
 
-- [ ] **Step 3.2: If any FAIL** — fix `statusline.sh` (not the assertions, unless an assertion contradicts the spec) and re-run until `fail=0`.
+- [x] **Step 3.2: If any FAIL** — fix `statusline.sh` (not the assertions, unless an assertion contradicts the spec) and re-run until `fail=0`.
 
 ### Task 4: Live smoke + performance
 
-- [ ] **Step 4.1: Live render with real HOME** (real caches/auth; first run may fire the bg refresh, second run renders real utilization)
+- [x] **Step 4.1: Live render with real HOME** (real caches/auth; first run may fire the bg refresh, second run renders real utilization)
 
 Run: `bash ~/.claude/statusline.sh < ~/.claude/tests/statusline/fixtures/base-fable.json; sleep 3; bash ~/.claude/statusline.sh < ~/.claude/tests/statusline/fixtures/base-fable.json`
 Expected: second render shows real `biz NN%` / `indie NN%` bars (no `…`), reset strings shaped `(XhYm)` and `(M/D…)`.
 
-- [ ] **Step 4.2: Foreground latency**
+- [x] **Step 4.2: Foreground latency**
 
 Run: `time (bash ~/.claude/statusline.sh < ~/.claude/tests/statusline/fixtures/base-fable.json >/dev/null)`
 Expected: real ≤ ~1s.
 
 ### Task 5: Commit
 
-- [ ] **Step 5.1: Commit all v2 artifacts**
+- [x] **Step 5.1: Commit all v2 artifacts**
 
 ```bash
 git -C ~/.claude add statusline.sh tests/statusline/ \
