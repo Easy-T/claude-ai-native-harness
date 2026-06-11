@@ -39,7 +39,8 @@ def parsedate:
   catch null;
 def relfmt: ((./3600)|floor) as $h | (((. % 3600)/60)|floor) as $m
   | if . <= 0 then "now" elif $h > 0 then "\($h)h\($m)m" else "\($m)m" end;
-def datefmt: . + $tz | gmtime | strftime("%m/%d") | sub("^0";"") | sub("/0";"/");
+def datefmt: . + $tz | gmtime as $t | $t[3] as $h
+  | "\($t[1]+1)/\($t[2]) \(if $h % 12 == 0 then 12 else $h % 12 end)\(if $h < 12 then "am" else "pm" end)";
 def age($c): ($c[0] // {}) | if .fetched_at then ($now - .fetched_at) else 999999 end;
 def acct($c): (($c[0] // {}).data // {}) as $d
   | [ ($d.five_hour.utilization  // -1 | floor),
@@ -103,9 +104,11 @@ B=$'\033[1m'; D=$'\033[2m'; R=$'\033[0m'
 CY=$'\033[36m'; GR=$'\033[32m'; YL=$'\033[33m'; RD=$'\033[31m'
 BLU=$'\033[94m'; MAG=$'\033[95m'; DCY=$'\033[2;36m'
 
-# gradient bar: filled cells colored by their POSITION on the scale (danger zone visible)
+# gradient bar: filled cells colored by their POSITION on the scale (danger zone visible).
+# Run-length ANSI (emit a color code only when it CHANGES): Claude Code truncates the whole
+# statusline at ~1024 raw bytes, and per-cell codes alone blew that budget (v2.1 fix).
 mkbar() { # mkbar <pct> <cells> <t1> <t2>   -> $BAR
-  local pct=$1 cells=$2 t1=$3 t2=$4 out="" i p c filled
+  local pct=$1 cells=$2 t1=$3 t2=$4 out="" i p c filled last="" ch
   filled=$(( pct * cells / 100 )); (( filled > cells )) && filled=$cells
   for (( i=1; i<=cells; i++ )); do
     if (( i <= filled )); then
@@ -113,8 +116,10 @@ mkbar() { # mkbar <pct> <cells> <t1> <t2>   -> $BAR
       if   (( p >= t2 )); then c=196
       elif (( p >= t1 )); then c=221
       else                     c=114; fi
-      out+=$'\033[38;5;'${c}$'m█'
-    else out+=$'\033[38;5;238m░'; fi
+      ch='█'
+    else c=238; ch='░'; fi
+    [ "$c" != "$last" ] && { out+=$'\033[38;5;'${c}m; last=$c; }
+    out+=$ch
   done
   BAR="$out$R"
 }
@@ -136,10 +141,10 @@ IFS=$'\037' read -r BRA ST MD <"$GCACHE"
 case "$MID" in
   *"[1m]") CW=1000000 ;;                         # any 1M picker variant
   *) case "$MODEL" in
-       *Opus*)                       CW=1000000 ;;  # proxy under-reports Opus
+       *Opus*|*Fable*)               CW=1000000 ;;  # CC under-reports both (Fable: live 368k/200k, v2.1)
        *GPT-5.5*|*gpt-5.5*)          CW=272000  ;;  # custom slot (OpenAI std tier)
        *Haiku*|*mini*|*Mini*)        CW=272000  ;;  # haiku slot -> gpt-5.4-mini
-       *)                            CW=0       ;;  # base Fable/Sonnet report correctly
+       *)                            CW=0       ;;  # real Sonnet reports correctly
      esac ;;
 esac
 if (( CW > 0 && SIZE < CW )); then SIZE=$CW; (( SIZE > 0 )) && PCT=$(( USED * 100 / SIZE )); fi
@@ -175,8 +180,9 @@ if   (( DSEC >= 3600 )); then DUR="$(( DSEC / 3600 ))h$(( (DSEC % 3600) / 60 ))m
 elif (( DSEC >= 60 ));   then DUR="$(( DSEC / 60 ))m"
 else                          DUR=""; fi
 [ -n "$DUR" ] && L2+=" ${D}⏱ ${DUR}${R}"
-[ "${ADDED:-0}" -gt 0 ] 2>/dev/null && L2+=" ${GR}✚${ADDED}${R}"
-[ "${REMOVED:-0}" -gt 0 ] 2>/dev/null && L2+=" ${RD}✖${REMOVED}${R}"
+# ASCII +/- here: ✚/✖ render emoji-width and collide with the digits (v2.1)
+[ "${ADDED:-0}" -gt 0 ] 2>/dev/null && L2+=" ${GR}+${ADDED}${R}"
+[ "${REMOVED:-0}" -gt 0 ] 2>/dev/null && L2+=" ${RD}-${REMOVED}${R}"
 
 # ---------- L3: context (ramp keyed to autocompact override 55%) ----------
 mkbar "$PCT" 15 40 55
@@ -185,35 +191,27 @@ if (( SIZE >= 1000000 )); then SK="1M"; else SK="$(( SIZE / 1000 ))k"; fi
 L3="⚡ ${B}Context${R}  ${BAR} ${PCT}% ${D}(${UK}k/${SK})${R}"
 
 # ---------- L4/L5: Claude rate limits, both accounts ----------
-acct_seg() { # acct_seg <tag> <tagcolor> <util>  -> $SEG
-  local tag=$1 tc=$2 u=$3
+# Reset time is INLINE per account (v2.1): the merged trailing display was ambiguous
+# when the two accounts reset at different times.
+acct_seg() { # acct_seg <tag> <tagcolor> <util> <reset>  -> $SEG
+  local tag=$1 tc=$2 u=$3 rst=$4
   if [ "${u:--1}" -lt 0 ] 2>/dev/null; then SEG="${tc}${tag}${R} ${D}…${R}"
-  else mkbar "$u" 8 50 80; SEG="${tc}${tag}${R} ${BAR} ${u}%"; fi
-}
-combine() { # combine <a> <b> -> $COMB ("a", "a·b", or "")
-  local a=$1 b=$2
-  if   [ -z "$a" ] && [ -z "$b" ]; then COMB=""
-  elif [ -z "$b" ]; then COMB=$a
-  elif [ -z "$a" ]; then COMB=$b
-  elif [ "$a" = "$b" ]; then COMB=$a
-  else COMB="$a·$b"; fi
+  else
+    mkbar "$u" 8 50 80
+    SEG="${tc}${tag}${R} ${BAR} ${u}%"
+    [ -n "$rst" ] && SEG+=" ${D}(${rst})${R}"
+  fi
 }
 STALE=""
 { [ "${B5:--1}" -ge 0 ] && [ "${BAGE:-0}" -gt "$STALE_AT" ]; } 2>/dev/null && STALE=" ${D}(stale)${R}"
 { [ "${I5:--1}" -ge 0 ] && [ "${IAGE:-0}" -gt "$STALE_AT" ]; } 2>/dev/null && STALE=" ${D}(stale)${R}"
 
-acct_seg biz "$BLU" "$B5"; S1=$SEG
-acct_seg indie "$MAG" "$I5"; S2=$SEG
-combine "$B5R" "$I5R"
-L4="🕐 ${B}5H Limit${R} $S1 ${D}·${R} $S2"
-[ -n "$COMB" ] && L4+=" ${D}(${COMB})${R}"
-L4+=$STALE
+acct_seg biz "$BLU" "$B5" "$B5R"; S1=$SEG
+acct_seg indie "$MAG" "$I5" "$I5R"; S2=$SEG
+L4="🕐 ${B}5H Limit${R} $S1 ${D}·${R} $S2$STALE"
 
-acct_seg biz "$BLU" "$B7"; S1=$SEG
-acct_seg indie "$MAG" "$I7"; S2=$SEG
-combine "$B7R" "$I7R"
-L5="📅 ${B}7D Limit${R} $S1 ${D}·${R} $S2"
-[ -n "$COMB" ] && L5+=" ${D}(${COMB})${R}"
-L5+=$STALE
+acct_seg biz "$BLU" "$B7" "$B7R"; S1=$SEG
+acct_seg indie "$MAG" "$I7" "$I7R"; S2=$SEG
+L5="📅 ${B}7D Limit${R} $S1 ${D}·${R} $S2$STALE"
 
 printf '%s\n%s\n%s\n%s\n%s\n' "$L1" "$L2" "$L3" "$L4" "$L5"

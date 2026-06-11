@@ -48,13 +48,14 @@ check "T1 full path"                  "$out" 'C:/Users/12132/\.claude'
 check "T1 git branch shown"           "$out" '⎇'
 check "T1 cost"                       "$out" '\$2\.27'
 check "T1 duration 13m"               "$out" '⏱ 13m'
-check "T1 context pct+tokens"         "$out" '37% \(74k/200k\)'
-check "T1 5h biz 25%"                 "$out" 'biz [█░]+ 25%'
-check "T1 5h indie 13%"               "$out" 'indie [█░]+ 13%'
-check "T1 5h relative reset"          "$out" '\(3h(29|30)m\)'
-check "T1 7d utils"                   "$out" 'biz [█░]+ 26% · indie [█░]+ 20%'
-check "T1 7d date reset"              "$out" '\([0-9]{1,2}/[0-9]{1,2}(·[0-9]{1,2}/[0-9]{1,2})?\)'
+check "T1 base Fable floored to 1M"   "$out" ' 7% \(74k/1M\)'
+check "T1 5h biz 25% + inline reset"  "$out" 'biz [█░]+ 25% \(3h(29|30)m\)'
+check "T1 5h indie 13% + inline reset" "$out" 'indie [█░]+ 13% \(3h(29|30)m\)'
+check "T1 7d per-acct date+hour"      "$out" 'biz [█░]+ 26% \([0-9]{1,2}/[0-9]{1,2} [0-9]{1,2}(am|pm)\) · indie [█░]+ 20% \([0-9]{1,2}/[0-9]{1,2} [0-9]{1,2}(am|pm)\)'
 check "T1 not stale"                  "$(grep -c stale <<<"$out")" '^0$'
+# Claude Code truncates statusline output at ~1024 raw bytes (live v2.1 finding) — hard budget.
+rawbytes=$(HOME="$d" USERPROFILE="$d" TMPDIR="$d" bash "$SL" <"$FX/base-fable.json" 2>/dev/null | wc -c)
+check "T1 raw output ≤1000 bytes"     "$rawbytes" '^([1-9][0-9]{0,2}|1000)$'
 rm -rf "$d"
 
 # --- T2: Fable [1m] variant ---
@@ -62,7 +63,7 @@ d=$(mktemp -d); seed_caches "$d" 5
 out=$(run fable-1m.json "$d")
 check "T2 1M chip"                    "$out" '\[1M\]'
 check "T2 ctx 24% 238k/1M"            "$out" '24% \(238k/1M\)'
-check "T2 lines added/removed"        "$out" '✚172.*✖12'
+check "T2 lines added/removed ASCII"  "$out" '\+172.*-12'
 check "T2 duration 22h3m"             "$out" '⏱ 22h3m'
 rm -rf "$d"
 

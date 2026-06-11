@@ -1,6 +1,6 @@
 # Status line — design spec (durable, statusline subsystem)
 
-**Date:** 2026-05-31 (v1, RPI cycle 11) — **revised in-place 2026-06-11 (v2, RPI cycle 22)**
+**Date:** 2026-05-31 (v1, RPI cycle 11) — **revised in-place 2026-06-11 (v2, RPI cycle 22); v2.1 live-feedback corrections 2026-06-12 (same cycle)**
 **Source authority:** https://code.claude.com/docs/en/statusline + live OAuth usage API probe (2026-06-11)
 **v2 rationale:** user requested screenshot-parity multiline redesign (Desktop/statusline.png) with
 5h/7d rate-limit bars, Fable 5 mapping, icons/colors. v1 "Out of scope" items (multi-line,
@@ -10,11 +10,27 @@ rate limits) are now in scope by explicit user request; v1 single-line layout is
 
 ```
 ⚡ Fable 5 [1M] ✦ max ⏵ default 🧠
-📁 ~/.claude ⎇ master +2~1 💰 $2.27 ⏱ 14m ✚172 ✖12
-⚡ Context  ███████░░░░░░░░ 37% (74k/200k)
-🕐 5H Limit biz ████░░░░ 25% · indie ██░░░░░░ 13% (3h30m)
-📅 7D Limit biz ████░░░░ 26% · indie ███░░░░░ 20% (6/12·6/13)
+📁 ~/.claude ⎇ master +2~1 💰 $2.27 ⏱ 14m +172 -12
+⚡ Context  ███████░░░░░░░░ 37% (368k/1M)
+🕐 5H Limit biz ████░░░░ 25% (3h30m) · indie ██░░░░░░ 13% (3h30m)
+📅 7D Limit biz ████░░░░ 26% (6/12 1pm) · indie ███░░░░░ 20% (6/13 7pm)
 ```
+
+### v2.1 corrections (2026-06-12, live screenshot feedback — supersede conflicting v2 lines below)
+1. **lines± glyphs are ASCII** `+N` green / `-N` red — ✚(U+271A)/✖(U+2716) render emoji-width
+   in the user's terminal and visually collide with the digits.
+2. **base `claude-fable-5` floors to 1,000,000** like Opus. Evidence: live render showed
+   `368k/200k = 100%` while the session kept working (`exceeds_200k_tokens: true`) — CC
+   under-reports `context_window_size` for base Fable; official window is 1M default.
+   The `[1M]` chip stays picker-variant-only (id `[1m]` SSOT); L3's `(xxx/1M)` conveys basis.
+3. **Per-account reset inline** — merged `combine()` display was ambiguous (one `(2h45m)` for
+   two accounts). Each account segment is self-contained: `tag bar N% (reset)`.
+   7d reset gains local hour: `M/D Ham|pm` (e.g. `6/12 1pm`), built from jq gmtime fields
+   (no strftime %l — not portable on mingw).
+4. **Output byte budget ≤1000 bytes total (hard test)** — Claude Code truncates statusline
+   output around ~1KB: live L5 was cut mid-text ("(6/1") on a ~150-col terminal; cut position
+   matched cumulative 1,024 bytes, not any column width. Therefore mkbar emits a color code
+   only on color *change* (run-length ANSI), not per cell.
 
 User selections (AskUserQuestion, 2026-06-11): 풀 5줄 / 두 계정 나란히 / 이모지 아이콘.
 
