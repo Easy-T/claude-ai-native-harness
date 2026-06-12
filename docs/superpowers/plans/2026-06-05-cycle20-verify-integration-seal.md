@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Status:** active
+**Status:** completed
 
 **Goal:** Add verify-setup check #25 that seals the cycle-18 per-run-isolation invariant of `verify-integration.sh` (main `TEST_DIR` must be `mktemp -d`, never a fixed `$HOME` path), and keep the README PASS count honest (60→61).
 

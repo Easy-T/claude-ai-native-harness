@@ -2,6 +2,8 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:execute-strict to apply the two byte-exact edits below. 단일 파일(`2026-05-01-ai-native-orchestration-design.md`) 문서 편집이라 메인세션 순차 + execute-strict 위임. master-direct+push 기존 워크플로 — finishing-a-development-branch 미적용, Closeout이 마감.
 
+**Status:** completed
+
 **Goal:** genesis 설계 spec의 글로벌-카운트(hook/skill/메타룰 ~40곳)를 Model 1(genesis-record)로 확정 — 상단에 **숫자-0 genesis 포인터 노트 1개** 추가로 모든 v1 카운트를 "의도된 역사 기록"으로 재프레이밍하고, 현재 카운트 SSOT가 README + verify-setup #2/#6/#8 seal임을 명시. global-count drift 후보를 non-drift로 종결.
 
 **Architecture:** 노트는 **컴포넌트 숫자를 일절 재기술하지 않는다**(self-referential + seal 참조만 → 노트 자체 드리프트 표면 0). 동시에 Gate R가 식별한 §A.4 changelog 긴장을 해소: A.4를 in-place 정정 로그로 명시 연결하고 cycle-19(선례) + cycle-21(본 변경) 행을 정합.
