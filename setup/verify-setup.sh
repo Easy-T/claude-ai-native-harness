@@ -170,11 +170,15 @@ else
   fail "phase-skills 필드 drift (Step C-1 ↔ Communication Protocol 불일치)"
 fi
 
-# 23. settings.json ↔ settings.example.json hook command basename 순서+이름 parity (값/시크릿 미접근).
+# 23. settings.json ↔ settings.example.json 하네스 hook (phase|matcher|basename) parity (값/시크릿 미접근).
+#     isHarness 한정(cycle-24 승격): S3 보존 병합 불변식(하네스 hook=템플릿 entry에만) 위에서 matcher drift 감지
+#     + 사용자 커스텀 hook 오탐 제거. (구 basename-only는 matcher 축소를 미감지 — cycle-23 수락 잔여 ① 이행.)
 sj_hooks() {
   node -e '
     let c={}; try{c=JSON.parse(require("fs").readFileSync(process.argv[1],"utf8"))}catch(e){process.exit(0)}
-    const out=[]; for(const ph of Object.values(c.hooks||{})) for(const e of ph) for(const h of (e.hooks||[])) out.push(String(h.command||"").split("/").pop());
+    const isHarness=h=>/\.claude\/hooks\/[^/]+\.sh/.test(String((h||{}).command||""));
+    const out=[]; for(const [ph,es] of Object.entries(c.hooks||{})) for(const e of es) for(const h of (e.hooks||[]))
+      if(isHarness(h)) out.push(ph+"|"+String(e.matcher??"")+"|"+String(h.command||"").split("/").pop());
     process.stdout.write(out.join(","));
   ' "$1" 2>/dev/null
 }
@@ -183,9 +187,9 @@ HB=$(sj_hooks "$HOME/.claude/settings.example.json")
 if [ -z "$HB" ]; then
   fail "settings.example.json hook 추출 실패"
 elif [ "$HA" = "$HB" ]; then
-  ok "settings.json ↔ example hook parity"
+  ok "settings.json ↔ example harness-hook matcher parity"
 else
-  fail "settings/example hook drift (순서/이름 불일치)"
+  fail "settings/example harness-hook drift (phase/matcher/이름 불일치)"
 fi
 
 # 24. doctor REQUIRED_HOOKS 가 디스크의 모든 hooks/*.sh 를 커버하는가 (F4b 재발 방지; disk=SSOT, _common 제외).

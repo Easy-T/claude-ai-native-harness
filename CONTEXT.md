@@ -26,7 +26,7 @@ _Avoid_: "안전 실패"(fail-safe와 방향 반대).
 _Avoid_: "전면 금지"(plan 있으면 통과한다).
 
 ### drift seal (봉인)
-verify-setup.sh의 특정-인스턴스 체크로 거버넌스 사실의 재드리프트를 막는 장치(#17~#25 실재; #26은 미채택·번호 소각). generalized 프레임워크 아님 — 안정 앵커가 있는 인스턴스만.
+verify-setup.sh의 특정-인스턴스 체크로 거버넌스 사실의 재드리프트를 막는 장치(#17~#25·#27·#28 실재; #26은 미채택·번호 소각). generalized 프레임워크 아님 — 안정 앵커가 있는 인스턴스만.
 _Avoid_: "범용 parity 검사".
 
 ### genesis record
