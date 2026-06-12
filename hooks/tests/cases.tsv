@@ -85,6 +85,7 @@ enforce-rpi-cycle	19-windows-backslash	0	gen_erc_winbackslash
 hooks-lib	78-modelwin-opus	output	gen_lib_78
 hooks-lib	79-modelwin-default	output	gen_lib_79
 hooks-lib	80-modelwin-override	output	gen_lib_80
+hooks-lib	121-modelwin-fable	output	gen_lib_121
 # Patch H (2026-06-02) — spec-before-plan gate (enforce-rpi-cycle)
 enforce-rpi-cycle	28-plan-no-spec-block	2	gen_erc_plan_nospec
 enforce-rpi-cycle	29-plan-with-spec-pass	0	gen_erc_plan_spec

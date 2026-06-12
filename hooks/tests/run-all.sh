@@ -526,6 +526,7 @@ test_lib "117-rsync-dir-pass"   ""                "$(CMD='rsync -a src/ dst/' CO
 test_lib "78-modelwin-opus"     "1000000" "$(node "$LIB/model-window.js" claude-opus-4-8)"
 test_lib "79-modelwin-default"  "200000"  "$(node "$LIB/model-window.js" claude-sonnet-4-6)"
 test_lib "80-modelwin-override" "300000"  "$(CONTEXT_LIMIT=300000 node "$LIB/model-window.js" claude-sonnet-4-6)"
+test_lib "121-modelwin-fable"   "1000000" "$(node "$LIB/model-window.js" claude-fable-5)"
 
 # ==================== SESSION-START-AUDIT ====================
 test_ssa() {

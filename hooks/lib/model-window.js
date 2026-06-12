@@ -9,6 +9,7 @@ if (Number.isFinite(env) && env > 0) {
 } else {
   const MAP = [
     [/opus-4-(7|8)/, 1000000],  // Opus 4.7 / 4.8 — 1M context
+    [/fable/, 1000000],         // Fable 5 — 1M (공식 docs; statusline.sh 실측 368k>200k 동근거)
     [/1m/, 1000000],            // 명시적 1M 계열
   ];
   const hit = MAP.find(([re]) => re.test(model));
