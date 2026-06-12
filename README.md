@@ -55,6 +55,8 @@
 | `ui-design` | UI/UX 컴포넌트, Tailwind, CSS, "디자인 만들어줘", "예쁘게" | 1(Load Reference) → 2(Apply) → 3(Verify) |
 | `common-agent-contract` | (자동 주입) | wrapper agent 3종에 Input/Output 표준 주입 |
 
+> 이 외 **비강제 on-demand skill**: `statusline` — 커스텀 상태줄(`statusline.sh`) 수정·수리·복원 시에만 가져다 쓰는 유지보수 skill. 하네스 게이트(위 6개)와 무관하며, 필요한 경우에만 호출.
+
 ### 3개 wrapper sub-agent
 
 | Sub-agent | 권한 | 역할 |
@@ -290,6 +292,7 @@ bash ~/.claude/setup/doctor.sh
 │   ├── closeout-pr-cycle/SKILL.md        PR Closeout orchestrator
 │   ├── create-orchestrator-skill/SKILL.md
 │   ├── improve-codebase-architecture/SKILL.md  구조 개선 + README orchestrator
+│   ├── statusline/SKILL.md               상태줄 유지보수 (비강제 on-demand)
 │   └── ui-design/                        UI/UX 디자인 orchestrator
 │       ├── SKILL.md
 │       └── design.md                     디자인 토큰 + Anti-Slop Checklist
