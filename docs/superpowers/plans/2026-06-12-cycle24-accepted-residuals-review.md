@@ -2,7 +2,7 @@
 
 > **For agentic workers:** 경량 사이클 — 메인이 executing-plans 절차로 직접 수행. TDD: RED 실측 → GREEN.
 
-**Status:** active
+**Status:** completed
 **RPI-Cycle:** 24
 **Started:** 2026-06-12
 
@@ -59,6 +59,6 @@ sj_hooks() {
 
 - [x] **Step 1: 게이트** — run-all 113/113 · verify-setup PASS=63 FAIL=0 · verify-integration 8/8 · verify-all ALL PASS. ✓ 실측: 4게이트 전부 green(113/113 · 63/0 · 8/8 · ALL PASS).
 - [x] **Step 2: 구현 커밋** — `feat(harness): seal #23 matcher-parity 승격(isHarness 한정) + 수락잔여 6건 판정 기록 (cycle-24)` (명시 staging). ✓ 실측: 명시 staging(verify-setup.sh·CONTEXT.md·spec·SECURITY.md·plan) 커밋.
-- [ ] **Step 3: C-0/C-1** — C-0: master 직커밋 → WARN 후 진행. C-1: review-strict 실호출(판정 기록 3사이트 일치 + plan 체크박스).
-- [ ] **Step 4: flip + state** — 이 plan Status → completed; 루트 state.json 23→24(양 날짜=2026-06-12).
-- [ ] **Step 5: closeout 커밋** — `docs(rpi): cycle-24 closeout — plan completed, state 24` (plan+state.json만).
+- [x] **Step 3: C-0/C-1** — C-0: master 직커밋 → WARN 후 진행. C-1: review-strict 실호출(판정 기록 3사이트 일치 + plan 체크박스). ✓ 실측: C-0 **WARN: PR lifecycle 미수행(master 직커밋)**; C-1 review-strict **PASS** — 3사이트 모순 0·#23 구현 일치·CONTEXT #27/#28 포함·체크박스 잔존=Closeout 3개뿐·Non-Goals 헤더 보존·staging 5파일 일치.
+- [x] **Step 4: flip + state** — 이 plan Status → completed; 루트 state.json 23→24(양 날짜=2026-06-12). ✓ 실측: flip 후 #27 active=0 green(아래 Step 5 게이트 재확인에 포함).
+- [x] **Step 5: closeout 커밋** — `docs(rpi): cycle-24 closeout — plan completed, state 24` (plan+state.json만). ✓ 실측: 명시 staging 커밋.
