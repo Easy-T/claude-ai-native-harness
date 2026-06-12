@@ -49,6 +49,9 @@ settings.json
 .update.lock
 plugins/installed_plugins.json
 plugins/known_marketplaces.json
+plugins/.last_inuse_sweep
+# Claude Code daemon IPC (pipe.key = local secret; never commit)
+daemon/
 # Native plan-mode storage (transient; harness RPI plans live in docs/superpowers/plans/)
 /plans/
 
