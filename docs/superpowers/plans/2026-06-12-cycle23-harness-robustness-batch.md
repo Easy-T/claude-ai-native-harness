@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Status:** active
+**Status:** completed
 **RPI-Cycle:** 23
 **Started:** 2026-06-12
 
@@ -650,12 +650,12 @@ git add -A && git commit -m "docs(harness): TDD-verbatim(d) + review-strict 13 +
 
 ### Task 4.4: Closeout (start-rpi-cycle Phase Closeout 절차)
 
-- [ ] **Step 1: Step C-0** — remote/gh/branch 조건 확인 (master 직커밋 워크플로면 WARN 기록 후 C-1).
-- [ ] **Step 2: Step C-1 drift review** — review-strict로 사이클 마감 점검 (CONTEXT.md 신규 — 반영 확인; spec Revision 섹션 반영 확인; plan 체크박스 전부 [x]).
-- [ ] **Step 3: 이 plan Status flip** — `**Status:** active` → `**Status:** completed`. (seal #27 활성 후 첫 정상 flip — flip 누락 시 다음 verify-setup이 FAIL로 잡는지가 곧 D-LIFECYCLE의 acceptance.)
-- [ ] **Step 4: state.json** — cycle.count 22→23, last_completed_at/last_drift_check = 마감일.
-- [ ] **Step 5: 보고 필수 필드** — harness-verify(`PASS=63 FAIL=0 (#17·#18·#19 green)` 실측), phase-skills(R: brainstorming=invoked, grill-with-docs=invoked, explore-strict=invoked / P: writing-plans=invoked / I: 세션별 선언 / Closeout: review-strict=invoked), next-cycle-goal(3라벨 — 열린 항목: 수락 잔여 목록 재평가 등).
-- [ ] **Step 6: 최종 커밋** — `git add -A && git commit -m "docs(rpi): cycle-23 closeout — plan completed, state 23"`
+- [x] **Step 1: Step C-0** — remote/gh/branch 조건 확인 (master 직커밋 워크플로면 WARN 기록 후 C-1). ✓ 실측: remote=Easy-T/claude-ai-native-harness OK·gh 인증 OK·branch=master → **WARN: PR lifecycle 미수행(main/master 직커밋 워크플로)**, scripts/check.sh 없음 → C-1 진행.
+- [x] **Step 2: Step C-1 drift review** — review-strict로 사이클 마감 점검 (CONTEXT.md 신규 — 반영 확인; spec Revision 섹션 반영 확인; plan 체크박스 전부 [x]). ✓ 실측: review-strict **PASS** — CONTEXT.md 6용어 반영·spec Revision spot-check 7/7+부수 정정 일치·구현 Task(1.1~4.3) 미체크 0·7커밋 실재; non-obvious.md는 해당 없음(전역 하네스 — 프로젝트 자산).
+- [x] **Step 3: 이 plan Status flip** — `**Status:** active` → `**Status:** completed`. (seal #27 활성 후 첫 정상 flip — flip 누락 시 다음 verify-setup이 FAIL로 잡는지가 곧 D-LIFECYCLE의 acceptance.) ✓ 실측: flip 후 #27 `✓ plan lifecycle: 전 plan 명시 Status + active=0 (≤1)` + **재차단 acceptance**: enforce-rpi-cycle 프로브 exit=2, 차단 메시지에 cycle-23 Status 안내 포함 — D-LIFECYCLE 전 루프(open→close→re-block) 검증.
+- [x] **Step 4: state.json** — cycle.count 22→23, last_completed_at/last_drift_check = 마감일. ✓ 실측: 루트 ~/.claude/state.json count=23, 양 날짜=2026-06-12 (drift review 실제 수행 — sub-step 1 PASS라 last_drift_check 갱신 정당).
+- [x] **Step 5: 보고 필수 필드** — harness-verify(`PASS=63 FAIL=0 (#17·#18·#19 green)` 실측), phase-skills(R: brainstorming=invoked, grill-with-docs=invoked, explore-strict=invoked / P: writing-plans=invoked / I: 세션별 선언 / Closeout: review-strict=invoked), next-cycle-goal(3라벨 — 열린 항목: 수락 잔여 목록 재평가 등). ✓ 실측: S4 세션 최종 보고에 3필드 전부 포함(아래 커밋 후 출력).
+- [x] **Step 6: 최종 커밋** — `git add -A && git commit -m "docs(rpi): cycle-23 closeout — plan completed, state 23"` ✓ 실측: git add -A 대신 명시 staging(plan+state.json — 무관 변경 제외), 메시지는 plan 그대로.
 
 ---
 
