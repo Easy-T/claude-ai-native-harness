@@ -104,3 +104,5 @@ hooks-lib	100-sed-i-doc	output	gen_lib_100
 hooks-lib	101-cp-doc	output	gen_lib_101
 enforce-rpi-bash	102-sed-code-noplan	2	gen_erb_sed
 enforce-rpi-bash	103-cp-code-noplan	2	gen_erb_cp
+enforce-rpi-cycle	104-checkbox-only-noplan	2	gen_erc_checkbox_only
+enforce-rpi-bash	105-heredoc-checkbox-only	2	gen_erb_checkbox_only

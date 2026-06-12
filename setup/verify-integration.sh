@@ -45,6 +45,7 @@ RC=$(echo "$EVENT" | RPI_SKIP="hotfix" "$HOME/.claude/hooks/enforce-rpi-cycle.sh
 mkdir -p "$TEST_DIR/docs/superpowers/plans"
 cat > "$TEST_DIR/docs/superpowers/plans/p.md" <<'PLAN'
 # P
+**Status:** active
 - [ ] step1
 PLAN
 EVENT=$(node -e '

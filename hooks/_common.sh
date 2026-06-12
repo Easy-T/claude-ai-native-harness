@@ -82,25 +82,29 @@ normalize_path() {
   echo "${p//\\//}"
 }
 
+# --- plan_status <plan.md>: head-20의 명시 Status 첫 단어(소문자) 출력. 없으면 빈 문자열 ---
+# "completed - cleanup pending" 같은 후행 텍스트도 첫 단어만 정확 인식(S14).
+# has_active_plan / session-start-audit 가 공유 (status 추출 로직 단일화).
+plan_status() {
+  head -20 "$1" 2>/dev/null | grep -m1 -iE '^\*?\*?status:?\*?\*?' \
+    | sed -E 's/^\*?\*?[Ss]tatus:?\*?\*?[[:space:]]*//' | awk '{print tolower($1)}' | tr -d '*' || true
+}
+
 # --- has_active_plan: <cwd>의 docs/superpowers/plans에 active plan이 있으면 경로 출력+return 0 ---
 # Usage: if PLAN=$(has_active_plan "$CWD"); then ...; fi
-# enforce-rpi-cycle 와 enforce-rpi-bash 가 공유 (로직 drift 방지). 판별 우선순위는
-# 기존 enforce-rpi-cycle 인라인 로직과 동일: 명시 Status > 미완료 체크박스 fallback.
+# enforce-rpi-cycle 와 enforce-rpi-bash 가 공유 (로직 drift 방지).
+# cycle-23 D-LIFECYCLE: 명시 Status(active|in_progress)만 인정 — checkbox-fallback 제거
+# (Status 없는 plan이 게이트를 영구 개방하던 stale-active 경로 봉쇄. seal #27 + session-start 표면과 3중.)
 has_active_plan() {
   local cwd="${1:-.}"
   local plan_dir="$cwd/docs/superpowers/plans"
   [ -d "$plan_dir" ] || return 1
-  local plan status
+  local plan
   for plan in "$plan_dir"/*.md; do
     [ -f "$plan" ] || continue
-    # 1순위: 명시적 Status — 첫 단어만 추출(소문자). "completed - cleanup pending" 같은 후행 텍스트도 정확 인식(S14)
-    status=$(head -20 "$plan" | grep -m1 -iE '^\*?\*?status:?\*?\*?' | sed -E 's/^\*?\*?[Ss]tatus:?\*?\*?[[:space:]]*//' | awk '{print tolower($1)}' | tr -d '*' || true)
-    case "$status" in
-      completed|abandoned|archived|paused) continue ;;
+    case "$(plan_status "$plan")" in
       active|in_progress) printf '%s' "$plan"; return 0 ;;
     esac
-    # 2순위: 미완료 체크박스 존재
-    if grep -qE '^- \[ \]' "$plan"; then printf '%s' "$plan"; return 0; fi
   done
   return 1
 }

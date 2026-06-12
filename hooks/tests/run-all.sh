@@ -318,6 +318,11 @@ test_erb "36-rpi-skip"            0 "$(mk_bash_event "$HEREDOC_PY" "$NP")" "RPI_
 # cycle-17 F3: sed -i / cp 로 코드파일 쓰기 (no plan) → BLOCK
 test_erb "102-sed-code-noplan" 2 "$(mk_bash_event 'sed -i s/a/b/ app.js' "$NP")"
 test_erb "103-cp-code-noplan"  2 "$(mk_bash_event 'cp template.txt deploy.sh' "$NP")"
+# cycle-23 D-LIFECYCLE: 명시 Status 없는 checkbox-only plan은 active 아님 → BLOCK
+CB="$SCRATCH/cbonly"; mkdir -p "$CB/docs/superpowers/plans" "$CB/src"
+printf '# p\n- [ ] s\n' > "$CB/docs/superpowers/plans/p.md"
+test_erc "104-checkbox-only-noplan" 2 "$(mk_event Write "$CB/src/foo.ts" "$BIG" "$CB")"
+test_erb "105-heredoc-checkbox-only" 2 "$(mk_bash_event "$HEREDOC_PY" "$CB")"
 
 # ==================== PATCH-A: ORCHESTRATOR CASE-INSENSITIVE (enforce-orchestrator) ====================
 SK_BAD=$'---\norchestrator_skill: true\n---\n# Phase 1\nonly one phase'
