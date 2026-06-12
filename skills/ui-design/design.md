@@ -123,6 +123,44 @@ body {
 - 모바일 화면 대응 시 뷰포트 높이에 `h-screen` (100vh) 절대 금지 ❌. (Safari 브라우저 하단 바 이슈)
 - 반드시 `min-h-[100dvh]`를 사용해야 합니다.
 
+**App Shell & 풀높이 레이아웃 무결성:** // from: NICE Second Brain P7 (반응형 재정렬, Playwright 실측 회귀)
+풀스크린 **앱 셸**(사이드바·메인·우측패널 등 다중 패널이 한 화면을 채우는 레이아웃)에서 반복되는 3가지 오버플로우 버그를 방지한다. 이 버그들은 **실브라우저에서만 발현**하고 jsdom 단위테스트·빌드는 통과(false-green)하므로 ④로 검증한다. (단일 풀높이 *섹션*인 랜딩 hero(§8)는 해당 없음 — 중첩 셸에서만.)
+
+**① 중첩 뷰포트 높이 금지** — `h-[100dvh]`/`min-h-[100dvh]`는 **layout root 단 한 곳**에만 두고 `overflow-hidden`을 함께 준다. 내부 컬럼·패널은 `h-full min-h-0`, **스크롤이 필요한 영역만** `overflow-y-auto`. root와 자식에 동시에 dvh를 주면 자식이 부모를 넘어 세로 오버플로우(예: 입력창이 fold 아래로 밀려 사라짐).
+```tsx
+<div className="h-[100dvh] flex flex-col overflow-hidden">     {/* root만 dvh */}
+  <header className="h-14 shrink-0" />
+  <div className="flex flex-1 min-h-0">                         {/* min-h-0 = flex 자식 축소 허용(오버플로우 핵심) */}
+    <aside className="hidden lg:block lg:w-64 shrink-0 h-full" />
+    <main className="flex-1 min-w-0 flex flex-col">
+      <div className="flex-1 overflow-y-auto" />                {/* 스크롤은 여기만 */}
+      <footer className="shrink-0" />                           {/* 입력창 등 하단 고정 */}
+    </main>
+  </div>
+</div>
+```
+
+**② canvas/측정-사이즈 컴포넌트는 컨테이너로 사이징** — `<canvas>`나 픽셀 고정 surface로 그리는 라이브러리(`react-force-graph`·차트·지도 등)는 width/height 기본값이 **window 크기**라, 더 작은 패널 안에 넣으면 패널 밖으로 가로 오버플로우를 만든다. 컨테이너 `ref`+`ResizeObserver`로 실측해 `width`/`height`를 **명시 전달**한다.
+```tsx
+const ref = useRef<HTMLDivElement>(null);
+const [size, setSize] = useState({ w: 0, h: 0 });
+useEffect(() => {
+  if (!ref.current) return;
+  const ro = new ResizeObserver(([e]) => setSize({ w: e.contentRect.width, h: e.contentRect.height }));
+  ro.observe(ref.current);
+  return () => ro.disconnect();
+}, []);
+return (
+  <div ref={ref} className="relative h-full w-full overflow-hidden">
+    <ForceGraph2D width={size.w} height={size.h} /* ... */ />   {/* 기본 window 크기 금지 → 명시 */}
+  </div>
+);
+```
+
+**③ 다중 패널 → 모바일 단일 컬럼** — 데스크톱 다중 패널은 태블릿/모바일에서 반드시 접는다. 고정폭 컬럼(`w-64`+`w-[34rem]` 등)을 그대로 두면 모바일에서 주 콘텐츠가 화면 밖으로 밀린다. 패턴: 사이드 패널 = `hidden lg:block` + 모바일 **드로어**(햄버거 토글), 보조 패널 = 모바일 **세그먼트 탭**으로 주 콘텐츠와 전환, 주 콘텐츠 = 모바일 `flex-1` 풀폭. 모바일 우선(single column)으로 짜고 `lg:`에서 다중 패널로 확장. §3 Breakpoint(`<768` 모바일 / `768~1024` 태블릿 / `>1024` 데스크톱) 기준.
+
+**④ 레이아웃은 실측 검증** — ①②③ 버그는 jsdom(캔버스 모킹·레이아웃 미실행)·`vite build`에서 안 잡힌다(false-green). 실브라우저(예: Playwright)로 `document.documentElement.scrollWidth > clientWidth`(가로)·세로 오버플로우가 **0**인지 + 모바일 폭(예: 390px)에서 주 콘텐츠가 풀폭 가시인지 측정한 뒤 "레이아웃 완료"로 판정한다.
+
 # 4. Components
 가장 자주 사용하는 UI 요소들의 기준 형태입니다. 모바일과 웹에서 공통으로 호환됩니다. // from: 몽타주 web
 
@@ -266,6 +304,10 @@ import { SearchMagnifyingGlass, ChevronRight, User01, Sun, Moon } from "react-co
 - [ ] body line-height 1.5인가 (본문 가독성)
 - [ ] 아이콘이 Coolicons 단일 family인가, 이모지는 없는가 (일관성 확보)
 - [ ] `h-screen` 대신 `min-h-[100dvh]` 사용했는가 (모바일 브라우저 버그 방지)
+- [ ] (앱 셸) `h-[100dvh]`/`min-h-[100dvh]`가 layout root 1곳만인가, 중첩 dvh 없는가 (§3① 세로 오버플로우 방지)
+- [ ] (canvas/그래프/차트) 컨테이너 ResizeObserver로 width/height 명시 사이징했는가 (§3② window-기본값 가로 오버플로우 방지)
+- [ ] 다중 패널이 모바일(<768)에서 단일 컬럼(드로어/세그먼트)으로 접히는가 (§3③ 주 콘텐츠 화면밖 방지)
+- [ ] (앱 셸) 실브라우저 실측으로 가로/세로 오버플로우 0 확인했는가 (§3④ jsdom false-green 방지)
 - [ ] 모달에 close 아이콘 1개만 있는가 (혼란스러운 UX 방지)
 - [ ] glassmorphism / neon glow / blurred orb 안 썼는가 (과도한 장식 배제)
 
