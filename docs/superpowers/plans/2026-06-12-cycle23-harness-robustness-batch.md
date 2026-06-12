@@ -575,7 +575,7 @@ git add -A && git commit -m "feat(harness): fail-open 자가점검(#28+selfcheck
 **Files:**
 - Modify: `skills/start-rpi-cycle/SKILL.md` (Phase I 옵션 (d) 블록 — "검증 기준 명시" ※줄 아래)
 
-- [ ] **Step 1: 삽입** ((d)의 `※ **검증 기준 명시:**` 단락 바로 아래):
+- [x] **Step 1: 삽입** ((d)의 `※ **검증 기준 명시:**` 단락 바로 아래): ✓ 실측: :115 아래 plan 블록 그대로 삽입.
 
 ```markdown
       ※ **TDD-verbatim (cycle-23):** stage1 프롬프트에는 plan task 본문(TDD 5-step 체크박스·코드블록 포함)을
@@ -583,7 +583,7 @@ git add -A && git commit -m "feat(harness): fail-open 자가점검(#28+selfcheck
         stage2 success_criteria에 "stage1 보고에 RED 증거(실패 출력)와 GREEN 증거(통과 출력)가 모두 없으면 FAIL" 명시.
 ```
 
-- [ ] **Step 2: 골격 보존 확인** — `printf '%s' "$(cat ~/.claude/skills/start-rpi-cycle/SKILL.md)" | node -e 'let d="";process.stdin.on("data",c=>d+=c);process.stdin.on("end",()=>{const o={tool_name:"Write",tool_input:{file_path:"/x/skills/s/SKILL.md",content:d},cwd:"/x"};console.log(JSON.stringify(o))})' | node ~/.claude/hooks/lib/skeleton-scan.js` → `1 3 1 1` 이상(marker/phase≥3/agent≥1/protocol=1). verify-setup #17/#18/#19/#22도 green이어야 함.
+- [x] **Step 2: 골격 보존 확인** — `printf '%s' "$(cat ~/.claude/skills/start-rpi-cycle/SKILL.md)" | node -e 'let d="";process.stdin.on("data",c=>d+=c);process.stdin.on("end",()=>{const o={tool_name:"Write",tool_input:{file_path:"/x/skills/s/SKILL.md",content:d},cwd:"/x"};console.log(JSON.stringify(o))})' | node ~/.claude/hooks/lib/skeleton-scan.js` → `1 3 1 1` 이상(marker/phase≥3/agent≥1/protocol=1). verify-setup #17/#18/#19/#22도 green이어야 함. ✓ 실측: `1 4 4 4` exit=0(삽입 전 베이스라인과 동일 — 골격 보존); #17(§3↔Phase R)·#18(next-cycle-goal)·#19(harness-verify)·#22(phase-skills) 전부 ✓, PASS=63 FAIL=0.
 
 ### Task 4.2: 부수 정정 일괄
 
@@ -593,8 +593,8 @@ git add -A && git commit -m "feat(harness): fail-open 자가점검(#28+selfcheck
 - Modify: `settings.example.json` (statusLine 블록)
 - Modify: `README.md` (구조 트리 + enforce-rpi-cycle 행)
 
-- [ ] **Step 1: review-strict 9→13** — 세 줄에서 "9개 파일"→"13개 파일" (`bootstrap 9개 파일이`, `산출물 9개 파일 존재`, `9개 파일 모두 존재`). 근거: cycle-19 SSOT(13 files)·execute-strict.md:8과 정합.
-- [ ] **Step 2: cycle-17-goal.md 은퇴 노트** — 파일 최상단(`# cycle-17` 제목 바로 아래)에 삽입:
+- [x] **Step 1: review-strict 9→13** — 세 줄에서 "9개 파일"→"13개 파일" (`bootstrap 9개 파일이`, `산출물 9개 파일 존재`, `9개 파일 모두 존재`). 근거: cycle-19 SSOT(13 files)·execute-strict.md:8과 정합. ✓ 실측: :8/:10/:12 3사이트 13으로 정정, "9개" 잔존 0.
+- [x] **Step 2: cycle-17-goal.md 은퇴 노트** — 파일 최상단(`# cycle-17` 제목 바로 아래)에 삽입: ✓ 실측: plan 노트 그대로 제목 아래 삽입.
 
 ```markdown
 > **[retired 2026-06-12 / cycle-23 — genesis-record]** 역사 기록. F2~F12는 cycle-17(84ad5a7)에서 구현 완료.
@@ -602,7 +602,7 @@ git add -A && git commit -m "feat(harness): fail-open 자가점검(#28+selfcheck
 > 이 파일은 그 필드의 1회성 파일화 선례로만 보존(본문 카운트는 당시 실측, 현재 SSOT 아님).
 ```
 
-- [ ] **Step 3: settings.example.json statusLine** — 최상위 키로 추가(hooks 키 위), live settings.json과 동형:
+- [x] **Step 3: settings.example.json statusLine** — 최상위 키로 추가(hooks 키 위), live settings.json과 동형:
 
 ```json
 "statusLine": {
@@ -612,9 +612,9 @@ git add -A && git commit -m "feat(harness): fail-open 자가점검(#28+selfcheck
 },
 ```
 
-(#23 parity는 hook command basename만 비교 — statusLine 추가 무영향. 추가 후 `node -e 'JSON.parse(require("fs").readFileSync(process.env.HOME+"/.claude/settings.example.json","utf8"))'`로 JSON 유효성 확인.)
+(#23 parity는 hook command basename만 비교 — statusLine 추가 무영향. 추가 후 `node -e 'JSON.parse(require("fs").readFileSync(process.env.HOME+"/.claude/settings.example.json","utf8"))'`로 JSON 유효성 확인.) ✓ 실측(Step 3): permissions와 hooks 사이 최상위 키로 추가; `JSON valid` + #23 `✓ settings.json ↔ example hook parity` green.
 
-- [ ] **Step 4: README 구조 트리 등재** — `README.md:302-307` 인근(CLAUDE.md~.gitignore 블록)에 4줄 추가:
+- [x] **Step 4: README 구조 트리 등재** — `README.md:302-307` 인근(CLAUDE.md~.gitignore 블록)에 4줄 추가:
 
 ```
 ├── CONTEXT.md                            하네스 도메인 용어집 (grill-with-docs 갱신)
@@ -623,16 +623,16 @@ git add -A && git commit -m "feat(harness): fail-open 자가점검(#28+selfcheck
 ├── SECURITY.md                           위협 모델 + 수락 잔여 위험
 ```
 
-(tests/statusline/은 cycle-22 산출물 — 트리 `hooks/tests/` 인근에 `├── tests/statusline/ …` 1줄 추가. setup/tests/도 setup 블록에 1줄.)
+(tests/statusline/은 cycle-22 산출물 — 트리 `hooks/tests/` 인근에 `├── tests/statusline/ …` 1줄 추가. setup/tests/도 setup 블록에 1줄.) ✓ 실측(Step 4): CLAUDE.md 블록에 CONTEXT.md/statusline.sh/state.schema.json/SECURITY.md 4줄 + hooks/tests 아래 tests/statusline/ 1줄. setup/tests/doctor.test.sh는 :283에 기존재 — 중복 추가 안 함(plan 문구의 "setup 블록 1줄"은 이미 충족 상태).
 
-- [ ] **Step 5: README hook 표 의미론 갱신** — `README.md:33` enforce-rpi-cycle 행 끝에 "active plan = head-20 `**Status:** active|in_progress` 명시 필수 (cycle-23)" 추가; `README.md:331` "차단" 트러블슈팅 절에 동일 안내 + "Closeout 후엔 plan Status를 completed로 — stale-active는 session-start 1줄·seal #27이 표면화" 추가.
+- [x] **Step 5: README hook 표 의미론 갱신** — `README.md:33` enforce-rpi-cycle 행 끝에 "active plan = head-20 `**Status:** active|in_progress` 명시 필수 (cycle-23)" 추가; `README.md:331` "차단" 트러블슈팅 절에 동일 안내 + "Closeout 후엔 plan Status를 completed로 — stale-active는 session-start 1줄·seal #27이 표면화" 추가. ✓ 실측: :33 행 끝 추가(표 셀이라 `\|` 이스케이프) + 트러블슈팅 절 최상단 불릿으로 추가.
 
 ### Task 4.2b: 수락 잔여 SECURITY.md 기록 (spec "수락 잔여" 절 이행)
 
 **Files:**
 - Modify: `SECURITY.md` (S2에서 추가한 "enforce-rpi-bash 보수차단/잔여" 불릿 아래)
 
-- [ ] **Step 1: 검증-커버리지 수락 잔여 3건 추가**:
+- [x] **Step 1: 검증-커버리지 수락 잔여 3건 추가**: ✓ 실측: SECURITY.md "여전히 미탐지" 불릿 아래 plan 문구 그대로 추가.
 
 ```markdown
 - **검증 커버리지 수락 잔여 (cycle-23)**: ① verify-setup #23은 hook command *basename*만 비교 — matcher 정규식 drift 미감지(안정 앵커 확보 시 재평가) ② `state.schema.json`은 검증자 없는 참조 문서 ③ verify-all에서 doctor(변이)가 선행해 `.installed`·audit-marker를 측정 전 자가치유 — 치료-후-검증 순서로 의도 수락.
@@ -640,9 +640,9 @@ git add -A && git commit -m "feat(harness): fail-open 자가점검(#28+selfcheck
 
 ### Task 4.3: 문서·카운트 최종 정합 + 전체 게이트
 
-- [ ] **Step 1: 카운트 최종 실측 반영** — cases 실측(`grep -vcE '^[[:space:]]*(#|$)' hooks/tests/cases.tsv` = 113 예상) ↔ README:272,500; verify-setup PASS(63) ↔ README:278. (#20·#21 seal이 자가검증.)
-- [ ] **Step 2: 3게이트 + verify-all** — `bash ~/.claude/setup/verify-all.sh` → `ALL PASS`.
-- [ ] **Step 3: Commit**:
+- [x] **Step 1: 카운트 최종 실측 반영** — cases 실측(`grep -vcE '^[[:space:]]*(#|$)' hooks/tests/cases.tsv` = 113 예상) ↔ README:272,500; verify-setup PASS(63) ↔ README:278. (#20·#21 seal이 자가검증.) ✓ 실측: cases=113 ↔ README:274/:510(113), PASS=63 ↔ README:282 — 전부 정합, 수정 0건.
+- [x] **Step 2: 3게이트 + verify-all** — `bash ~/.claude/setup/verify-all.sh` → `ALL PASS`. ✓ 실측: run-all 113/113 · verify-setup PASS=63 FAIL=0 · verify-integration PASS=8 · verify-all(1→1b→2→3→4) `ALL PASS — system meets §6.6 acceptance gate.`
+- [x] **Step 3: Commit**: ✓ 실측: git add -A 대신 명시 staging(무관 변경 제외 — 커밋 위생), 메시지는 plan 그대로.
 
 ```bash
 git add -A && git commit -m "docs(harness): TDD-verbatim(d) + review-strict 13 + 레지스트리 정합 + cycle-17-goal 은퇴 (cycle-23 S4)"

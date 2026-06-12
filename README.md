@@ -30,7 +30,7 @@
 | Hook | 모드 | 발동 시점 | 효과 |
 |---|---|---|---|
 | `enforce-orchestrator` | 차단 | Write/Edit/NotebookEdit on `*/skills/*/SKILL.md` (대소문자 무시) | orchestrator 골격(Phase ≥3, Agent ≥1, Communication Protocol) 누락 시 차단. Edit는 결과 파일 전체로 검증, HTML 주석 속 `Agent()`는 불인정 |
-| `enforce-rpi-cycle` | 차단 | Write/Edit/NotebookEdit on 코드 파일 | active plan 없으면 차단. 비실행 확장자(`*.md` 등)·비코드 config만 화이트리스트 — **코드 확장자는 디렉터리 면제 없음**. trivial = 변경 라인 max(old,new) ≤5 |
+| `enforce-rpi-cycle` | 차단 | Write/Edit/NotebookEdit on 코드 파일 | active plan 없으면 차단. 비실행 확장자(`*.md` 등)·비코드 config만 화이트리스트 — **코드 확장자는 디렉터리 면제 없음**. trivial = 변경 라인 max(old,new) ≤5. active plan = head-20 `**Status:** active\|in_progress` 명시 필수 (cycle-23) |
 | `enforce-rpi-bash` | 차단 | Bash | 셸로 코드 파일 작성(`>`/`>>`/`tee`/heredoc/`sed -i`/`cp`·`mv`/`dd`/`install`/`rsync`) 시 active plan 없으면 차단 + `git apply`/`patch`는 보수차단(타깃 추출 불가, read-only 변형 통과). `RPI_SKIP` 우회 |
 | `enforce-secret-scan` | 차단 | Write/Edit/NotebookEdit + Bash | 고-특이도 시크릿(API 키/토큰/PEM private key) 감지 시 차단(종류만 보고). `SECRET_SCAN_SKIP` 우회 |
 | `stable-claude-md` | 알림 | 루트 CLAUDE.md 수정 | "캐시 비용 ≈20배" 환기 (작업은 허용) |
@@ -274,6 +274,8 @@ bash ~/.claude/setup/doctor.sh
 │       ├── cases.tsv                     113 case (run-all과 1:1 정합, 100% 구현)
 │       └── run-all.sh                    단위 테스트 러너 (+ cases.tsv 정합 검사)
 │
+├── tests/statusline/                     statusline.sh 단위 테스트 (run-tests.sh + fixtures)
+│
 ├── setup/
 │   ├── doctor.sh                         환경 진단·치료
 │   ├── install.sh                        하네스 설치 스크립트
@@ -303,6 +305,10 @@ bash ~/.claude/setup/doctor.sh
 │   .github/workflows/ci.yml             multi-stack GitHub Actions CI
 │
 ├── CLAUDE.md                             8 메타 룰 + 4 사용자 원칙
+├── CONTEXT.md                            하네스 도메인 용어집 (grill-with-docs 갱신)
+├── statusline.sh                         상태줄 렌더러 (settings statusLine 배선)
+├── state.schema.json                     state.json 스키마 (참조 문서)
+├── SECURITY.md                           위협 모델 + 수락 잔여 위험
 ├── state.json                            사이클 카운터 + audit 마커
 ├── settings.json                         (개인 설정, .gitignore됨)
 ├── settings.example.json                 템플릿
@@ -333,6 +339,7 @@ bash ~/.claude/setup/doctor.sh
 
 ### "차단: 활성 plan 없음" — 단순 작업인데 막힘
 
+- **plan이 있는데도 막히면**: plan head-20에 `**Status:** active` 헤더가 있는지 확인 — cycle-23부터 명시 Status만 active로 인정(checkbox-fallback 제거). Closeout 후엔 plan Status를 completed로 — stale-active는 session-start 1줄·seal #27이 표면화
 - **≤5라인이면 자동 통과** — Edit으로 5줄 이하만 변경하면 hook이 trivial로 분류
 - **문서 변경**: `*.md`, `*.txt`, `*/docs/*`, `*/.claude/*`, `*/.github/*` 자동 화이트리스트 — 단, **코드/실행 확장자(`.sh`/`.ts`/`.py` 등)는 디렉터리 위치와 무관하게 면제 없음** (active plan 필요). `*/superpowers/*`는 더 이상 디렉터리 면제 아님 (plan/spec은 `.md`라 통과)
 - **명시 우회 (1회성)**:

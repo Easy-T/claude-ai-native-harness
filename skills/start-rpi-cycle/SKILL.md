@@ -113,6 +113,9 @@ plan 상단 헤더 주입 (writing-plans 표준 헤더 위에):
       ※ wrapper는 self-spawn 불가 → execute→verify는 반드시 별도 2 스테이지(한 에이전트가 둘 다 못 함).
       ※ **데이터 의존(load-bearing):** stage2(review-strict는 읽기전용)는 stage1이 산출한 변경(diff/수정 파일)을 context_paths로 **반드시 받아** 검증. 순서만 맞고 stage1 산출을 안 먹이면 stale·빈 상태를 검증해 false PASS — pipeline의 prevResult + 수정 파일 경로를 stage2 context_paths에 명시 전달.
       ※ **검증 기준 명시:** stage2에 plan task별 success_criteria를 `PASS only if ALL ...` 형태로 전달(Gate R/P/Closeout과 동형). 빈/모호 기준이면 올바른 diff를 읽고도 vacuous PASS 가능.
+      ※ **TDD-verbatim (cycle-23):** stage1 프롬프트에는 plan task 본문(TDD 5-step 체크박스·코드블록 포함)을
+        **verbatim 전달** — 요약·재서술 금지(요약은 RED→GREEN 단계를 증발시킴; plan이 유일한 TDD carrier).
+        stage2 success_criteria에 "stage1 보고에 RED 증거(실패 출력)와 GREEN 증거(통과 출력)가 모두 없으면 FAIL" 명시.
       ※ 같은 파일을 동시 수정하는 task ≥2면 각 스테이지에 `isolation:'worktree'`. 이 경우 stage2는 **짝지은 stage1과 같은 worktree에서** 리뷰해야 함(base/다른 컨텍스트에서 읽으면 미변경 파일을 봐 false PASS/FAIL).
       ※ 우회 불가: plan-존재·spec-before-plan 게이트(enforce-rpi-cycle = PreToolUse `Write|Edit|NotebookEdit` 매처)는 **Workflow 서브에이전트의 execute-strict 쓰기에도 동일 발화**하고, 메인 세션이 R→P를 통과해 plan·spec이 디스크에 존재하는 상태로만 디스패치되므로 (d)가 게이트를 건너뛸 수 없음.
 

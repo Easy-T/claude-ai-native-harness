@@ -25,6 +25,11 @@
     ],
     "defaultMode": "default"
   },
+  "statusLine": {
+    "type": "command",
+    "command": "bash $HOME/.claude/statusline.sh",
+    "padding": 0
+  },
   "hooks": {
     "PreToolUse": [
       {

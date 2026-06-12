@@ -1,5 +1,9 @@
 # cycle-17 — Goal Handoff (post-compact 읽기용)
 
+> **[retired 2026-06-12 / cycle-23 — genesis-record]** 역사 기록. F2~F12는 cycle-17(84ad5a7)에서 구현 완료.
+> next-cycle-goal 핸드오프는 이후 start-rpi-cycle Communication Protocol 고유 필수 필드(+seal #18)로 이관 —
+> 이 파일은 그 필드의 1회성 파일화 선례로만 보존(본문 카운트는 당시 실측, 현재 SSOT 아님).
+
 > 직전: **cycle-16**(커밋 `42836c2`) = F1(`harness-verify` 필드+#19) + ADOPT(`surface-constitution.sh` §5/§8) 완료.
 > 이 문서는 `/compact` 후 cycle-17 진입 시 **가장 먼저 읽는 핸드오프**다. (advisory — start-rpi-cycle Closeout next-cycle-goal 산출물의 파일화)
 > 범위 = **F2~F11**(직전 재점검 워크플로 wirrmbi91 확정) + **F12**(본 세션에서 발견한 R-phase skill silent-skip).

@@ -5,11 +5,11 @@ description: |
   사용 시점: orchestrator skill의 Phase 3(Verify) / Phase Closeout / drift 검사 / 5 Whys 검증.
   scope 외 행동 금지.
   <example>
-  Context: Phase 3 검증 — bootstrap 9개 파일이 모두 생성됐는지 확인
+  Context: Phase 3 검증 — bootstrap 13개 파일이 모두 생성됐는지 확인
   call: Agent(subagent_type="review-strict",
-              task="bootstrap 산출물 9개 파일 존재 + 포맷 검증",
+              task="bootstrap 산출물 13개 파일 존재 + 포맷 검증",
               context_paths=["docs/ai-context/architecture.md", "docs/ai-context/runbook.md"],
-              success_criteria="9개 파일 모두 존재, mermaid blocks valid, placeholder 미치환 0건")
+              success_criteria="13개 파일 모두 존재, mermaid blocks valid, placeholder 미치환 0건")
   </example>
 model: inherit
 tools: Read, Grep, Glob, Bash

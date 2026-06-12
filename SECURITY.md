@@ -33,6 +33,7 @@
 ## `enforce-rpi-bash` 보수차단 / 잔여 (cycle-23)
 - **보수차단**: `git apply`/`patch`는 쓰기 타깃이 패치 *내용*에 있어 명령행 추출 불가 → active plan 부재 시 명령 단위로 차단(read-only 변형 `--check`/`--stat`/`--numstat`/`--summary`는 통과). docs 전용 패치 오탐은 `RPI_SKIP`으로 우회.
 - **여전히 미탐지**: 변수 파일명(`python -c` f-string 등), `./patch` 같은 상대경로 실행, 인터프리터 내부 쓰기. 시그니처 기반 1차 방어선의 의식된 상한.
+- **검증 커버리지 수락 잔여 (cycle-23)**: ① verify-setup #23은 hook command *basename*만 비교 — matcher 정규식 drift 미감지(안정 앵커 확보 시 재평가) ② `state.schema.json`은 검증자 없는 참조 문서 ③ verify-all에서 doctor(변이)가 선행해 `.installed`·audit-marker를 측정 전 자가치유 — 치료-후-검증 순서로 의도 수락.
 
 ## 범위 밖 (의도적으로 하지 않는 것)
 - 네트워크 egress 필터링, PII 스캐닝, SAST, 런타임 콘텐츠 모더레이션, 권한 모델 강제(bypassPermissions 유지).
