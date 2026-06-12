@@ -425,7 +425,7 @@ git add -A && git commit -m "feat(rpi): Bash 사이드도어 확장 봉인 — d
 **Files:**
 - Modify: `hooks/session-start-audit.sh` (Task 1.6 블록 아래 삽입)
 
-- [ ] **Step 1: 구현**:
+- [x] **Step 1: 구현**: ✓ 실측: D-LIFECYCLE 블록 fi 뒤·CLAUDE_MD= 앞 삽입 (plan 코드 그대로).
 
 ```bash
 # --- D-FAILOPEN-SURFACE: 차단 hook 자가점검 (알림형 — fail-open은 유지, 고장만 표면화, cycle-23) ---
@@ -441,7 +441,7 @@ if [ -n "$SELFCHECK_BAD" ]; then
 fi
 ```
 
-- [ ] **Step 2: 수동 검증(RED→GREEN 대체 — live hooks 디렉터리 fixture화 불가)** — ① 정상: `echo '{"cwd":"/tmp"}' | bash ~/.claude/hooks/session-start-audit.sh` → `[hook-selfcheck]` 미출력. ② 고장 시뮬: `printf '#!/bin/bash\nif [ x\n' > /tmp/bad.sh && cp /tmp/bad.sh ~/.claude/hooks/zz-bad-probe.sh && echo '{"cwd":"/tmp"}' | bash ~/.claude/hooks/session-start-audit.sh; rm ~/.claude/hooks/zz-bad-probe.sh` → `syntax:zz-bad-probe.sh` 출력 확인. (probe 정리 필수 — verify-setup #24가 잡아주는 것도 함께 확인하면 보너스.)
+- [x] **Step 2: 수동 검증(RED→GREEN 대체 — live hooks 디렉터리 fixture화 불가)** — ① 정상: `echo '{"cwd":"/tmp"}' | bash ~/.claude/hooks/session-start-audit.sh` → `[hook-selfcheck]` 미출력. ② 고장 시뮬: `printf '#!/bin/bash\nif [ x\n' > /tmp/bad.sh && cp /tmp/bad.sh ~/.claude/hooks/zz-bad-probe.sh && echo '{"cwd":"/tmp"}' | bash ~/.claude/hooks/session-start-audit.sh; rm ~/.claude/hooks/zz-bad-probe.sh` → `syntax:zz-bad-probe.sh` 출력 확인. (probe 정리 필수 — verify-setup #24가 잡아주는 것도 함께 확인하면 보너스.) ✓ 실측 RED(구현 전): probe 주입에도 selfcheck 줄 0건 → GREEN(구현 후): ① 정상 시 미출력 ② probe 주입 시 `[hook-selfcheck] ⚠ 차단 hook fail-open 위험: syntax:zz-bad-probe.sh` 출력, probe 즉시 rm(잔존 0).
 
 ### Task 3.2: verify-setup #28 — bash -n 문법 게이트
 
@@ -449,7 +449,7 @@ fi
 - Modify: `setup/verify-setup.sh` (#27 뒤)
 - Modify: `README.md:278` (62→63 PASS)
 
-- [ ] **Step 1: 구현**:
+- [x] **Step 1: 구현**: ✓ 실측: #27 블록 fi 뒤·summary echo 앞 삽입 (plan 코드 그대로).
 
 ```bash
 # 28. hooks/*.sh + setup/*.sh bash -n 문법 (fail-open 무표면 방지, D-FAILOPEN-SURFACE cycle-23)
@@ -460,15 +460,15 @@ done
 [ -z "$SYN28" ] && ok "bash -n: hooks+setup 문법 OK" || fail "bash -n 실패:$SYN28"
 ```
 
-- [ ] **Step 2: 확인** — verify-setup → PASS=63 FAIL=0. README:278 갱신(63 PASS).
+- [x] **Step 2: 확인** — verify-setup → PASS=63 FAIL=0. README:278 갱신(63 PASS). ✓ 실측: `✓ bash -n: hooks+setup 문법 OK` + `verify-setup: PASS=63 FAIL=0`; README:280("현재 62 PASS"→63 — 병행 statusline 노트로 :278→:280 밀림).
 
 ### Task 3.3: install.sh 3결함 수정
 
 **Files:**
 - Modify: `setup/install.sh:50-76` (REQUIRED), `:85` (카운트 echo), `:101-110` (병합), `:135` (stale 문구)
 
-- [ ] **Step 1: REQUIRED 목록** — `session-start-audit.sh` 줄 아래 `"$TARGET/hooks/surface-constitution.sh"` 추가; line 85 echo `"  ✓ 25개 필수 파일 모두 존재"` → `"  ✓ ${#REQUIRED[@]}개 필수 파일 모두 존재"` (하드코딩 제거 — 재드리프트 봉쇄).
-- [ ] **Step 2: hooks 병합 — 사용자 커스텀 보존** (node 블록 교체):
+- [x] **Step 1: REQUIRED 목록** — `session-start-audit.sh` 줄 아래 `"$TARGET/hooks/surface-constitution.sh"` 추가; line 85 echo `"  ✓ 25개 필수 파일 모두 존재"` → `"  ✓ ${#REQUIRED[@]}개 필수 파일 모두 존재"` (하드코딩 제거 — 재드리프트 봉쇄). ✓ 실측: REQUIRED 26개, live tree 26/26 존재.
+- [x] **Step 2: hooks 병합 — 사용자 커스텀 보존** (node 블록 교체): ✓ 실측: plan 코드 그대로 교체.
 
 ```js
 const fs = require("fs");
@@ -490,8 +490,8 @@ fs.writeFileSync(HOME + "/.claude/settings.json", JSON.stringify(cur, null, 2));
 console.log("  ✓ hooks 병합 (하네스 hook 갱신 + 사용자 커스텀 hook 보존)");
 ```
 
-- [ ] **Step 3: stale 문구** — line 135 `"hook 8개(9개 등록 항목)가"` → `"하네스 hook들이"` (숫자 제거 — 카운트 재드리프트 원천 차단).
-- [ ] **Step 4: 검증** — ① `bash -n setup/install.sh` ② 병합 시뮬: settings.json을 /tmp에 복사 + 가짜 커스텀 hook 추가 → HOME_DIR 가리켜 node 블록만 단독 실행 → 커스텀 보존 + 하네스 hook 템플릿화 확인 ③ **live settings.json은 건드리지 않음** (시뮬은 /tmp 사본에서만).
+- [x] **Step 3: stale 문구** — line 135 `"hook 8개(9개 등록 항목)가"` → `"하네스 hook들이"` (숫자 제거 — 카운트 재드리프트 원천 차단). ✓ 실측: 적용.
+- [x] **Step 4: 검증** — ① `bash -n setup/install.sh` ② 병합 시뮬: settings.json을 /tmp에 복사 + 가짜 커스텀 hook 추가 → HOME_DIR 가리켜 node 블록만 단독 실행 → 커스텀 보존 + 하네스 hook 템플릿화 확인 ③ **live settings.json은 건드리지 않음** (시뮬은 /tmp 사본에서만). ✓ 실측: bash -n OK; mktemp fakehome 시뮬 7-assert ALL PASS(혼합 entry 커스텀 보존·전용 phase 보존·env 보존·하네스 중복 0·surface-constitution 유입·하네스만 필터·live mtime 불변 — fakehome settings.json은 시크릿 없는 합성 fixture, live는 미접촉).
 
 ### Task 3.4: doctor.test.sh 수리 + verify-all 편입
 
@@ -499,7 +499,7 @@ console.log("  ✓ hooks 병합 (하네스 hook 갱신 + 사용자 커스텀 hoo
 - Modify: `setup/tests/doctor.test.sh:22-24` (Test 4)
 - Modify: `setup/verify-all.sh` (STAGE 1 뒤)
 
-- [ ] **Step 1: Test 4 수정**:
+- [x] **Step 1: Test 4 수정**: ✓ 실측 RED(수정 전): `FAIL: no backup directory created` exit=1 → plan 코드로 교체.
 
 ```bash
 # Test 4: backup — git-managed 홈에선 doctor가 백업을 만들지 않음(의도) → SKIP. 비-git만 검사.
@@ -511,7 +511,7 @@ else
 fi
 ```
 
-- [ ] **Step 2: verify-all 편입** — STAGE 1(doctor)과 STAGE 2 사이에:
+- [x] **Step 2: verify-all 편입** — STAGE 1(doctor)과 STAGE 2 사이에: ✓ 실측: STAGE 1b 삽입.
 
 ```bash
 echo
@@ -519,14 +519,14 @@ echo "=== STAGE 1b: doctor self-test ==="
 bash "$HOME/.claude/setup/tests/doctor.test.sh" || { echo "FAIL doctor.test"; exit 1; }
 ```
 
-- [ ] **Step 3: 확인** — `bash ~/.claude/setup/tests/doctor.test.sh` → PASS(+SKIP 줄). `bash ~/.claude/setup/verify-all.sh` → ALL PASS.
+- [x] **Step 3: 확인** — `bash ~/.claude/setup/tests/doctor.test.sh` → PASS(+SKIP 줄). `bash ~/.claude/setup/verify-all.sh` → ALL PASS. ✓ 실측 GREEN: `SKIP: backup test (git-managed home …)` + `PASS: all doctor.sh tests` exit=0; verify-all(STAGE 1→1b→2→3→4) `ALL PASS — system meets §6.6 acceptance gate.` exit=0. 부수 변이: doctor가 CLAUDE.md audit 마커 1줄 갱신(06-05→06-12, diff 1줄뿐 — 커밋 포함) + setup/.installed 재생성(추적 파일이나 빈 내용 동일 → diff 0).
 
 ### Task 3.5: doctor — superpowers skill 존재 알림 + hooks/.log 프루닝
 
 **Files:**
 - Modify: `setup/doctor.sh` (#20 grill 블록 뒤에 신규 체크 2개)
 
-- [ ] **Step 1: superpowers 필수 skill 체크** (WARN-only — upstream 의존이라 차단 아님):
+- [x] **Step 1: superpowers 필수 skill 체크** (WARN-only — upstream 의존이라 차단 아님): ✓ 실측: 삽입, 4 skill 모두 plugins/cache 존재 → `✓ superpowers skills` PASS.
 
 ```bash
 # 20b. superpowers 필수 skill (start-rpi-cycle Phase R/P/I 의존) — plugins/cache 존재 알림
@@ -541,7 +541,7 @@ else
 fi
 ```
 
-- [ ] **Step 2: hooks/.log 프루닝** (최근 6개월 유지 + stray `.log` 제거):
+- [x] **Step 2: hooks/.log 프루닝** (최근 6개월 유지 + stray `.log` 제거): ✓ 실측: 삽입, 첫 실행에서 stray `.log` 제거 + 월파일 2개(2026-05/06)라 프루닝 0건 → `✓ hook log rotation — ≤6 month files` (기대 경로 그대로).
 
 ```bash
 # 20c. hooks/.log 로테이션 — 월파일 최근 6개 유지 + stray '.log' 제거
@@ -559,8 +559,8 @@ if [ -d "$LOGDIR" ]; then
 fi
 ```
 
-- [ ] **Step 3: 확인** — `bash ~/.claude/setup/doctor.sh` → 신규 2 체크 PASS/WARN 표시, exit 0. **주의: #24 seal(REQUIRED_HOOKS ⊇ hooks/*.sh)은 doctor.sh 수정과 무관하게 green 유지 확인.**
-- [ ] **Step 4: 세션 종료 절차** 후 Commit:
+- [x] **Step 3: 확인** — `bash ~/.claude/setup/doctor.sh` → 신규 2 체크 PASS/WARN 표시, exit 0. **주의: #24 seal(REQUIRED_HOOKS ⊇ hooks/*.sh)은 doctor.sh 수정과 무관하게 green 유지 확인.** ✓ 실측: doctor PASS=35 WARN=2 FAIL=0 exit=0(신규 2 체크 모두 PASS); verify-setup PASS=63 FAIL=0 — #24 포함 전 seal green.
+- [x] **Step 4: 세션 종료 절차** 후 Commit: ✓ 실측: run-all 113/113 · verify-setup PASS=63 FAIL=0 · verify-integration PASS=8 · verify-all ALL PASS(STAGE 1b 포함). 커밋은 git add -A 대신 명시 staging(무관 변경 skills/ui-design/design.md·plugins/ 제외 — 커밋 위생).
 
 ```bash
 git add -A && git commit -m "feat(harness): fail-open 자가점검(#28+selfcheck) + install.sh 3결함 + doctor.test 수리·편입 + doctor skill/log 체크 (cycle-23 S3)"

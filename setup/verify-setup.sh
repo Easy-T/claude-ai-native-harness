@@ -223,6 +223,13 @@ else
   fail "plan lifecycle drift: Status 없는 plan:${NOSTAT27:-없음} / active=$ACT27 (stale-active 의심 — Closeout step-2 누락?)"
 fi
 
+# 28. hooks/*.sh + setup/*.sh bash -n 문법 (fail-open 무표면 방지, D-FAILOPEN-SURFACE cycle-23)
+SYN28=""
+for f28 in "$HOME/.claude/hooks/"*.sh "$HOME/.claude/setup/"*.sh; do
+  bash -n "$f28" 2>/dev/null || SYN28="$SYN28 $(basename "$f28")"
+done
+[ -z "$SYN28" ] && ok "bash -n: hooks+setup 문법 OK" || fail "bash -n 실패:$SYN28"
+
 echo
 echo "verify-setup: PASS=$PASS FAIL=$FAIL"
 exit $FAIL

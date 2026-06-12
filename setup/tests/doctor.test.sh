@@ -19,8 +19,12 @@ if [ -f "$CLAUDE_MD" ]; then
     { echo "FAIL: audit marker not in CLAUDE.md"; exit 1; }
 fi
 
-# Test 4: running doctor.sh creates a backup directory under $HOME
-ls -d "$HOME"/.claude.backup-* > /dev/null 2>&1 || \
-  { echo "FAIL: no backup directory created"; exit 1; }
+# Test 4: backup — git-managed 홈에선 doctor가 백업을 만들지 않음(의도) → SKIP. 비-git만 검사.
+if [ -d "$HOME/.claude/.git" ]; then
+  echo "SKIP: backup test (git-managed home — doctor skips backup by design)"
+else
+  ls -d "$HOME"/.claude.backup-* > /dev/null 2>&1 || \
+    { echo "FAIL: no backup directory created"; exit 1; }
+fi
 
 echo "PASS: all doctor.sh tests"

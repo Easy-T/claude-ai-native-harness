@@ -64,6 +64,7 @@ REQUIRED=(
   "$TARGET/hooks/enforce-secret-scan.sh"
   "$TARGET/hooks/verify-loop-watch.sh"
   "$TARGET/hooks/session-start-audit.sh"
+  "$TARGET/hooks/surface-constitution.sh"
   "$TARGET/hooks/lib/redirect-targets.js"
   "$TARGET/hooks/lib/skeleton-scan.js"
   "$TARGET/hooks/lib/transcript-usage.js"
@@ -82,7 +83,7 @@ if [ "$MISSING_FILES" -gt 0 ]; then
   echo "  ✗ $MISSING_FILES 개 파일 누락. clone이 정상 완료됐는지 확인하세요."
   exit 1
 fi
-echo "  ✓ 25개 필수 파일 모두 존재"
+echo "  ✓ ${#REQUIRED[@]}개 필수 파일 모두 존재"
 
 # --- 3. 실행 권한 부여 ---
 echo "[3/6] 스크립트 실행 권한 부여..."
@@ -103,10 +104,19 @@ if [ -f "$TARGET/settings.json" ]; then
     const HOME = process.env.HOME_DIR;
     const cur = JSON.parse(fs.readFileSync(HOME + "/.claude/settings.json", "utf8"));
     const tpl = JSON.parse(fs.readFileSync(HOME + "/.claude/settings.example.json", "utf8"));
-    cur.hooks = tpl.hooks;
+    // 하네스 hook(~/.claude/hooks/*.sh 경로)만 템플릿 기준으로 교체. 사용자 커스텀 hook 항목은 보존.
+    const isHarness = h => /\.claude\/hooks\/[^/]+\.sh/.test(String((h||{}).command||""));
+    const merged = {};
+    for (const ph of new Set([...Object.keys(cur.hooks||{}), ...Object.keys(tpl.hooks||{})])) {
+      const userKept = (cur.hooks?.[ph]||[])
+        .map(e => ({...e, hooks:(e.hooks||[]).filter(h => !isHarness(h))}))
+        .filter(e => (e.hooks||[]).length > 0);
+      merged[ph] = [...(tpl.hooks?.[ph]||[]), ...userKept];
+    }
+    cur.hooks = merged;
     if (!cur.permissions) cur.permissions = tpl.permissions;
     fs.writeFileSync(HOME + "/.claude/settings.json", JSON.stringify(cur, null, 2));
-    console.log("  ✓ hooks 키 병합 (env/permissions/model/enabledPlugins 등 보존)");
+    console.log("  ✓ hooks 병합 (하네스 hook 갱신 + 사용자 커스텀 hook 보존)");
   '
 else
   # 새로 설치 → 템플릿을 그대로 복사
@@ -132,7 +142,7 @@ echo
 echo "▶ 다음 단계 (반드시 따르세요):"
 echo
 echo "  [STEP 1] Claude Code 세션을 재시작"
-echo "           hook 8개(9개 등록 항목)가 settings.json에서 로드됩니다."
+echo "           하네스 hook들이 settings.json에서 로드됩니다."
 echo
 echo "  [STEP 2] 의존 플러그인 설치 (필수, 미설치 시 RPI 사이클 작동 X)"
 echo "           새 세션에서 다음 명령으로 설치:"

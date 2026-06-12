@@ -21,6 +21,18 @@ if [ -n "$CWD" ] && [ -d "$CWD/docs/superpowers/plans" ]; then
   fi
 fi
 
+# --- D-FAILOPEN-SURFACE: 차단 hook 자가점검 (알림형 — fail-open은 유지, 고장만 표면화, cycle-23) ---
+SELFCHECK_BAD=""
+command -v node >/dev/null 2>&1 || SELFCHECK_BAD=" node-missing"
+for hf in "$HOME/.claude/hooks/"*.sh; do
+  bash -n "$hf" 2>/dev/null || SELFCHECK_BAD="$SELFCHECK_BAD syntax:$(basename "$hf")"
+  [ -x "$hf" ] || SELFCHECK_BAD="$SELFCHECK_BAD nonexec:$(basename "$hf")"
+done
+if [ -n "$SELFCHECK_BAD" ]; then
+  hook_log "session-start-audit" "hook-selfcheck" "ALERT" "$SELFCHECK_BAD"
+  echo "[hook-selfcheck] ⚠ 차단 hook fail-open 위험:$SELFCHECK_BAD — bash ~/.claude/setup/doctor.sh 로 점검" >&2
+fi
+
 CLAUDE_MD="$HOME/.claude/CLAUDE.md"
 [ ! -f "$CLAUDE_MD" ] && {
   echo "[audit] 글로벌 CLAUDE.md 없음. /init-ai-ready 1회 실행 권장." >&2

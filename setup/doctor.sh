@@ -248,6 +248,31 @@ else
   fi
 fi
 
+# 20b. superpowers 필수 skill (start-rpi-cycle Phase R/P/I 의존) — plugins/cache 존재 알림
+SP_MISS=""
+for sk in brainstorming writing-plans executing-plans subagent-driven-development; do
+  ls "$CLAUDE_HOME"/plugins/cache/*/superpowers/*/skills/"$sk"/SKILL.md >/dev/null 2>&1 || SP_MISS="$SP_MISS $sk"
+done
+if [ -z "$SP_MISS" ]; then
+  check "superpowers skills" "PASS" ""
+else
+  check "superpowers skills" "WARN" "미설치:$SP_MISS — /plugin install superpowers@claude-plugins-official"
+fi
+
+# 20c. hooks/.log 로테이션 — 월파일 최근 6개 유지 + stray '.log' 제거
+LOGDIR="$CLAUDE_HOME/hooks/.log"
+if [ -d "$LOGDIR" ]; then
+  rm -f "$LOGDIR/.log" 2>/dev/null || true
+  OLD_LOGS=$({ ls -t "$LOGDIR"/*.log 2>/dev/null || true; } | tail -n +7)
+  if [ -n "$OLD_LOGS" ]; then
+    N_RM=$(printf '%s\n' "$OLD_LOGS" | wc -l)
+    printf '%s\n' "$OLD_LOGS" | while read -r lf; do rm -f "$lf"; done
+    check "hook log rotation" "PASS" "pruned $N_RM old month file(s), kept 6"
+  else
+    check "hook log rotation" "PASS" "≤6 month files"
+  fi
+fi
+
 # 21. hook 파일 존재 + 실행권한
 REQUIRED_HOOKS=(
   "enforce-orchestrator.sh"
