@@ -206,6 +206,23 @@ else
   fail "verify-integration TEST_DIR 격리 drift (mktemp 부재 또는 고정 \$HOME 복원 — cycle-18 회귀)"
 fi
 
+# 27. plan lifecycle 봉인 (D-LIFECYCLE, cycle-23): 모든 plans/*.md 명시 Status 보유 + active ≤ 1.
+#     Closeout step-2(Status flip) silent-skip이 게이트를 영구 개방하던 stale-active 재발 방지.
+#     (#26은 미채택·번호 소각 — spec-count parity, 안정 앵커 부재.)
+NOSTAT27=""; ACT27=0
+for p27 in "$HOME/.claude/docs/superpowers/plans"/*.md; do
+  [ -f "$p27" ] || continue
+  ST27=$(head -20 "$p27" | grep -m1 -iE '^\*?\*?status:?\*?\*?' \
+    | sed -E 's/^\*?\*?[Ss]tatus:?\*?\*?[[:space:]]*//' | awk '{print tolower($1)}' | tr -d '*')
+  [ -z "$ST27" ] && NOSTAT27="$NOSTAT27 $(basename "$p27")"
+  case "$ST27" in active|in_progress) ACT27=$((ACT27+1)) ;; esac
+done
+if [ -z "$NOSTAT27" ] && [ "$ACT27" -le 1 ]; then
+  ok "plan lifecycle: 전 plan 명시 Status + active=$ACT27 (≤1)"
+else
+  fail "plan lifecycle drift: Status 없는 plan:${NOSTAT27:-없음} / active=$ACT27 (stale-active 의심 — Closeout step-2 누락?)"
+fi
+
 echo
 echo "verify-setup: PASS=$PASS FAIL=$FAIL"
 exit $FAIL

@@ -37,10 +37,10 @@
 - Modify: `docs/superpowers/plans/2026-06-05-cycle20-verify-integration-seal.md:5`
 - Modify: `docs/superpowers/plans/2026-06-05-cycle21-genesis-record-note.md` (헤더에 Status 줄 신설)
 
-- [ ] **Step 1: cycle-20 plan Status 정정** — line 5 `**Status:** active` → `**Status:** completed` (Edit). 근거: 커밋 eb90f58이 state.json cycle 20 마감 포함 — Closeout step-2 silent-skip의 사후 정정.
-- [ ] **Step 2: cycle-21 plan Status 신설** — `**Goal:**` 줄 바로 위에 `**Status:** completed` 한 줄 삽입 (Edit). 근거: 커밋 a25b407 동일.
-- [ ] **Step 3: 확인** — `bash -c 'source ~/.claude/hooks/_common.sh; has_active_plan ~/.claude && echo ACTIVE || echo NONE'` → 이 cycle-23 plan만 출력되어야 함 (`2026-06-12-cycle23-…`).
-- [ ] **Step 4: Commit** — `git add -A docs/superpowers/plans && git commit -m "fix(rpi): cycle-20/21 plan stale-active 정정 (Closeout step-2 silent-skip 사후 복구)"`
+- [x] **Step 1: cycle-20 plan Status 정정** — line 5 `**Status:** active` → `**Status:** completed` (Edit). 근거: 커밋 eb90f58이 state.json cycle 20 마감 포함 — Closeout step-2 silent-skip의 사후 정정.
+- [x] **Step 2: cycle-21 plan Status 신설** — `**Goal:**` 줄 바로 위에 `**Status:** completed` 한 줄 삽입 (Edit). 근거: 커밋 a25b407 동일.
+- [x] **Step 3: 확인** — `bash -c 'source ~/.claude/hooks/_common.sh; has_active_plan ~/.claude && echo ACTIVE || echo NONE'` → 이 cycle-23 plan만 출력되어야 함 (`2026-06-12-cycle23-…`). ✓ 실측: cycle-23 plan 1개만 출력.
+- [x] **Step 4: Commit** — `28beee0` (명시 경로 staging — 커밋 위생 준수)
 
 ### Task 1.2: E2E.D fixture를 신규 의미론으로 선행 갱신
 
@@ -49,7 +49,7 @@
 
 체크박스-fallback 제거 후에도 E2E.D가 유효하도록, fixture plan에 명시 Status를 추가한다 (이 갱신 없이 Task 1.4를 적용하면 E2E.D가 깨진다 — 순서 고정).
 
-- [ ] **Step 1: fixture 수정** — heredoc을 다음으로 교체:
+- [x] **Step 1: fixture 수정** — heredoc을 다음으로 교체:
 
 ```bash
 cat > "$TEST_DIR/docs/superpowers/plans/p.md" <<'PLAN'
@@ -59,7 +59,7 @@ cat > "$TEST_DIR/docs/superpowers/plans/p.md" <<'PLAN'
 PLAN
 ```
 
-- [ ] **Step 2: 회귀 확인** — `bash ~/.claude/setup/verify-integration.sh` → PASS=8 (아직 구현 전이므로 전부 통과해야 정상).
+- [x] **Step 2: 회귀 확인** — `bash ~/.claude/setup/verify-integration.sh` → PASS=8 (아직 구현 전이므로 전부 통과해야 정상). ✓ 실측 PASS=8 FAIL=0.
 
 ### Task 1.3: RED — checkbox-only plan은 active가 아니다 (실패 케이스 작성)
 
@@ -67,7 +67,7 @@ PLAN
 - Modify: `hooks/tests/run-all.sh` (erc/erb 케이스 추가 — `103-cp-code-noplan` 케이스 아래)
 - Modify: `hooks/tests/cases.tsv` (말미 추가)
 
-- [ ] **Step 1: run-all.sh에 케이스 추가** (`test_erb "103-…"` 줄 바로 아래):
+- [x] **Step 1: run-all.sh에 케이스 추가** (`test_erb "103-…"` 줄 바로 아래):
 
 ```bash
 # cycle-23 D-LIFECYCLE: 명시 Status 없는 checkbox-only plan은 active 아님 → BLOCK
@@ -77,21 +77,21 @@ test_erc "104-checkbox-only-noplan" 2 "$(mk_event Write "$CB/src/foo.ts" "$BIG" 
 test_erb "105-heredoc-checkbox-only" 2 "$(mk_bash_event "$HEREDOC_PY" "$CB")"
 ```
 
-- [ ] **Step 2: cases.tsv 말미 추가** (TAB 구분 유지):
+- [x] **Step 2: cases.tsv 말미 추가** (TAB 구분 유지):
 
 ```
 enforce-rpi-cycle	104-checkbox-only-noplan	2	gen_erc_checkbox_only
 enforce-rpi-bash	105-heredoc-checkbox-only	2	gen_erb_checkbox_only
 ```
 
-- [ ] **Step 3: RED 확인** — `bash ~/.claude/hooks/tests/run-all.sh` → 104/105 **FAIL** (현재 fallback이 active 판정해 exit 0). 실패 출력 보존(RED 증거).
+- [x] **Step 3: RED 확인** — `bash ~/.claude/hooks/tests/run-all.sh` → 104/105 **FAIL** (현재 fallback이 active 판정해 exit 0). 실패 출력 보존(RED 증거). ✓ 실측 RED: `96/98 passed — 104(expected=2,got=0)·105(expected=2,got=0)`.
 
 ### Task 1.4: GREEN — has_active_plan 의미론 변경 (`plan_status` 헬퍼 추출)
 
 **Files:**
 - Modify: `hooks/_common.sh:85-106` (has_active_plan)
 
-- [ ] **Step 1: 구현** — has_active_plan 블록을 다음으로 교체:
+- [x] **Step 1: 구현** — has_active_plan 블록을 다음으로 교체:
 
 ```bash
 # --- plan_status <plan.md>: head-20의 명시 Status 첫 단어(소문자) 출력. 없으면 빈 문자열 ---
@@ -121,8 +121,8 @@ has_active_plan() {
 }
 ```
 
-- [ ] **Step 2: GREEN 확인** — `bash ~/.claude/hooks/tests/run-all.sh` → 104/105 포함 100% (기존 09~12·15·27·35 등 명시-Status fixture는 모두 그대로 통과).
-- [ ] **Step 3: Commit** — `git add hooks/_common.sh hooks/tests/ setup/verify-integration.sh && git commit -m "feat(rpi): has_active_plan 명시-Status 의미론 (checkbox-fallback 제거, D-LIFECYCLE)"`
+- [x] **Step 2: GREEN 확인** — `bash ~/.claude/hooks/tests/run-all.sh` → 104/105 포함 100% (기존 09~12·15·27·35 등 명시-Status fixture는 모두 그대로 통과). ✓ 실측 98/98.
+- [x] **Step 3: Commit** — `9b34bd1` (1.2~1.4 묶음, 명시 staging)
 
 ### Task 1.5: 차단 메시지 자기-설명 (표면 ③)
 
@@ -130,7 +130,7 @@ has_active_plan() {
 - Modify: `hooks/enforce-rpi-cycle.sh:95-100` (no-active-plan 차단 heredoc)
 - Modify: `hooks/enforce-rpi-bash.sh:44-48` (동일)
 
-- [ ] **Step 1: enforce-rpi-cycle 메시지** — heredoc을 다음으로 교체:
+- [x] **Step 1: enforce-rpi-cycle 메시지** — heredoc을 다음으로 교체:
 
 ```bash
 cat >&2 <<EOF
@@ -142,13 +142,13 @@ cat >&2 <<EOF
 EOF
 ```
 
-- [ ] **Step 2: enforce-rpi-bash 메시지** — heredoc 마지막 줄 위에 한 줄 추가:
+- [x] **Step 2: enforce-rpi-bash 메시지** — heredoc 마지막 줄 위에 한 줄 추가:
 
 ```bash
   ※ plan은 head-20에 **Status:** active 명시 필요 (cycle-23)
 ```
 
-- [ ] **Step 3: 확인** — `bash ~/.claude/hooks/tests/run-all.sh` → 100% (exit 코드 불변, 메시지만 변경).
+- [x] **Step 3: 확인** — `bash ~/.claude/hooks/tests/run-all.sh` → 100% (exit 코드 불변, 메시지만 변경). ✓ 실측 98/98.
 
 ### Task 1.6: RED→GREEN — session-start-audit active plan 상시 표시 (표면 ②)
 
@@ -157,7 +157,7 @@ EOF
 - Modify: `hooks/tests/cases.tsv`
 - Modify: `hooks/session-start-audit.sh` (`source` 줄 아래 삽입)
 
-- [ ] **Step 1: RED — 케이스 작성** (run-all.sh, verify-loop-watch 블록 뒤):
+- [x] **Step 1: RED — 케이스 작성** (run-all.sh, verify-loop-watch 블록 뒤):
 
 ```bash
 # ==================== CYCLE-23: SESSION-START-AUDIT plan 상시 표시 ====================
@@ -197,9 +197,9 @@ session-start-audit	108-multi-active-warn	alert	gen_ssa_multi
 session-start-audit	109-no-plans-dir-silent	silent	gen_ssa_nodir
 ```
 
-run-all 실행 → 106~108 **FAIL** 확인 (hook이 아직 stdin/cwd를 안 읽음).
+run-all 실행 → 106~108 **FAIL** 확인 (hook이 아직 stdin/cwd를 안 읽음). ✓ 실측 RED: 99/102 (106·107·108 FAIL).
 
-- [ ] **Step 2: GREEN — hook 구현** (session-start-audit.sh, `source` 줄 바로 아래 삽입):
+- [x] **Step 2: GREEN — hook 구현** (session-start-audit.sh, `source` 줄 바로 아래 삽입):
 
 ```bash
 # --- D-LIFECYCLE 표면 ②: active plan 상시 1줄 (cwd 기준; stale-active 즉시 가시화, cycle-23) ---
@@ -223,8 +223,8 @@ if [ -n "$CWD" ] && [ -d "$CWD/docs/superpowers/plans" ]; then
 fi
 ```
 
-- [ ] **Step 3: GREEN 확인** — run-all 100%.
-- [ ] **Step 4: Commit** — `git commit -am "feat(rpi): session-start active-plan 상시 표시 + 차단 메시지 Status 안내 (D-LIFECYCLE 표면 ②③)"`
+- [x] **Step 3: GREEN 확인** — run-all 100%. ✓ 실측 102/102.
+- [x] **Step 4: Commit** — `36d796d` (1.5~1.6 묶음, 명시 staging)
 
 ### Task 1.7: seal #27 — plan lifecycle 봉인 (표면 ①)
 
@@ -232,7 +232,7 @@ fi
 - Modify: `setup/verify-setup.sh` (#25 블록 뒤, summary 위)
 - Modify: `README.md:278` (PASS 카운트 61→62)
 
-- [ ] **Step 1: RED — seal 추가 후 일부러 검증** (verify-setup.sh #25 뒤):
+- [x] **Step 1: RED — seal 추가 후 일부러 검증** (verify-setup.sh #25 뒤):
 
 ```bash
 # 27. plan lifecycle 봉인 (D-LIFECYCLE, cycle-23): 모든 plans/*.md 명시 Status 보유 + active ≤ 1.
@@ -253,11 +253,11 @@ else
 fi
 ```
 
-RED 검증: `printf '# t\n- [ ] x\n' > /tmp/_seal27_probe.md && cp /tmp/_seal27_probe.md ~/.claude/docs/superpowers/plans/zz-probe.md && bash ~/.claude/setup/verify-setup.sh; rm ~/.claude/docs/superpowers/plans/zz-probe.md` → probe가 있을 때 #27 **FAIL**, 제거 후 PASS=62 확인.
+RED 검증: `printf '# t\n- [ ] x\n' > /tmp/_seal27_probe.md && cp /tmp/_seal27_probe.md ~/.claude/docs/superpowers/plans/zz-probe.md && bash ~/.claude/setup/verify-setup.sh; rm ~/.claude/docs/superpowers/plans/zz-probe.md` → probe가 있을 때 #27 **FAIL**, 제거 후 PASS=62 확인. ✓ 실측 RED: probe 존재 시 `✗ plan lifecycle drift: zz-probe.md` / 제거 후 `✓ active=1 (≤1)`.
 
-- [ ] **Step 2: README PASS 카운트** — `README.md:278` "현재 61 PASS" → "현재 62 PASS".
-- [ ] **Step 3: README cases 카운트** — `README.md:272,500`의 "96 case/케이스" → 실측값(`grep -vcE '^[[:space:]]*(#|$)' ~/.claude/hooks/tests/cases.tsv` = 102)으로 갱신. (#20 seal이 검증.)
-- [ ] **Step 4: 세션 종료 절차** (공통 절차 — 3게이트 green) 후 Commit:
+- [x] **Step 2: README PASS 카운트** — `README.md:278` "현재 61 PASS" → "현재 62 PASS".
+- [x] **Step 3: README cases 카운트** — `README.md:272,500`의 "96 case/케이스" → 실측값(`grep -vcE '^[[:space:]]*(#|$)' ~/.claude/hooks/tests/cases.tsv` = 102)으로 갱신. (#20 seal이 검증 — 실제로 #20이 RED로 잡아낸 뒤 갱신함.)
+- [x] **Step 4: 세션 종료 절차** (공통 절차 — 3게이트 green) 후 Commit: ✓ 실측 102/102 · PASS=62 FAIL=0 · PASS=8 FAIL=0 · has_active_plan=cycle-23 1개.
 
 ```bash
 git add -A && git commit -m "feat(rpi): seal #27 plan-lifecycle (전 plan 명시 Status + active≤1) — 61→62 PASS (cycle-23 S1)"
