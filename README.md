@@ -31,7 +31,7 @@
 |---|---|---|---|
 | `enforce-orchestrator` | 차단 | Write/Edit/NotebookEdit on `*/skills/*/SKILL.md` (대소문자 무시) | orchestrator 골격(Phase ≥3, Agent ≥1, Communication Protocol) 누락 시 차단. Edit는 결과 파일 전체로 검증, HTML 주석 속 `Agent()`는 불인정 |
 | `enforce-rpi-cycle` | 차단 | Write/Edit/NotebookEdit on 코드 파일 | active plan 없으면 차단. 비실행 확장자(`*.md` 등)·비코드 config만 화이트리스트 — **코드 확장자는 디렉터리 면제 없음**. trivial = 변경 라인 max(old,new) ≤5 |
-| `enforce-rpi-bash` | 차단 | Bash | 셸 리다이렉션(`>`/`>>`/`tee`/heredoc)으로 코드 파일 작성 시 active plan 없으면 차단 (Write/Edit 우회 봉인). `RPI_SKIP` 우회 |
+| `enforce-rpi-bash` | 차단 | Bash | 셸로 코드 파일 작성(`>`/`>>`/`tee`/heredoc/`sed -i`/`cp`·`mv`/`dd`/`install`/`rsync`) 시 active plan 없으면 차단 + `git apply`/`patch`는 보수차단(타깃 추출 불가, read-only 변형 통과). `RPI_SKIP` 우회 |
 | `enforce-secret-scan` | 차단 | Write/Edit/NotebookEdit + Bash | 고-특이도 시크릿(API 키/토큰/PEM private key) 감지 시 차단(종류만 보고). `SECRET_SCAN_SKIP` 우회 |
 | `stable-claude-md` | 알림 | 루트 CLAUDE.md 수정 | "캐시 비용 ≈20배" 환기 (작업은 허용) |
 | `surface-constitution` | 알림 | Write/Edit/NotebookEdit on 의존성 매니페스트(§5)·UI 확장자(§8) | 해당 헌법 조항을 `additionalContext`(모델 컨텍스트)로 환기 — ADR 작성(§5)/ui-design 사용(§8). 1세션 §별 1회, 차단 아님 |
@@ -271,7 +271,7 @@ bash ~/.claude/setup/doctor.sh
 │   │   ├── transcript-usage.js            컨텍스트 토큰+모델 추출
 │   │   └── model-window.js                모델→컨텍스트 창 매핑
 │   └── tests/
-│       ├── cases.tsv                     102 case (run-all과 1:1 정합, 100% 구현)
+│       ├── cases.tsv                     113 case (run-all과 1:1 정합, 100% 구현)
 │       └── run-all.sh                    단위 테스트 러너 (+ cases.tsv 정합 검사)
 │
 ├── setup/
@@ -342,7 +342,7 @@ bash ~/.claude/setup/doctor.sh
 
 ### Bash 명령이 차단됨 — 리다이렉션으로 코드 작성
 
-`echo ... > file.py` / `cat <<EOF > script.sh` 처럼 셸로 코드 파일을 쓰면 `enforce-rpi-bash`가 active plan 없을 때 차단합니다 (Write/Edit 우회 봉인). active plan을 만들거나 `RPI_SKIP="이유"` 설정 후 진행.
+`echo ... > file.py` / `cat <<EOF > script.sh` 처럼 셸로 코드 파일을 쓰면 `enforce-rpi-bash`가 active plan 없을 때 차단합니다 (Write/Edit 우회 봉인). 탐지 경로: `>`/`>>`/`tee`/heredoc/`sed -i`/`cp`·`mv`(다중 포함)/`dd of=`/`install`/`rsync`. `git apply`/`patch`는 타깃이 패치 내용에 있어 **보수차단** — read-only 변형(`--check`/`--stat` 등)은 통과, docs 전용 패치 오탐은 `RPI_SKIP`으로. active plan을 만들거나 `RPI_SKIP="이유"` 설정 후 진행.
 
 ### 시크릿 감지로 차단됨 (false positive)
 
@@ -500,7 +500,7 @@ git push
 
 - 설계 명세: [`docs/superpowers/specs/2026-05-01-ai-native-orchestration-design.md`](docs/superpowers/specs/2026-05-01-ai-native-orchestration-design.md) (3,000+ 줄)
 - 13단계 빌드 plan: [`docs/superpowers/plans/2026-05-01-ai-native-orchestration.md`](docs/superpowers/plans/2026-05-01-ai-native-orchestration.md)
-- Hook 단위 테스트: `hooks/tests/cases.tsv` (102 케이스, run-all과 1:1 정합, 100% 통과). 원 설계 명세(spec §6.2, 원안 65개)
+- Hook 단위 테스트: `hooks/tests/cases.tsv` (113 케이스, run-all과 1:1 정합, 100% 통과). 원 설계 명세(spec §6.2, 원안 65개)
 
 ---
 

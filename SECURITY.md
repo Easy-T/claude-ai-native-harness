@@ -30,6 +30,10 @@
 - 우회: `export SECRET_SCAN_SKIP="<이유>"`.
 - **한계**: 시그니처 기반 → 미지의 키 포맷·난독화된 시크릿·PII는 탐지 못 함. 1차 방어선일 뿐 완전하지 않다.
 
+## `enforce-rpi-bash` 보수차단 / 잔여 (cycle-23)
+- **보수차단**: `git apply`/`patch`는 쓰기 타깃이 패치 *내용*에 있어 명령행 추출 불가 → active plan 부재 시 명령 단위로 차단(read-only 변형 `--check`/`--stat`/`--numstat`/`--summary`는 통과). docs 전용 패치 오탐은 `RPI_SKIP`으로 우회.
+- **여전히 미탐지**: 변수 파일명(`python -c` f-string 등), `./patch` 같은 상대경로 실행, 인터프리터 내부 쓰기. 시그니처 기반 1차 방어선의 의식된 상한.
+
 ## 범위 밖 (의도적으로 하지 않는 것)
 - 네트워크 egress 필터링, PII 스캐닝, SAST, 런타임 콘텐츠 모더레이션, 권한 모델 강제(bypassPermissions 유지).
 - 단일 운영자 데스크톱 도구에는 과하다고 판단해 제외. 멀티유저/규제 환경으로 가면 재검토 필요.

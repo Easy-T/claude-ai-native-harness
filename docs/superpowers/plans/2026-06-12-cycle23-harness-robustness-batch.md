@@ -273,7 +273,7 @@ git add -A && git commit -m "feat(rpi): seal #27 plan-lifecycle (전 plan 명시
 - Modify: `hooks/tests/run-all.sh` (`101-cp-doc` test_lib 줄 아래)
 - Modify: `hooks/tests/cases.tsv`
 
-- [ ] **Step 1: lib 케이스 추가**:
+- [x] **Step 1: lib 케이스 추가**: ✓ run-all.sh:511(101-cp-doc) 뒤 삽입.
 
 ```bash
 # cycle-23 D-SIDEDOOR-2: dd/install/rsync/다중 cp·mv(matchAll)/git apply·patch(보수차단 sentinel)
@@ -287,7 +287,7 @@ test_lib "116-patch-cmd"        "__PATCH_APPLY__" "$(CMD='patch -p1 < fix.patch'
 test_lib "117-rsync-dir-pass"   ""                "$(CMD='rsync -a src/ dst/' CODE_EXT_REGEX="$LIBREGEX" node "$LIB/redirect-targets.js")"
 ```
 
-- [ ] **Step 2: erb 통합 케이스 추가** (`105-heredoc-checkbox-only` 아래):
+- [x] **Step 2: erb 통합 케이스 추가** (`105-heredoc-checkbox-only` 아래):
 
 ```bash
 test_erb "118-git-apply-noplan" 2 "$(mk_bash_event 'git apply fix.patch' "$NP")"
@@ -295,7 +295,7 @@ test_erb "119-git-apply-plan"   0 "$(mk_bash_event 'git apply fix.patch' "$WP")"
 test_erb "120-patch-noplan"     2 "$(mk_bash_event 'patch -p1 < f.patch' "$NP")"
 ```
 
-- [ ] **Step 3: cases.tsv 말미 추가**:
+- [x] **Step 3: cases.tsv 말미 추가**:
 
 ```
 hooks-lib	110-dd-code	output	gen_lib_110
@@ -311,15 +311,15 @@ enforce-rpi-bash	119-git-apply-plan	0	gen_erb_gitapply_plan
 enforce-rpi-bash	120-patch-noplan	2	gen_erb_patch
 ```
 
-- [ ] **Step 4: RED 확인** — run-all → 110~120 **FAIL** (113은 첫 cp만 매칭, 나머지는 패턴 부재).
+- [x] **Step 4: RED 확인** — run-all → 110~120 **FAIL** (113은 첫 cp만 매칭, 나머지는 패턴 부재). ✓ 실측 RED: 105/113 (110·111·112·113·114·116·118·120 FAIL — 115·117·119는 통과-기대 케이스라 RED 대상 아님).
 
 ### Task 2.2: GREEN — redirect-targets.js 어댑터 추가
 
 **Files:**
 - Modify: `hooks/lib/redirect-targets.js`
 
-- [ ] **Step 1: 헤더 주석 갱신** — 탐지 경로 목록에 `5) dd of= / install / rsync  6) git apply·patch → __PATCH_APPLY__ sentinel(보수차단, --check/--stat류 제외)` 추가.
-- [ ] **Step 2: 보수차단 sentinel** — `const targets = [];` 줄 바로 아래 삽입 (최우선 단락):
+- [x] **Step 1: 헤더 주석 갱신** — 탐지 경로 목록에 `5) dd of= / install / rsync  6) git apply·patch → __PATCH_APPLY__ sentinel(보수차단, --check/--stat류 제외)` 추가.
+- [x] **Step 2: 보수차단 sentinel** — `const targets = [];` 줄 바로 아래 삽입 (최우선 단락):
 
 ```js
 // 0) git apply / patch — 쓰기 대상이 패치 '내용'에 있어 명령행 추출 불가 → 보수차단 sentinel.
@@ -332,7 +332,7 @@ if (/(^\s*|[;&|()]\s*)patch\b/.test(cmd)) {
 }
 ```
 
-- [ ] **Step 3: cp/mv 블록을 matchAll로 교체** (기존 `3)` 블록 전체 대체):
+- [x] **Step 3: cp/mv 블록을 matchAll로 교체** (기존 `3)` 블록 전체 대체):
 
 ```js
 // 3) cp / mv SRC DST : 마지막 비옵션 인자(목적지) — 명령 내 모든 cp/mv 검사 (matchAll, cycle-23)
@@ -344,7 +344,7 @@ if (/(^\s*|[;&|()]\s*)patch\b/.test(cmd)) {
 }
 ```
 
-- [ ] **Step 4: dd / install / rsync 어댑터** — `4) python` 블록 아래 삽입:
+- [x] **Step 4: dd / install / rsync 어댑터** — `4) python` 블록 아래 삽입:
 
 ```js
 // 5) dd of=FILE
@@ -361,14 +361,14 @@ if (/(^\s*|[;&|()]\s*)patch\b/.test(cmd)) {
 }
 ```
 
-- [ ] **Step 5: GREEN 확인** — run-all → 110~117 통과, 118~120은 아직 FAIL 가능(erb가 sentinel을 모름 → Task 2.3).
+- [x] **Step 5: GREEN 확인** — run-all → 110~117 통과, 118~120은 아직 FAIL 가능(erb가 sentinel을 모름 → Task 2.3). ✓ 실측: 113/113 — 118~120도 즉시 GREEN (sentinel이 has_active_plan 선행 검사·기존 차단 경로(exit 2)와 그대로 맞물림; 2.3의 분기는 메시지 차별화).
 
 ### Task 2.3: GREEN — enforce-rpi-bash sentinel 처리 + 메시지
 
 **Files:**
 - Modify: `hooks/enforce-rpi-bash.sh:34-49`
 
-- [ ] **Step 1: sentinel 분기** — `[ -z "$TARGET" ] && exit 0` 줄과 has_active_plan 블록 사이에 차단 메시지 분기 추가; 최종 차단 heredoc을 TARGET 종류에 따라 분기:
+- [x] **Step 1: sentinel 분기** — `[ -z "$TARGET" ] && exit 0` 줄과 has_active_plan 블록 사이에 차단 메시지 분기 추가; 최종 차단 heredoc을 TARGET 종류에 따라 분기:
 
 ```bash
 # 코드 작성 의도 없음 → 통과
@@ -402,15 +402,15 @@ exit 2
 
 (주의: 기존 구조는 has_active_plan 검사가 차단보다 먼저 — 위 교체본도 동일 순서 유지. S1의 Task 1.5에서 넣은 erb 메시지 줄은 이 교체본에 흡수됨.)
 
-- [ ] **Step 2: GREEN 확인** — run-all 100% (118~120 포함).
-- [ ] **Step 3: SECURITY.md 잔여 위험 갱신** — `SECURITY.md:31` "한계" 절 아래에 추가:
+- [x] **Step 2: GREEN 확인** — run-all 100% (118~120 포함). ✓ 실측 113/113 + 보수차단 의미론 실측: `git apply x.patch`(no plan)→rc=2 "[rpi-bash] 차단(보수)" / `git apply --check x.patch`→rc=0.
+- [x] **Step 3: SECURITY.md 잔여 위험 갱신** — `SECURITY.md:31` "한계" 절 아래에 추가: ✓ "## enforce-rpi-bash 보수차단 / 잔여 (cycle-23)" 절 신설(보수차단 의미론 + 미탐지 잔여).
 
 ```markdown
 - **enforce-rpi-bash 보수차단/잔여**: `git apply`/`patch`는 타깃 추출 불가라 plan 부재 시 명령 단위로 차단(보수) — docs 전용 패치 오탐은 `RPI_SKIP`으로 우회. 여전히 미탐지: 변수 파일명(`python -c` f-string), `./patch` 같은 상대경로 실행, 인터프리터 내부 쓰기. 시그니처 기반 1차 방어선의 의식된 상한.
 ```
 
-- [ ] **Step 4: README 갱신** — `README.md:340` 인근(앵커: "### Bash 명령이 차단됨") 트러블슈팅 절에 `sed -i, cp/mv, dd, install, rsync, git apply/patch(보수)` 열거 갱신; `README.md:272,500` cases 카운트 → 실측(113)으로. hook 표(`README.md:34`) enforce-rpi-bash 행의 탐지 목록도 동일 열거로 갱신.
-- [ ] **Step 5: 세션 종료 절차** 후 Commit:
+- [x] **Step 4: README 갱신** — `README.md:340` 인근(앵커: "### Bash 명령이 차단됨") 트러블슈팅 절에 `sed -i, cp/mv, dd, install, rsync, git apply/patch(보수)` 열거 갱신; `README.md:272,500` cases 카운트 → 실측(113)으로. hook 표(`README.md:34`) enforce-rpi-bash 행의 탐지 목록도 동일 열거로 갱신. ✓ (병행 세션이 README에 statusline skill 노트를 추가해 줄번호 +3 이동 — 앵커 텍스트로 적용.)
+- [x] **Step 5: 세션 종료 절차** 후 Commit: ✓ 실측 113/113 · PASS=62 FAIL=0 · PASS=8 FAIL=0.
 
 ```bash
 git add -A && git commit -m "feat(rpi): Bash 사이드도어 확장 봉인 — dd/install/rsync/cp·mv matchAll + git apply·patch 보수차단 (cycle-23 S2)"

@@ -323,6 +323,10 @@ CB="$SCRATCH/cbonly"; mkdir -p "$CB/docs/superpowers/plans" "$CB/src"
 printf '# p\n- [ ] s\n' > "$CB/docs/superpowers/plans/p.md"
 test_erc "104-checkbox-only-noplan" 2 "$(mk_event Write "$CB/src/foo.ts" "$BIG" "$CB")"
 test_erb "105-heredoc-checkbox-only" 2 "$(mk_bash_event "$HEREDOC_PY" "$CB")"
+# cycle-23 D-SIDEDOOR-2: git apply/patch 보수차단 (plan 없으면 BLOCK, 있으면 PASS)
+test_erb "118-git-apply-noplan" 2 "$(mk_bash_event 'git apply fix.patch' "$NP")"
+test_erb "119-git-apply-plan"   0 "$(mk_bash_event 'git apply fix.patch' "$WP")"
+test_erb "120-patch-noplan"     2 "$(mk_bash_event 'patch -p1 < f.patch' "$NP")"
 
 # ==================== PATCH-A: ORCHESTRATOR CASE-INSENSITIVE (enforce-orchestrator) ====================
 SK_BAD=$'---\norchestrator_skill: true\n---\n# Phase 1\nonly one phase'
@@ -509,6 +513,15 @@ test_lib "98-mv-code"      "b.sh"      "$(CMD='mv a.txt b.sh' CODE_EXT_REGEX="$L
 test_lib "99-pyc-code"     "gen.py"    "$(CMD=$'python3 -c "open(\'gen.py\',\'w\').write(x)"' CODE_EXT_REGEX="$LIBREGEX" node "$LIB/redirect-targets.js")"
 test_lib "100-sed-i-doc"   ""          "$(CMD='sed -i s/a/b/ notes.md' CODE_EXT_REGEX="$LIBREGEX" node "$LIB/redirect-targets.js")"
 test_lib "101-cp-doc"      ""          "$(CMD='cp a.txt b.md' CODE_EXT_REGEX="$LIBREGEX" node "$LIB/redirect-targets.js")"
+# cycle-23 D-SIDEDOOR-2: dd/install/rsync/다중 cp·mv(matchAll)/git apply·patch(보수차단 sentinel)
+test_lib "110-dd-code"          "x.sh"            "$(CMD='dd if=/dev/zero of=x.sh bs=1' CODE_EXT_REGEX="$LIBREGEX" node "$LIB/redirect-targets.js")"
+test_lib "111-install-code"     "b.py"            "$(CMD='install -m 755 a b.py' CODE_EXT_REGEX="$LIBREGEX" node "$LIB/redirect-targets.js")"
+test_lib "112-rsync-code"       "d.js"            "$(CMD='rsync -a s.txt d.js' CODE_EXT_REGEX="$LIBREGEX" node "$LIB/redirect-targets.js")"
+test_lib "113-multi-cpmv-2nd"   "d.py"            "$(CMD='cp a b.md; mv c d.py' CODE_EXT_REGEX="$LIBREGEX" node "$LIB/redirect-targets.js")"
+test_lib "114-git-apply"        "__PATCH_APPLY__" "$(CMD='git apply fix.patch' CODE_EXT_REGEX="$LIBREGEX" node "$LIB/redirect-targets.js")"
+test_lib "115-git-apply-check"  ""                "$(CMD='git apply --check fix.patch' CODE_EXT_REGEX="$LIBREGEX" node "$LIB/redirect-targets.js")"
+test_lib "116-patch-cmd"        "__PATCH_APPLY__" "$(CMD='patch -p1 < fix.patch' CODE_EXT_REGEX="$LIBREGEX" node "$LIB/redirect-targets.js")"
+test_lib "117-rsync-dir-pass"   ""                "$(CMD='rsync -a src/ dst/' CODE_EXT_REGEX="$LIBREGEX" node "$LIB/redirect-targets.js")"
 # model-window.js: 모델명 -> 컨텍스트 창 (CONTEXT_LIMIT override)
 test_lib "78-modelwin-opus"     "1000000" "$(node "$LIB/model-window.js" claude-opus-4-8)"
 test_lib "79-modelwin-default"  "200000"  "$(node "$LIB/model-window.js" claude-sonnet-4-6)"

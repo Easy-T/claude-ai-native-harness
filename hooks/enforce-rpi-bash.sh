@@ -34,16 +34,26 @@ TARGET=$(CMD="$CMD" CODE_EXT_REGEX="$(code_ext_regex)" node "$HOME/.claude/hooks
 # 코드 작성 의도 없음 → 통과
 [ -z "$TARGET" ] && exit 0
 
-# 코드 파일을 셸로 작성하려 함 → active plan 필요
+# 코드 파일을 셸로 작성하려 함 (또는 patch/apply 보수차단) → active plan 필요
 if ACTIVE=$(has_active_plan "$CWD"); then
   hook_log "enforce-rpi-bash" "$TARGET" "PASS" "plan=$(basename "$ACTIVE")"
   exit 0
 fi
 
+if [ "$TARGET" = "__PATCH_APPLY__" ]; then
+  hook_log "enforce-rpi-bash" "git-apply/patch" "BLOCK" "no-active-plan-conservative"
+  cat >&2 <<EOF
+[rpi-bash] 차단(보수): git apply/patch는 쓰기 대상이 패치 내용에 있어 추출 불가 → active plan 필요.
+  docs 전용 패치 등 오탐이면: export RPI_SKIP="<이유>"
+  ※ plan은 head-20에 **Status:** active 명시 필요 (cycle-23)
+EOF
+  exit 2
+fi
+
 hook_log "enforce-rpi-bash" "$TARGET" "BLOCK" "no-active-plan"
 cat >&2 <<EOF
 [rpi-bash] 차단: 셸로 코드 파일 작성 감지 → $TARGET
-  Write/Edit 우회 경로(>, >>, tee, heredoc)로 코드를 쓰려면 active plan이 필요합니다.
+  Write/Edit 우회 경로(>, >>, tee, heredoc, sed -i, cp/mv, dd, install, rsync)로 코드를 쓰려면 active plan이 필요합니다.
   start-rpi-cycle 로 R→P 완료 후 진행하거나, 명시 우회: export RPI_SKIP="<이유>"
   ※ plan은 head-20에 **Status:** active 명시 필요 (cycle-23)
 EOF

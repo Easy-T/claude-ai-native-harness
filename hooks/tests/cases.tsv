@@ -110,3 +110,14 @@ session-start-audit	106-zero-active	alert	gen_ssa_zero
 session-start-audit	107-one-active	alert	gen_ssa_one
 session-start-audit	108-multi-active-warn	alert	gen_ssa_multi
 session-start-audit	109-no-plans-dir-silent	silent	gen_ssa_nodir
+hooks-lib	110-dd-code	output	gen_lib_110
+hooks-lib	111-install-code	output	gen_lib_111
+hooks-lib	112-rsync-code	output	gen_lib_112
+hooks-lib	113-multi-cpmv-2nd	output	gen_lib_113
+hooks-lib	114-git-apply	output	gen_lib_114
+hooks-lib	115-git-apply-check	output	gen_lib_115
+hooks-lib	116-patch-cmd	output	gen_lib_116
+hooks-lib	117-rsync-dir-pass	output	gen_lib_117
+enforce-rpi-bash	118-git-apply-noplan	2	gen_erb_gitapply
+enforce-rpi-bash	119-git-apply-plan	0	gen_erb_gitapply_plan
+enforce-rpi-bash	120-patch-noplan	2	gen_erb_patch
