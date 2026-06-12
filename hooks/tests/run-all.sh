@@ -393,6 +393,33 @@ test_vlw "44-no-plan" silent "$(vlw_ev vlwt44 false "$VPNP")"; rm -f /tmp/verify
 VPNC="$SCRATCH/vlw_nocheck"; mkdir -p "$VPNC/docs/superpowers/plans"; printf '# p\n**Status:** active\n- [ ] s\n' > "$VPNC/docs/superpowers/plans/p.md"
 test_vlw "45-no-checksh" silent "$(vlw_ev vlwt45 false "$VPNC")"; rm -f /tmp/verify-reminded-vlwt45
 
+# ==================== CYCLE-23: SESSION-START-AUDIT plan 상시 표시 ====================
+# 주의: 기존 test_ssa()(exit-code 기반)와 별개 함수 — 섀도잉 방지 위해 test_ssap 로 명명.
+test_ssap() {
+  local name="$1"; local want="$2"; local input="$3"   # want: stderr 기대 부분문자열 | noplanline
+  TOTAL=$((TOTAL+1))
+  local err; err=$(echo "$input" | "$HOOKS/session-start-audit.sh" 2>&1 >/dev/null)
+  local good=0
+  if [ "$want" = "noplanline" ]; then
+    echo "$err" | grep -q '^\[plan\]' || good=1
+  else
+    echo "$err" | grep -qF "$want" && good=1
+  fi
+  [ "$good" = 1 ] && PASSED=$((PASSED+1)) || FAILED_LIST+=("session-start-audit/$name (want=$want)")
+}
+ssap_ev() { printf '{"session_id":"s","cwd":"%s"}' "$1"; }
+SSA0="$SCRATCH/ssa0"; mkdir -p "$SSA0/docs/superpowers/plans"
+test_ssap "106-zero-active" "[plan] active plan: 0" "$(ssap_ev "$SSA0")"
+SSA1="$SCRATCH/ssa1"; mkdir -p "$SSA1/docs/superpowers/plans"
+printf '# p\n**Status:** active\n' > "$SSA1/docs/superpowers/plans/a.md"
+test_ssap "107-one-active" "a.md" "$(ssap_ev "$SSA1")"
+SSA2="$SCRATCH/ssa2"; mkdir -p "$SSA2/docs/superpowers/plans"
+printf '# p\n**Status:** active\n' > "$SSA2/docs/superpowers/plans/a.md"
+printf '# q\n**Status:** in_progress\n' > "$SSA2/docs/superpowers/plans/b.md"
+test_ssap "108-multi-active-warn" "stale-active" "$(ssap_ev "$SSA2")"
+SSA3="$SCRATCH/ssa3"; mkdir -p "$SSA3"
+test_ssap "109-no-plans-dir-silent" "noplanline" "$(ssap_ev "$SSA3")"
+
 # ==================== PATCH-D: AUDIT-RESIDUAL FIXES ====================
 # S14 — Status trailing-text parsed by first word (via enforce-rpi-cycle plan gate)
 DST="$SCRATCH/d_s14"; mkdir -p "$DST/docs/superpowers/plans" "$DST/src"

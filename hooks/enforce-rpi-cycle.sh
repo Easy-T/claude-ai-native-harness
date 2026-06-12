@@ -95,6 +95,7 @@ hook_log "enforce-rpi-cycle" "$FILE_PATH" "BLOCK" "no-active-plan"
 cat >&2 <<EOF
 [rpi] 차단: 활성 plan 없음 (docs/superpowers/plans/*.md).
   start-rpi-cycle을 사용해 R→P 단계를 먼저 완료하세요.
+  ※ plan은 head-20에 명시 헤더 필요: **Status:** active (미체크 박스만으론 active 아님 — cycle-23)
   trivial 변경(≤5라인) 또는 docs 변경은 자동 허용.
   명시 우회: export RPI_SKIP="<이유>"
 EOF

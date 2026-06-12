@@ -1,6 +1,26 @@
 #!/usr/bin/env bash
 source "$HOME/.claude/hooks/_common.sh"
 
+# --- D-LIFECYCLE 표면 ②: active plan 상시 1줄 (cwd 기준; stale-active 즉시 가시화, cycle-23) ---
+INPUT=$(read_input)
+CWD=$(echo "$INPUT" | resolve_cwd) || CWD=""
+if [ -n "$CWD" ] && [ -d "$CWD/docs/superpowers/plans" ]; then
+  ACT_N=0; ACT_NAMES=""
+  for p in "$CWD/docs/superpowers/plans"/*.md; do
+    [ -f "$p" ] || continue
+    case "$(plan_status "$p")" in
+      active|in_progress) ACT_N=$((ACT_N+1)); ACT_NAMES="$ACT_NAMES $(basename "$p")" ;;
+    esac
+  done
+  if (( ACT_N > 1 )); then
+    echo "[plan] ⚠ active plan ${ACT_N}개(≤1 기대):$ACT_NAMES — stale-active 정리 필요 (Status: completed로)" >&2
+  elif (( ACT_N == 1 )); then
+    echo "[plan] active plan: 1 —$ACT_NAMES" >&2
+  else
+    echo "[plan] active plan: 0" >&2
+  fi
+fi
+
 CLAUDE_MD="$HOME/.claude/CLAUDE.md"
 [ ! -f "$CLAUDE_MD" ] && {
   echo "[audit] 글로벌 CLAUDE.md 없음. /init-ai-ready 1회 실행 권장." >&2

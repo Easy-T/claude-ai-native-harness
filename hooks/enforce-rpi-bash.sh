@@ -45,5 +45,6 @@ cat >&2 <<EOF
 [rpi-bash] 차단: 셸로 코드 파일 작성 감지 → $TARGET
   Write/Edit 우회 경로(>, >>, tee, heredoc)로 코드를 쓰려면 active plan이 필요합니다.
   start-rpi-cycle 로 R→P 완료 후 진행하거나, 명시 우회: export RPI_SKIP="<이유>"
+  ※ plan은 head-20에 **Status:** active 명시 필요 (cycle-23)
 EOF
 exit 2

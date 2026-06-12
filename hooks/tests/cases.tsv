@@ -106,3 +106,7 @@ enforce-rpi-bash	102-sed-code-noplan	2	gen_erb_sed
 enforce-rpi-bash	103-cp-code-noplan	2	gen_erb_cp
 enforce-rpi-cycle	104-checkbox-only-noplan	2	gen_erc_checkbox_only
 enforce-rpi-bash	105-heredoc-checkbox-only	2	gen_erb_checkbox_only
+session-start-audit	106-zero-active	alert	gen_ssa_zero
+session-start-audit	107-one-active	alert	gen_ssa_one
+session-start-audit	108-multi-active-warn	alert	gen_ssa_multi
+session-start-audit	109-no-plans-dir-silent	silent	gen_ssa_nodir
