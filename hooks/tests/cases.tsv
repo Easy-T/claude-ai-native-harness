@@ -122,3 +122,14 @@ hooks-lib	117-rsync-dir-pass	output	gen_lib_117
 enforce-rpi-bash	118-git-apply-noplan	2	gen_erb_gitapply
 enforce-rpi-bash	119-git-apply-plan	0	gen_erb_gitapply_plan
 enforce-rpi-bash	120-patch-noplan	2	gen_erb_patch
+hooks-lib	122-redir-singlequote	output	gen_lib_122
+hooks-lib	123-redir-noclobber	output	gen_lib_123
+hooks-lib	124-redir-arrow-pass	output	gen_lib_124
+hooks-lib	125-redir-quoted-msg-pass	output	gen_lib_125
+hooks-lib	126-redir-quoted-target	output	gen_lib_126
+hooks-lib	127-node-eval-code	output	gen_lib_127
+hooks-lib	128-perl-eval-code	output	gen_lib_128
+hooks-lib	129-ruby-eval-code	output	gen_lib_129
+enforce-rpi-bash	130-singlequote-noplan	2	gen_erb_130
+enforce-rpi-bash	131-arrow-pass-noplan	0	gen_erb_131
+enforce-rpi-bash	132-node-eval-noplan	2	gen_erb_132

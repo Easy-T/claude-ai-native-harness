@@ -327,6 +327,10 @@ test_erb "105-heredoc-checkbox-only" 2 "$(mk_bash_event "$HEREDOC_PY" "$CB")"
 test_erb "118-git-apply-noplan" 2 "$(mk_bash_event 'git apply fix.patch' "$NP")"
 test_erb "119-git-apply-plan"   0 "$(mk_bash_event 'git apply fix.patch' "$WP")"
 test_erb "120-patch-noplan"     2 "$(mk_bash_event 'patch -p1 < f.patch' "$NP")"
+# cycle-25 rank1: redirect-targets 4벡터 E2E (단일인용 차단·화살표 통과·node-eval 차단)
+test_erb "130-singlequote-noplan" 2 "$(mk_bash_event "echo x > 'evil.py'" "$NP")"
+test_erb "131-arrow-pass-noplan"  0 "$(mk_bash_event 'echo done -> next.js' "$NP")"
+test_erb "132-node-eval-noplan"   2 "$(mk_bash_event $'node -e \'fs.writeFileSync("g.js",1)\'' "$NP")"
 
 # ==================== PATCH-A: ORCHESTRATOR CASE-INSENSITIVE (enforce-orchestrator) ====================
 SK_BAD=$'---\norchestrator_skill: true\n---\n# Phase 1\nonly one phase'
@@ -522,6 +526,15 @@ test_lib "114-git-apply"        "__PATCH_APPLY__" "$(CMD='git apply fix.patch' C
 test_lib "115-git-apply-check"  ""                "$(CMD='git apply --check fix.patch' CODE_EXT_REGEX="$LIBREGEX" node "$LIB/redirect-targets.js")"
 test_lib "116-patch-cmd"        "__PATCH_APPLY__" "$(CMD='patch -p1 < fix.patch' CODE_EXT_REGEX="$LIBREGEX" node "$LIB/redirect-targets.js")"
 test_lib "117-rsync-dir-pass"   ""                "$(CMD='rsync -a src/ dst/' CODE_EXT_REGEX="$LIBREGEX" node "$LIB/redirect-targets.js")"
+# cycle-25 rank1: redirect-targets 4벡터 봉인 (단일인용·noclobber·인터프리터eval·따옴표/화살표 오탐)
+test_lib "122-redir-singlequote"   "evil.py" "$(CMD="echo x > 'evil.py'" CODE_EXT_REGEX="$LIBREGEX" node "$LIB/redirect-targets.js")"
+test_lib "123-redir-noclobber"     "evil.py" "$(CMD='echo x >| evil.py' CODE_EXT_REGEX="$LIBREGEX" node "$LIB/redirect-targets.js")"
+test_lib "124-redir-arrow-pass"    ""        "$(CMD='step1 -> output.js' CODE_EXT_REGEX="$LIBREGEX" node "$LIB/redirect-targets.js")"
+test_lib "125-redir-quoted-msg-pass" ""      "$(CMD='git commit -m "rename a > b.py"' CODE_EXT_REGEX="$LIBREGEX" node "$LIB/redirect-targets.js")"
+test_lib "126-redir-quoted-target" "out.py"  "$(CMD='cat > "out.py"' CODE_EXT_REGEX="$LIBREGEX" node "$LIB/redirect-targets.js")"
+test_lib "127-node-eval-code"      "gen.js"  "$(CMD=$'node -e \'fs.writeFileSync("gen.js", x)\'' CODE_EXT_REGEX="$LIBREGEX" node "$LIB/redirect-targets.js")"
+test_lib "128-perl-eval-code"      "y.pl"    "$(CMD=$'perl -e \'open(F,">","y.pl")\'' CODE_EXT_REGEX="$LIBREGEX" node "$LIB/redirect-targets.js")"
+test_lib "129-ruby-eval-code"      "z.rb"    "$(CMD=$'ruby -e \'File.write("z.rb", x)\'' CODE_EXT_REGEX="$LIBREGEX" node "$LIB/redirect-targets.js")"
 # model-window.js: 모델명 -> 컨텍스트 창 (CONTEXT_LIMIT override)
 test_lib "78-modelwin-opus"     "1000000" "$(node "$LIB/model-window.js" claude-opus-4-8)"
 test_lib "79-modelwin-default"  "200000"  "$(node "$LIB/model-window.js" claude-sonnet-4-6)"

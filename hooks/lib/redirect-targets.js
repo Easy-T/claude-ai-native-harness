@@ -3,10 +3,11 @@
 // 입력: env CMD = 셸 명령 문자열, env CODE_EXT_REGEX = 코드 확장자 JS 정규식 source (_common.sh code_ext_regex).
 // 출력: 첫 '코드 확장자' 쓰기 대상 (/dev/null 제외). 없으면 빈 문자열.
 // 탐지 경로:
-//   1) 리다이렉션 >/>> 와 tee [-a]
+//   1) 리다이렉션 >/>>/>| 와 tee [-a] — 따옴표-인지 토크나이저 (인용 내부 '>' 및 '->'/'=>' 화살표 오탐 방지, 단일/이중 인용 타깃)
 //   2) sed -i[SUFFIX] … FILE  (in-place 편집)
 //   3) cp/mv SRC DST          (DST = 마지막 비옵션 인자, 명령 내 전부 — matchAll)
 //   4) python[3] -c '…open("FILE","w"|"a"|…)…'  (보수적 best-effort: 리터럴 파일명+write 모드만)
+//   4b) node/perl/ruby -e 로 리터럴 파일명에 쓰기 (python -c 와 대칭; 변수/동적 파일명=Non-Goal)
 //   5) dd of=FILE / install SRC DST / rsync SRC DST
 //   6) git apply·patch → __PATCH_APPLY__ sentinel (보수차단 — 타깃이 패치 내용에 있어 추출 불가;
 //      read-only 변형 --check/--stat/--numstat/--summary 는 제외, cycle-23 D-SIDEDOOR-2)
@@ -24,10 +25,57 @@ if (/(^\s*|[;&|()]\s*)patch\b/.test(cmd)) {
   process.stdout.write("__PATCH_APPLY__"); process.exit(0);
 }
 
-// 1) 리다이렉션 / tee
-const reRedir = /(?:>>?|\btee\s+(?:-a\s+)?)\s*("?)([^\s">|;&()]+)\1/g;
-let m;
-while ((m = reRedir.exec(cmd)) !== null) targets.push(m[2]);
+// 1) 리다이렉션 / tee — 따옴표-인지 토크나이저 (cycle-25 rank1).
+//    인용 내부 '>' 오탐 + '->'/'=>' 화살표 오탐 방지, 단일/이중 인용 타깃 + '>|' noclobber 지원.
+{
+  const N = cmd.length;
+  const toks = []; // {v, op, sep, quoted}
+  let i = 0;
+  while (i < N) {
+    const c = cmd[i];
+    if (c === " " || c === "\t" || c === "\n" || c === "\r") { i++; continue; }
+    // 리다이렉션 연산자: > >> >|  ('->'/'=>' 화살표는 제외)
+    if (c === ">" && cmd[i - 1] !== "-" && cmd[i - 1] !== "=") {
+      let j = i + 1;
+      if (cmd[j] === ">") j++;
+      if (cmd[j] === "|") j++;
+      toks.push({ v: cmd.slice(i, j), op: true });
+      i = j; continue;
+    }
+    // 셸 분리자 / 비타깃
+    if (c === "<" || c === "|" || c === ";" || c === "&" || c === "(" || c === ")") {
+      toks.push({ v: c, sep: true }); i++; continue;
+    }
+    // 단어 (따옴표 인지) — 공백/분리자/리다이렉션 전까지, 인용은 언쿼트해서 값에 포함
+    let v = "", quoted = false;
+    while (i < N) {
+      const ch = cmd[i];
+      if (ch === " " || ch === "\t" || ch === "\n" || ch === "\r") break;
+      if (ch === "<" || ch === "|" || ch === ";" || ch === "&" || ch === "(" || ch === ")") break;
+      if (ch === ">" && cmd[i - 1] !== "-" && cmd[i - 1] !== "=") break;
+      if (ch === '"' || ch === "'") {
+        quoted = true; const q = ch; i++;
+        while (i < N && cmd[i] !== q) { v += cmd[i]; i++; }
+        if (i < N) i++; // 닫는 따옴표
+        continue;
+      }
+      v += ch; i++;
+    }
+    toks.push({ v, quoted });
+  }
+  // 타깃 도출: 리다이렉션 연산자 뒤 토큰, 또는 tee [-옵션...] 뒤 토큰
+  for (let k = 0; k < toks.length; k++) {
+    const t = toks[k];
+    if (t.op) {
+      const nx = toks[k + 1];
+      if (nx && !nx.op && !nx.sep && nx.v) targets.push(nx.v);
+    } else if (!t.quoted && (t.v === "tee" || t.v.endsWith("/tee"))) {
+      let k2 = k + 1;
+      while (toks[k2] && !toks[k2].op && !toks[k2].sep && toks[k2].v.startsWith("-")) k2++;
+      if (toks[k2] && !toks[k2].op && !toks[k2].sep && toks[k2].v) targets.push(toks[k2].v);
+    }
+  }
+}
 
 // 2) sed -i[SUFFIX] … FILE : -i 플래그가 있으면 비옵션 인자 중 코드-ext
 if (/\bsed\b/.test(cmd) && /\s-i\b|\s-i\S+|--in-place/.test(cmd)) {
@@ -49,6 +97,26 @@ if (/\bsed\b/.test(cmd) && /\s-i\b|\s-i\S+|--in-place/.test(cmd)) {
     const reOpen = /open\s*\(\s*["']([^"']+)["']\s*,\s*["'][^"']*[wa][^"']*["']/g;
     let om;
     while ((om = reOpen.exec(cmd)) !== null) targets.push(om[1]);
+  }
+}
+
+// 4b) node -e / perl -e / ruby -e 로 '리터럴 파일명'에 쓰기 (cycle-25 rank1; python -c 와 대칭).
+//     보수적 — 리터럴 문자열 파일명만. 변수/동적 파일명·exec 는 Non-Goal(SECURITY.md).
+{
+  if (/\bnode\s+(?:-e|--eval)\b/.test(cmd)) {
+    const reNode = /\b(?:fs\.)?(?:writeFileSync|appendFileSync|createWriteStream)\s*\(\s*["']([^"']+)["']/g;
+    let nm; while ((nm = reNode.exec(cmd)) !== null) targets.push(nm[1]);
+  }
+  if (/\bperl\s+-e\b/.test(cmd)) {
+    const rePerlQ = /open\s*\([^,]*,\s*["']>>?["']\s*,\s*["']([^"']+)["']/g; // open(FH,">","FILE")
+    const rePerlI = /open\s*\([^,]*,\s*["']>>?\s*([^"'\s)]+)["']/g;          // open(FH,">FILE")
+    let pm;
+    while ((pm = rePerlQ.exec(cmd)) !== null) targets.push(pm[1]);
+    while ((pm = rePerlI.exec(cmd)) !== null) targets.push(pm[1]);
+  }
+  if (/\bruby\s+-e\b/.test(cmd)) {
+    const reRuby = /\bFile\.(?:write|open)\s*\(\s*["']([^"']+)["']/g;
+    let rm; while ((rm = reRuby.exec(cmd)) !== null) targets.push(rm[1]);
   }
 }
 
