@@ -133,3 +133,7 @@ hooks-lib	129-ruby-eval-code	output	gen_lib_129
 enforce-rpi-bash	130-singlequote-noplan	2	gen_erb_130
 enforce-rpi-bash	131-arrow-pass-noplan	0	gen_erb_131
 enforce-rpi-bash	132-node-eval-noplan	2	gen_erb_132
+hooks-lib	136-planstatus-prose-skip	output	gen_lib_136
+hooks-lib	137-planstatus-fence-skip	output	gen_lib_137
+hooks-lib	138-planstatus-real-active	output	gen_lib_138
+enforce-rpi-cycle	139-prose-status-noplan	2	gen_erc_139

@@ -86,8 +86,19 @@ normalize_path() {
 # "completed - cleanup pending" 같은 후행 텍스트도 첫 단어만 정확 인식(S14).
 # has_active_plan / session-start-audit 가 공유 (status 추출 로직 단일화).
 plan_status() {
-  head -20 "$1" 2>/dev/null | grep -m1 -iE '^\*?\*?status:?\*?\*?' \
-    | sed -E 's/^\*?\*?[Ss]tatus:?\*?\*?[[:space:]]*//' | awk '{print tolower($1)}' | tr -d '*' || true
+  # cycle-26: bold '**Status:**' 형식만 인정 + 코드펜스(```) 스킵 — head-20의 prose/예시 'Status: active'가
+  # 첫 매칭으로 게이트를 오개방하던 버그(loose 정규식) 봉인. 첫 매칭의 첫 단어를 소문자로 출력.
+  head -20 "$1" 2>/dev/null | awk '
+    /^[[:space:]]*```/ { fence = !fence; next }
+    fence { next }
+    /^\*\*[Ss]tatus:/ {
+      line = $0
+      sub(/^\*\*[Ss]tatus:\**[[:space:]]*/, "", line)
+      gsub(/\*/, "", line)
+      split(line, a, /[[:space:]]+/)
+      print tolower(a[1]); exit
+    }
+  ' || true
 }
 
 # --- has_active_plan: <cwd>의 docs/superpowers/plans에 active plan이 있으면 경로 출력+return 0 ---

@@ -331,6 +331,10 @@ test_erb "120-patch-noplan"     2 "$(mk_bash_event 'patch -p1 < f.patch' "$NP")"
 test_erb "130-singlequote-noplan" 2 "$(mk_bash_event "echo x > 'evil.py'" "$NP")"
 test_erb "131-arrow-pass-noplan"  0 "$(mk_bash_event 'echo done -> next.js' "$NP")"
 test_erb "132-node-eval-noplan"   2 "$(mk_bash_event $'node -e \'fs.writeFileSync("g.js",1)\'' "$NP")"
+# cycle-26 rank3: prose 'Status: active'(non-bold) plan은 active 아님 → 코드 Write 차단
+PROSE="$SCRATCH/prose"; mkdir -p "$PROSE/docs/superpowers/plans" "$PROSE/src"
+printf '# Example\nStatus: active\n\n**Status:** completed\n' > "$PROSE/docs/superpowers/plans/p.md"
+test_erc "139-prose-status-noplan" 2 "$(mk_event Write "$PROSE/src/foo.ts" "$BIG" "$PROSE")"
 
 # ==================== PATCH-A: ORCHESTRATOR CASE-INSENSITIVE (enforce-orchestrator) ====================
 SK_BAD=$'---\norchestrator_skill: true\n---\n# Phase 1\nonly one phase'
@@ -535,6 +539,13 @@ test_lib "126-redir-quoted-target" "out.py"  "$(CMD='cat > "out.py"' CODE_EXT_RE
 test_lib "127-node-eval-code"      "gen.js"  "$(CMD=$'node -e \'fs.writeFileSync("gen.js", x)\'' CODE_EXT_REGEX="$LIBREGEX" node "$LIB/redirect-targets.js")"
 test_lib "128-perl-eval-code"      "y.pl"    "$(CMD=$'perl -e \'open(F,">","y.pl")\'' CODE_EXT_REGEX="$LIBREGEX" node "$LIB/redirect-targets.js")"
 test_lib "129-ruby-eval-code"      "z.rb"    "$(CMD=$'ruby -e \'File.write("z.rb", x)\'' CODE_EXT_REGEX="$LIBREGEX" node "$LIB/redirect-targets.js")"
+# cycle-26 rank3: plan_status bold-only + 펜스 스킵 (prose 'Status: active' 게이트 오개방 봉인)
+PS_PROSE=$(mktemp "$SCRATCH/ps-XXXXXX.md"); printf '# Plan\nStatus: active\n\n**Status:** completed\n' > "$PS_PROSE"
+test_lib "136-planstatus-prose-skip" "completed" "$(bash -c 'source "$HOME/.claude/hooks/_common.sh"; plan_status "$1"' _ "$PS_PROSE")"
+PS_FENCE=$(mktemp "$SCRATCH/ps-XXXXXX.md"); printf '# Plan\n```\n**Status:** active\n```\n**Status:** completed\n' > "$PS_FENCE"
+test_lib "137-planstatus-fence-skip" "completed" "$(bash -c 'source "$HOME/.claude/hooks/_common.sh"; plan_status "$1"' _ "$PS_FENCE")"
+PS_REAL=$(mktemp "$SCRATCH/ps-XXXXXX.md"); printf '**Status:** active\n' > "$PS_REAL"
+test_lib "138-planstatus-real-active" "active" "$(bash -c 'source "$HOME/.claude/hooks/_common.sh"; plan_status "$1"' _ "$PS_REAL")"
 # model-window.js: 모델명 -> 컨텍스트 창 (CONTEXT_LIMIT override)
 test_lib "78-modelwin-opus"     "1000000" "$(node "$LIB/model-window.js" claude-opus-4-8)"
 test_lib "79-modelwin-default"  "200000"  "$(node "$LIB/model-window.js" claude-sonnet-4-6)"
