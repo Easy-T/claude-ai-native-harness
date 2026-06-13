@@ -29,7 +29,17 @@ fi
 
 # 코드 파일을 셸로 작성하는 패턴 탐지. 파서는 hooks/lib/redirect-targets.js (단위테스트 가능).
 # 코드 확장자 집합은 _common.sh 의 SSOT (code_ext_regex).
-TARGET=$(CMD="$CMD" CODE_EXT_REGEX="$(code_ext_regex)" node "$HOME/.claude/hooks/lib/redirect-targets.js" 2>/dev/null || true)
+# fail-open 런타임 표면화 (cycle-32 rank6/G6-a): 종료코드로 '크래시(비정상 종료)'와
+# '빈 출력(코드작성 의도 없음)'을 구분한다. 파서가 크래시하면 fail-open 은 유지(차단 아님 —
+# 의도된 트레이드오프)하되 무표면 금지(CONTEXT.md "fail-open")라 hook_log FAILOPEN + stderr 1줄로 표면화.
+# (enforce-orchestrator ERR-센티넬은 무로깅이라 단순 이식 아님 — 로깅 '추가'가 핵심.)
+if TARGET=$(CMD="$CMD" CODE_EXT_REGEX="$(code_ext_regex)" node "$HOME/.claude/hooks/lib/redirect-targets.js" 2>/dev/null); then
+  :   # 정상 종료(0): TARGET = 첫 코드-쓰기 대상 또는 빈 문자열
+else
+  hook_log "enforce-rpi-bash" "redirect-targets.js" "FAILOPEN" "parser-exit-$?"
+  echo "[rpi-bash] ⚠ redirect 파서 런타임 고장 → fail-open 통과(이 명령에 게이트 비작동). bash ~/.claude/setup/doctor.sh 로 점검" >&2
+  exit 0
+fi
 
 # 코드 작성 의도 없음 → 통과
 [ -z "$TARGET" ] && exit 0

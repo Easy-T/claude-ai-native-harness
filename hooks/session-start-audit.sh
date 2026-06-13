@@ -33,6 +33,22 @@ if [ -n "$SELFCHECK_BAD" ]; then
   echo "[hook-selfcheck] ⚠ 차단 hook fail-open 위험:$SELFCHECK_BAD — bash ~/.claude/setup/doctor.sh 로 점검" >&2
 fi
 
+# --- D-FAILOPEN-SURFACE ②: lib/*.js 런타임 스모크 (cycle-32 rank6/G6-a) ---
+# bash -n 은 .sh 구문만 잡는다 — .js 런타임 손상(throw/syntax)은 못 잡는다. 각 파서를 무해 입력
+# (</dev/null + 무-env/argv)으로 1회 실행: 건강한 파서는 graceful exit 0, 손상 파서만 비정상 종료한다.
+# 손상 파서는 차단 hook 의 게이트를 조용히 무력화하므로 차기 세션 시작에 ALERT 로 표면화(fail-open 유지).
+if command -v node >/dev/null 2>&1; then
+  JS_BAD=""
+  for jf in "$HOME/.claude/hooks/lib/"*.js; do
+    [ -e "$jf" ] || continue
+    node "$jf" </dev/null >/dev/null 2>&1 || JS_BAD="$JS_BAD $(basename "$jf")"
+  done
+  if [ -n "$JS_BAD" ]; then
+    hook_log "session-start-audit" "lib-selfcheck" "ALERT" "jsruntime:$JS_BAD"
+    echo "[hook-selfcheck] ⚠ lib 파서 런타임 고장:$JS_BAD — bash ~/.claude/setup/doctor.sh 로 점검" >&2
+  fi
+fi
+
 CLAUDE_MD="$HOME/.claude/CLAUDE.md"
 [ ! -f "$CLAUDE_MD" ] && {
   echo "[audit] 글로벌 CLAUDE.md 없음. /init-ai-ready 1회 실행 권장." >&2

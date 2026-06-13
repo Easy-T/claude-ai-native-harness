@@ -12,6 +12,9 @@ echo
 echo "=== STAGE 2b: seal-regression meta-test ==="
 bash "$HOME/.claude/setup/tests/seal-regression.test.sh" || { echo "FAIL seal-regression"; exit 1; }
 echo
+echo "=== STAGE 2c: fail-open surface meta-test ==="
+bash "$HOME/.claude/setup/tests/failopen-surface.test.sh" || { echo "FAIL failopen-surface"; exit 1; }
+echo
 echo "=== STAGE 3: hook unit tests ==="
 bash "$HOME/.claude/hooks/tests/run-all.sh"    || { echo "FAIL hook tests"; exit 1; }
 echo
