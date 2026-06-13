@@ -680,13 +680,21 @@ fi
 RECON_FAIL=0
 while IFS=$'\t' read -r rhook rid rrest; do
   case "$rhook" in \#*|'') continue ;; esac
-  grep -qF "$rid" "$TESTS_DIR/run-all.sh" || { echo "  reconcile: declared-but-not-run → $rhook/$rid"; RECON_FAIL=1; }
+  # cycle-27 G2-b: 선언 id가 run-all '비주석' 라인에 실재해야 함 (주석-온리 phantom 차단;
+  #   test_* 헬퍼 호출·인라인 FAILED_LIST 블록 양형식 모두 비주석 라인에 id 보유).
+  grep -F "$rid" "$TESTS_DIR/run-all.sh" | grep -qvE '^[[:space:]]*#' \
+    || { echo "  reconcile: 선언 id가 비주석 테스트로 미실재 → $rhook/$rid"; RECON_FAIL=1; }
 done < "$TESTS_DIR/cases.tsv"
+# cycle-27 G2-b: TOTAL(실행) == 선언 수 — 역방향 drift(미선언 실행) + 미실행 phantom 동시 차단(양방향).
+DECLARED_N=$(grep -cvE '^[[:space:]]*(#|$)' "$TESTS_DIR/cases.tsv")
+if [ "$TOTAL" -ne "$DECLARED_N" ]; then
+  echo "  reconcile: TOTAL 실행($TOTAL) != cases.tsv 선언($DECLARED_N) — 역방향 drift 또는 미실행 phantom"; RECON_FAIL=1
+fi
 if [ "$RECON_FAIL" -ne 0 ]; then
   echo "cases.tsv <-> run-all 정합 실패 (위 케이스를 구현하거나 cases.tsv에서 제거)."
   exit 1
 fi
-echo "cases.tsv <-> run-all 정합 OK ($(grep -cvE '^#' "$TESTS_DIR/cases.tsv") declared cases all present)"
+echo "cases.tsv <-> run-all 정합 OK ($DECLARED_N declared == $TOTAL run, 비주석 실재)"
 
 PCT=$(( PASSED * 100 / TOTAL ))
 if (( PCT < 95 )); then

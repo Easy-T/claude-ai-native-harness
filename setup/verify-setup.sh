@@ -234,6 +234,15 @@ for f28 in "$HOME/.claude/hooks/"*.sh "$HOME/.claude/setup/"*.sh; do
 done
 [ -z "$SYN28" ] && ok "bash -n: hooks+setup 문법 OK" || fail "bash -n 실패:$SYN28"
 
+# 29. install.sh REQUIRED ⊇ verify-setup item-6 7 tracked skill (신선-클론 install이 광고한 게이트를
+#     스스로 검증 — 누락 skill이 install PASS인데 verify-all FAIL 나던 drift 봉인, cycle-27 NEW-install-required-skills).
+INSTALL29="$HOME/.claude/setup/install.sh"
+MISS29=""
+for s29 in common-agent-contract create-orchestrator-skill init-ai-ready-project start-rpi-cycle closeout-pr-cycle improve-codebase-architecture ui-design; do
+  grep -qF "skills/$s29/SKILL.md" "$INSTALL29" 2>/dev/null || MISS29="$MISS29 $s29"
+done
+[ -z "$MISS29" ] && ok "install.sh REQUIRED ⊇ 7 tracked skills" || fail "install.sh REQUIRED skill 누락:$MISS29 (verify-setup item6와 drift)"
+
 echo
 echo "verify-setup: PASS=$PASS FAIL=$FAIL"
 exit $FAIL

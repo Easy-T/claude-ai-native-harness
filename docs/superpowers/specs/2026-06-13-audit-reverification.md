@@ -93,7 +93,7 @@
 | 1 ✅ | redirect-targets.js 4벡터 봉인 **(cycle-25 b765a56 완료)** | singlequote·noclobber·interp-eval·quoted-falseblock | M | ✓ | 따옴표-인지 토크나이저 교체 + node/perl/ruby -e 리터럴. run-all 125/125, review-strict PASS |
 | ~~2~~ | trivial 게이트 — **KEEP (by-design 경계, 2026-06-13 사용자 결정)** | trivial-singleline | — | — | 바이트 예산은 짧은 위험 one-liner 미해결 + 정당 편집에 friction; RPI는 보안경계 아닌 자기규율(SECURITY.md 단일운영자). 생략 |
 | 3 ✅ | plan_status bold+펜스 엄격화 **(cycle-26 완료)** | planstatus-prose | L | ✓ | bold `**Status:**` 만 인정 + 코드펜스 스킵(awk 재작성). 27 plan 회귀 0, run-all 129/129 |
-| 4 | run-all 정합 강화 + install/verify skill parity | G2-b·install-required-skills | M | ✓ | hook+id 결속 매칭, TOTAL 런타임 단언, 역방향 검사; install REQUIRED 3 skill 추가(공유 배열 추출 권장) |
+| 4 ✅ | run-all 정합 강화 + install/verify skill parity **(cycle-27 완료)** | G2-b·install-required-skills | M | ✓ | TOTAL==선언 카운트 + 비주석 실재(주석-온리 phantom 차단, 양형식 커버) — hook→fn 매핑 불요; install REQUIRED +3 skill, verify-setup seal #29. RED 시연: 구 정합 오탐통과 vs 신 검출 |
 | 5 | doctor 마커 조건부 + doctor.test 격리 | doctor-marker·doctor-test-mutates | M | ✓ | 마커 부재-시-append 한정(무조건 sed 제거); doctor.test CLAUDE_HOME mktemp 격리(cycle-18 패턴) |
 | 6 | fail-open 표면화 | G3-b·G6-a·failopen-trustbase | M | ✓ | rpi-bash.sh:32 종료코드 분기+hook_log FAILOPEN(orchestrator ERR-센티넬 이식), selfcheck .js 스모크, SECURITY.md 신뢰베이스 명시 |
 | 7 | state.json↔schema 검증 | state-schema-unverified | L | ✓ | verify-setup에 schema 검증 항목, closeout C-1에 "쓴 후 검증" 명시 |
