@@ -64,9 +64,34 @@ module.exports = {
 }
 ```
 
+### Dark Theme (변수 재매핑) // from: NICE Second Brain ADR-029 (2026-06-13, Playwright 실측 검증)
+다크모드는 **클래스 분기가 아닌 변수 재매핑**으로 구현한다 — `html[data-theme="dark"]`(명시도 0,1,1 > `:root`)에서 같은 토큰의 값만 반전 대칭으로 스왑하면, `bg-neutral-0`/`text-neutral-900` 같은 기존 클래스가 전부 자동 전환된다 (`dark:` variant 페어·`bg-[hsl(...)]` arbitrary 분기 금지 — 컴포넌트 수에 비례해 부채 증가).
+
+```css
+html { color-scheme: light; }
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --color-neutral-0: hsl(220, 12%, 11%);   /* surface (라이트 #fff의 반전) */
+  --color-neutral-100: hsl(220, 10%, 17%); /* background-subtle */
+  --color-neutral-300: hsl(220, 10%, 28%); /* border */
+  --color-neutral-500: hsl(220, 10%, 58%); /* text-tertiary */
+  --color-neutral-700: hsl(220, 10%, 75%); /* text-secondary */
+  --color-neutral-900: hsl(220, 10%, 94%); /* text-primary */
+  --color-primary: hsl(218, 80%, 65%);     /* 다크 배경 대비 보정 (hover 72%, active 78% — 라이트와 방향 반전) */
+  --color-danger: hsl(0, 65%, 65%);
+  --color-success: hsl(140, 55%, 55%);
+}
+```
+
+- **반전 대칭 원칙**: 라이트의 모든 `--color-*` 키가 다크 블록에도 존재해야 한다 (누락 = "어두운 배경 어두운 글자" 버그). 스케일이 대칭이면 `bg-primary text-neutral-0` 버튼도 자동으로 "밝은 파랑 + 어두운 텍스트"가 된다.
+- **scrim 예외**: 모달 오버레이는 `bg-neutral-900/40`을 쓰면 다크에서 "흰 스크림"으로 역전 → 의미 토큰 `--color-scrim`(라이트 `hsl(220,10%,10%)` / 다크 `hsl(220,14%,4%)`)을 분리해 `bg-scrim/40`으로 사용.
+- **영속화**: localStorage + 초기값 `prefers-color-scheme`. React 마운트 전 `<head>` 인라인 스크립트로 `document.documentElement.dataset.theme`을 설정해 FOUC 차단 (저장값은 "light"/"dark" 화이트리스트 검사).
+- **canvas 예외**: CSS 변수를 못 읽는 캔버스 라이브러리(force-graph·차트)만 theme prop으로 JS 색 상수 분기 유지.
+- **전환 애니메이션 없음**: 캔버스는 CSS transition 불가라 패널/캔버스 엇박자 발생 — 즉시 전환이 §0 톤("예측 가능하고 단단한")에 부합.
+
 **사용 규칙:** // from: 몽타주 공통
 - **한도 명시**: 한 화면에 Primary 1개, Neutral 2~3개 사용. Semantic 컬러는 오류/성공 등 꼭 필요한 경우에만 사용.
-- **Saturation 상한**: 모든 컬러의 채도는 최대 80%를 넘지 않아야 합니다.
+- **Saturation 상한**: 모든 컬러의 채도는 최대 80%를 넘지 않아야 합니다 (다크 팔레트 포함).
 - **금지 색상**: `indigo-500` 계열, 보라→파랑 그라데이션 ❌ (전형적인 AI 생성물 느낌 방지).
 
 # 2. Typography
