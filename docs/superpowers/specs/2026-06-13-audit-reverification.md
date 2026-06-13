@@ -94,7 +94,7 @@
 | ~~2~~ | trivial 게이트 — **KEEP (by-design 경계, 2026-06-13 사용자 결정)** | trivial-singleline | — | — | 바이트 예산은 짧은 위험 one-liner 미해결 + 정당 편집에 friction; RPI는 보안경계 아닌 자기규율(SECURITY.md 단일운영자). 생략 |
 | 3 ✅ | plan_status bold+펜스 엄격화 **(cycle-26 완료)** | planstatus-prose | L | ✓ | bold `**Status:**` 만 인정 + 코드펜스 스킵(awk 재작성). 27 plan 회귀 0, run-all 129/129 |
 | 4 ✅ | run-all 정합 강화 + install/verify skill parity **(cycle-27 완료)** | G2-b·install-required-skills | M | ✓ | TOTAL==선언 카운트 + 비주석 실재(주석-온리 phantom 차단, 양형식 커버) — hook→fn 매핑 불요; install REQUIRED +3 skill, verify-setup seal #29. RED 시연: 구 정합 오탐통과 vs 신 검출 |
-| 5 | doctor 마커 조건부 + doctor.test 격리 | doctor-marker·doctor-test-mutates | M | ✓ | 마커 부재-시-append 한정(무조건 sed 제거); doctor.test CLAUDE_HOME mktemp 격리(cycle-18 패턴) |
+| 5 ✅ | doctor 마커 보존(자가치유 은폐 제거) **(cycle-29 완료)** | doctor-marker·doctor-test-mutates | M | ✓ | 마커 append-only-if-absent(무조건 sed 제거) → §3 게이트+§1 캐시 둘 다 복원. Bug2는 Bug1로 마커변형 소멸+git백업스킵→해소(별도 mktemp 격리 불요); doctor.test Test3=no-overwrite 불변식. 라이브 마커 비변형 실증 |
 | 6 | fail-open 표면화 | G3-b·G6-a·failopen-trustbase | M | ✓ | rpi-bash.sh:32 종료코드 분기+hook_log FAILOPEN(orchestrator ERR-센티넬 이식), selfcheck .js 스모크, SECURITY.md 신뢰베이스 명시 |
 | 7 ✅ | state.json↔schema 검증 **(cycle-28 완료)** | state-schema-unverified | L | ✓ | verify-setup #30 스키마-구동 검증(스키마 읽어 required/type/minimum/date 재귀) — dead-spec→live. RED 시연 3종 검출. (closeout 노트는 rank8) |
 | 8 | 거버넌스 문서 정합 (캐시상 마지막) | G3-d·G7-c·G8-c·egress·inbound·encoding | L | ✗ | bypass 자세 분기 명시, plugin 카운트 reconcile, 글로벌 캐시 커버리지 정정, secret-scan=content-only/typo가드 명료화 |

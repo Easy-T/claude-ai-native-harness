@@ -175,14 +175,13 @@ CLAUDE_MD="$CLAUDE_HOME/CLAUDE.md"
 TODAY=$(date +%Y-%m-%d)
 if [ -f "$CLAUDE_MD" ]; then
   if grep -qE '<!-- audit: [0-9]{4}-[0-9]{2}-[0-9]{2} -->' "$CLAUDE_MD"; then
-    # update the existing marker to today (most recent wins)
-    tmp=$(mktemp)
-    sed -E "s|<!-- audit: [0-9]{4}-[0-9]{2}-[0-9]{2} -->|<!-- audit: $TODAY -->|" "$CLAUDE_MD" > "$tmp"
-    mv "$tmp" "$CLAUDE_MD"
-    check "audit marker" "PASS" "updated to $TODAY"
+    # cycle-29: 기존 마커는 '보존'(덮어쓰지 않음). doctor 실행만으로 audit 신선도를 today로 위조하면
+    #  (a) §3 30일 staleness 게이트가 영구 무력화되고, (b) CLAUDE.md 수정이 §1 prefix 캐시를 무효화한다.
+    #  실제 audit 갱신 권한은 closeout C-1(last_drift_check)/실제 점검 절차에만 — doctor는 부트스트랩(부재 시 생성)만.
+    check "audit marker" "PASS" "기존 마커 보존 (doctor는 갱신 안 함 — 실제 audit 신선도 유지)"
   else
     printf "\n<!-- audit: %s -->\n" "$TODAY" >> "$CLAUDE_MD"
-    check "audit marker" "PASS" "appended $TODAY"
+    check "audit marker" "PASS" "appended $TODAY (부재→부트스트랩)"
   fi
 else
   check "audit marker" "WARN" "CLAUDE.md missing — run install.sh 또는 백업에서 복원"
