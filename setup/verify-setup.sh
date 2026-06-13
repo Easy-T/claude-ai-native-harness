@@ -243,6 +243,30 @@ for s29 in common-agent-contract create-orchestrator-skill init-ai-ready-project
 done
 [ -z "$MISS29" ] && ok "install.sh REQUIRED ⊇ 7 tracked skills" || fail "install.sh REQUIRED skill 누락:$MISS29 (verify-setup item6와 drift)"
 
+# 30. state.json ↔ state.schema.json 검증 (dead-spec 활성화 — closeout이 쓴 state 무결성, cycle-28 NEW-state-schema-unverified).
+#     스키마-구동: 스키마 파일을 읽어 사용된 draft-07 부분집합(required/type/minimum/format:date)으로 재귀 검사 → 스키마 변경 자동 추종.
+ERR30=$(SCHEMA="$HOME/.claude/state.schema.json" DATA="$HOME/.claude/state.json" node -e '
+  const fs=require("fs");
+  let sc,d;
+  try{ sc=JSON.parse(fs.readFileSync(process.env.SCHEMA,"utf8")); }catch(e){ process.stdout.write("schema 파싱 실패"); process.exit(0); }
+  try{ d=JSON.parse(fs.readFileSync(process.env.DATA,"utf8")); }catch(e){ process.stdout.write("state.json 파싱 실패"); process.exit(0); }
+  const errs=[], isDate=s=>/^\d{4}-\d{2}-\d{2}$/.test(s);
+  (function chk(schema,val,path){
+    if(schema.required) for(const k of schema.required) if(!val||!(k in val)) errs.push(path+"."+k+" 누락(required)");
+    if(schema.properties&&val&&typeof val==="object") for(const [k,ps] of Object.entries(schema.properties)){
+      if(!(k in val)) continue; const v=val[k], p=path+"."+k;
+      if(ps.type==="integer"&&!Number.isInteger(v)) errs.push(p+" 정수 아님");
+      else if(ps.type==="string"&&typeof v!=="string") errs.push(p+" 문자열 아님");
+      else if(ps.type==="boolean"&&typeof v!=="boolean") errs.push(p+" 불리언 아님");
+      else if(ps.type==="object"){ if(typeof v!=="object"||v===null) errs.push(p+" 객체 아님"); else chk(ps,v,p); }
+      if(ps.type==="integer"&&typeof ps.minimum==="number"&&v<ps.minimum) errs.push(p+" < minimum "+ps.minimum);
+      if(ps.format==="date"&&typeof v==="string"&&!isDate(v)) errs.push(p+" 날짜형식(YYYY-MM-DD) 아님");
+    }
+  })(sc,d,"state");
+  process.stdout.write(errs.join("; "));
+' 2>/dev/null)
+[ -z "$ERR30" ] && ok "state.json ↔ schema 검증" || fail "state.json schema 위반: $ERR30"
+
 echo
 echo "verify-setup: PASS=$PASS FAIL=$FAIL"
 exit $FAIL

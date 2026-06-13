@@ -96,7 +96,7 @@
 | 4 ✅ | run-all 정합 강화 + install/verify skill parity **(cycle-27 완료)** | G2-b·install-required-skills | M | ✓ | TOTAL==선언 카운트 + 비주석 실재(주석-온리 phantom 차단, 양형식 커버) — hook→fn 매핑 불요; install REQUIRED +3 skill, verify-setup seal #29. RED 시연: 구 정합 오탐통과 vs 신 검출 |
 | 5 | doctor 마커 조건부 + doctor.test 격리 | doctor-marker·doctor-test-mutates | M | ✓ | 마커 부재-시-append 한정(무조건 sed 제거); doctor.test CLAUDE_HOME mktemp 격리(cycle-18 패턴) |
 | 6 | fail-open 표면화 | G3-b·G6-a·failopen-trustbase | M | ✓ | rpi-bash.sh:32 종료코드 분기+hook_log FAILOPEN(orchestrator ERR-센티넬 이식), selfcheck .js 스모크, SECURITY.md 신뢰베이스 명시 |
-| 7 | state.json↔schema 검증 | state-schema-unverified | L | ✓ | verify-setup에 schema 검증 항목, closeout C-1에 "쓴 후 검증" 명시 |
+| 7 ✅ | state.json↔schema 검증 **(cycle-28 완료)** | state-schema-unverified | L | ✓ | verify-setup #30 스키마-구동 검증(스키마 읽어 required/type/minimum/date 재귀) — dead-spec→live. RED 시연 3종 검출. (closeout 노트는 rank8) |
 | 8 | 거버넌스 문서 정합 (캐시상 마지막) | G3-d·G7-c·G8-c·egress·inbound·encoding | L | ✗ | bypass 자세 분기 명시, plugin 카운트 reconcile, 글로벌 캐시 커버리지 정정, secret-scan=content-only/typo가드 명료화 |
 | 9 | seal-regression 메타테스트 + harness-verify 기계트리거 | G4-a·closeout-harness-verify | M | ✓ | 임시 $HOME 대표변이로 FAIL→exit E2E 1개; git diff 기반 harness-verify 필수 판정 |
 
