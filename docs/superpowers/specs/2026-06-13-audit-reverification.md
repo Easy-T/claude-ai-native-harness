@@ -98,7 +98,7 @@
 | 6 | fail-open 표면화 | G3-b·G6-a·failopen-trustbase | M | ✓ | rpi-bash.sh:32 종료코드 분기+hook_log FAILOPEN(orchestrator ERR-센티넬 이식), selfcheck .js 스모크, SECURITY.md 신뢰베이스 명시 |
 | 7 ✅ | state.json↔schema 검증 **(cycle-28 완료)** | state-schema-unverified | L | ✓ | verify-setup #30 스키마-구동 검증(스키마 읽어 required/type/minimum/date 재귀) — dead-spec→live. RED 시연 3종 검출. (closeout 노트는 rank8) |
 | 8 ✅ | 거버넌스 문서 정합 **(cycle-30 완료)** | G3-d·G7-c·G8-c·egress·inbound·encoding·marker-refresh | L | ✗ | SECURITY.md: secret-scan=typo가드(exfil 아님)·egress/inbound/encoding 범위·bypass 자세 분기·fail-open 신뢰베이스·audit 마커 human-only 절 신설. README: bypass 분기(:499)·plugin 카운트(:122)·글로벌 캐시(:36) 정정 |
-| 9 ⏸ | seal-regression 메타테스트 + harness-verify 기계트리거 **(보류 — 다음 세션 fresh context)** | G4-a·closeout-harness-verify | M | ✓ | 임시 $HOME 대표변이로 FAIL→exit E2E 1개; git diff 기반 harness-verify 필수 판정. (seal 검출 동작은 cycle-27/28/29 RED 데모로 실증됨 — 영구 메타테스트 형식화만 남음) |
+| 9 ◐ | seal-regression 메타테스트 **(Part A ✅ cycle-31)** + harness-verify 기계트리거 **(Part B ⏸ defer)** | G4-a·closeout-harness-verify | M | ✓ | **Part A 봉인**: `setup/tests/seal-regression.test.sh` — 임시 $HOME 4복제본(무변이 대조군 + 대표 변이 3종: schema #30·parity #23·count #20)으로 seal이 non-zero exit+FAIL 메시지를 발화함을 E2E 증명. TDD 실측: RED(no-op 변이 → PASS=2/FAIL=3, 비공허) → GREEN(실 변이 → PASS=5/FAIL=0). verify-all STAGE 2b 배선, 라이브 무변이 cksum witness 단언. **Part B 보류 사유**: harness-verify 기계트리거(git diff 기반 필수 판정)는 rank2(trivial 게이트)가 KEEP된 것과 같은 단일-운영자 자기기만 클래스이고, SKILL.md prose는 hook 강제 불가(PreToolUse가 closeout의 git-diff 실행을 못 봄 — phase-skills/F12와 동형 advisory 잔여)라 저가치 × SKILL.md 골격 위험 → 의도적 defer(억지 진행 금지 원칙). |
 
 추가 선택(별도 평가): NEW-env-not-gitignored(.gitignore 방어 글롭 — low, 거의 무해), NEW-session-marker-collision, NEW-credentials-windows-acl, NEW-skeleton-firstmatch.
 

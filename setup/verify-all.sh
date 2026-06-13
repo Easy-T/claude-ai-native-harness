@@ -9,6 +9,9 @@ echo
 echo "=== STAGE 2: verify-setup ==="
 bash "$HOME/.claude/setup/verify-setup.sh"     || { echo "FAIL verify-setup"; exit 1; }
 echo
+echo "=== STAGE 2b: seal-regression meta-test ==="
+bash "$HOME/.claude/setup/tests/seal-regression.test.sh" || { echo "FAIL seal-regression"; exit 1; }
+echo
 echo "=== STAGE 3: hook unit tests ==="
 bash "$HOME/.claude/hooks/tests/run-all.sh"    || { echo "FAIL hook tests"; exit 1; }
 echo

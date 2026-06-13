@@ -26,7 +26,7 @@ _Avoid_: "안전 실패"(fail-safe와 방향 반대).
 _Avoid_: "전면 금지"(plan 있으면 통과한다).
 
 ### drift seal (봉인)
-verify-setup.sh의 특정-인스턴스 체크로 거버넌스 사실의 재드리프트를 막는 장치(#17~#25·#27·#28 실재; #26은 미채택·번호 소각). generalized 프레임워크 아님 — 안정 앵커가 있는 인스턴스만.
+verify-setup.sh의 특정-인스턴스 체크로 거버넌스 사실의 재드리프트를 막는 장치(#17~#25·#27~#30 실재; #26은 미채택·번호 소각). generalized 프레임워크 아님 — 안정 앵커가 있는 인스턴스만. seal이 드리프트에 실제로 발화함은 `setup/tests/seal-regression.test.sh`(verify-all STAGE 2b)가 임시 $HOME 복제본에 대표 변이(schema #30·parity #23·count #20)를 주입해 non-zero exit+FAIL 메시지를 E2E로 증명(cycle-31, G4-a) — 자가-표면화의 메타 레벨.
 _Avoid_: "범용 parity 검사".
 
 ### genesis record
