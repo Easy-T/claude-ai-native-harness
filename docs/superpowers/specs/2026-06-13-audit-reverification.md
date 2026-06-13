@@ -97,8 +97,8 @@
 | 5 ✅ | doctor 마커 보존(자가치유 은폐 제거) **(cycle-29 완료)** | doctor-marker·doctor-test-mutates | M | ✓ | 마커 append-only-if-absent(무조건 sed 제거) → §3 게이트+§1 캐시 둘 다 복원. Bug2는 Bug1로 마커변형 소멸+git백업스킵→해소(별도 mktemp 격리 불요); doctor.test Test3=no-overwrite 불변식. 라이브 마커 비변형 실증 |
 | 6 | fail-open 표면화 | G3-b·G6-a·failopen-trustbase | M | ✓ | rpi-bash.sh:32 종료코드 분기+hook_log FAILOPEN(orchestrator ERR-센티넬 이식), selfcheck .js 스모크, SECURITY.md 신뢰베이스 명시 |
 | 7 ✅ | state.json↔schema 검증 **(cycle-28 완료)** | state-schema-unverified | L | ✓ | verify-setup #30 스키마-구동 검증(스키마 읽어 required/type/minimum/date 재귀) — dead-spec→live. RED 시연 3종 검출. (closeout 노트는 rank8) |
-| 8 | 거버넌스 문서 정합 (캐시상 마지막) | G3-d·G7-c·G8-c·egress·inbound·encoding | L | ✗ | bypass 자세 분기 명시, plugin 카운트 reconcile, 글로벌 캐시 커버리지 정정, secret-scan=content-only/typo가드 명료화 |
-| 9 | seal-regression 메타테스트 + harness-verify 기계트리거 | G4-a·closeout-harness-verify | M | ✓ | 임시 $HOME 대표변이로 FAIL→exit E2E 1개; git diff 기반 harness-verify 필수 판정 |
+| 8 ✅ | 거버넌스 문서 정합 **(cycle-30 완료)** | G3-d·G7-c·G8-c·egress·inbound·encoding·marker-refresh | L | ✗ | SECURITY.md: secret-scan=typo가드(exfil 아님)·egress/inbound/encoding 범위·bypass 자세 분기·fail-open 신뢰베이스·audit 마커 human-only 절 신설. README: bypass 분기(:499)·plugin 카운트(:122)·글로벌 캐시(:36) 정정 |
+| 9 ⏸ | seal-regression 메타테스트 + harness-verify 기계트리거 **(보류 — 다음 세션 fresh context)** | G4-a·closeout-harness-verify | M | ✓ | 임시 $HOME 대표변이로 FAIL→exit E2E 1개; git diff 기반 harness-verify 필수 판정. (seal 검출 동작은 cycle-27/28/29 RED 데모로 실증됨 — 영구 메타테스트 형식화만 남음) |
 
 추가 선택(별도 평가): NEW-env-not-gitignored(.gitignore 방어 글롭 — low, 거의 무해), NEW-session-marker-collision, NEW-credentials-windows-acl, NEW-skeleton-firstmatch.
 

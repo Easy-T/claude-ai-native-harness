@@ -33,7 +33,7 @@
 | `enforce-rpi-cycle` | 차단 | Write/Edit/NotebookEdit on 코드 파일 | active plan 없으면 차단. 비실행 확장자(`*.md` 등)·비코드 config만 화이트리스트 — **코드 확장자는 디렉터리 면제 없음**. trivial = 변경 라인 max(old,new) ≤5. active plan = head-20 `**Status:** active\|in_progress` 명시 필수 (cycle-23) |
 | `enforce-rpi-bash` | 차단 | Bash | 셸로 코드 파일 작성(`>`/`>>`/`tee`/heredoc/`sed -i`/`cp`·`mv`/`dd`/`install`/`rsync`) 시 active plan 없으면 차단 + `git apply`/`patch`는 보수차단(타깃 추출 불가, read-only 변형 통과). `RPI_SKIP` 우회 |
 | `enforce-secret-scan` | 차단 | Write/Edit/NotebookEdit + Bash | 고-특이도 시크릿(API 키/토큰/PEM private key) 감지 시 차단(종류만 보고). `SECRET_SCAN_SKIP` 우회 |
-| `stable-claude-md` | 알림 | 루트 CLAUDE.md 수정 | "캐시 비용 ≈20배" 환기 (작업은 허용) |
+| `stable-claude-md` | 알림 | 프로젝트 루트 CLAUDE.md 수정 | "캐시 비용 ≈20배" 환기 (작업은 허용). 글로벌 `~/.claude/CLAUDE.md`는 제외 — §1 모델-레벨 환기로 위임 |
 | `surface-constitution` | 알림 | Write/Edit/NotebookEdit on 의존성 매니페스트(§5)·UI 확장자(§8) | 해당 헌법 조항을 `additionalContext`(모델 컨텍스트)로 환기 — ADR 작성(§5)/ui-design 사용(§8). 1세션 §별 1회, 차단 아님 |
 | `auto-compact-watch` | 알림 | Read/Bash/Agent 후 | **모델-인지** 컨텍스트 창(opus-4-7/4-8→1M, 그 외 200K; `CONTEXT_LIMIT` override) 기준 임계 도달 시 `/compact` 권장. 경고 %는 `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE`에서 도출 (1세션 1회) |
 | `verify-loop-watch` | 알림 | Stop (턴 종료) | active plan + 미검증 코드 변경 시 `scripts/check.sh`+closeout 권장 (1세션 1회, advisory) |
@@ -119,7 +119,7 @@ bash ~/.claude/setup/verify-all.sh
 
 기대 출력: `ALL PASS — system meets §6.6 acceptance gate.`
 
-이 결과 + 4개 plugin 설치 완료면 **즉시 사용 가능**.
+이 결과 + 핵심 플러그인(`superpowers`·`skill-creator` 필수 + `claude-md-management` 선택) 설치 완료면 **즉시 사용 가능**. (`mattpocock/skills`의 grill-with-docs는 doctor.sh가 자동 설치 — STEP 4의 수동 install 대상 3개에 불포함.)
 
 ---
 
@@ -496,7 +496,7 @@ git push
 
 ## 🔒 보안 모델
 
-이 하네스는 `defaultMode: "bypassPermissions"` + `skipDangerousModePermissionPrompt: true`로 동작합니다 — **권한 프롬프트 없이 모든 안전장치를 커스텀 hook에 집중**시킨 단일-운영자(single trusted operator) 가정의 **의도된 트레이드오프**입니다. 이 하네스 채택 = 이 자세를 의식적으로 수용하는 것.
+이 하네스는 `defaultMode: "bypassPermissions"` + `skipDangerousModePermissionPrompt: true`로 동작합니다 — **권한 프롬프트 없이 모든 안전장치를 커스텀 hook에 집중**시킨 단일-운영자(single trusted operator) 가정의 **의도된 트레이드오프**입니다(이 *운영본* `settings.json` 기준). 단, 배포 템플릿 `settings.example.json`은 `defaultMode: default`(프롬프트 ON)로 출하되고 install.sh가 이를 복사하므로 **신규 설치자는 default 자세로 시작** — bypass는 의식적 전환입니다.
 
 - 완화: `enforce-secret-scan`(시크릿 유출 차단) + `enforce-rpi-bash`(셸 코드작성 게이트).
 - 잔여 위험·CCS 프록시 의존·자격증명 처리·secret-scan 한계 → **[`SECURITY.md`](SECURITY.md)** 참조.

