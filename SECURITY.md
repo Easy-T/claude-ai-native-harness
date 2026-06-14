@@ -16,7 +16,7 @@
     더 강한 자세가 필요하면 `defaultMode`를 `default`/`acceptEdits`로 바꾸고 allowlist 운영할 것.
   - **배포 자세 분기**: 위 bypassPermissions 자세는 이 *운영본*(live `settings.json`)의 선택이다.
     배포 템플릿 `settings.example.json`은 `defaultMode: default`(프롬프트 ON)로 출하되고 install.sh가 이를 복사하므로 **신규 설치자는 default 자세로 시작**한다 — bypass는 의식적 전환.
-  - **fail-open 신뢰베이스**: `require_node`(node 부재)·파서 런타임 실패 시 차단 hook은 통과(fail-open)한다 — `hooks/_common.sh` 무결성 + PATH상 `node` 존재가 전제. 침해 시 모든 경계가 침묵 무력화(세션-시작 selfcheck가 node-missing/syntax만 차기 표면화).
+  - **fail-open 신뢰베이스**: `require_node`(node 부재)·파서 런타임 실패 시 차단 hook은 통과(fail-open)한다 — `hooks/_common.sh` 무결성 + PATH상 `node` 존재가 전제. 침해 시 모든 경계가 침묵 무력화 — 단 (a) `enforce-rpi-bash` 파서 크래시는 FAILOPEN 로깅+stderr로 실시간 표면화하고, (b) 세션-시작 selfcheck는 node-missing·구문 오류에 더해 `hooks/lib/*.js` 런타임 스모크로 *손상 파서*까지 차기 세션에 표면화한다(cycle-32 rank6; `bash -n`이 못 잡는 런타임 고장 포착).
 
 ## audit 마커 (§3 staleness 게이트)
 - `~/.claude/CLAUDE.md`의 `<!-- audit: YYYY-MM-DD -->`는 마지막 *실제* 점검 시점. session-start-audit이 30일 초과 시 알림(읽기 전용).

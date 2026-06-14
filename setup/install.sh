@@ -147,11 +147,11 @@ echo
 echo "  [STEP 1] Claude Code 세션을 재시작"
 echo "           하네스 hook들이 settings.json에서 로드됩니다."
 echo
-echo "  [STEP 2] 의존 플러그인 설치 (필수, 미설치 시 RPI 사이클 작동 X)"
+echo "  [STEP 2] 의존 플러그인 설치 (superpowers=필수 — 미설치 시 RPI 작동 X; 나머지=선택)"
 echo "           새 세션에서 다음 명령으로 설치:"
-echo "             /plugin install superpowers@claude-plugins-official"
-echo "             /plugin install skill-creator@claude-plugins-official"
-echo "             /plugin install claude-md-management@claude-plugins-official"
+echo "             /plugin install superpowers@claude-plugins-official            # 필수 (RPI R/P/I 엔진)"
+echo "             /plugin install skill-creator@claude-plugins-official          # 선택 (신규 skill 생성)"
+echo "             /plugin install claude-md-management@claude-plugins-official    # 선택 (CLAUDE.md 관리)"
 echo "           또는 settings.json의 enabledPlugins 키에 직접 추가."
 echo
 echo "  [STEP 3] 검증"
