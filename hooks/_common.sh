@@ -89,7 +89,7 @@ plan_status() {
   # cycle-26: bold '**Status:**' 형식만 인정 + 코드펜스(```) 스킵 — head-20의 prose/예시 'Status: active'가
   # 첫 매칭으로 게이트를 오개방하던 버그(loose 정규식) 봉인. 첫 매칭의 첫 단어를 소문자로 출력.
   head -20 "$1" 2>/dev/null | awk '
-    /^[[:space:]]*```/ { fence = !fence; next }
+    /^[[:space:]]*(```|~~~)/ { fence = !fence; next }
     fence { next }
     /^\*\*[Ss]tatus:/ {
       line = $0

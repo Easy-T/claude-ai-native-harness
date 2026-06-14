@@ -137,3 +137,10 @@ hooks-lib	136-planstatus-prose-skip	output	gen_lib_136
 hooks-lib	137-planstatus-fence-skip	output	gen_lib_137
 hooks-lib	138-planstatus-real-active	output	gen_lib_138
 enforce-rpi-cycle	139-prose-status-noplan	2	gen_erc_139
+# cycle-34 (2026-06-14) — bash-write 토크나이저 일반화 (>& 파일명 타깃 + ~~~ 펜스)
+hooks-lib	140-redir-fdamp-code	output	gen_lib_140
+hooks-lib	141-redir-fdamp-num-pass	output	gen_lib_141
+hooks-lib	142-redir-2to1-pass	output	gen_lib_142
+enforce-rpi-bash	143-fdamp-noplan	2	gen_erb_143
+hooks-lib	144-planstatus-tilde-fence-skip	output	gen_lib_144
+enforce-rpi-cycle	145-tilde-fence-noplan	2	gen_erc_145

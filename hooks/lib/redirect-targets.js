@@ -38,7 +38,8 @@ if (/(^\s*|[;&|()]\s*)patch\b/.test(cmd)) {
     if (c === ">" && cmd[i - 1] !== "-" && cmd[i - 1] !== "=") {
       let j = i + 1;
       if (cmd[j] === ">") j++;
-      if (cmd[j] === "|") j++;
+      if (cmd[j] === "|") j++;          // >| / >>|  noclobber
+      else if (cmd[j] === "&") j++;     // >& / >>&  both-streams to file (fd-num targets filtered by isCode)
       toks.push({ v: cmd.slice(i, j), op: true });
       i = j; continue;
     }
