@@ -10,10 +10,24 @@ WARN=0
 ITEMS=()
 
 CLAUDE_HOME="${CLAUDE_HOME:-$HOME/.claude}"
-WINDOWS_CLAUDE_HOME_CANDIDATE="/mnt/c/Users/12132/.claude"
 IS_WSL=0
 if [ -r /proc/version ] && grep -qiE 'microsoft|wsl' /proc/version; then
   IS_WSL=1
+fi
+
+# WSL: locate the Windows-side .claude (shared with Windows Claude) — portable, no hardcoded user.
+# Priority: explicit override WINDOWS_CLAUDE_HOME > derive from Windows %USERPROFILE% via interop > empty (→ WARN).
+WINDOWS_CLAUDE_HOME_CANDIDATE="${WINDOWS_CLAUDE_HOME:-}"
+if [ -z "$WINDOWS_CLAUDE_HOME_CANDIDATE" ] && [ "$IS_WSL" -eq 1 ] && command -v cmd.exe >/dev/null 2>&1; then
+  win_profile=$( cd /mnt/c 2>/dev/null && cmd.exe /c "echo %USERPROFILE%" 2>/dev/null | tr -d '\r\n' || true )
+  # C:\Users\Name → /mnt/c/Users/Name/.claude  (parse-safe case-glob + bash param-expansion; from-file verified)
+  case "$win_profile" in
+    [A-Za-z]:*)
+      win_drive="${win_profile%%:*}"; win_drive=$(printf '%s' "$win_drive" | tr 'A-Z' 'a-z')
+      win_rest="${win_profile#?:}"; win_rest="${win_rest//\\//}"
+      WINDOWS_CLAUDE_HOME_CANDIDATE="/mnt/$win_drive$win_rest/.claude"
+      ;;
+  esac
 fi
 
 check() {
@@ -108,7 +122,7 @@ if [ "$IS_WSL" -eq 1 ]; then
     if [ "$CLAUDE_HOME" = "$WINDOWS_CLAUDE_HOME_CANDIDATE" ]; then
       check "Claude home namespace" "PASS" "$CLAUDE_HOME"
     else
-      check "Claude home namespace" "FAIL" "WSL detected; run with HOME=/mnt/c/Users/12132 or CLAUDE_HOME=$WINDOWS_CLAUDE_HOME_CANDIDATE (current: $CLAUDE_HOME)"
+      check "Claude home namespace" "FAIL" "WSL detected; run with HOME=${WINDOWS_CLAUDE_HOME_CANDIDATE%/.claude} or CLAUDE_HOME=$WINDOWS_CLAUDE_HOME_CANDIDATE (current: $CLAUDE_HOME)"
       report_results
       echo "[doctor] FATAL: Claude home namespace mismatch." >&2
       exit 1

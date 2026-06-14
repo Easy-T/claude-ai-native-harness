@@ -1,5 +1,23 @@
 #!/usr/bin/env bash
 set -uo pipefail
+echo "=== STAGE 0: RPI 전제조건 (superpowers 핵심 트리오) ==="
+# verify-all 은 수용 게이트. RPI 엔진인 superpowers 트리오
+# (start-rpi-cycle Phase R/P/I 가 호출: brainstorming/writing-plans/executing-plans)가 부재하면
+# 최종 수용 메시지를 거짓 보증하므로 차단. (doctor.sh 20b WARN 는 install-time advisory 로 유지 — run-context 분리;
+#  이 트리오는 doctor 20b 4종의 수용-임계 부분집합으로 의도적 비동일.)
+RPI_PREREQ_MISSING=""
+for sk in brainstorming writing-plans executing-plans; do
+  ls "$HOME"/.claude/plugins/cache/*/superpowers/*/skills/"$sk"/SKILL.md >/dev/null 2>&1 \
+    || RPI_PREREQ_MISSING="$RPI_PREREQ_MISSING $sk"
+done
+if [ -n "$RPI_PREREQ_MISSING" ]; then
+  echo "FAIL STAGE 0: superpowers 핵심 skill 부재 —$RPI_PREREQ_MISSING" >&2
+  echo "  RPI(start-rpi-cycle Phase R/P/I)가 작동하지 않습니다. 설치: /plugin install superpowers@claude-plugins-official" >&2
+  echo "  (이 게이트 미통과 시 최종 수용 메시지를 출력하지 않음 — 거짓 보증 방지)" >&2
+  exit 1
+fi
+echo "[stage0] RPI 전제조건 OK (brainstorming/writing-plans/executing-plans present)"
+echo
 echo "=== STAGE 1: doctor ==="
 bash "$HOME/.claude/setup/doctor.sh"           || { echo "FAIL doctor"; exit 1; }
 echo
@@ -14,6 +32,9 @@ bash "$HOME/.claude/setup/tests/seal-regression.test.sh" || { echo "FAIL seal-re
 echo
 echo "=== STAGE 2c: fail-open surface meta-test ==="
 bash "$HOME/.claude/setup/tests/failopen-surface.test.sh" || { echo "FAIL failopen-surface"; exit 1; }
+echo
+echo "=== STAGE 2d: RPI prereq gate meta-test ==="
+bash "$HOME/.claude/setup/tests/rpi-prereq-gate.test.sh" || { echo "FAIL rpi-prereq-gate"; exit 1; }
 echo
 echo "=== STAGE 3: hook unit tests ==="
 bash "$HOME/.claude/hooks/tests/run-all.sh"    || { echo "FAIL hook tests"; exit 1; }

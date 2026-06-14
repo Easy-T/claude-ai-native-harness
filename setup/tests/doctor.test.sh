@@ -31,4 +31,11 @@ else
     { echo "FAIL: no backup directory created"; exit 1; }
 fi
 
+# Test 5 (cycle-33): doctor.sh 이식성 — 하드코딩된 사용자-특정 WSL 경로 부재 (G7-a 회귀 방지).
+# WSL Windows-home candidate/FATAL 메시지가 특정 사용자(/mnt/c/Users/12132)로 하드코딩되면
+# 타 사용자 fresh-clone 비이식 → env override(WINDOWS_CLAUDE_HOME) + %USERPROFILE% 유도로 치환되어야 함.
+if grep -nF '/mnt/c/Users/12132' "$DOCTOR" >/dev/null 2>&1; then
+  echo "FAIL: doctor.sh에 하드코딩된 사용자-특정 경로(/mnt/c/Users/12132) 잔존 — 이식성 위반"; exit 1
+fi
+
 echo "PASS: all doctor.sh tests"
