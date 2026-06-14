@@ -144,3 +144,8 @@ hooks-lib	142-redir-2to1-pass	output	gen_lib_142
 enforce-rpi-bash	143-fdamp-noplan	2	gen_erb_143
 hooks-lib	144-planstatus-tilde-fence-skip	output	gen_lib_144
 enforce-rpi-cycle	145-tilde-fence-noplan	2	gen_erc_145
+# cycle-35 (2026-06-14) — 우회-사용 표면화(G3-a) + 로그 소비(G6-c)
+enforce-rpi-bash	150-bypass-rpibash-surface	output	gen_erb_150
+enforce-secret-scan	151-bypass-secretscan-surface	output	gen_ess_151
+enforce-rpi-cycle	152-bypass-rpicycle-surface	output	gen_erc_152
+hooks-lib	153-logsummary-counts	output	gen_lib_153

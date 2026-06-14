@@ -24,6 +24,7 @@ CWD=$(echo "$INPUT" | resolve_cwd) || { hook_log "enforce-rpi-bash" "bash" "PASS
 # 명시 우회
 if [ -n "${RPI_SKIP:-}" ]; then
   hook_log "enforce-rpi-bash" "bash" "PASS" "skip:${RPI_SKIP}"
+  surface_bypass "rpi-bash" "$(echo "$INPUT" | json_get session_id)" "⚠ RPI bash 게이트 우회 (RPI_SKIP='${RPI_SKIP}') — 이 세션 셸 코드작성에 게이트 미적용; 의도된 우회인지 확인"
   exit 0
 fi
 

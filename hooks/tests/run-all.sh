@@ -681,6 +681,31 @@ touch /tmp/surface-adr-sct93 2>/dev/null
 test_sc "93-dedup-silent"      silent "$(sc_ev sct93 "$SCRATCH/proj/package.json")"
 rm -f /tmp/surface-adr-sct93 2>/dev/null
 
+# ==================== CYCLE-35: BYPASS SURFACING (G3-a) + LOG CONSUMPTION (G6-c) ====================
+# 출력 기반: bypass 분기가 additionalContext 로 우회를 표면화(alert) vs 무(silent). exit 항상 0(기존 skip 테스트 불변).
+test_bypass() {
+  local name="$1"; local hook="$2"; local input="$3"; local env_pfx="$4"; local sid="$5"
+  TOTAL=$((TOTAL+1))
+  rm -f /tmp/bypass-*-"$sid" 2>/dev/null
+  local out got=silent
+  out=$(echo "$input" | env $env_pfx "$HOOKS/$hook" 2>/dev/null)
+  { echo "$out" | grep -qF 'additionalContext' && echo "$out" | grep -qF '우회'; } && got=alert
+  rm -f /tmp/bypass-*-"$sid" 2>/dev/null
+  [ "$got" = alert ] && PASSED=$((PASSED+1)) || FAILED_LIST+=("$name (want=alert got=$got)")
+}
+bsid_ev() { printf '{"session_id":"%s","tool_name":"Bash","tool_input":{"command":"%s"},"cwd":"%s"}' "$1" "$2" "$3"; }
+wsid_ev() { SID="$1" FILE="$2" CONTENT="$3" CWD="$4" node -e 'console.log(JSON.stringify({session_id:process.env.SID,tool_name:"Write",tool_input:{file_path:process.env.FILE,content:process.env.CONTENT},cwd:process.env.CWD}))'; }
+test_bypass "150-bypass-rpibash-surface"    "enforce-rpi-bash.sh"    "$(bsid_ev byp35a 'echo x > foo.py' "$NP")"     "RPI_SKIP=hotfix"           byp35a
+test_bypass "151-bypass-secretscan-surface" "enforce-secret-scan.sh" "$(bsid_ev byp35b 'echo hello world' "$NP")"    "SECRET_SCAN_SKIP=approved" byp35b
+test_bypass "152-bypass-rpicycle-surface"   "enforce-rpi-cycle.sh"   "$(wsid_ev byp35c "$NP/src/x.ts" "$BIG" "$NP")" "RPI_SKIP=hotfix"           byp35c
+# cycle-35: log_summary 당월 집계 (G6-c, 값 미표시 — 카운트만)
+LOGT=$(mktemp "$SCRATCH/logsum-XXXXXX.log")
+{ printf 'ts\tenforce-rpi-bash\tx.py\tBLOCK\tno-active-plan\n'
+  printf 'ts\tenforce-rpi-cycle\ty.sh\tBLOCK\tno-active-plan\n'
+  printf 'ts\tenforce-rpi-bash\tbash\tPASS\tskip:hotfix\n'
+  printf 'ts\tredirect-targets.js\tparser\tFAILOPEN\tparser-exit-1\n'; } > "$LOGT"
+test_lib "153-logsummary-counts" "BLOCK=2 SKIP=1 FAILOPEN=1 ALERT=0" "$(bash -c 'source "$HOME/.claude/hooks/_common.sh"; log_summary "$1"' _ "$LOGT")"
+
 # ==================== Summary ====================
 echo
 echo "Hook tests: $PASSED / $TOTAL passed"

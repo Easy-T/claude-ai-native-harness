@@ -27,6 +27,7 @@ PAYLOAD=$(echo "$INPUT" | node -e '
 
 if [ -n "${SECRET_SCAN_SKIP:-}" ]; then
   hook_log "enforce-secret-scan" "payload" "PASS" "skip:${SECRET_SCAN_SKIP}"
+  surface_bypass "secret-scan" "$(echo "$INPUT" | json_get session_id)" "⚠ 시크릿 스캔 우회 (SECRET_SCAN_SKIP='${SECRET_SCAN_SKIP}') — 이 페이로드 미검사; 의도된 우회인지 확인"
   exit 0
 fi
 

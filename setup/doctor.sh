@@ -286,6 +286,17 @@ if [ -d "$LOGDIR" ]; then
   fi
 fi
 
+# 20d. hooks/.log 당월 판정 집계 (G6-c 로그 소비 — read-only, 카운트만; 값 미표시, S8 postmortem)
+LOGMONTH="$LOGDIR/$(date +%Y-%m).log"
+if [ -f "$LOGMONTH" ] && [ -r "$CLAUDE_HOME/hooks/_common.sh" ]; then
+  LOGSUM=$( source "$CLAUDE_HOME/hooks/_common.sh" 2>/dev/null; log_summary "$LOGMONTH" 2>/dev/null ) || LOGSUM=""
+  if [ -n "$LOGSUM" ]; then
+    check "hook log 당월 집계" "PASS" "$LOGSUM"
+  else
+    check "hook log 당월 집계" "WARN" "집계 불가"
+  fi
+fi
+
 # 21. hook 파일 존재 + 실행권한
 REQUIRED_HOOKS=(
   "enforce-orchestrator.sh"

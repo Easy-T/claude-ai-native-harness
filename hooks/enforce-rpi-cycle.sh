@@ -68,6 +68,7 @@ fi
 if [ -n "${RPI_SKIP:-}" ]; then
   hook_log "enforce-rpi-cycle" "$FILE_PATH" "PASS" "skip:${RPI_SKIP}"
   echo "[rpi] SKIP: $RPI_SKIP" >&2
+  surface_bypass "rpi-cycle" "$(echo "$INPUT" | json_get session_id)" "⚠ RPI 게이트 우회 (RPI_SKIP='${RPI_SKIP}') — 이 세션 코드변경에 RPI 미적용; 의도된 우회인지 확인"
   exit 0
 fi
 

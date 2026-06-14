@@ -149,6 +149,28 @@ emit_system_message() { MSG="$1" node -e 'process.stdout.write(JSON.stringify({s
 # (공식 hooks 문서: PreToolUse exit 0 시 stdout JSON 만 파싱; stderr 는 모델에 도달 안 함.)
 emit_additional_context() { MSG="$1" node -e 'process.stdout.write(JSON.stringify({hookSpecificOutput:{hookEventName:"PreToolUse",additionalContext:process.env.MSG}}))'; }
 
+# --- surface_bypass <hook> <session_id> <msg>: 우회-사용을 세션당 1회 additionalContext 로 표면화 (G3-a) ---
+# advisory 전용 — 항상 return 0(표면화 실패가 작업을 차단하면 안 됨). session_marker dedup 로 우회-세션 매-명령 bloat 방지.
+surface_bypass() {
+  local hook="$1" sid="${2:-unknown}" msg="$3" mark
+  mark=$(session_marker "bypass-$hook" "$sid")
+  if [ -f "$mark" ]; then return 0; fi
+  : > "$mark" 2>/dev/null || true
+  emit_additional_context "$msg" || true
+  return 0
+}
+
+# --- log_summary <logfile>: 당월 .log 의 verdict 카운트만 출력 (값 미표시, G6-c 로그 소비) ---
+log_summary() {
+  local f="${1:-}"
+  if [ ! -f "$f" ]; then printf 'BLOCK=0 SKIP=0 FAILOPEN=0 ALERT=0'; return 0; fi
+  awk -F'\t' '
+    $4=="BLOCK"{b++} $4=="FAILOPEN"{fo++} $4=="ALERT"{a++}
+    ($4=="PASS" && $5 ~ /^skip:/){s++}
+    END{printf "BLOCK=%d SKIP=%d FAILOPEN=%d ALERT=%d", b+0, s+0, fo+0, a+0}
+  ' "$f" 2>/dev/null || printf 'BLOCK=0 SKIP=0 FAILOPEN=0 ALERT=0'
+}
+
 # --- resolve_cwd: stdin JSON 의 cwd 를 정규화해 출력. 비면 비-zero return (호출자가 fail-open/skip 결정, S12) ---
 # Usage: CWD=$(echo "$INPUT" | resolve_cwd) || { <empty 처리>; }
 # 비결정적 "." 기본값을 쓰지 않도록 cwd 해석을 4개 hook 에서 단일화.
