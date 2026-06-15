@@ -127,8 +127,9 @@ if (/\bsed\b/.test(cmd) && /\s-i\b|\s-i\S+|--in-place/.test(cmd)) {
   if (mdd) targets.push(mdd[2]);
 }
 // 6) install / rsync SRC DST : 마지막 비옵션 인자 (디렉터리 타깃은 코드-ext 비매칭으로 자연 통과)
+//    명령-위치 앵커(cycle-37): 라인시작 또는 ;/&/|/( 뒤 + 후행공백일 때만 — 경로 내 'install' 부분일치 오탐 방지.
 {
-  for (const mi of cmd.matchAll(/\b(?:install|rsync)\b([^|;&]*)/g)) {
+  for (const mi of cmd.matchAll(/(?:^|[;&|()])\s*(?:install|rsync)\s+([^|;&]*)/g)) {
     const args = mi[1].split(/\s+/).filter(t => t && !t.startsWith("-"));
     if (args.length >= 2) targets.push(args[args.length - 1].replace(/^["']|["']$/g, ""));
   }
