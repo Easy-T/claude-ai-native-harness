@@ -36,6 +36,20 @@ else if (cmd[j] === "&") j++;     // >& / >>&  (both-streams)
 ```
 백틱 OR 틸드 펜스 둘 다 토글 → `~~~` 펜스 내용도 스킵. (혼합 펜스는 비정상 문서 = 범위 밖.)
 
+### 결정 (3) — install/rsync 명령-위치 앵커 (cycle-37 delta, 2026-06-15)
+
+**계기**: cycle-33~36 구현 중 `setup/install.sh` 경로를 참조하는 복합 검증 명령(`echo "... setup/install.sh ..." $(...)` 형태)이 라이브 게이트에 *실측 차단*됨. 원인: `redirect-targets.js:130`의 `\b(?:install|rsync)\b`가 **파일명/경로 내 'install' 부분일치**(`setup/install.sh`)를 coreutils `install` 명령으로 오탐 → 후행 코드타깃 추출 → no-plan시 과차단(over-block). cycle-23 install/rsync 탐지의 잔여.
+
+> **Gate P 교정(2026-06-15, review-strict 실측)**: *단일* `bash -n setup/install.sh` 는 차단되지 **않는다** — `args.length>=2` 가드(line 132)가 1-토큰 `.sh` 매칭을 흡수하기 때문. 결함은 'install' 부분일치 **뒤에 ≥2 비옵션 토큰**이 와 가드를 통과하고 마지막 토큰이 코드-ext일 때만 발화. ∴ 충실한 재현자(faithful reproducer)는 `cat setup/install.sh hooks/foo.py`(OLD→`hooks/foo.py` 추출=차단; NEW→`""`). 표준-단어 변형 `echo install foo.py bar.py`(OLD→`bar.py`)도 동일 클래스이며 앵커가 함께 봉인. (실측: A=clean→`[]`, B=path-substr→`[hooks/foo.py]`, C=standalone→`[bar.py]`, D=real `install`→`[b.py]`.)
+
+**결정**: install/rsync 탐지를 **명령-위치 앵커**로 제한 — `git apply`(line 21) `(^\s*|[;&|()]\s*)` 선례 동형. install/rsync는 *명령 시작*(라인 처음 또는 `;`/`&`/`|`/`(` 뒤)이고 *후행 공백+인자*를 가질 때만 매칭:
+```
+/\b(?:install|rsync)\b([^|;&]*)/g   →   /(?:^|[;&|()])\s*(?:install|rsync)\s+([^|;&]*)/g
+```
+→ `cat setup/install.sh hooks/foo.py`: 'install'이 `/` 뒤(명령경계 아님) → 미매칭(미차단). `echo install foo.py bar.py`: 'install'이 `echo `(공백) 뒤 → 미매칭. `install -m 755 a b.py`: 라인시작 → 매칭(불변). `foo && install x y.sh`: `&&` 뒤 → 매칭(불변). 보수성: 파일명/경로 substring·비명령-단어 무차단, 진짜 명령만 탐지. (NEW 실측: B/C→`[]`, D/E/F→`b.py`/`b.py`/`y.sh`.)
+
+**비목표(YAGNI)**: cp/mv는 미터치 — `\bcp\b`/`\bmv\b`는 파일명 substring 매칭이 드물고(보통 standalone word) 그 타깃은 비코드라 자연 통과, 기존 테스트(97/98/113) 보유. 관측된 결함은 install/rsync만.
+
 ---
 
 ## 2. 테스트 (TDD, 대표 케이스 — 전수 금지)

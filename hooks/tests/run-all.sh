@@ -327,6 +327,8 @@ test_erb "105-heredoc-checkbox-only" 2 "$(mk_bash_event "$HEREDOC_PY" "$CB")"
 test_erb "118-git-apply-noplan" 2 "$(mk_bash_event 'git apply fix.patch' "$NP")"
 test_erb "119-git-apply-plan"   0 "$(mk_bash_event 'git apply fix.patch' "$WP")"
 test_erb "120-patch-noplan"     2 "$(mk_bash_event 'patch -p1 < f.patch' "$NP")"
+# cycle-37: cat setup/install.sh hooks/foo.py 는 install 명령 아님 → no-plan 이어도 통과(과차단 봉인)
+test_erb "155-install-substr-noplan-pass" 0 "$(mk_bash_event 'cat setup/install.sh hooks/foo.py' "$NP")"
 # cycle-25 rank1: redirect-targets 4벡터 E2E (단일인용 차단·화살표 통과·node-eval 차단)
 test_erb "130-singlequote-noplan" 2 "$(mk_bash_event "echo x > 'evil.py'" "$NP")"
 test_erb "131-arrow-pass-noplan"  0 "$(mk_bash_event 'echo done -> next.js' "$NP")"
@@ -536,6 +538,8 @@ test_lib "114-git-apply"        "__PATCH_APPLY__" "$(CMD='git apply fix.patch' C
 test_lib "115-git-apply-check"  ""                "$(CMD='git apply --check fix.patch' CODE_EXT_REGEX="$LIBREGEX" node "$LIB/redirect-targets.js")"
 test_lib "116-patch-cmd"        "__PATCH_APPLY__" "$(CMD='patch -p1 < fix.patch' CODE_EXT_REGEX="$LIBREGEX" node "$LIB/redirect-targets.js")"
 test_lib "117-rsync-dir-pass"   ""                "$(CMD='rsync -a src/ dst/' CODE_EXT_REGEX="$LIBREGEX" node "$LIB/redirect-targets.js")"
+# cycle-37: 'install'이 명령이 아니라 경로 substring(setup/install.sh)이면 후행 ≥2 토큰이라도 미탐지(오탐0)
+test_lib "154-install-substr-pass" ""             "$(CMD='cat setup/install.sh hooks/foo.py' CODE_EXT_REGEX="$LIBREGEX" node "$LIB/redirect-targets.js")"
 # cycle-25 rank1: redirect-targets 4벡터 봉인 (단일인용·noclobber·인터프리터eval·따옴표/화살표 오탐)
 test_lib "122-redir-singlequote"   "evil.py" "$(CMD="echo x > 'evil.py'" CODE_EXT_REGEX="$LIBREGEX" node "$LIB/redirect-targets.js")"
 test_lib "123-redir-noclobber"     "evil.py" "$(CMD='echo x >| evil.py' CODE_EXT_REGEX="$LIBREGEX" node "$LIB/redirect-targets.js")"

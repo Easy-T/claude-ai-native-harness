@@ -149,3 +149,6 @@ enforce-rpi-bash	150-bypass-rpibash-surface	output	gen_erb_150
 enforce-secret-scan	151-bypass-secretscan-surface	output	gen_ess_151
 enforce-rpi-cycle	152-bypass-rpicycle-surface	output	gen_erc_152
 hooks-lib	153-logsummary-counts	output	gen_lib_153
+# cycle-37 (2026-06-15) — install/rsync 명령-위치 앵커 (경로 substring 오탐 봉인)
+hooks-lib	154-install-substr-pass	output	gen_lib_154
+enforce-rpi-bash	155-install-substr-noplan-pass	0	gen_erb_155
