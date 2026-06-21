@@ -4,6 +4,34 @@ source "$HOME/.claude/hooks/_common.sh"
 # --- D-LIFECYCLE 표면 ②: active plan 상시 1줄 (cwd 기준; stale-active 즉시 가시화, cycle-23) ---
 INPUT=$(read_input)
 CWD=$(echo "$INPUT" | resolve_cwd) || CWD=""
+
+# --- WORKTREE MARKER (SessionEnd teardown fallback, cycle-39): cwd 가 링크 워크트리면 session_id-키 마커에 WT_ROOT 기록 ---
+# cwd-keyed teardown 은 세션이 워크트리 밖으로 cd 하면 정리 불가 → SessionStart 가 마커를 남겨 SessionEnd 가 SID 로 소비.
+# strictly non-blocking(fail-open): 모든 마커 연산 best-effort. SID 기본값은 || 형(set -e 안전; && 형은 비-빈 SID 에서 exit).
+SID=$(echo "$INPUT" | json_get 'session_id'); [ -n "$SID" ] || SID="unknown"
+WT_MARK_DIR="$HOME/.claude/worktrees-marker"
+if [ "$SID" != "unknown" ]; then          # C1: 빈 SID → write skip ('unknown' 마커 공유 금지)
+  case "$CWD" in
+    */.claude/worktrees/*)
+      _wt_repo="${CWD%%/.claude/worktrees/*}"
+      _wt_rest="${CWD#*/.claude/worktrees/}"
+      _wt_name="${_wt_rest%%/*}"
+      if [ -n "$_wt_repo" ] && [ -n "$_wt_name" ]; then
+        mkdir -p "$WT_MARK_DIR" 2>/dev/null || true
+        printf '%s\n' "$_wt_repo/.claude/worktrees/$_wt_name" > "$(wt_marker_path "$SID")" 2>/dev/null || true
+      fi
+      ;;
+  esac
+fi
+# 스테일 마커 prune: 기록된 WT_ROOT 가 더는 없으면(크래시로 SessionEnd 미발화) 마커파일만 제거(디렉터리/타세션 활성 워크트리 절대 미삭제).
+if [ -d "$WT_MARK_DIR" ]; then
+  for _mk in "$WT_MARK_DIR"/*; do
+    [ -f "$_mk" ] || continue
+    _mv=$(head -1 "$_mk" 2>/dev/null)
+    if [ -n "$_mv" ] && [ ! -d "$_mv" ]; then rm -f "$_mk" 2>/dev/null || true; fi
+  done
+fi
+
 if [ -n "$CWD" ] && [ -d "$CWD/docs/superpowers/plans" ]; then
   ACT_N=0; ACT_NAMES=""
   for p in "$CWD/docs/superpowers/plans"/*.md; do

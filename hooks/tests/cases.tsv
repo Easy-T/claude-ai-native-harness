@@ -152,3 +152,9 @@ hooks-lib	153-logsummary-counts	output	gen_lib_153
 # cycle-37 (2026-06-15) — install/rsync 명령-위치 앵커 (경로 substring 오탐 봉인)
 hooks-lib	154-install-substr-pass	output	gen_lib_154
 enforce-rpi-bash	155-install-substr-noplan-pass	0	gen_erb_155
+# cycle-39 (2026-06-22) — SessionStart 워크트리 마커 write/skip/prune (cd-out teardown fallback)
+session-start-audit	156-marker-write	written	gen_ssa_mark_write
+session-start-audit	157-marker-empty-skip	absent	gen_ssa_mark_empty
+session-start-audit	158-marker-nonwt-skip	absent	gen_ssa_mark_nonwt
+session-start-audit	159-marker-stale-prune	pruned	gen_ssa_mark_prune
+session-start-audit	160-marker-active-keep	kept	gen_ssa_mark_keep
