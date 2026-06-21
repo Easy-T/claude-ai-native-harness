@@ -45,6 +45,16 @@
 - **여전히 미탐지**: **변수/동적 파일명**(`python -c` f-string·변수 등), `./patch` 같은 상대경로 실행, 변수 파일명을 쓰는 인터프리터 내부 쓰기. (리터럴 파일명은 `python`/`node`/`perl`/`ruby` `-e`/`-c` 탐지 — cycle-25.) 시그니처 기반 1차 방어선의 의식된 상한.
 - **검증 커버리지 수락 잔여 (cycle-23 → cycle-24 재평가)**: ① ~~verify-setup #23 basename-only~~ — **cycle-24 이행**: isHarness 한정 (phase|matcher|basename) 트리플 parity로 승격(matcher drift 감지 + 커스텀 hook 오탐 제거) ② `state.schema.json`은 검증자 없는 참조 문서(KEEP — 소비자 1·필드 2에 검증자 과잉) ③ verify-all에서 doctor(변이)가 선행해 `.installed`·audit-marker를 측정 전 자가치유 — 치료-후-검증 순서로 의도 수락(KEEP — doctor 설계 자체).
 
+## `worktree-teardown` 안전 모델 (SessionEnd 데이터-삭제 hook)
+- 하네스의 **유일한 데이터-삭제 hook**. 종료 세션의 워크트리(`<repo>/.claude/worktrees/<name>`)만 결정적으로 정리 — 단일 운영자 가정에 정합(자기 throwaway 워크트리 대상).
+- **데이터손실 0 다중방어** (참조: 대상 repo `docs/ai-context/non-obvious.md` "2026-06-17 node_modules 정션" 데이터손실 사고):
+  - **삭제 대상 1개 한정**: cwd가 `*/.claude/worktrees/<name>` 마커 안 + `git rev-parse --absolute-git-dir`가 `/worktrees/` 세그먼트 포함 + basename==NAME (= *링크된* 워크트리)일 때만. 메인 체크아웃·비-worktree 서브디렉터리는 `.../.git`로 해소 → **거부**. `/`·`$HOME`·빈·`.`/`..` 거부.
+  - **정션 추종 차단**: `rm` 전 reparse point(정션/심링크)를 PowerShell 비재귀 `[IO.Directory]::Delete($false)`로 **링크-only 선제거** 후 **잔존 0 확인될 때만** `rm`. powershell 부재·잔존 시 `rm` 생략(잔존+ALERT) → 정션이 `rm`에 도달 불가.
+  - **POSIX `rm -rf`만** · **`git worktree remove --force` 절대 미사용**(정션 추종 1차 범인).
+  - **세션-지속 보호**: matcher가 `clear`/`resume`/`bypass_permissions_disabled` 제외(세션이 같은 cwd로 계속될 수 있어 활성 워크트리 삭제 위험) — `prompt_input_exit`/`logout`/`other`만. stdin에 `reason` 있으면 자가-게이트 추가.
+- **실패 모드는 전부 "잔존"(악화 없음)**: crash 미발화·cwd 락·powershell 부재 → 삭제 안 함(오늘의 수동 상태와 동일). SessionEnd는 종료를 막을 수 없어 항상 exit 0·멱등.
+- **검증**: `hooks/tests/worktree-teardown.test.sh`(격리 temp repo E2E)가 메인 target 무사·메인/비-worktree no-op·reason 게이트·멱등·dev서버 kill을 실측(9/9). 설계기록: `docs/superpowers/specs/2026-06-21-worktree-teardown-sessionend-design.md`.
+
 ## 범위 밖 (의도적으로 하지 않는 것)
 - 네트워크 egress 필터링, PII 스캐닝, SAST, 런타임 콘텐츠 모더레이션, 권한 모델 강제(bypassPermissions 유지).
 - 단일 운영자 데스크톱 도구에는 과하다고 판단해 제외. 멀티유저/규제 환경으로 가면 재검토 필요.
