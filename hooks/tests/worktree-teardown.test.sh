@@ -72,7 +72,29 @@ echo "== T4: idempotency — 삭제된 경로 재구동 → clean no-op =="
 run "$(mkjson "$WT" "prompt_input_exit")"
 [ ! -e "$WT" ] && ok "idempotent no-op (still absent, no error)" || no "idempotency broke"
 
+echo "== Ta: cd-out 세션(메인루트 cwd) → 마커 fallback 으로 워크트리 정리(★핵심 회귀) =="
+make_worktree
+MK_DIR="$HOME/.claude/worktrees-marker"; mkdir -p "$MK_DIR"
+MK_SID="wtjtest_a_$$"
+printf '%s\n' "$WT" > "$MK_DIR/$MK_SID"     # SessionStart 가 기록했을 마커(=WT_ROOT)
+printf '{"session_id":"%s","cwd":"%s","reason":"prompt_input_exit"}' "$MK_SID" "$REPO" | bash "$HOOK" >/dev/null 2>&1
+TGT_A=$(ls -1 "$MAIN_NM" 2>/dev/null | wc -l | tr -d ' ')
+[ ! -e "$WT" ] && ok "★ cd-out 워크트리 삭제됨(마커 fallback)" || no "★ cd-out 워크트리 미삭제 — 마커 fallback 실패"
+[ "$TGT_A" = "$TARGET_BEFORE" ] && ok "cd-out: target(main) 무사 ($TGT_A/$TARGET_BEFORE)" || no "cd-out DATA LOSS: $TGT_A/$TARGET_BEFORE"
+[ ! -f "$MK_DIR/$MK_SID" ] && ok "cd-out: 마커 소비됨(unlink)" || no "cd-out: 마커 미소비"
+rm -f "$MK_DIR/$MK_SID" 2>/dev/null
+
+echo "== Te: 빈 session_id → 마커 미사용/미소비(cwd-only) — 타세션 활성 워크트리 보호 =="
+make_worktree
+mkdir -p "$MK_DIR"
+printf '%s\n' "$WT" > "$MK_DIR/unknown"      # 'unknown' 마커(동시세션 공유 위험 모사)
+printf '{"session_id":"","cwd":"%s","reason":"prompt_input_exit"}' "$REPO" | bash "$HOOK" >/dev/null 2>&1
+{ [ -d "$WT" ] && [ -f "$MK_DIR/unknown" ]; } && ok "빈 SID: 워크트리 보존 + 'unknown' 마커 미소비" || no "빈 SID 처리 위반(워크트리/마커 변경됨)"
+rm -f "$MK_DIR/unknown" 2>/dev/null
+printf '{"session_id":"wtjcleanup_%s","cwd":"%s","reason":"prompt_input_exit"}' "$$" "$WT" | bash "$HOOK" >/dev/null 2>&1  # 정리: 보존된 WT teardown
+
 # cleanup: 마커 프로세스 잔존 시 강제 종료 + temp 전체 삭제(모두 TMP 하위라 정션이 있어도 외부 무영향)
+rm -f "$HOME/.claude/worktrees-marker/wtjtest_"* "$HOME/.claude/worktrees-marker/wtjcleanup_"* 2>/dev/null
 powershell -NoProfile -Command "Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object { \$_.CommandLine -and \$_.CommandLine.Contains('$MARK') } | ForEach-Object { try { Stop-Process -Id \$_.ProcessId -Force -ErrorAction SilentlyContinue } catch {} }" >/dev/null 2>&1
 git -C "$REPO" worktree prune 2>/dev/null
 rm -rf "$TMP" 2>/dev/null
