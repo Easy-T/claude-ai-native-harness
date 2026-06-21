@@ -25,7 +25,7 @@
 | **create-orchestrator-skill 자동 트리거** | "이거 자주 쓸 것 같아 skill로 만들어줘" | skill-creator + orchestrator 골격 자동 주입 |
 | **doctor.sh** | `bash ~/.claude/setup/doctor.sh` | 24개 환경 진단·치료 (jq 자동 설치, 자격증명 권한 점검 등) |
 
-### 9개 hook (활성)
+### 10개 hook (활성)
 
 | Hook | 모드 | 발동 시점 | 효과 |
 |---|---|---|---|
@@ -38,6 +38,7 @@
 | `auto-compact-watch` | 알림 | Read/Bash/Agent 후 | **모델-인지** 컨텍스트 창(opus-4-7/4-8→1M, 그 외 200K; `CONTEXT_LIMIT` override) 기준 임계 도달 시 `/compact` 권장. 경고 %는 `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE`에서 도출 (1세션 1회) |
 | `verify-loop-watch` | 알림 | Stop (턴 종료) | active plan + 미검증 코드 변경 시 `scripts/check.sh`+closeout 권장 (1세션 1회, advisory) |
 | `session-start-audit` | 알림 | 세션 시작 | CLAUDE.md audit 마커 30일 초과 시 알림 |
+| `worktree-teardown` | 정리 | SessionEnd (`prompt_input_exit`/`logout`/`other`) | 종료 세션의 *링크된* 워크트리를 정션-안전 삭제(reparse 링크-only 선제거→잔존0 확인→POSIX `rm -rf`) + dev서버 kill + `worktree prune`/`branch -D`. 가드 3중(마커·sanity·linked-worktree 증명)으로 **메인 repo 도달 불가**. `clear`/`resume` 제외(세션 지속 보호). `git worktree remove --force` 미사용(정션 추종 사고 봉인) |
 
 크로스 플랫폼 path 정규화(Windows backslash → forward slash) 내장 — Linux/WSL/Windows 모두 동일하게 작동.
 
@@ -279,7 +280,7 @@ bash ~/.claude/setup/doctor.sh
 ├── setup/
 │   ├── doctor.sh                         환경 진단·치료
 │   ├── install.sh                        하네스 설치 스크립트
-│   ├── verify-setup.sh                   §6.3 file/structure 체크 (현재 65 PASS)
+│   ├── verify-setup.sh                   §6.3 file/structure 체크 (현재 66 PASS)
 │   ├── verify-integration.sh             §6.5 8개 E2E 시나리오
 │   ├── verify-all.sh                     4 stage acceptance gate
 │   └── tests/doctor.test.sh

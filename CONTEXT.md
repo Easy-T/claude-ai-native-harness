@@ -36,3 +36,7 @@ _Avoid_: "stale spec"(드리프트로 오인).
 ### 자가-표면화 (self-surfacing)
 필수 절차의 누락이 침묵하지 않고 구조적으로 드러나게 하는 장치(고유 필수 보고 필드, 상시 표시, 차단 메시지 안내). 물리 강제가 불가한 곳의 수락된 상한.
 _Avoid_: "강제"(advisory 표면과 혼동 금지).
+
+### worktree teardown (정션-안전 삭제)
+SessionEnd hook `worktree-teardown.sh`가 종료 세션의 *링크된* 워크트리를 삭제하는 절차. 불변식=데이터손실 0: 삭제 대상은 `git rev-parse --absolute-git-dir`로 링크 워크트리(`/worktrees/` 세그먼트 + basename==NAME)임이 증명된 단 하나; reparse point(정션)는 `rm` 전 *링크-only 선제거*(PowerShell 비재귀 `[IO.Directory]::Delete($false)`)로 제거해 정션이 `rm`에 도달 못 하게 한다. `git worktree remove --force` 미사용(정션 추종 사고 1차 범인). matcher가 `clear`/`resume` 제외(세션 지속 보호).
+_Avoid_: "워크트리 정리"(`git worktree prune`와 혼동), "rm 워크트리"(가드 생략 함의).

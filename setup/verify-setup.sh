@@ -45,8 +45,8 @@ for s in create-orchestrator-skill init-ai-ready-project start-rpi-cycle closeou
   fi
 done
 
-# 8. 9 hook scripts executable
-for h in enforce-orchestrator stable-claude-md auto-compact-watch enforce-rpi-cycle enforce-rpi-bash enforce-secret-scan verify-loop-watch session-start-audit surface-constitution; do
+# 8. 10 hook scripts executable
+for h in enforce-orchestrator stable-claude-md auto-compact-watch enforce-rpi-cycle enforce-rpi-bash enforce-secret-scan verify-loop-watch session-start-audit surface-constitution worktree-teardown; do
   [ -x "$HOME/.claude/hooks/$h.sh" ] && ok "hook: $h" || fail "hook missing or non-executable: $h"
 done
 

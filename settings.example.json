@@ -101,6 +101,18 @@
           }
         ]
       }
+    ],
+    "SessionEnd": [
+      {
+        "matcher": "prompt_input_exit|logout|other",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/worktree-teardown.sh",
+            "timeout": 30
+          }
+        ]
+      }
     ]
   }
 }
