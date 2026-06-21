@@ -2,9 +2,12 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Status:** active
+**Status:** completed
 **RPI-Cycle:** 39
 **Started:** 2026-06-22
+**Completed:** 2026-06-22
+
+> Closeout evidence: worktree-teardown.test.sh **13/13** (RED 11/2 → GREEN 13/0), run-all **146/146** + cases.tsv 정합 (146==146), verify-all **ALL PASS** (doctor 34/0·verify-setup 66/0·meta 5/5/3·run-all 146·integration 8/0). Gate R/P/Closeout review-strict 전부 PASS. #61 데이터손실 불변식 유지(마커 경로도 GUARD2/3 통과). Task 3 Step 3/5 의 run-all RED/GREEN 은 격리 타깃 체크로 1차 확인 후 full run-all(verify-all STAGE 3)로 권위 확정.
 
 **Goal:** Make the SessionEnd worktree-teardown hook clean a worktree even when the session `cd`'d out of it (RPI closeout returns to the repo root) by adding a `session_id`-keyed marker fallback (SessionStart writes, SessionEnd consumes), without weakening any data-loss=0 guard.
 
@@ -43,7 +46,7 @@
 **Interfaces:**
 - Produces: `wt_marker_path <session_id>` → prints `$HOME/.claude/worktrees-marker/<session_id>` (default `unknown`). Consumed by Task 2 (write) and Task 3 (consume).
 
-- [ ] **Step 1: Add the helper** after the `session_marker` line.
+- [x] **Step 1: Add the helper** after the `session_marker` line.
 
 ```bash
 # --- wt_marker_path <session_id>: worktree-teardown 의 session_id-키 마커 절대경로 (SessionStart write ↔ SessionEnd consume SSOT) ---
@@ -52,17 +55,17 @@
 wt_marker_path() { printf '%s/.claude/worktrees-marker/%s' "$HOME" "${1:-unknown}"; }
 ```
 
-- [ ] **Step 2: Verify _common.sh still parses** (lockout safety — _common.sh is sourced by every PreToolUse hook).
+- [x] **Step 2: Verify _common.sh still parses** (lockout safety — _common.sh is sourced by every PreToolUse hook).
 
 Run: `bash -n "$HOME/.claude/hooks/_common.sh" && echo OK`
 Expected: `OK`
 
-- [ ] **Step 3: Verify the helper output**
+- [x] **Step 3: Verify the helper output**
 
 Run: `bash -c 'source "$HOME/.claude/hooks/_common.sh"; wt_marker_path abc123'`
 Expected: `<your-home>/.claude/worktrees-marker/abc123`
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add hooks/_common.sh
@@ -81,7 +84,7 @@ git commit -m "feat(hooks): wt_marker_path SSOT helper (worktree-teardown cd-out
 - Consumes: `wt_marker_path` (Task 1), existing `normalize_path` / `json_get` / GUARD 2 (lines 37-46) / GUARD 3 (lines 48-61).
 - Produces: teardown that fires for cwd-in-worktree **or** own-SID marker; `noop:not-worktree` only when neither yields a worktree path.
 
-- [ ] **Step 1: Write the failing tests.** Append before the cleanup block (after T4, ~line 73) in `worktree-teardown.test.sh`:
+- [x] **Step 1: Write the failing tests.** Append before the cleanup block (after T4, ~line 73) in `worktree-teardown.test.sh`:
 
 ```bash
 echo "== Ta: cd-out 세션(메인루트 cwd) → 마커 fallback 으로 워크트리 정리(★핵심 회귀) =="
@@ -106,12 +109,12 @@ rm -f "$MK_DIR/unknown" 2>/dev/null
 printf '{"session_id":"wtjcleanup_%s","cwd":"%s","reason":"prompt_input_exit"}' "$$" "$WT" | bash "$HOOK" >/dev/null 2>&1  # 정리: 보존된 WT teardown
 ```
 
-- [ ] **Step 2: Run to verify RED** (Ta fails: current code does `noop:not-worktree` on cwd=main root; Te passes as an invariant guard).
+- [x] **Step 2: Run to verify RED** (Ta fails: current code does `noop:not-worktree` on cwd=main root; Te passes as an invariant guard).
 
 Run: `bash "$HOME/.claude/hooks/tests/worktree-teardown.test.sh"; echo "exit=$?"`
 Expected: FAIL — `★ cd-out 워크트리 미삭제` (and `cd-out: 마커 미소비`), `exit=1`.
 
-- [ ] **Step 3: Implement marker consume.** Replace the GUARD 1 block + derivation (current lines 26-35) in `worktree-teardown.sh` with:
+- [x] **Step 3: Implement marker consume.** Replace the GUARD 1 block + derivation (current lines 26-35) in `worktree-teardown.sh` with:
 
 ```bash
 # GUARD 1 (+ 마커 fallback): teardown 대상 경로 결정 — cwd(authoritative) 또는 session_id 마커(fallback).
@@ -141,17 +144,17 @@ NAME="${REST%%/*}"
 WT_ROOT="$REPO_ROOT/.claude/worktrees/$NAME"
 ```
 
-- [ ] **Step 4: Run to verify GREEN** (all existing T1-T6 + new Ta/Te pass).
+- [x] **Step 4: Run to verify GREEN** (all existing T1-T6 + new Ta/Te pass).
 
 Run: `bash "$HOME/.claude/hooks/tests/worktree-teardown.test.sh"; echo "exit=$?"`
 Expected: `worktree-teardown.test: PASS=13 FAIL=0`, `exit=0` (9 prior + Ta 3 + Te 1).
 
-- [ ] **Step 5: Verify worktree-teardown.sh parses**
+- [x] **Step 5: Verify worktree-teardown.sh parses**
 
 Run: `bash -n "$HOME/.claude/hooks/worktree-teardown.sh" && echo OK`
 Expected: `OK`
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add hooks/worktree-teardown.sh hooks/tests/worktree-teardown.test.sh
@@ -171,7 +174,7 @@ git commit -m "feat(hooks): SessionEnd marker consume fallback for cd-out cleanu
 - Consumes: `wt_marker_path` (Task 1), existing `json_get` / `resolve_cwd`.
 - Produces: a marker file `$HOME/.claude/worktrees-marker/<sid>` = WT_ROOT for worktree-cwd sessions with a valid SID; pruning of markers whose recorded path is absent.
 
-- [ ] **Step 1: Declare the 5 cases** in `cases.tsv` (append at end):
+- [x] **Step 1: Declare the 5 cases** in `cases.tsv` (append at end):
 
 ```
 # cycle-39 (2026-06-22) — SessionStart 워크트리 마커 write/skip/prune (cd-out teardown fallback)
@@ -182,7 +185,7 @@ session-start-audit	159-marker-stale-prune	pruned	gen_ssa_mark_prune
 session-start-audit	160-marker-active-keep	kept	gen_ssa_mark_keep
 ```
 
-- [ ] **Step 2: Add the test cases** to `run-all.sh` (after the cycle-23 SESSION-START-AUDIT block, before PATCH-D, ~line 442):
+- [x] **Step 2: Add the test cases** to `run-all.sh` (after the cycle-23 SESSION-START-AUDIT block, before PATCH-D, ~line 442):
 
 ```bash
 # ==================== CYCLE-39: SESSION-START-AUDIT 워크트리 마커 (cd-out teardown fallback) ====================
@@ -220,12 +223,12 @@ test_ssa_prune "159-marker-stale-prune" "$SCRATCH/gone-nonexistent-$$" pruned
 test_ssa_prune "160-marker-active-keep" "$WTM"                          kept
 ```
 
-- [ ] **Step 3: Run to verify RED** (156 write + 159 prune fail; 157/158/160 pass as guards).
+- [x] **Step 3: Run to verify RED** (156 write + 159 prune fail; 157/158/160 pass as guards).
 
 Run: `bash "$HOME/.claude/hooks/tests/run-all.sh" 2>&1 | tail -20`
 Expected: failures listing `session-start-audit/156-marker-write (want=written got=absent)` and `session-start-audit/159-marker-stale-prune (want=pruned got=kept)`; reconciliation OK (`146 declared == 146 run`).
 
-- [ ] **Step 4: Implement WRITE + prune.** Insert in `session-start-audit.sh` immediately after the cwd-resolution line (`CWD=$(echo "$INPUT" | resolve_cwd) || CWD=""`):
+- [x] **Step 4: Implement WRITE + prune.** Insert in `session-start-audit.sh` immediately after the cwd-resolution line (`CWD=$(echo "$INPUT" | resolve_cwd) || CWD=""`):
 
 ```bash
 # --- WORKTREE MARKER (SessionEnd teardown fallback, cycle-39): cwd 가 링크 워크트리면 session_id-키 마커에 WT_ROOT 기록 ---
@@ -256,12 +259,12 @@ if [ -d "$WT_MARK_DIR" ]; then
 fi
 ```
 
-- [ ] **Step 5: Run to verify GREEN** + verify session-start-audit parses.
+- [x] **Step 5: Run to verify GREEN** + verify session-start-audit parses.
 
 Run: `bash -n "$HOME/.claude/hooks/session-start-audit.sh" && bash "$HOME/.claude/hooks/tests/run-all.sh" 2>&1 | tail -6`
 Expected: `Hook tests: 146 / 146 passed`, reconciliation `146 declared == 146 run`, `Pass rate 100% — OK`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add hooks/session-start-audit.sh hooks/tests/run-all.sh hooks/tests/cases.tsv
@@ -278,24 +281,24 @@ git commit -m "feat(hooks): SessionStart writes session_id worktree marker + sta
 **Interfaces:**
 - Consumes: cases.tsv now 146 declared (Task 3). verify-setup #20 asserts README mention == actual.
 
-- [ ] **Step 1: Update README cases count** — both mentions.
+- [x] **Step 1: Update README cases count** — both mentions.
 
 Line ~275: `│       ├── cases.tsv                     141 case (run-all과 1:1 정합, 100% 구현)` → `146 case`
 Line ~511: `- Hook 단위 테스트: ... (141 케이스, run-all과 1:1 정합, 100% 통과). ...` → `146 케이스`
 
-- [ ] **Step 2: Run verify-setup #20 (cases-count seal)**
+- [x] **Step 2: Run verify-setup #20 (cases-count seal)**
 
 Run: `bash "$HOME/.claude/setup/verify-setup.sh" 2>&1 | grep -i cases`
 Expected: `✓ README cases 카운트 == 실측(146)`
 
-- [ ] **Step 3: Full acceptance gate (verify-all STAGE 0-4) + standalone E2E**
+- [x] **Step 3: Full acceptance gate (verify-all STAGE 0-4) + standalone E2E**
 
 Run: `bash "$HOME/.claude/setup/verify-all.sh" 2>&1 | tail -5`
 Expected: `ALL PASS — system meets §6.6 acceptance gate.`
 Run: `bash "$HOME/.claude/hooks/tests/worktree-teardown.test.sh"; echo "exit=$?"`
 Expected: `worktree-teardown.test: PASS=13 FAIL=0`, `exit=0`.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add README.md
