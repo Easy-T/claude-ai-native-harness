@@ -141,6 +141,11 @@ code_ext_regex() { printf '\\.(%s)$' "$(printf '%s' "$CODE_EXTS" | tr ' ' '|')";
 # --- session_marker <name> <session_id>: 1세션-1회 알림 마커 경로 (auto-compact-watch / verify-loop-watch 공유) ---
 session_marker() { printf '/tmp/%s-%s' "$1" "${2:-unknown}"; }
 
+# --- wt_marker_path <session_id>: worktree-teardown 의 session_id-키 마커 절대경로 (SessionStart write ↔ SessionEnd consume SSOT) ---
+# 세션이 워크트리 밖으로 cd 해도 그 세션의 워크트리를 SessionEnd 가 식별하도록 SessionStart 가 여기에 WT_ROOT 를 기록.
+# 빈/unknown SID 는 호출자가 차단(동시 세션의 'unknown' 마커 공유 → 타 세션의 *활성* 워크트리 오정리 방지).
+wt_marker_path() { printf '%s/.claude/worktrees-marker/%s' "$HOME" "${1:-unknown}"; }
+
 # --- emit_system_message <msg>: systemMessage JSON 을 stdout 에 안전 출력 (hook→UI 알림 프로토콜 단일화) ---
 emit_system_message() { MSG="$1" node -e 'process.stdout.write(JSON.stringify({systemMessage:process.env.MSG}))'; }
 

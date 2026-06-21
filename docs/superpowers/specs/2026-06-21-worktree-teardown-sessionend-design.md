@@ -103,3 +103,75 @@ Because the hook deletes data, the **guard logic + rm path computation are revie
 - Target repo `docs/ai-context/non-obvious.md` — "2026-06-17 node_modules 정션" (data-loss disaster).
 - Official Claude Code hooks reference (SessionEnd: side-effect only, cannot block; reasons; per-hook `timeout`; matcher regex).
 - Empirical scratch tests E1–E6 (this session).
+
+---
+
+## 9. Robustness revision — cd-out cleanup via `session_id` marker (2026-06-22)
+
+> In-place dated revision (genesis-record model: §1–8 v1 design preserved; this section is the additive
+> design delta). Decision class: same subsystem, adds a **fallback path** to GUARD 1 — not a new hook.
+
+### 9.1 Problem the v1 design missed
+
+v1 GUARD 1 keys teardown on **`cwd`** (`*/.claude/worktrees/<name>`). But the target repo's RPI **closeout
+`cd`'s back to the repo root** before the session ends (to run `verify-all`, git ops, etc.). So at
+`SessionEnd` the `cwd` is the **main root**, GUARD 1 misses (`noop:not-worktree`), and the worktree is
+**never cleaned** — it accumulates (observed: `cycle-qa-d-layout` left behind). **A cwd-keyed teardown
+structurally cannot clean a worktree the session has already left.**
+
+### 9.2 Decision — additive `session_id`-keyed marker (write at start, consume at end)
+
+`session_id` is present and **stable** across `SessionStart`→`SessionEnd` of one session (official hooks
+schema, verified 2026-06-22: SessionStart `{session_id,cwd,source,…}`, SessionEnd `{session_id,cwd,reason}`).
+Exploit that to remember the worktree independent of end-time cwd:
+
+1. **`SessionStart` (`session-start-audit.sh`) — WRITE.** If `cwd` matches `*/.claude/worktrees/<name>`,
+   record the derived **`WT_ROOT`** to `$HOME/.claude/worktrees-marker/<session_id>` (one line, absolute path).
+   Idempotent across `source ∈ {startup,resume,clear,compact}` (same SID + same cwd → same content).
+2. **`SessionEnd` (`worktree-teardown.sh`) — CONSUME.** Determine the teardown target as:
+   **`cwd` (authoritative, v1 GUARD 1) → else the session's own marker (fallback)**. Then **unlink the own
+   marker** (consumed). The marker is read **only for the hook's own `session_id`** — never another session's.
+3. **Stale-marker prune (`SessionStart`).** A crash (no `SessionEnd`) leaves a marker. On each start, scan
+   `worktrees-marker/`; if a marker's recorded path **no longer exists**, delete the **marker file only**
+   (never a directory; never another session's *live* worktree). Bounds the marker dir in this global config.
+
+### 9.3 Hard constraints (carried from v1 #61 + new)
+
+- **C1 — empty/`unknown` `session_id` ⇒ skip marker WRITE *and* CONSUME entirely** (cwd GUARD 1 only).
+  Rationale: concurrent sessions with an absent `session_id` would share one `unknown` marker; a consume
+  could then tear down **another session's *active* worktree**. The empty-SID case must never use the marker.
+- **C2 — the marker-derived path is *not trusted*:** it passes the **same GUARD 2 (sanity) + GUARD 3
+  (linked-worktree `--absolute-git-dir` proof)** as the cwd path before any `rm`. A marker can only ever
+  point teardown at a genuine linked worktree of its repo; a stale/forged path resolves to non-worktree → no-op.
+- **C3 — #61 defenses unchanged:** reparse pre-removal → `remaining==0` assert → POSIX `rm -rf`;
+  **`git worktree remove --force` still forbidden**; branch delete only for `worktree-*`/never `master|main`.
+- **C4 — marker WRITE/CONSUME/prune are strictly non-blocking (fail-open):** every marker op is best-effort
+  (`|| true`, `2>/dev/null`); a marker failure must never block session start/end. Under `session-start-audit`'s
+  active `set -euo pipefail`, the SID default uses the `|| ` form (`[ -n "$SID" ] || SID=unknown`) — the v1
+  teardown idiom `[ -z "$SID" ] && SID=unknown` would *exit* the hook on a non-empty SID and is rejected here.
+
+### 9.4 Interaction with the matcher / reason gate (no double-free, no active-worktree loss)
+
+- `clear`/`resume`: matcher excludes them and the reason self-gate no-ops **before** consume → the marker is
+  **kept**; the subsequent `SessionStart` (`source=clear`/after-compact) re-writes it. The live worktree is
+  never deleted while the session continues.
+- Same-session both-present: if end-cwd is still inside the worktree, the **cwd** path is used (authoritative)
+  and the own marker is also unlinked — no leftover.
+
+### 9.5 Failure modes (all acceptable; none worsen v1)
+
+| Mode | Outcome |
+|------|---------|
+| cd-out before end (the bug) | **Now cleaned** via marker. |
+| crash / SIGKILL | No `SessionEnd` → worktree + marker left; next start prunes the marker if WT_ROOT is gone (worktree leak unchanged from v1). |
+| empty `session_id` + cd-out | No marker path → no-op (conservative; a leftover, never a mis-delete). |
+| forged/stale marker path | GUARD 2/3 reject → no-op. |
+| marker dir unwritable | WRITE fails silently; teardown falls back to cwd-only (v1 behavior). |
+
+### 9.6 Surfaces touched (delta only)
+
+`_common.sh` (+`wt_marker_path` SSOT), `session-start-audit.sh` (+WRITE +prune), `worktree-teardown.sh`
+(+CONSUME fallback). Tests: `worktree-teardown.test.sh` (+cd-out, +empty-SID — standalone), `run-all.sh`
++`cases.tsv` (+5 SessionStart marker cases → README cases count 141→146, verify-setup #20). **No new hook
+file, no `settings.json`/`settings.example.json` change** (both SessionStart & SessionEnd already wired) →
+#8/#14/#23/#24 untouched.

@@ -440,6 +440,40 @@ test_ssap "108-multi-active-warn" "stale-active" "$(ssap_ev "$SSA2")"
 SSA3="$SCRATCH/ssa3"; mkdir -p "$SSA3"
 test_ssap "109-no-plans-dir-silent" "noplanline" "$(ssap_ev "$SSA3")"
 
+# ==================== CYCLE-39: SESSION-START-AUDIT 워크트리 마커 (cd-out teardown fallback) ====================
+# 실제 $HOME/.claude/worktrees-marker 사용 — 고유 SID + 즉시 정리(실 세션 SID 는 UUID 라 충돌 없음).
+WT_MARK_DIR="$HOME/.claude/worktrees-marker"
+ssa_mark_ev() { printf '{"session_id":"%s","cwd":"%s"}' "$1" "$2"; }
+WTM="$SCRATCH/wtmrepo/.claude/worktrees/cycle-z"; mkdir -p "$WTM"
+# write/skip: cwd+SID 조합별 마커 파일 존재 여부
+test_ssa_mark() {
+  local name="$1"; local sid="$2"; local cwd="$3"; local want="$4"   # want: written|absent
+  TOTAL=$((TOTAL+1))
+  local mp; mp=$(bash -c 'source "$HOME/.claude/hooks/_common.sh"; wt_marker_path "$1"' _ "$sid")
+  rm -f "$mp" 2>/dev/null
+  echo "$(ssa_mark_ev "$sid" "$cwd")" | "$HOOKS/session-start-audit.sh" >/dev/null 2>&1
+  local got=absent; [ -f "$mp" ] && got=written
+  rm -f "$mp" 2>/dev/null
+  [ "$got" = "$want" ] && PASSED=$((PASSED+1)) || FAILED_LIST+=("session-start-audit/$name (want=$want got=$got)")
+}
+test_ssa_mark "156-marker-write"      "wtm156_$$" "$WTM"      written
+test_ssa_mark "157-marker-empty-skip" ""          "$WTM"      absent
+test_ssa_mark "158-marker-nonwt-skip" "wtm158_$$" "$SCRATCH"  absent
+# prune: 기록된 WT_ROOT 부재→마커 제거, 존재→보존 (SessionStart cwd=비-워크트리라 자기 마커는 미기록)
+test_ssa_prune() {
+  local name="$1"; local target="$2"; local want="$3"   # want: pruned|kept
+  TOTAL=$((TOTAL+1))
+  mkdir -p "$WT_MARK_DIR" 2>/dev/null
+  local psid="wtmp_${name}_$$"
+  printf '%s\n' "$target" > "$WT_MARK_DIR/$psid"
+  echo "$(ssa_mark_ev "wtmfresh_$$" "$SCRATCH")" | "$HOOKS/session-start-audit.sh" >/dev/null 2>&1
+  local got=kept; [ -f "$WT_MARK_DIR/$psid" ] || got=pruned
+  rm -f "$WT_MARK_DIR/$psid" 2>/dev/null
+  [ "$got" = "$want" ] && PASSED=$((PASSED+1)) || FAILED_LIST+=("session-start-audit/$name (want=$want got=$got)")
+}
+test_ssa_prune "159-marker-stale-prune" "$SCRATCH/gone-nonexistent-$$" pruned
+test_ssa_prune "160-marker-active-keep" "$WTM"                          kept
+
 # ==================== PATCH-D: AUDIT-RESIDUAL FIXES ====================
 # S14 — Status trailing-text parsed by first word (via enforce-rpi-cycle plan gate)
 DST="$SCRATCH/d_s14"; mkdir -p "$DST/docs/superpowers/plans" "$DST/src"

@@ -23,14 +23,29 @@ esac
 
 CWD=$(echo "$INPUT" | resolve_cwd) || { hook_log "worktree-teardown" "-" "PASS" "noop:no-cwd"; exit 0; }
 
-# GUARD 1: cwd 가 .claude/worktrees/<name> 안인가
+# GUARD 1 (+ 마커 fallback): teardown 대상 경로 결정 — cwd(authoritative) 또는 session_id 마커(fallback).
+#  세션이 워크트리 밖으로 cd 해도(closeout 가 메인루트로 이동) SessionStart 가 남긴 마커로 정리. 마커는 GUARD2/3 가 검증(맹신 안 함).
+SRCPATH=""
 case "$CWD" in
-  */.claude/worktrees/*) : ;;
-  *) hook_log "worktree-teardown" "$CWD" "PASS" "noop:not-worktree"; exit 0 ;;
+  */.claude/worktrees/*) SRCPATH="$CWD" ;;   # authoritative: 현재 cwd 가 워크트리 안
 esac
+# 자기 SID 마커만 읽고 소비. C1: 빈/unknown SID → 마커 완전 skip (동시 세션 'unknown' 공유 시 타 세션 활성 워크트리 오정리 방지).
+if [ "$SID" != "unknown" ] && [ -n "$SID" ]; then
+  MK=$(wt_marker_path "$SID")
+  if [ -z "$SRCPATH" ] && [ -f "$MK" ]; then
+    MVAL=$(head -1 "$MK" 2>/dev/null); MVAL=$(normalize_path "$MVAL")
+    case "$MVAL" in
+      */.claude/worktrees/*) SRCPATH="$MVAL" ;;   # fallback: 마커가 가리키는 WT_ROOT
+    esac
+  fi
+  rm -f "$MK" 2>/dev/null   # 자기 마커 소비(있든 없든): 본 세션 종료이므로 더는 불필요
+fi
+if [ -z "$SRCPATH" ]; then
+  hook_log "worktree-teardown" "$CWD" "PASS" "noop:not-worktree"; exit 0
+fi
 
-REPO_ROOT="${CWD%%/.claude/worktrees/*}"
-REST="${CWD#*/.claude/worktrees/}"
+REPO_ROOT="${SRCPATH%%/.claude/worktrees/*}"
+REST="${SRCPATH#*/.claude/worktrees/}"
 NAME="${REST%%/*}"
 WT_ROOT="$REPO_ROOT/.claude/worktrees/$NAME"
 

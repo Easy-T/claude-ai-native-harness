@@ -51,9 +51,10 @@
   - **삭제 대상 1개 한정**: cwd가 `*/.claude/worktrees/<name>` 마커 안 + `git rev-parse --absolute-git-dir`가 `/worktrees/` 세그먼트 포함 + basename==NAME (= *링크된* 워크트리)일 때만. 메인 체크아웃·비-worktree 서브디렉터리는 `.../.git`로 해소 → **거부**. `/`·`$HOME`·빈·`.`/`..` 거부.
   - **정션 추종 차단**: `rm` 전 reparse point(정션/심링크)를 PowerShell 비재귀 `[IO.Directory]::Delete($false)`로 **링크-only 선제거** 후 **잔존 0 확인될 때만** `rm`. powershell 부재·잔존 시 `rm` 생략(잔존+ALERT) → 정션이 `rm`에 도달 불가.
   - **POSIX `rm -rf`만** · **`git worktree remove --force` 절대 미사용**(정션 추종 1차 범인).
+  - **cd-out 정리(fallback) — 마커는 삭제권한 아님**: 세션이 워크트리 밖으로 cd해도(RPI closeout가 메인루트 이동) 정리되도록 SessionStart가 `session_id`-키 마커(`~/.claude/worktrees-marker/<sid>`=WT_ROOT)를 기록하고 SessionEnd가 *자기 SID* 마커만 소비. 소비 경로도 위 가드(linked-worktree `--absolute-git-dir` 증명 등)를 **동일 통과해야만** `rm`(마커 맹신 금지 — 스테일/위조 경로는 비-worktree로 해소→no-op). 빈/`unknown` SID는 마커 write·consume 모두 skip(동시 세션의 'unknown' 마커 공유 → 타 세션 *활성* 워크트리 오정리 방지).
   - **세션-지속 보호**: matcher가 `clear`/`resume`/`bypass_permissions_disabled` 제외(세션이 같은 cwd로 계속될 수 있어 활성 워크트리 삭제 위험) — `prompt_input_exit`/`logout`/`other`만. stdin에 `reason` 있으면 자가-게이트 추가.
 - **실패 모드는 전부 "잔존"(악화 없음)**: crash 미발화·cwd 락·powershell 부재 → 삭제 안 함(오늘의 수동 상태와 동일). SessionEnd는 종료를 막을 수 없어 항상 exit 0·멱등.
-- **검증**: `hooks/tests/worktree-teardown.test.sh`(격리 temp repo E2E)가 메인 target 무사·메인/비-worktree no-op·reason 게이트·멱등·dev서버 kill을 실측(9/9). 설계기록: `docs/superpowers/specs/2026-06-21-worktree-teardown-sessionend-design.md`.
+- **검증**: `hooks/tests/worktree-teardown.test.sh`(격리 temp repo E2E)가 메인 target 무사·메인/비-worktree no-op·reason 게이트·멱등·dev서버 kill·**cd-out 마커 fallback 정리·빈 SID 마커 미사용**을 실측(13/13). SessionStart 마커 write/skip/prune 은 `hooks/tests/run-all.sh`(156-160). 설계기록: `docs/superpowers/specs/2026-06-21-worktree-teardown-sessionend-design.md`(§9 cd-out 개정, 2026-06-22).
 
 ## 범위 밖 (의도적으로 하지 않는 것)
 - 네트워크 egress 필터링, PII 스캐닝, SAST, 런타임 콘텐츠 모더레이션, 권한 모델 강제(bypassPermissions 유지).
