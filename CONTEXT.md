@@ -38,5 +38,5 @@ _Avoid_: "stale spec"(드리프트로 오인).
 _Avoid_: "강제"(advisory 표면과 혼동 금지).
 
 ### worktree teardown (정션-안전 삭제)
-SessionEnd hook `worktree-teardown.sh`가 종료 세션의 *링크된* 워크트리를 삭제하는 절차. 불변식=데이터손실 0: 삭제 대상은 `git rev-parse --absolute-git-dir`로 링크 워크트리(`/worktrees/` 세그먼트 + basename==NAME)임이 증명된 단 하나; reparse point(정션)는 `rm` 전 *링크-only 선제거*(PowerShell 비재귀 `[IO.Directory]::Delete($false)`)로 제거해 정션이 `rm`에 도달 못 하게 한다. `git worktree remove --force` 미사용(정션 추종 사고 1차 범인). matcher가 `clear`/`resume` 제외(세션 지속 보호).
-_Avoid_: "워크트리 정리"(`git worktree prune`와 혼동), "rm 워크트리"(가드 생략 함의).
+SessionEnd hook `worktree-teardown.sh`가 종료 세션의 *링크된* 워크트리를 삭제하는 절차. 불변식=데이터손실 0: 삭제 대상은 `git rev-parse --absolute-git-dir`로 링크 워크트리(`/worktrees/` 세그먼트 + basename==NAME)임이 증명된 단 하나; reparse point(정션)는 `rm` 전 *링크-only 선제거*(PowerShell 비재귀 `[IO.Directory]::Delete($false)`)로 제거해 정션이 `rm`에 도달 못 하게 한다. `git worktree remove --force` 미사용(정션 추종 사고 1차 범인). matcher가 `clear`/`resume` 제외(세션 지속 보호). 세션이 워크트리 밖으로 cd해도(closeout가 메인루트로 이동) 정리되도록 SessionStart가 `session_id`-키 마커(`~/.claude/worktrees-marker/<sid>`=WT_ROOT)를 기록하고 SessionEnd가 자기 SID 마커를 소비하는 **fallback**을 둔다(cwd가 authoritative·마커는 GUARD2/3 통과 후에만 삭제·빈 SID는 마커 skip).
+_Avoid_: "워크트리 정리"(`git worktree prune`와 혼동), "rm 워크트리"(가드 생략 함의), "마커=삭제권한"(마커는 fallback 식별자일 뿐, GUARD2/3가 authoritative).
