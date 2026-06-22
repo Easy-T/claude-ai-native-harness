@@ -746,6 +746,33 @@ test_lib "153-logsummary-counts" "BLOCK=2 SKIP=1 FAILOPEN=1 ALERT=0" "$(bash -c 
 
 # ==================== CYCLE-40: PRETOOLUSE 워크트리 마커 WRITE (실-입력 shape) + wt_root_from_path 단위 ====================
 # 주: test_lib(538) 정의 이후 배치 — 165/166 가 test_lib 사용. 실 $HOME/.claude/worktrees-marker 사용(고유 SID+즉시 정리).
+# 실-입력 shape: cwd=메인 레포 루트(워크트리 아님) + tool_input 에 워크트리 절대경로 → record 가 마커 기록.
+# (cycle-39 가 놓친 입력 shape — 합성 worktree-cwd 를 먹이지 않는다.)
+PTU_MAIN="$SCRATCH/pturepo"; PTUWT="$PTU_MAIN/.claude/worktrees/cycle-p"; mkdir -p "$PTUWT/app" "$PTU_MAIN/src"
+WTROOT_P="$PTU_MAIN/.claude/worktrees/cycle-p"
+# printf 로 직접 구성(node env 미경유) — node 에 경로를 env 로 넘기면 MSYS2 가 /tmp→C:/... 로 자동변환해
+# 마커내용(Windows형) vs 기대 WTROOT_P(MSYS형)가 불일치한다. mk_event/ssa_mark_ev 선례대로 경로는 직접 보간.
+ptu_cycle_ev() { printf '{"session_id":"%s","tool_name":"Write","tool_input":{"file_path":"%s","content":"x"},"cwd":"%s"}' "$1" "$2" "$3"; }
+ptu_bash_ev()  { printf '{"session_id":"%s","tool_name":"Bash","tool_input":{"command":"%s"},"cwd":"%s"}' "$1" "$2" "$3"; }
+test_ptu_mark() {
+  local name="$1" hook="$2" input="$3" sid="$4" want="$5" wantval="${6:-}"   # want: written|absent
+  TOTAL=$((TOTAL+1))
+  local mp; mp=$(bash -c 'source "$HOME/.claude/hooks/_common.sh"; wt_marker_path "$1"' _ "$sid")
+  rm -f "$mp" 2>/dev/null
+  echo "$input" | "$HOOKS/$hook" >/dev/null 2>&1
+  local got=absent; [ -f "$mp" ] && got=written
+  local okk=0
+  if [ "$got" = "$want" ]; then
+    if [ "$want" = "written" ] && [ -n "$wantval" ]; then
+      [ "$(head -1 "$mp" 2>/dev/null)" = "$wantval" ] && okk=1
+    else okk=1; fi
+  fi
+  rm -f "$mp" 2>/dev/null
+  [ "$okk" = 1 ] && PASSED=$((PASSED+1)) || FAILED_LIST+=("$name (want=$want/$wantval got=$got)")
+}
+test_ptu_mark "161-ptu-cycle-write"      "enforce-rpi-cycle.sh" "$(ptu_cycle_ev "ptu161_$$" "$PTUWT/app/foo.ts" "$PTU_MAIN")"     "ptu161_$$" written "$WTROOT_P"
+test_ptu_mark "162-ptu-cycle-empty-skip" "enforce-rpi-cycle.sh" "$(ptu_cycle_ev "" "$PTUWT/app/foo.ts" "$PTU_MAIN")"              ""          absent
+test_ptu_mark "163-ptu-cycle-nonwt-skip" "enforce-rpi-cycle.sh" "$(ptu_cycle_ev "ptu163_$$" "$PTU_MAIN/src/foo.ts" "$PTU_MAIN")" "ptu163_$$" absent
 # wt_root_from_path 단위: 경로 추출 + worktrees-marker/ 자기-비매칭(record 가 잘못된 마커를 쓰지 않게 하는 안전 속성)
 test_lib "165-wtroot-extract" "/tmp/r/.claude/worktrees/cyc-x" "$(bash -c 'source "$HOME/.claude/hooks/_common.sh"; wt_root_from_path "$1"' _ "/tmp/r/.claude/worktrees/cyc-x/app/f.ts")"
 test_lib "166-wtroot-markerdir-nomatch" "" "$(bash -c 'source "$HOME/.claude/hooks/_common.sh"; wt_root_from_path "$1" || true' _ "$HOME/.claude/worktrees-marker/sid")"
