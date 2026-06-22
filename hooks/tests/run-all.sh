@@ -773,6 +773,7 @@ test_ptu_mark() {
 test_ptu_mark "161-ptu-cycle-write"      "enforce-rpi-cycle.sh" "$(ptu_cycle_ev "ptu161_$$" "$PTUWT/app/foo.ts" "$PTU_MAIN")"     "ptu161_$$" written "$WTROOT_P"
 test_ptu_mark "162-ptu-cycle-empty-skip" "enforce-rpi-cycle.sh" "$(ptu_cycle_ev "" "$PTUWT/app/foo.ts" "$PTU_MAIN")"              ""          absent
 test_ptu_mark "163-ptu-cycle-nonwt-skip" "enforce-rpi-cycle.sh" "$(ptu_cycle_ev "ptu163_$$" "$PTU_MAIN/src/foo.ts" "$PTU_MAIN")" "ptu163_$$" absent
+test_ptu_mark "164-ptu-bash-write"       "enforce-rpi-bash.sh"  "$(ptu_bash_ev "ptu164_$$" "cd $PTUWT/app && npm i" "$PTU_MAIN")" "ptu164_$$" written "$WTROOT_P"
 # wt_root_from_path 단위: 경로 추출 + worktrees-marker/ 자기-비매칭(record 가 잘못된 마커를 쓰지 않게 하는 안전 속성)
 test_lib "165-wtroot-extract" "/tmp/r/.claude/worktrees/cyc-x" "$(bash -c 'source "$HOME/.claude/hooks/_common.sh"; wt_root_from_path "$1"' _ "/tmp/r/.claude/worktrees/cyc-x/app/f.ts")"
 test_lib "166-wtroot-markerdir-nomatch" "" "$(bash -c 'source "$HOME/.claude/hooks/_common.sh"; wt_root_from_path "$1" || true' _ "$HOME/.claude/worktrees-marker/sid")"

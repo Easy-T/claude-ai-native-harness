@@ -15,6 +15,11 @@ require_node
 
 INPUT=$(read_input)
 CMD=$(echo "$INPUT" | json_get 'tool_input.command')
+# --- WORKTREE MARKER (cycle-40): Bash 명령의 워크트리 절대경로에서 session_id-키 마커 기록 (SessionEnd teardown, spec §10).
+#   SessionStart/End cwd 는 CLI 실행디렉터리(메인루트)라 워크트리 식별 불가 → 워크트리 경로가 도달하는 PreToolUse 에서 기록.
+#   strictly fail-open: helper 가 항상 return 0 (exit/판정 영향 0). SID 는 아래 우회표면화에서도 재사용.
+SID=$(echo "$INPUT" | json_get session_id)
+record_worktree_marker "$SID" "$CMD"
 # 빈/누락 cwd → fail-open (S12, resolve_cwd 공유)
 CWD=$(echo "$INPUT" | resolve_cwd) || { hook_log "enforce-rpi-bash" "bash" "PASS" "no-cwd-failopen"; exit 0; }
 
@@ -24,7 +29,7 @@ CWD=$(echo "$INPUT" | resolve_cwd) || { hook_log "enforce-rpi-bash" "bash" "PASS
 # 명시 우회
 if [ -n "${RPI_SKIP:-}" ]; then
   hook_log "enforce-rpi-bash" "bash" "PASS" "skip:${RPI_SKIP}"
-  surface_bypass "rpi-bash" "$(echo "$INPUT" | json_get session_id)" "⚠ RPI bash 게이트 우회 (RPI_SKIP='${RPI_SKIP}') — 이 세션 셸 코드작성에 게이트 미적용; 의도된 우회인지 확인"
+  surface_bypass "rpi-bash" "$SID" "⚠ RPI bash 게이트 우회 (RPI_SKIP='${RPI_SKIP}') — 이 세션 셸 코드작성에 게이트 미적용; 의도된 우회인지 확인"
   exit 0
 fi
 
