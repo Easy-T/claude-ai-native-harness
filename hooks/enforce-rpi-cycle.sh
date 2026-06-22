@@ -3,10 +3,15 @@ source "$HOME/.claude/hooks/_common.sh"
 require_node
 
 INPUT=$(read_input)
-# 스칼라 필드(file_path/notebook_path/tool_name)를 node 1회로 추출 ([10] json_get_many)
-IFS=$'\037' read -r FILE_PATH NB_PATH TOOL <<< "$(echo "$INPUT" | json_get_many tool_input.file_path tool_input.notebook_path tool_name)"
+# 스칼라 필드(file_path/notebook_path/tool_name/session_id)를 node 1회로 추출 ([10] json_get_many)
+IFS=$'\037' read -r FILE_PATH NB_PATH TOOL SID <<< "$(echo "$INPUT" | json_get_many tool_input.file_path tool_input.notebook_path tool_name session_id)"
 [ -z "$FILE_PATH" ] && FILE_PATH="$NB_PATH"   # NotebookEdit는 file_path 대신 notebook_path 사용
 FILE_PATH=$(normalize_path "$FILE_PATH")
+
+# --- WORKTREE MARKER (cycle-40): 워크트리 경로를 만지는 PreToolUse 에서 session_id-키 마커 기록 (SessionEnd teardown).
+#   SessionStart cwd 는 항상 CLI 실행디렉터리(메인루트)라 워크트리 식별 불가 → 워크트리 절대경로가 실제 도달하는
+#   여기서 기록(spec §10). strictly fail-open: block 판정 전에 호출하되 exit/판정에 영향 0 (helper 가 항상 return 0).
+record_worktree_marker "$SID" "$FILE_PATH"
 # 빈/누락 cwd → plan 위치 판단 불가 → fail-open (S12, resolve_cwd 공유)
 CWD=$(echo "$INPUT" | resolve_cwd) || { hook_log "enforce-rpi-cycle" "$FILE_PATH" "PASS" "no-cwd-failopen"; exit 0; }
 
@@ -68,7 +73,7 @@ fi
 if [ -n "${RPI_SKIP:-}" ]; then
   hook_log "enforce-rpi-cycle" "$FILE_PATH" "PASS" "skip:${RPI_SKIP}"
   echo "[rpi] SKIP: $RPI_SKIP" >&2
-  surface_bypass "rpi-cycle" "$(echo "$INPUT" | json_get session_id)" "⚠ RPI 게이트 우회 (RPI_SKIP='${RPI_SKIP}') — 이 세션 코드변경에 RPI 미적용; 의도된 우회인지 확인"
+  surface_bypass "rpi-cycle" "$SID" "⚠ RPI 게이트 우회 (RPI_SKIP='${RPI_SKIP}') — 이 세션 코드변경에 RPI 미적용; 의도된 우회인지 확인"
   exit 0
 fi
 

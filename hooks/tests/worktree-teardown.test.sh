@@ -93,6 +93,32 @@ printf '{"session_id":"","cwd":"%s","reason":"prompt_input_exit"}' "$REPO" | bas
 rm -f "$MK_DIR/unknown" 2>/dev/null
 printf '{"session_id":"wtjcleanup_%s","cwd":"%s","reason":"prompt_input_exit"}' "$$" "$WT" | bash "$HOOK" >/dev/null 2>&1  # 정리: 보존된 WT teardown
 
+echo "== Tb: 실세션 모사 — PreToolUse(cwd=메인루트, file_path=워크트리)로 마커 생성 → SessionEnd teardown(E2E) =="
+make_worktree
+B_SID="wtjtest_b_$$"
+# enforce-rpi-cycle 에 cwd=메인루트($REPO) + file_path=워크트리파일 → record_worktree_marker 가 마커 생성(실 신호 경로; 합성 worktree-cwd 아님)
+printf '{"session_id":"%s","cwd":"%s","tool_name":"Write","tool_input":{"file_path":"%s","content":"x"}}' "$B_SID" "$REPO" "$WT/app/frontend/src/own.txt" | bash "$HOME/.claude/hooks/enforce-rpi-cycle.sh" >/dev/null 2>&1
+MK_B="$MK_DIR/$B_SID"
+[ -f "$MK_B" ] && ok "Tb: PreToolUse 가 마커 생성(cwd=메인루트, 경로는 tool_input)" || no "Tb: PreToolUse 마커 미생성"
+printf '{"session_id":"%s","cwd":"%s","reason":"prompt_input_exit"}' "$B_SID" "$REPO" | bash "$HOOK" >/dev/null 2>&1
+TGT_B=$(ls -1 "$MAIN_NM" 2>/dev/null | wc -l | tr -d ' ')
+[ ! -e "$WT" ] && ok "Tb: ★E2E 워크트리 정리됨(실 신호 경로)" || no "Tb: ★E2E 워크트리 미정리"
+[ "$TGT_B" = "$TARGET_BEFORE" ] && ok "Tb: target(main) 무사 ($TGT_B/$TARGET_BEFORE)" || no "Tb: DATA LOSS $TGT_B/$TARGET_BEFORE"
+[ ! -f "$MK_B" ] && ok "Tb: 마커 소비됨" || no "Tb: 마커 미소비"
+
+echo "== Tc: 동시-동일 워크트리 — 다른 SID 마커 존재 시 teardown 보류(활성 워크트리 보호, C5) =="
+make_worktree
+mkdir -p "$MK_DIR"
+OTHER_SID="wtjtest_other_$$"; OWN_SID="wtjtest_own_$$"
+printf '%s\n' "$WT" > "$MK_DIR/$OTHER_SID"   # 동시(타) 세션 마커
+printf '%s\n' "$WT" > "$MK_DIR/$OWN_SID"      # 본 세션 마커
+printf '{"session_id":"%s","cwd":"%s","reason":"prompt_input_exit"}' "$OWN_SID" "$REPO" | bash "$HOOK" >/dev/null 2>&1
+[ -d "$WT" ] && ok "Tc: 워크트리 보존(concurrent-owner 감지)" || no "Tc: 워크트리 삭제됨 — 활성 세션 파괴 위험"
+[ -f "$MK_DIR/$OTHER_SID" ] && ok "Tc: 타 세션 마커 보존" || no "Tc: 타 세션 마커 삭제"
+[ ! -f "$MK_DIR/$OWN_SID" ] && ok "Tc: 본 세션 마커 소비" || no "Tc: 본 세션 마커 미소비"
+rm -f "$MK_DIR/$OTHER_SID" 2>/dev/null
+printf '{"session_id":"wtjtest_cleanup2_%s","cwd":"%s","reason":"prompt_input_exit"}' "$$" "$WT" | bash "$HOOK" >/dev/null 2>&1  # 정리: 단독이 됐으니 teardown
+
 # cleanup: 마커 프로세스 잔존 시 강제 종료 + temp 전체 삭제(모두 TMP 하위라 정션이 있어도 외부 무영향)
 rm -f "$HOME/.claude/worktrees-marker/wtjtest_"* "$HOME/.claude/worktrees-marker/wtjcleanup_"* 2>/dev/null
 powershell -NoProfile -Command "Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object { \$_.CommandLine -and \$_.CommandLine.Contains('$MARK') } | ForEach-Object { try { Stop-Process -Id \$_.ProcessId -Force -ErrorAction SilentlyContinue } catch {} }" >/dev/null 2>&1

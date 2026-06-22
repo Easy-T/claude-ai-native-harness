@@ -158,3 +158,10 @@ session-start-audit	157-marker-empty-skip	absent	gen_ssa_mark_empty
 session-start-audit	158-marker-nonwt-skip	absent	gen_ssa_mark_nonwt
 session-start-audit	159-marker-stale-prune	pruned	gen_ssa_mark_prune
 session-start-audit	160-marker-active-keep	kept	gen_ssa_mark_keep
+# cycle-40 (2026-06-22) — PreToolUse 워크트리 마커 WRITE (실-입력 shape) + wt_root_from_path 단위
+enforce-rpi-cycle	161-ptu-cycle-write	written	gen_ptu_161
+enforce-rpi-cycle	162-ptu-cycle-empty-skip	absent	gen_ptu_162
+enforce-rpi-cycle	163-ptu-cycle-nonwt-skip	absent	gen_ptu_163
+enforce-rpi-bash	164-ptu-bash-write	written	gen_ptu_164
+hooks-lib	165-wtroot-extract	output	gen_lib_165
+hooks-lib	166-wtroot-markerdir-nomatch	output	gen_lib_166

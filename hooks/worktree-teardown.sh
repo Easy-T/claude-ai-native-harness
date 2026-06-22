@@ -75,6 +75,20 @@ if [ "$(basename "$ABS_GD")" != "$NAME" ]; then
   hook_log "worktree-teardown" "$WT_ROOT" "PASS" "noop:wt-name-mismatch=$(basename "$ABS_GD")"; exit 0
 fi
 
+# GUARD 5 (cycle-40): 동시-동일 워크트리 보호 — 다른 SID 마커가 같은 WT_ROOT 를 가리키면(본 세션 마커는 위 CONSUME 에서
+#  이미 소비됨) 동시 세션이 이 워크트리를 *활성* 사용 중일 수 있음 → 정리 보류(leftover, 데이터손실 아님). 활성 워크트리 삭제 금지.
+#  워크트리=세션 1:1 컨벤션의 안전망(spec §10.3 C5). 파괴 단계 직전에만 검사(GUARD2/3 로 링크워크트리 확정 후).
+_WT_MK_DIR="$HOME/.claude/worktrees-marker"
+if [ -d "$_WT_MK_DIR" ]; then
+  for _omk in "$_WT_MK_DIR"/*; do
+    [ -f "$_omk" ] || continue
+    _omv=$(head -1 "$_omk" 2>/dev/null); _omv=$(normalize_path "$_omv")
+    if [ "$_omv" = "$WT_ROOT" ]; then
+      hook_log "worktree-teardown" "$WT_ROOT" "PASS" "noop:concurrent-owner=$(basename "$_omk")"; exit 0
+    fi
+  done
+fi
+
 BRANCH=$(git -C "$WT_ROOT" rev-parse --abbrev-ref HEAD 2>/dev/null)
 cd "$REPO_ROOT" 2>/dev/null || cd "$HOME" 2>/dev/null || cd / 2>/dev/null
 

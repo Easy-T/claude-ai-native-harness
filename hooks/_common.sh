@@ -141,10 +141,38 @@ code_ext_regex() { printf '\\.(%s)$' "$(printf '%s' "$CODE_EXTS" | tr ' ' '|')";
 # --- session_marker <name> <session_id>: 1세션-1회 알림 마커 경로 (auto-compact-watch / verify-loop-watch 공유) ---
 session_marker() { printf '/tmp/%s-%s' "$1" "${2:-unknown}"; }
 
-# --- wt_marker_path <session_id>: worktree-teardown 의 session_id-키 마커 절대경로 (SessionStart write ↔ SessionEnd consume SSOT) ---
-# 세션이 워크트리 밖으로 cd 해도 그 세션의 워크트리를 SessionEnd 가 식별하도록 SessionStart 가 여기에 WT_ROOT 를 기록.
-# 빈/unknown SID 는 호출자가 차단(동시 세션의 'unknown' 마커 공유 → 타 세션의 *활성* 워크트리 오정리 방지).
+# --- wt_marker_path <session_id>: worktree-teardown 의 session_id-키 마커 절대경로 (WRITE ↔ CONSUME SSOT) ---
+# 세션이 cwd 와 무관하게(SessionStart/End cwd 는 CLI 실행디렉터리=메인루트, 워크트리 아님 — spec §10) 자기 워크트리를
+# SessionEnd 가 식별하도록, 워크트리 경로가 도달하는 PreToolUse 가 여기에 WT_ROOT 를 기록(주); SessionStart 는 보조.
+# 빈/unknown SID 는 호출자(record_worktree_marker)가 차단(동시 세션의 'unknown' 마커 공유 → 타 세션의 *활성* 워크트리 오정리 방지).
 wt_marker_path() { printf '%s/.claude/worktrees-marker/%s' "$HOME" "${1:-unknown}"; }
+
+# --- wt_root_from_path <path-or-command>: 임의 경로/명령 문자열에서 첫 <repo>/.claude/worktrees/<name> 추출 (SSOT) ---
+# teardown(CONSUME)·session-start(보조 WRITE)·PreToolUse(주 WRITE) 3-site 가 동일 규칙 공유.
+# ERE: <repo>=구분자(공백/따옴표/셸메타) 없는 최대 런, <name>=그 뒤 단일 세그먼트. 매칭 0, 무매칭 1(무출력).
+# (worktrees-marker/ 는 'worktrees/' 가 아니므로 자기-비매칭 — record 가 잘못된 마커를 쓰지 않게 하는 안전 속성.)
+wt_root_from_path() {
+  local s; s=$(normalize_path "${1:-}")
+  local re='([^[:space:]"'\''=;|&<>(),`]+)/\.claude/worktrees/([^/[:space:]"'\''=;|&<>(),`]+)'
+  if [[ "$s" =~ $re ]]; then
+    printf '%s/.claude/worktrees/%s' "${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}"
+    return 0
+  fi
+  return 1
+}
+
+# --- record_worktree_marker <session_id> <path-or-command>: 워크트리 경로 감지 시 session_id-키 마커에 WT_ROOT 기록 ---
+# SessionEnd teardown 이 종료세션의 워크트리를 cwd 와 무관하게 식별하도록. PreToolUse(주)·SessionStart(보조) 가 호출.
+# C1: 빈/unknown SID skip(동시세션 'unknown' 마커 공유 → 타세션 활성 워크트리 오정리 방지).
+# strictly fail-open + set -e 안전: 항상 return 0 (내부 무매칭은 || return 0 으로 흡수, 모든 쓰기 best-effort).
+record_worktree_marker() {
+  local sid="${1:-}" src="${2:-}"
+  [ -n "$sid" ] && [ "$sid" != "unknown" ] || return 0
+  local wt; wt=$(wt_root_from_path "$src") || return 0
+  mkdir -p "$HOME/.claude/worktrees-marker" 2>/dev/null || true
+  printf '%s\n' "$wt" > "$(wt_marker_path "$sid")" 2>/dev/null || true
+  return 0
+}
 
 # --- emit_system_message <msg>: systemMessage JSON 을 stdout 에 안전 출력 (hook→UI 알림 프로토콜 단일화) ---
 emit_system_message() { MSG="$1" node -e 'process.stdout.write(JSON.stringify({systemMessage:process.env.MSG}))'; }

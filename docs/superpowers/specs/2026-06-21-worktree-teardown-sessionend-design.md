@@ -110,6 +110,12 @@ Because the hook deletes data, the **guard logic + rm path computation are revie
 
 > In-place dated revision (genesis-record model: §1–8 v1 design preserved; this section is the additive
 > design delta). Decision class: same subsystem, adds a **fallback path** to GUARD 1 — not a new hook.
+>
+> **⚠ CORRECTED by §10 (cycle-40, 2026-06-22):** §9.1's root cause ("closeout `cd`'s back to the repo root")
+> is a *partial misdiagnosis*, and §9.2-step-1's `SessionStart`-cwd marker WRITE is **structurally inert in
+> real sessions** (hook `cwd` is the CLI launch dir = main root, never the worktree). The CONSUME side (§9.2
+> step 2) and the C1–C4 invariants stand; only the WRITE trigger moves to `PreToolUse`. Read §10 before relying
+> on this section.
 
 ### 9.1 Problem the v1 design missed
 
@@ -175,3 +181,122 @@ Exploit that to remember the worktree independent of end-time cwd:
 +`cases.tsv` (+5 SessionStart marker cases → README cases count 141→146, verify-setup #20). **No new hook
 file, no `settings.json`/`settings.example.json` change** (both SessionStart & SessionEnd already wired) →
 #8/#14/#23/#24 untouched.
+
+---
+
+## 10. Root-cause correction + PreToolUse marker WRITE (2026-06-22, cycle-40)
+
+> In-place dated revision (genesis-record model). **Corrects §9.1's partial misdiagnosis** and relocates the
+> marker WRITE from `SessionStart` (structurally inert) to `PreToolUse`. Same subsystem: moves the WRITE
+> trigger — CONSUME (§9.2 step 2) + invariants C1–C4 unchanged; adds concurrency guard C5.
+
+### 10.1 What §9 got wrong (empirically corrected)
+
+§9.1 attributed the missed teardown to the RPI closeout **`cd`-ing back to the repo root** before end. That is
+a *partial* misdiagnosis. Decisive fact: **the `cwd` delivered to `SessionStart`/`SessionEnd` hooks is the
+`claude` CLI process's working directory = the directory `claude` was launched from = the *main repo root* — it
+is *never* the worktree, regardless of any `cd`.** Implementation sessions launch `claude` at the main root and
+touch the worktree only through Edit/Bash tool *absolute-path arguments*; Bash `cd` runs in a per-command
+subshell and never mutates the parent CLI process cwd. So the §9.2-step-1 `SessionStart` WRITE
+(`case "$cwd" in */.claude/worktrees/*`) **never fires in a real session** — the marker dir stays permanently
+empty — and CONSUME has nothing to read. The cycle-39 WRITE and CONSUME code are both correct but were keyed to
+a signal (`SessionStart` cwd) that is structurally always the main root.
+
+Evidence (observed): ① `worktrees-marker/` permanently empty; ② every `SessionEnd` log `noop:not-worktree`,
+`cwd`=main root; ③ a session that never `cd`'d to the main root still logged `cwd`=main root (refutes the
+cd-out story); ④ the **`PreToolUse`** gate `enforce-rpi-cycle` *does* receive the worktree absolute path
+(`.../.claude/worktrees/<name>/...`) in `tool_input.file_path` — the worktree identity reaches `PreToolUse`,
+not `SessionStart`/`SessionEnd` cwd. (Process lesson → §10.6.)
+
+### 10.2 Decision — record the marker from PreToolUse (where the worktree path actually arrives)
+
+`session_id` is present in `PreToolUse` stdin (verified 2026-06-22: `surface-constitution.sh` reads it; a live
+event injection returns it; the bypass-surfacing cases feed it). The worktree absolute path arrives in
+`tool_input.file_path`/`tool_input.notebook_path` (Write/Edit/NotebookEdit) and `tool_input.command` (Bash). So:
+
+1. **`_common.sh` (SSOT helpers):** `wt_root_from_path <path-or-command>` extracts the first
+   `<repo>/.claude/worktrees/<name>` from any path or command string (ERE: maximal non-delimiter run before
+   `/.claude/worktrees/`, single segment after — empirically validated on clean path, `cd` command, quoted
+   path, Windows backslash, nested `.claude/.claude` harness-self, non-worktree, and the `worktrees-marker/`
+   dir which must *not* match). `record_worktree_marker <session_id> <path-or-command>` = C1-skip on
+   empty/`unknown` sid → `wt_root_from_path` → write `WT_ROOT` to `wt_marker_path(sid)`. Both are pure-bash
+   (no node), strictly fail-open (`|| true`, `2>/dev/null`), always `return 0` (set-e safe under the gates'
+   `set -euo pipefail` — verified). The 3 derivation sites (teardown, session-start, new write) share them.
+2. **`enforce-rpi-cycle.sh` (Write|Edit|NotebookEdit) + `enforce-rpi-bash.sh` (Bash):** call
+   `record_worktree_marker "$SID" "$FILE_PATH"` / `"$CMD"` **at the top, before any block/exit** — so the marker
+   is recorded whenever the session is observed working in a worktree, even if *that* tool call is gated.
+   Strictly side-effect; never changes the gate's exit code or block decision.
+3. **`session-start-audit.sh` WRITE → secondary.** Kept (now via `record_worktree_marker "$SID" "$CWD"`) only
+   for the rare "launched *from* a worktree" case; the primary path is `PreToolUse`. Stale-prune unchanged.
+4. **`worktree-teardown.sh` CONSUME unchanged** (§9.2 step 2): cwd → else own marker → GUARD 2/3 → rm.
+   The #61 data-loss invariants stay verbatim: reparse pre-removal → `remaining==0` assert → POSIX `rm -rf`;
+   **`git worktree remove --force` forbidden**; C1 empty/`unknown` sid skips marker WRITE *and* CONSUME; the
+   hook always `exit 0`. cycle-40 adds only the WRITE trigger (§10.2 steps 1–2) + guard C5 (§10.3) — it removes
+   no guard.
+
+### 10.3 New hard constraint C5 — concurrent same-worktree must not delete an active worktree
+
+Now that the WRITE actually fires, two concurrent sessions in the *same* worktree (against the worktree=session
+1:1 convention) become a real risk: the first to end would consume its own marker and tear down a worktree the
+second is still using. **C5 — before any destructive step (after GUARD 3), `worktree-teardown.sh` scans
+`worktrees-marker/`; if *another* session's marker (own already consumed at CONSUME) points at the same
+`WT_ROOT` → no-op (`noop:concurrent-owner`).** This trades a rare leftover (a stale marker from a crashed peer
+blocks cleanup until its `WT_ROOT` is gone and the stale-prune removes it) for never deleting a live peer's
+worktree — the correct bias on a data-deletion path. The 1:1 convention remains the assumption; C5 is the
+safety net when it is violated. Leftover ≠ data loss.
+
+**Residual window C5 does NOT close (accepted, bounded — adversarial review 2026-06-23):** because the WRITE
+now actually fires, a session A whose `tool_input` references *another* session B's worktree path (a Bash
+command or Edit touching `.../.claude/worktrees/<B>/...`, including a single command naming two worktrees —
+`wt_root_from_path` greedily takes the *first* match) records A's own-SID marker pointing at B's worktree; at
+A's `SessionEnd` A would target B's worktree. C5 protects B **iff B has already written its own marker** (i.e.
+B has triggered any PreToolUse gate). The unclosed window is: B is *active but has not yet triggered a single
+Write/Edit/Bash gate* (only at B's very start) → no B marker → C5 finds nothing → A can `rm -rf` B's active
+worktree. This is **bounded to a genuine linked worktree of the same repo** (GUARD 2/3 still prove it; the main
+repo / `$HOME` / outside are never reachable), requires violating the worktree=session 1:1 convention, and the
+timing window is narrow (a real impl session triggers a gate within its first tool call). It is the #61
+*disruption* class (lose an active peer worktree's uncommitted work), never the #61 *main-repo* data-loss
+class. Accepted as best-effort under the 1:1 convention; a hard cross-session lock is out of scope for cycle-40.
+
+### 10.4 Failure modes (delta)
+
+| Mode | Outcome |
+|------|---------|
+| launched at main root, work in worktree (the real flow) | **Now cleaned** — PreToolUse writes the marker; SessionEnd (cwd=main root) consumes it. |
+| empty `session_id` PreToolUse | no marker (C1) → cwd-only teardown (leftover if cd-out; never a mis-delete). |
+| two concurrent sessions, same worktree | first end → C5 no-op (peer's worktree preserved); last end → cleaned. |
+| non-worktree path in tool_input | `wt_root_from_path` no-match → no marker (no-op). |
+| node absent | gates exit early (require_node); no marker → cwd-only (leftover, fail-open). |
+
+### 10.5 Surfaces touched (delta only)
+
+`_common.sh` (+`wt_root_from_path`, +`record_worktree_marker`), `enforce-rpi-cycle.sh` (+marker call, +`session_id`
+in the existing `json_get_many`, reuse at the bypass line), `enforce-rpi-bash.sh` (+marker call, +hoisted
+`session_id`), `session-start-audit.sh` (WRITE → `record_worktree_marker`; comment corrected),
+`worktree-teardown.sh` (+C5 concurrency guard). Tests: `worktree-teardown.test.sh` (+Tb real-signal E2E, +Tc
+concurrency → 13→20), `run-all.sh`+`cases.tsv` (+161–166: four PreToolUse gate-E2E marker-WRITE cases in the
+**real-input shape — cwd=main root, worktree path in `tool_input`** — plus two `wt_root_from_path` unit cases
+incl. the `worktrees-marker/` no-self-match safety property → 146→152; README cases count + verify-setup #20).
+**No new hook file, no `settings.json`/`settings.example.json` change** → #8/#14/#23/#24 untouched.
+
+### 10.6 Process lesson (5-Whys → §10.6; harness has no `non-obvious.md` — spec+memory are SSOT)
+
+**Why did cycle-39 ship a fix keyed to a structurally-inert signal *and pass its own tests*?**
+1. Why did the marker never get written? — The WRITE was keyed to `SessionStart` cwd, which is always the main
+   root, never the worktree.
+2. Why was it keyed to a signal that's always the main root? — The design *assumed* `SessionStart` cwd equals
+   the worktree when the session works there, without verifying what `cwd` actually contains at runtime.
+3. Why wasn't the wrong assumption caught in testing? — The cycle-39 tests fed a **synthetic `cwd`=worktree**
+   directly (`test_ssa_mark` passes the worktree as cwd), confirming the code *given that input* — but the real
+   hook input is `cwd`=main root with the worktree path only in `tool_input`. The test assumed the conclusion.
+4. Why did the test feed synthetic input matching the assumption? — There was no requirement that a hook test
+   reproduce the **real runtime shape** of the stdin field whose *semantics* the fix depends on.
+5. Root cause (system/process): **a hook test that depends on the meaning of a stdin field (which field carries
+   what at runtime) must first establish that meaning empirically and feed input in that real shape — not
+   synthetic input shaped to the desired conclusion.** A code-given-input test cannot validate a
+   field-semantics assumption.
+
+**SMART action (landed this cycle):** the new real-input-shape cases (161–164) feed `cwd`=main root + worktree
+path in `tool_input` (the production shape), and a RED-first step fixes that the *current* code writes no marker
+for that shape. Recorded here (§10.6) + in the project memory; the global harness has no `non-obvious.md`, so
+spec §10.6 + memory are the SSOT for this lesson.
