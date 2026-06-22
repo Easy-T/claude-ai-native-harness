@@ -5,24 +5,13 @@ source "$HOME/.claude/hooks/_common.sh"
 INPUT=$(read_input)
 CWD=$(echo "$INPUT" | resolve_cwd) || CWD=""
 
-# --- WORKTREE MARKER (SessionEnd teardown fallback, cycle-39): cwd 가 링크 워크트리면 session_id-키 마커에 WT_ROOT 기록 ---
-# cwd-keyed teardown 은 세션이 워크트리 밖으로 cd 하면 정리 불가 → SessionStart 가 마커를 남겨 SessionEnd 가 SID 로 소비.
-# strictly non-blocking(fail-open): 모든 마커 연산 best-effort. SID 기본값은 || 형(set -e 안전; && 형은 비-빈 SID 에서 exit).
+# --- WORKTREE MARKER (SessionEnd teardown fallback): 워크트리 절대경로가 도달하는 PreToolUse(enforce-rpi-cycle/bash)
+#   가 1차 기록(cycle-40, spec §10). 여기(SessionStart)는 *보조* — 드물게 워크트리에서 직접 claude 를 띄워 cwd 가
+#   워크트리인 경우만 기록. (SessionStart/End cwd 는 CLI 실행디렉터리=메인루트라 일반적으론 워크트리 아님 — cycle-39 전제 오류.)
+#   strictly fail-open(set -e 안전: record_worktree_marker 가 항상 return 0; 빈/unknown SID 는 helper 내부에서 skip).
 SID=$(echo "$INPUT" | json_get 'session_id'); [ -n "$SID" ] || SID="unknown"
 WT_MARK_DIR="$HOME/.claude/worktrees-marker"
-if [ "$SID" != "unknown" ]; then          # C1: 빈 SID → write skip ('unknown' 마커 공유 금지)
-  case "$CWD" in
-    */.claude/worktrees/*)
-      _wt_repo="${CWD%%/.claude/worktrees/*}"
-      _wt_rest="${CWD#*/.claude/worktrees/}"
-      _wt_name="${_wt_rest%%/*}"
-      if [ -n "$_wt_repo" ] && [ -n "$_wt_name" ]; then
-        mkdir -p "$WT_MARK_DIR" 2>/dev/null || true
-        printf '%s\n' "$_wt_repo/.claude/worktrees/$_wt_name" > "$(wt_marker_path "$SID")" 2>/dev/null || true
-      fi
-      ;;
-  esac
-fi
+record_worktree_marker "$SID" "$CWD"
 # 스테일 마커 prune: 기록된 WT_ROOT 가 더는 없으면(크래시로 SessionEnd 미발화) 마커파일만 제거(디렉터리/타세션 활성 워크트리 절대 미삭제).
 if [ -d "$WT_MARK_DIR" ]; then
   for _mk in "$WT_MARK_DIR"/*; do
