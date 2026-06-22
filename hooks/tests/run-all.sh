@@ -744,6 +744,12 @@ LOGT=$(mktemp "$SCRATCH/logsum-XXXXXX.log")
   printf 'ts\tredirect-targets.js\tparser\tFAILOPEN\tparser-exit-1\n'; } > "$LOGT"
 test_lib "153-logsummary-counts" "BLOCK=2 SKIP=1 FAILOPEN=1 ALERT=0" "$(bash -c 'source "$HOME/.claude/hooks/_common.sh"; log_summary "$1"' _ "$LOGT")"
 
+# ==================== CYCLE-40: PRETOOLUSE 워크트리 마커 WRITE (실-입력 shape) + wt_root_from_path 단위 ====================
+# 주: test_lib(538) 정의 이후 배치 — 165/166 가 test_lib 사용. 실 $HOME/.claude/worktrees-marker 사용(고유 SID+즉시 정리).
+# wt_root_from_path 단위: 경로 추출 + worktrees-marker/ 자기-비매칭(record 가 잘못된 마커를 쓰지 않게 하는 안전 속성)
+test_lib "165-wtroot-extract" "/tmp/r/.claude/worktrees/cyc-x" "$(bash -c 'source "$HOME/.claude/hooks/_common.sh"; wt_root_from_path "$1"' _ "/tmp/r/.claude/worktrees/cyc-x/app/f.ts")"
+test_lib "166-wtroot-markerdir-nomatch" "" "$(bash -c 'source "$HOME/.claude/hooks/_common.sh"; wt_root_from_path "$1" || true' _ "$HOME/.claude/worktrees-marker/sid")"
+
 # ==================== Summary ====================
 echo
 echo "Hook tests: $PASSED / $TOTAL passed"
