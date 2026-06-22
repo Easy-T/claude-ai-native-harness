@@ -37,8 +37,8 @@
 | `surface-constitution` | 알림 | Write/Edit/NotebookEdit on 의존성 매니페스트(§5)·UI 확장자(§8) | 해당 헌법 조항을 `additionalContext`(모델 컨텍스트)로 환기 — ADR 작성(§5)/ui-design 사용(§8). 1세션 §별 1회, 차단 아님 |
 | `auto-compact-watch` | 알림 | Read/Bash/Agent 후 | **모델-인지** 컨텍스트 창(opus-4-7/4-8→1M, 그 외 200K; `CONTEXT_LIMIT` override) 기준 임계 도달 시 `/compact` 권장. 경고 %는 `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE`에서 도출 (1세션 1회) |
 | `verify-loop-watch` | 알림 | Stop (턴 종료) | active plan + 미검증 코드 변경 시 `scripts/check.sh`+closeout 권장 (1세션 1회, advisory) |
-| `session-start-audit` | 알림 | 세션 시작 | CLAUDE.md audit 마커 30일 초과 시 알림 + cwd가 워크트리면 `session_id`-키 마커(`~/.claude/worktrees-marker/<sid>`=WT_ROOT) 기록·스테일 마커 prune (worktree-teardown cd-out fallback, 빈 SID skip) |
-| `worktree-teardown` | 정리 | SessionEnd (`prompt_input_exit`/`logout`/`other`) | 종료 세션의 *링크된* 워크트리를 정션-안전 삭제(reparse 링크-only 선제거→잔존0 확인→POSIX `rm -rf`) + dev서버 kill + `worktree prune`/`branch -D`. 가드 3중(마커·sanity·linked-worktree 증명)으로 **메인 repo 도달 불가**. `clear`/`resume` 제외(세션 지속 보호). `git worktree remove --force` 미사용(정션 추종 사고 봉인). 세션이 워크트리 밖으로 cd해도(closeout) SessionStart가 남긴 `session_id` 마커로 정리(fallback; 마커 경로도 가드 3중 통과 후에만 삭제·빈 SID skip) |
+| `session-start-audit` | 알림 | 세션 시작 | CLAUDE.md audit 마커 30일 초과 시 알림 + **보조** `session_id`-키 마커(`~/.claude/worktrees-marker/<sid>`=WT_ROOT) 기록(드물게 cwd가 워크트리일 때만 — 주 기록은 PreToolUse 게이트, spec §10)·스테일 마커 prune (빈 SID skip) |
+| `worktree-teardown` | 정리 | SessionEnd (`prompt_input_exit`/`logout`/`other`) | 종료 세션의 *링크된* 워크트리를 정션-안전 삭제(reparse 링크-only 선제거→잔존0 확인→POSIX `rm -rf`) + dev서버 kill + `worktree prune`/`branch -D`. 가드(마커·sanity·linked-worktree 증명)로 **메인 repo 도달 불가**. `clear`/`resume` 제외(세션 지속 보호). `git worktree remove --force` 미사용(정션 추종 사고 봉인). SessionStart/End cwd는 항상 CLI 실행디렉터리(메인루트)지 워크트리가 아니므로(cycle-40 정정), 워크트리 절대경로가 도달하는 **PreToolUse**(enforce-rpi-cycle/bash)가 `session_id` 마커를 기록하고 SessionEnd가 자기 SID 마커로 정리(마커 경로도 가드 통과 후에만 삭제·빈 SID skip·다른 SID 마커가 같은 WT_ROOT면 정리 보류=C5 동시성 가드) |
 
 크로스 플랫폼 path 정규화(Windows backslash → forward slash) 내장 — Linux/WSL/Windows 모두 동일하게 작동.
 

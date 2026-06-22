@@ -3,9 +3,10 @@
 > **For agentic workers:** REQUIRED SUB-SKILL: superpowers:executing-plans (inline) implements this plan
 > task-by-task. Steps use checkbox (`- [ ]`) syntax.
 
-**Status:** active
+**Status:** completed
 **RPI-Cycle:** 40
 **Started:** 2026-06-22
+**Completed:** 2026-06-23 — 6 tasks landed (commits fa4823b..0313631); run-all 152/152, worktree-teardown.test 20/20, verify-all ALL PASS; adversarial closeout (5 agents) data-loss=0/Critical=0.
 
 **Goal:** Make worktree-teardown actually fire in real sessions by recording the `session_id`-keyed marker from
 **PreToolUse** (where the worktree absolute path arrives via `tool_input`), not from `SessionStart` cwd (always
@@ -67,7 +68,7 @@ demoted to secondary via the same helper. `SessionEnd` CONSUME unchanged + new C
 - `wt_root_from_path <path-or-command>` → prints `<repo>/.claude/worktrees/<name>` and returns 0 on match; returns 1 (no output) on no-match.
 - `record_worktree_marker <session_id> <path-or-command>` → writes `WT_ROOT` to `wt_marker_path(sid)` if sid valid AND path contains a worktree; always returns 0.
 
-- [ ] **Step 1: Write the failing unit cases** in `run-all.sh` (after the cycle-39 `test_ssa_prune` block, ~line 475):
+- [x] **Step 1: Write the failing unit cases** in `run-all.sh` (after the cycle-39 `test_ssa_prune` block, ~line 475):
 
 ```bash
 # ==================== CYCLE-40: wt_root_from_path 단위 (정규식 + worktrees-marker 자기-비매칭 안전) ====================
@@ -75,7 +76,7 @@ test_lib "165-wtroot-extract" "/tmp/r/.claude/worktrees/cyc-x" "$(bash -c 'sourc
 test_lib "166-wtroot-markerdir-nomatch" "" "$(bash -c 'source "$HOME/.claude/hooks/_common.sh"; wt_root_from_path "$1" || true' _ "$HOME/.claude/worktrees-marker/sid")"
 ```
 
-- [ ] **Step 2: Add the two declarations to `cases.tsv`** (append after line 160):
+- [x] **Step 2: Add the two declarations to `cases.tsv`** (append after line 160):
 
 ```
 # cycle-40 (2026-06-22) — PreToolUse 워크트리 마커 WRITE (실-입력 shape) + wt_root_from_path 단위
@@ -83,12 +84,12 @@ hooks-lib	165-wtroot-extract	output	gen_lib_165
 hooks-lib	166-wtroot-markerdir-nomatch	output	gen_lib_166
 ```
 
-- [ ] **Step 3: Run to verify RED.** Expected: `165-wtroot-extract` FAILS (function undefined → empty output ≠ expected). `166` may spuriously pass (empty==empty). Reconciliation still OK (TOTAL grows with DECLARED).
+- [x] **Step 3: Run to verify RED.** Expected: `165-wtroot-extract` FAILS (function undefined → empty output ≠ expected). `166` may spuriously pass (empty==empty). Reconciliation still OK (TOTAL grows with DECLARED).
 
 Run: `bash ~/.claude/hooks/tests/run-all.sh 2>&1 | grep -E '165|166|reconcile|passed'`
 Expected: a failure line `hooks-lib/165-wtroot-extract`.
 
-- [ ] **Step 4: Implement the helpers** in `_common.sh` immediately after the `wt_marker_path` function (after line 147):
+- [x] **Step 4: Implement the helpers** in `_common.sh` immediately after the `wt_marker_path` function (after line 147):
 
 ```bash
 # --- wt_root_from_path <path-or-command>: 임의 경로/명령 문자열에서 첫 <repo>/.claude/worktrees/<name> 추출 (SSOT) ---
@@ -119,12 +120,12 @@ record_worktree_marker() {
 }
 ```
 
-- [ ] **Step 5: Run to verify GREEN.**
+- [x] **Step 5: Run to verify GREEN.**
 
 Run: `export PATH=...(clean); bash ~/.claude/hooks/tests/run-all.sh 2>&1 | grep -E '165|166|passed|정합'`
 Expected: 165 & 166 pass; reconciliation `148 declared == 148 run` (146 + 2 so far).
 
-- [ ] **Step 6: Commit.**
+- [x] **Step 6: Commit.**
 
 ```bash
 git add hooks/_common.sh hooks/tests/run-all.sh hooks/tests/cases.tsv
@@ -141,7 +142,7 @@ git commit -m "feat(hooks): _common wt_root_from_path + record_worktree_marker (
 
 **Interfaces — Consumes:** `record_worktree_marker` (Task 1).
 
-- [ ] **Step 1: Write the failing gate cases** in `run-all.sh` (after the Task-1 unit cases, ~line 477). Add the helper once, then cases:
+- [x] **Step 1: Write the failing gate cases** in `run-all.sh` (after the Task-1 unit cases, ~line 477). Add the helper once, then cases:
 
 ```bash
 # 실-입력 shape: cwd=메인 레포 루트(워크트리 아님) + tool_input 에 워크트리 절대경로 → record 가 마커 기록.
@@ -171,7 +172,7 @@ test_ptu_mark "162-ptu-cycle-empty-skip" "enforce-rpi-cycle.sh" "$(ptu_cycle_ev 
 test_ptu_mark "163-ptu-cycle-nonwt-skip" "enforce-rpi-cycle.sh" "$(ptu_cycle_ev "ptu163_$$" "$PTU_MAIN/src/foo.ts" "$PTU_MAIN")" "ptu163_$$" absent
 ```
 
-- [ ] **Step 2: Add declarations to `cases.tsv`** (after the Task-1 lines):
+- [x] **Step 2: Add declarations to `cases.tsv`** (after the Task-1 lines):
 
 ```
 enforce-rpi-cycle	161-ptu-cycle-write	written	gen_ptu_161
@@ -179,12 +180,12 @@ enforce-rpi-cycle	162-ptu-cycle-empty-skip	absent	gen_ptu_162
 enforce-rpi-cycle	163-ptu-cycle-nonwt-skip	absent	gen_ptu_163
 ```
 
-- [ ] **Step 3: Run to verify RED.** 161 FAILS (current cycle gate never writes a marker → got=absent). 162/163 pass (nothing writes).
+- [x] **Step 3: Run to verify RED.** 161 FAILS (current cycle gate never writes a marker → got=absent). 162/163 pass (nothing writes).
 
 Run: `export PATH=...(clean); bash ~/.claude/hooks/tests/run-all.sh 2>&1 | grep -E '161|162|163'`
 Expected: `enforce-rpi-cycle/161-ptu-cycle-write (want=written/... got=absent)`.
 
-- [ ] **Step 4: Implement** — edit `enforce-rpi-cycle.sh`:
+- [x] **Step 4: Implement** — edit `enforce-rpi-cycle.sh`:
 
 (a) line 7 — add `session_id` to the batch read:
 ```bash
@@ -202,12 +203,12 @@ record_worktree_marker "$SID" "$FILE_PATH"
   surface_bypass "rpi-cycle" "$SID" "⚠ RPI 게이트 우회 (RPI_SKIP='${RPI_SKIP}') — 이 세션 코드변경에 RPI 미적용; 의도된 우회인지 확인"
 ```
 
-- [ ] **Step 5: Run to verify GREEN.** 161 now written (content==WT_ROOT). All erc cases (01-95, 104, 139, 145, 152, 19) still pass (non-worktree paths → no marker, exit codes unchanged).
+- [x] **Step 5: Run to verify GREEN.** 161 now written (content==WT_ROOT). All erc cases (01-95, 104, 139, 145, 152, 19) still pass (non-worktree paths → no marker, exit codes unchanged).
 
 Run: `export PATH=...(clean); bash ~/.claude/hooks/tests/run-all.sh 2>&1 | grep -E '161|162|163|enforce-rpi-cycle|passed'`
 Expected: 161/162/163 pass; no enforce-rpi-cycle regression.
 
-- [ ] **Step 6: Commit.**
+- [x] **Step 6: Commit.**
 
 ```bash
 git add hooks/enforce-rpi-cycle.sh hooks/tests/run-all.sh hooks/tests/cases.tsv
@@ -222,24 +223,24 @@ git commit -m "feat(hooks): enforce-rpi-cycle records worktree marker from PreTo
 - Modify: `hooks/enforce-rpi-bash.sh` (after line 17 CMD; line 27 bypass reuse)
 - Modify: `hooks/tests/run-all.sh` (case 164) + `hooks/tests/cases.tsv`
 
-- [ ] **Step 1: Write the failing case** in `run-all.sh` (after case 163):
+- [x] **Step 1: Write the failing case** in `run-all.sh` (after case 163):
 
 ```bash
 test_ptu_mark "164-ptu-bash-write" "enforce-rpi-bash.sh" "$(ptu_bash_ev "ptu164_$$" "cd $PTUWT/app && npm i" "$PTU_MAIN")" "ptu164_$$" written "$WTROOT_P"
 ```
 
-- [ ] **Step 2: Add declaration to `cases.tsv`:**
+- [x] **Step 2: Add declaration to `cases.tsv`:**
 
 ```
 enforce-rpi-bash	164-ptu-bash-write	written	gen_ptu_164
 ```
 
-- [ ] **Step 3: Run to verify RED.** 164 FAILS (bash gate never writes a marker yet → absent).
+- [x] **Step 3: Run to verify RED.** 164 FAILS (bash gate never writes a marker yet → absent).
 
 Run: `export PATH=...(clean); bash ~/.claude/hooks/tests/run-all.sh 2>&1 | grep -E '164'`
 Expected: `enforce-rpi-bash/164-ptu-bash-write (want=written/... got=absent)`.
 
-- [ ] **Step 4: Implement** — edit `enforce-rpi-bash.sh`:
+- [x] **Step 4: Implement** — edit `enforce-rpi-bash.sh`:
 
 (a) after line 17 (`CMD=$(echo "$INPUT" | json_get 'tool_input.command')`), insert:
 ```bash
@@ -252,12 +253,12 @@ record_worktree_marker "$SID" "$CMD"
   surface_bypass "rpi-bash" "$SID" "⚠ RPI bash 게이트 우회 (RPI_SKIP='${RPI_SKIP}') — 이 세션 셸 코드작성에 게이트 미적용; 의도된 우회인지 확인"
 ```
 
-- [ ] **Step 5: Run to verify GREEN.** 164 written; all enforce-rpi-bash cases (30-36, 102-120, 130-132, 143, 150, 155) unregressed.
+- [x] **Step 5: Run to verify GREEN.** 164 written; all enforce-rpi-bash cases (30-36, 102-120, 130-132, 143, 150, 155) unregressed.
 
 Run: `export PATH=...(clean); bash ~/.claude/hooks/tests/run-all.sh 2>&1 | grep -E '164|enforce-rpi-bash|passed|정합'`
 Expected: 164 pass; reconciliation `150 declared == 150 run`; no bash-gate regression.
 
-- [ ] **Step 6: Commit.**
+- [x] **Step 6: Commit.**
 
 ```bash
 git add hooks/enforce-rpi-bash.sh hooks/tests/run-all.sh hooks/tests/cases.tsv
@@ -271,12 +272,12 @@ git commit -m "feat(hooks): enforce-rpi-bash records worktree marker from PreToo
 **Files:**
 - Modify: `hooks/session-start-audit.sh` (lines 8-25 → helper call + corrected comment; keep prune 26-33)
 
-- [ ] **Step 1: Confirm baseline GREEN** for the session-start marker cases (156-160) before refactor.
+- [x] **Step 1: Confirm baseline GREEN** for the session-start marker cases (156-160) before refactor.
 
 Run: `export PATH=...(clean); bash ~/.claude/hooks/tests/run-all.sh 2>&1 | grep -E '15[6-9]|160'`
 Expected: 156-160 all pass.
 
-- [ ] **Step 2: Replace the WRITE block** (lines 8-25) with the SSOT helper + corrected comment (keep the SID read line and `WT_MARK_DIR` for the prune block that follows):
+- [x] **Step 2: Replace the WRITE block** (lines 8-25) with the SSOT helper + corrected comment (keep the SID read line and `WT_MARK_DIR` for the prune block that follows):
 
 ```bash
 # --- WORKTREE MARKER (SessionEnd teardown fallback): 워크트리 절대경로가 도달하는 PreToolUse(enforce-rpi-cycle/bash)
@@ -290,12 +291,12 @@ record_worktree_marker "$SID" "$CWD"
 
 (The stale-prune block at lines 26-33 stays unchanged — it references `WT_MARK_DIR`, still defined above.)
 
-- [ ] **Step 3: Run to verify GREEN preserved.** 156-160 still pass (same behavior via helper: cwd=worktree → written; empty/nonwt → absent; prune unchanged).
+- [x] **Step 3: Run to verify GREEN preserved.** 156-160 still pass (same behavior via helper: cwd=worktree → written; empty/nonwt → absent; prune unchanged).
 
 Run: `export PATH=...(clean); bash ~/.claude/hooks/tests/run-all.sh 2>&1 | grep -E '15[6-9]|160|106|107|108|109|session-start'`
 Expected: 156-160 + 106-109 pass; no session-start-audit regression.
 
-- [ ] **Step 4: Commit.**
+- [x] **Step 4: Commit.**
 
 ```bash
 git add hooks/session-start-audit.sh
@@ -310,7 +311,7 @@ git commit -m "refactor(hooks): session-start marker via record_worktree_marker 
 - Modify: `hooks/worktree-teardown.sh` (insert C5 after line 76, before line 78)
 - Modify: `hooks/tests/worktree-teardown.test.sh` (add Tb + Tc → 13→20)
 
-- [ ] **Step 1: Write the failing standalone tests** in `worktree-teardown.test.sh`, inserted after the `Te` block (after line 94, before the cleanup at line 96). Tb validates Tasks 1-3 E2E (will pass); Tc is RED for C5:
+- [x] **Step 1: Write the failing standalone tests** in `worktree-teardown.test.sh`, inserted after the `Te` block (after line 94, before the cleanup at line 96). Tb validates Tasks 1-3 E2E (will pass); Tc is RED for C5:
 
 ```bash
 echo "== Tb: 실세션 모사 — PreToolUse(cwd=메인루트, file_path=워크트리)로 마커 생성 → SessionEnd teardown(E2E) =="
@@ -342,12 +343,12 @@ printf '{"session_id":"wtjtest_cleanup_%s","cwd":"%s","reason":"prompt_input_exi
 
 (Note: the final cleanup glob at line 97 already removes `wtjtest_*`; the new SIDs match.)
 
-- [ ] **Step 2: Run to verify RED (Tc).**
+- [x] **Step 2: Run to verify RED (Tc).**
 
 Run: `export PATH=...(clean); bash ~/.claude/hooks/tests/worktree-teardown.test.sh 2>&1 | grep -E 'Tb|Tc|FAIL|PASS='`
 Expected: Tb PASS (E2E works from Tasks 1-3); Tc shows `FAIL: Tc: 워크트리 삭제됨` (no C5 guard yet) → overall FAIL exit 1.
 
-- [ ] **Step 3: Implement C5** in `worktree-teardown.sh` — insert after line 76 (the `wt-name-mismatch` GUARD-3 check), before line 78 (`BRANCH=...`):
+- [x] **Step 3: Implement C5** in `worktree-teardown.sh` — insert after line 76 (the `wt-name-mismatch` GUARD-3 check), before line 78 (`BRANCH=...`):
 
 ```bash
 # GUARD 5 (cycle-40): 동시-동일 워크트리 보호 — 다른 SID 마커가 같은 WT_ROOT 를 가리키면(본 세션 마커는 위에서 소비됨)
@@ -364,12 +365,12 @@ if [ -d "$_WT_MK_DIR" ]; then
 fi
 ```
 
-- [ ] **Step 4: Run to verify GREEN (13→20).**
+- [x] **Step 4: Run to verify GREEN (13→20).**
 
 Run: `export PATH=...(clean); bash ~/.claude/hooks/tests/worktree-teardown.test.sh; echo "exit=$?"`
 Expected: `worktree-teardown.test: PASS=20 FAIL=0`, exit=0.
 
-- [ ] **Step 5: Commit.**
+- [x] **Step 5: Commit.**
 
 ```bash
 git add hooks/worktree-teardown.sh hooks/tests/worktree-teardown.test.sh
@@ -383,17 +384,17 @@ git commit -m "feat(hooks): worktree-teardown C5 concurrency guard + PreToolUse-
 **Files:**
 - Modify: `README.md` (cases count), `CONTEXT.md` (marker term), `setup/verify-setup.sh` (only if a seal hardcodes a count)
 
-- [ ] **Step 1: Locate the count seals.** Read how verify-setup.sh #20 (and #21 if present) asserts the cases / test counts, and find the README cases number.
+- [x] **Step 1: Locate the count seals.** Read how verify-setup.sh #20 (and #21 if present) asserts the cases / test counts, and find the README cases number.
 
 Run: `grep -nE '14[0-9]|15[0-9]|cases|worktree-teardown.test|13/13|13 ' ~/.claude/setup/verify-setup.sh ~/.claude/README.md | grep -iE 'case|teardown|146|13'`
 
-- [ ] **Step 2: Update README** cases count 146→152 (and the worktree-teardown.test.sh count 13→20 if README states it). Match the exact phrasing found.
+- [x] **Step 2: Update README** cases count 146→152 (and the worktree-teardown.test.sh count 13→20 if README states it). Match the exact phrasing found.
 
-- [ ] **Step 3: Update verify-setup.sh** ONLY if a seal hardcodes 146 (→152) or the standalone test count 13 (→20). If #20 derives the count from `cases.tsv` (`DECLARED_N`) dynamically, no edit needed — confirm by reading.
+- [x] **Step 3: Update verify-setup.sh** ONLY if a seal hardcodes 146 (→152) or the standalone test count 13 (→20). If #20 derives the count from `cases.tsv` (`DECLARED_N`) dynamically, no edit needed — confirm by reading.
 
-- [ ] **Step 4: Update CONTEXT.md** marker term: note the marker is **PreToolUse-keyed (primary), SessionStart secondary** — cwd is the CLI launch dir, not the worktree (one line; keep canonical "marker = fallback identifier, not delete-authority").
+- [x] **Step 4: Update CONTEXT.md** marker term: note the marker is **PreToolUse-keyed (primary), SessionStart secondary** — cwd is the CLI launch dir, not the worktree (one line; keep canonical "marker = fallback identifier, not delete-authority").
 
-- [ ] **Step 5: Full reconciliation + acceptance gate.**
+- [x] **Step 5: Full reconciliation + acceptance gate.**
 
 ```bash
 export PATH=...(clean)
@@ -404,7 +405,7 @@ bash ~/.claude/setup/verify-all.sh; echo "verify-all exit=$?"
 ```
 Expected: run-all `152 declared == 152 run`, pass-rate OK, exit 0; teardown PASS=20 FAIL=0 exit 0; verify-setup PASS exit 0; verify-all ALL PASS exit 0.
 
-- [ ] **Step 6: Commit.**
+- [x] **Step 6: Commit.**
 
 ```bash
 git add README.md CONTEXT.md setup/verify-setup.sh

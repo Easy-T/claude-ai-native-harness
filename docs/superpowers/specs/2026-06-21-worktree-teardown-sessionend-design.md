@@ -245,6 +245,19 @@ blocks cleanup until its `WT_ROOT` is gone and the stale-prune removes it) for n
 worktree — the correct bias on a data-deletion path. The 1:1 convention remains the assumption; C5 is the
 safety net when it is violated. Leftover ≠ data loss.
 
+**Residual window C5 does NOT close (accepted, bounded — adversarial review 2026-06-23):** because the WRITE
+now actually fires, a session A whose `tool_input` references *another* session B's worktree path (a Bash
+command or Edit touching `.../.claude/worktrees/<B>/...`, including a single command naming two worktrees —
+`wt_root_from_path` greedily takes the *first* match) records A's own-SID marker pointing at B's worktree; at
+A's `SessionEnd` A would target B's worktree. C5 protects B **iff B has already written its own marker** (i.e.
+B has triggered any PreToolUse gate). The unclosed window is: B is *active but has not yet triggered a single
+Write/Edit/Bash gate* (only at B's very start) → no B marker → C5 finds nothing → A can `rm -rf` B's active
+worktree. This is **bounded to a genuine linked worktree of the same repo** (GUARD 2/3 still prove it; the main
+repo / `$HOME` / outside are never reachable), requires violating the worktree=session 1:1 convention, and the
+timing window is narrow (a real impl session triggers a gate within its first tool call). It is the #61
+*disruption* class (lose an active peer worktree's uncommitted work), never the #61 *main-repo* data-loss
+class. Accepted as best-effort under the 1:1 convention; a hard cross-session lock is out of scope for cycle-40.
+
 ### 10.4 Failure modes (delta)
 
 | Mode | Outcome |
