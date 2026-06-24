@@ -165,3 +165,8 @@ enforce-rpi-cycle	163-ptu-cycle-nonwt-skip	absent	gen_ptu_163
 enforce-rpi-bash	164-ptu-bash-write	written	gen_ptu_164
 hooks-lib	165-wtroot-extract	output	gen_lib_165
 hooks-lib	166-wtroot-markerdir-nomatch	output	gen_lib_166
+# cycle-41 (2026-06-23) — self-healing sweep (식별-무관 backstop): prunable+고아 worktree-* 청소, 활성/비-컨벤션 보호
+hooks-lib	167-sweep-prunable-zero	output	gen_sweep_167
+hooks-lib	168-sweep-orphan-deleted	output	gen_sweep_168
+hooks-lib	169-sweep-active-kept	output	gen_sweep_169
+hooks-lib	170-sweep-nonconv-kept	output	gen_sweep_170

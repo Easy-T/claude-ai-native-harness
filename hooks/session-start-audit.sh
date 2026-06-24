@@ -21,6 +21,13 @@ if [ -d "$WT_MARK_DIR" ]; then
   done
 fi
 
+# --- self-healing sweep (cycle-41): harness-worktree 프로젝트의 git 등록(prunable)/고아 worktree-* 브랜치 잔여 청소 ---
+#   dir 제거 주체가 harness/외부라 글로벌 SessionEnd 훅이 noop인 잔여를 식별-무관하게 청소(spec §11). cwd=메인루트서 발화.
+#   게이트: .claude/worktrees 존재(harness-worktree 프로젝트만 — 무관 repo의 worktree-* 브랜치 비건드림). fail-open(helper 가 항상 return 0).
+if [ -n "$CWD" ] && [ -d "$CWD/.claude/worktrees" ]; then
+  sweep_orphan_worktrees "$CWD"
+fi
+
 if [ -n "$CWD" ] && [ -d "$CWD/docs/superpowers/plans" ]; then
   ACT_N=0; ACT_NAMES=""
   for p in "$CWD/docs/superpowers/plans"/*.md; do

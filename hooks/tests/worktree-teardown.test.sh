@@ -119,6 +119,19 @@ printf '{"session_id":"%s","cwd":"%s","reason":"prompt_input_exit"}' "$OWN_SID" 
 rm -f "$MK_DIR/$OTHER_SID" 2>/dev/null
 printf '{"session_id":"wtjtest_cleanup2_%s","cwd":"%s","reason":"prompt_input_exit"}' "$$" "$WT" | bash "$HOOK" >/dev/null 2>&1  # 정리: 단독이 됐으니 teardown
 
+echo "== Td: self-healing sweep (SessionStart 배선) — dir-제거 등록/고아 worktree-* 청소, 활성/비-컨벤션 보호 =="
+git -C "$REPO" worktree add -q -b worktree-cycle-swA "$REPO/.claude/worktrees/swA" 2>/dev/null; rm -rf "$REPO/.claude/worktrees/swA"   # dir 제거 → prunable+고아
+git -C "$REPO" worktree add -q -b worktree-cycle-swB "$REPO/.claude/worktrees/swB" 2>/dev/null                                         # 활성 → 보호
+git -C "$REPO" worktree add -q -b worktree-cycle-swC "$REPO/.claude/worktrees/swC" 2>/dev/null; git -C "$REPO" worktree remove "$REPO/.claude/worktrees/swC" 2>/dev/null   # 고아 브랜치
+FEAT="feature-keepme-$$"; git -C "$REPO" branch "$FEAT" 2>/dev/null
+printf '{"session_id":"sw_%s","cwd":"%s"}' "$$" "$REPO" | bash "$HOME/.claude/hooks/session-start-audit.sh" >/dev/null 2>&1
+[ "$(git -C "$REPO" worktree list --porcelain 2>/dev/null | grep -c prunable)" = "0" ] && ok "Td: prunable 등록 0(prune)" || no "Td: prunable 잔존"
+[ -z "$(git -C "$REPO" branch --list worktree-cycle-swA)" ] && ok "Td: dir-제거 고아 브랜치 swA 삭제" || no "Td: swA 미삭제"
+[ -z "$(git -C "$REPO" branch --list worktree-cycle-swC)" ] && ok "Td: 고아 브랜치 swC 삭제" || no "Td: swC 미삭제"
+{ [ -d "$REPO/.claude/worktrees/swB" ] && [ -n "$(git -C "$REPO" branch --list worktree-cycle-swB)" ]; } && ok "Td: 활성 워크트리 swB+브랜치 보호" || no "Td: 활성 swB 손상"
+[ -n "$(git -C "$REPO" branch --list "$FEAT")" ] && ok "Td: 비-컨벤션 브랜치 보호" || no "Td: feature 브랜치 손상"
+git -C "$REPO" worktree remove "$REPO/.claude/worktrees/swB" 2>/dev/null; git -C "$REPO" branch -D worktree-cycle-swB "$FEAT" 2>/dev/null   # 정리
+
 # cleanup: 마커 프로세스 잔존 시 강제 종료 + temp 전체 삭제(모두 TMP 하위라 정션이 있어도 외부 무영향)
 rm -f "$HOME/.claude/worktrees-marker/wtjtest_"* "$HOME/.claude/worktrees-marker/wtjcleanup_"* 2>/dev/null
 powershell -NoProfile -Command "Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object { \$_.CommandLine -and \$_.CommandLine.Contains('$MARK') } | ForEach-Object { try { Stop-Process -Id \$_.ProcessId -Force -ErrorAction SilentlyContinue } catch {} }" >/dev/null 2>&1

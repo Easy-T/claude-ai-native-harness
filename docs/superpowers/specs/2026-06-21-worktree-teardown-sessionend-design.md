@@ -300,3 +300,86 @@ incl. the `worktrees-marker/` no-self-match safety property → 146→152; READM
 path in `tool_input` (the production shape), and a RED-first step fixes that the *current* code writes no marker
 for that shape. Recorded here (§10.6) + in the project memory; the global harness has no `non-obvious.md`, so
 spec §10.6 + memory are the SSOT for this lesson.
+
+---
+
+## 11. Identification-independent self-healing sweep + instrumentation (2026-06-23, cycle-41)
+
+> In-place dated revision. Adds an **identification-independent backstop** (a `git worktree prune` +
+> orphan-branch sweep) because even §10's PreToolUse marker leaves a residue class the marker cannot reach.
+> Same subsystem; adds a SessionStart sweep + record/consume instrumentation. CONSUME delete path + all #61/C1–C5
+> invariants unchanged.
+
+### 11.1 Residue the marker mechanism does NOT clean (observed in a real project, 3+ recurrences)
+
+In the target project `second_brain_project`, after RPI worktree cycles, the worktree *directory* disappears but:
+- `git worktree list` keeps the entry as **prunable** (gitdir → non-existent) → manual `git worktree prune`
+  needed every time;
+- the `worktree-*` convention branches are **never deleted** → they accumulate (observed: 8).
+
+Data-loss = 0, but deterministic accumulation = the cleanup mechanism is not running. The hook log shows real
+`SessionEnd` consistently `noop:not-worktree`, `cwd=<main project root>` — and crucially **still `noop`
+after the §10 PreToolUse-marker cycle landed**: the marker dir is empty at `SessionEnd`.
+
+### 11.2 Why §10's marker also misses this (hypotheses; instrumentation to confirm)
+
+The §10 mechanism is wired + unit-tested, yet in the real project the marker is not found at `SessionEnd`.
+Candidate causes (to be confirmed by §11.4 instrumentation in the real project — they are not resolvable from the
+harness repo alone):
+- **(a) SID mismatch** — the `session_id` seen by the `PreToolUse` record differs from the one at `SessionEnd`
+  (e.g. the harness issues per-event ids, or a sub-session id) → marker written under one key, consumed under
+  another → never found.
+- **(b) WT path never reaches the gate** — if the session enters the worktree via the harness `EnterWorktree`
+  tool (cwd-pinned/sandboxed), the `tool_input.file_path`/`command` delivered to the *global* `PreToolUse` may
+  not carry the worktree-absolute path → `record_worktree_marker` extracts no `WT_ROOT` → no marker.
+- **(c) the directory is removed by the harness, not the hook (most likely)** — `EnterWorktree`/the harness
+  removes the worktree *directory* on exit (leaving git's registration prunable + the branch), so the global
+  `SessionEnd` hook legitimately finds nothing to delete (`noop`) and only the git bookkeeping + branch remain.
+  Under (c) the hook's *delete* role is moot; its useful role becomes **the bookkeeping the harness leaves
+  behind**, which is exactly §11.3.
+
+### 11.3 Decision — a `git worktree prune` + orphan-branch sweep, keyed on nothing (so it can't miss)
+
+Regardless of which of (a)/(b)/(c) holds, a sweep that derives its work from **git's own state** (not from a
+session-id marker or cwd) closes the residue class deterministically:
+
+1. **`git worktree prune`** — removes only registrations whose worktree directory is **gone**. Never touches a
+   live worktree. Idempotent, safe.
+2. **Delete orphan convention branches** — for each local `worktree-*` branch, delete it **iff no live worktree
+   currently has it checked out** (compared against `git worktree list --porcelain` `branch` lines). A branch
+   occupied by *any* live worktree (this or another session) is in the list → **protected**. (`git branch -D`
+   *also* independently refuses to delete a checked-out branch — double safety.)
+
+**Where:** `session-start-audit.sh` (`SessionStart`, already fires with `cwd` = main project root). Running at
+start cleans residue from *previous* cycles, including sessions that crashed without `SessionEnd`. **Gated** on
+`$CWD/.claude/worktrees` existing (harness-worktree projects only) so it never touches `worktree-*` branches in
+unrelated repos. Pure-bash, fail-open, `set -e` safe (all git ops `|| true`, always returns 0).
+
+**Safety invariant (same principle as C5):** the sweep can only remove a registration whose directory is gone or
+a branch no live worktree holds — it can never remove an *active* worktree or a branch in use by another session.
+Empirically validated (2026-06-23): a scratch repo with a prunable worktree (dir removed), a live worktree, an
+orphan branch, and a non-convention branch → after sweep: prunable→0, orphan + dir-removed branches deleted, the
+live worktree + its branch + the non-convention branch all intact.
+
+### 11.4 Instrumentation (resolve (a)/(b) in the real project)
+
+`record_worktree_marker` logs `hook_log "record-wt-marker" "$WT_ROOT" "PASS" "sid=$sid"` **when it actually
+writes a marker** (bounded to worktree-touching tool calls — no per-call spam). `worktree-teardown`'s
+`noop:not-worktree` branch logs `sid=$SID mk_exists=<0|1>`. Then in a real session: a `record-wt-marker` line
+with sid=X but a `SessionEnd` `mk_exists=0 sid=Y` (X≠Y) ⇒ (a); **no** `record-wt-marker` line for the session ⇒
+(b); the sweep ((11.3)) makes the cleanup correct under either. This is diagnostic only — the sweep is the fix.
+
+### 11.5 Surfaces touched (delta only)
+
+`_common.sh` (+`sweep_orphan_worktrees`, +record-marker instrumentation log), `session-start-audit.sh` (+sweep
+call, gated), `worktree-teardown.sh` (+`sid`/`mk_exists` in the `noop:not-worktree` log line). Tests:
+`worktree-teardown.test.sh` (+sweep E2E: prunable + orphan-branch cleaned, live worktree/branch + non-convention
+branch protected) and `run-all.sh`+`cases.tsv` (+a gated sweep unit case on a scratch git repo). **No new hook
+file, no `settings.json` change** (`SessionStart` already wired) → seals #8/#14/#23/#24 untouched. CONSUME delete
+path + #61/C1–C5 invariants **unchanged**.
+
+### 11.6 Fitness function (regression guard)
+
+After N real cycles: `git worktree list` prunable = 0 **and** `git branch --list 'worktree-*'` orphan = 0. The
+test suite pins the "marker-not-found + dir-already-removed" scenario (the harness-removed-dir case) so the sweep
+is proven to clean registration + branch while protecting active state.

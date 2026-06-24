@@ -30,8 +30,10 @@ case "$CWD" in
   */.claude/worktrees/*) SRCPATH="$CWD" ;;   # authoritative: 현재 cwd 가 워크트리 안
 esac
 # 자기 SID 마커만 읽고 소비. C1: 빈/unknown SID → 마커 완전 skip (동시 세션 'unknown' 공유 시 타 세션 활성 워크트리 오정리 방지).
+_MK_EXISTS=0
 if [ "$SID" != "unknown" ] && [ -n "$SID" ]; then
   MK=$(wt_marker_path "$SID")
+  [ -f "$MK" ] && _MK_EXISTS=1   # cycle-41 계측: SessionEnd 시점 자기-SID 마커 존재(소비 전) — 실 세션 a/b 가설 판별
   if [ -z "$SRCPATH" ] && [ -f "$MK" ]; then
     MVAL=$(head -1 "$MK" 2>/dev/null); MVAL=$(normalize_path "$MVAL")
     case "$MVAL" in
@@ -41,7 +43,7 @@ if [ "$SID" != "unknown" ] && [ -n "$SID" ]; then
   rm -f "$MK" 2>/dev/null   # 자기 마커 소비(있든 없든): 본 세션 종료이므로 더는 불필요
 fi
 if [ -z "$SRCPATH" ]; then
-  hook_log "worktree-teardown" "$CWD" "PASS" "noop:not-worktree"; exit 0
+  hook_log "worktree-teardown" "$CWD" "PASS" "noop:not-worktree sid=$SID mk_exists=$_MK_EXISTS"; exit 0
 fi
 
 REPO_ROOT="${SRCPATH%%/.claude/worktrees/*}"

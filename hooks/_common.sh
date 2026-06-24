@@ -171,6 +171,27 @@ record_worktree_marker() {
   local wt; wt=$(wt_root_from_path "$src") || return 0
   mkdir -p "$HOME/.claude/worktrees-marker" 2>/dev/null || true
   printf '%s\n' "$wt" > "$(wt_marker_path "$sid")" 2>/dev/null || true
+  hook_log "record-wt-marker" "$wt" "PASS" "sid=$sid" 2>/dev/null || true   # cycle-41 계측(마커 실기록 시점·SID — 실 세션 a/b 가설 판별)
+  return 0
+}
+
+# --- sweep_orphan_worktrees <repo>: git 등록/고아 worktree-* 브랜치 잔여를 결정론적 청소 (식별-무관 backstop, cycle-41) ---
+# 워크트리 dir가 (harness/외부에 의해) 제거됐는데 git 등록(prunable)+worktree-* 브랜치가 누적되는 잔여를 청소(spec §11).
+# 안전(=C5 원리): (1) prune 은 dir-없는 등록만 제거. (2) worktree-* 브랜치는 *live worktree 가 점유 안 한* 고아만 -D
+#   (worktree list --porcelain 의 branch 라인 대조; git -D 도 체크아웃 브랜치 거부=이중안전). 활성/타세션 브랜치 절대 보호.
+# fail-open + set-e 안전: 모든 git op best-effort(|| true), 항상 return 0. 호출자가 harness-worktree 프로젝트로 게이트.
+sweep_orphan_worktrees() {
+  local repo="${1:-}"
+  [ -n "$repo" ] || return 0
+  command -v git >/dev/null 2>&1 || return 0
+  git -C "$repo" rev-parse --is-inside-work-tree >/dev/null 2>&1 || return 0
+  git -C "$repo" worktree prune 2>/dev/null || true
+  local live branches br
+  live=$(git -C "$repo" worktree list --porcelain 2>/dev/null | awk '/^branch /{print $2}') || live=""
+  branches=$(git -C "$repo" for-each-ref --format='%(refname:short)' 'refs/heads/worktree-*' 2>/dev/null) || branches=""
+  for br in $branches; do
+    printf '%s\n' "$live" | grep -qx "refs/heads/$br" || git -C "$repo" branch -D "$br" >/dev/null 2>&1 || true
+  done
   return 0
 }
 

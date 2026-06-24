@@ -778,6 +778,20 @@ test_ptu_mark "164-ptu-bash-write"       "enforce-rpi-bash.sh"  "$(ptu_bash_ev "
 test_lib "165-wtroot-extract" "/tmp/r/.claude/worktrees/cyc-x" "$(bash -c 'source "$HOME/.claude/hooks/_common.sh"; wt_root_from_path "$1"' _ "/tmp/r/.claude/worktrees/cyc-x/app/f.ts")"
 test_lib "166-wtroot-markerdir-nomatch" "" "$(bash -c 'source "$HOME/.claude/hooks/_common.sh"; wt_root_from_path "$1" || true' _ "$HOME/.claude/worktrees-marker/sid")"
 
+# ==================== CYCLE-41: self-healing sweep (prunable+고아 worktree-* 청소, 활성/비-컨벤션 보호) ====================
+SWREPO="$SCRATCH/swrepo"; mkdir -p "$SWREPO"
+git -C "$SWREPO" init -q 2>/dev/null; git -C "$SWREPO" config user.email t@t 2>/dev/null; git -C "$SWREPO" config user.name t 2>/dev/null
+git -C "$SWREPO" commit -q --allow-empty -m init 2>/dev/null
+mkdir -p "$SWREPO/.claude/worktrees"
+git -C "$SWREPO" worktree add -q -b worktree-cycle-a "$SWREPO/.claude/worktrees/a" 2>/dev/null; rm -rf "$SWREPO/.claude/worktrees/a"   # dir 제거 → prunable + 고아 브랜치
+git -C "$SWREPO" worktree add -q -b worktree-cycle-b "$SWREPO/.claude/worktrees/b" 2>/dev/null                                         # 활성 → 보호
+git -C "$SWREPO" branch keepme 2>/dev/null                                                                                             # 비-컨벤션 → 보호
+bash -c 'source "$HOME/.claude/hooks/_common.sh"; sweep_orphan_worktrees "$1"' _ "$SWREPO"
+test_lib "167-sweep-prunable-zero"  "0"                "$(git -C "$SWREPO" worktree list --porcelain 2>/dev/null | grep -c prunable)"
+test_lib "168-sweep-orphan-deleted" ""                 "$(git -C "$SWREPO" branch --list worktree-cycle-a | tr -d ' ')"
+test_lib "169-sweep-active-kept"    "worktree-cycle-b" "$(git -C "$SWREPO" branch --list worktree-cycle-b | tr -d ' +*')"
+test_lib "170-sweep-nonconv-kept"   "keepme"           "$(git -C "$SWREPO" branch --list keepme | tr -d ' ')"
+
 # ==================== Summary ====================
 echo
 echo "Hook tests: $PASSED / $TOTAL passed"
