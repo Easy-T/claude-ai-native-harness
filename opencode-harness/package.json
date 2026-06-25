@@ -1,0 +1,9 @@
+{
+  "name": "opencode-harness",
+  "private": true,
+  "type": "module",
+  "description": "Offline opencode governance harness (ported from ~/.claude). Unpacks to ~/.config/opencode/.",
+  "devDependencies": {
+    "@opencode-ai/plugin": "1.17.11"
+  }
+}
