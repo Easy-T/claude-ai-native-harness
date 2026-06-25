@@ -18,3 +18,18 @@ export function cmpGte(a, b) {
 export function subagentEnforced(version) {
   return cmpGte(version, "1.17.10");
 }
+
+// The shipped target floor. The bundle's install/verify step asserts the live
+// `opencode --version` meets this floor (reliable), so when the runtime SDK
+// version probe is unavailable the plugin may assume it (see enforcementFor).
+export const VERSION_FLOOR = "1.17.11";
+
+// Resolve the enforcement decision from a best-effort runtime version probe.
+// Runtime SDK introspection (client.app.get()) is unreliable in headless mode
+// (returns undefined; some sibling getters hang), so on a miss we fall back to
+// the install-verified floor and flag `assumed` so the load line stays honest.
+export function enforcementFor(detected) {
+  const ok = typeof detected === "string" && detected && detected !== "unknown";
+  const version = ok ? detected : VERSION_FLOOR;
+  return { version, assumed: !ok, enforced: subagentEnforced(version) };
+}

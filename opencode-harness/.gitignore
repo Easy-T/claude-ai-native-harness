@@ -1,1 +1,6 @@
 node_modules/
+_oracle/capture.jsonl
+_oracle/capture.json
+package-lock.json
+bun.lock
+bun.lockb
