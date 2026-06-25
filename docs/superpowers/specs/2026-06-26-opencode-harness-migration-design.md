@@ -226,3 +226,31 @@
 ## 12. 정직한 헤드라인 (Bottom line)
 
 **C′가 최적 아키텍처**다(오프라인 런타임 안전 + 검증 파서 verbatim 재사용 + 156-케이스 오라클 보존; A/B 대비). 충실도는 **프라이머리 대화형 경로 Full, 자율-서브에이전트 내용/주입 경로는 1.17.9 Substitute~Absent → 타깃 1.17.11에서 near-Full**. R1을 닫는 레버는 **V2 훅이 아니라 런타임 ≥1.17.10 업그레이드**(동일 v1 훅이 서브에이전트에 발화). 반드시-선결 2건: **arg-key 프로브 in-target 재실행(R2)**, **#43 오라클 exemption 집합 명시(§8.2)**. merge-guard는 Substitute로 정직하게 강등(R3). 모델 routing은 회사 내부 모델만 쓰므로 `opencode.json` `provider`/`model` 설정으로 해소(CCS 프록시 미사용); 유일 잔여는 context7 MCP 오프라인 불가(연구 보조, 거버넌스 무관)로 `PREREQUISITES.md`에 표면화(R7).
+
+---
+
+## 13. 검증 결과 — Plan 1 live-verify (2026-06-26, opencode 1.17.11 실측)
+
+설치된 opencode 1.17.11에 대해 Plan 1 foundations의 4개 통합 체크를 실측. **4/4 PASS**. 방법론·결함·설계 영향:
+
+**확정(LANDED):**
+- **① 플러그인 오프라인 로드:** 단일 깨끗한 로드. `[harness] loaded — opencode 1.17.11 (assumed; floor verified at install); subagent-enforced=true`.
+- **② arg-key (R2):** live 키 `edit:[filePath,oldString,newString]`·`bash:[command]`·`read:[filePath]` = 동결 `ARG_KEYS`와 일치. (회사 env 재프로브 의무는 유효.)
+- **③ L1 AGENTS.md 주입 (DEC-4 L1 확정):** opencode가 글로벌 `~/.config/opencode/AGENTS.md`를 **빌드-에이전트 시스템 프롬프트에 append**. 캡처-서버로 아웃바운드 요청 실측 → 메인 에이전트 요청(16,755자)에 센티넬 + `## §1.`~`## §8.` 마커 8/8 존재. (cwd AGENTS.md 없는 격리 실행 = 글로벌 로드 경로 충실 검증.)
+- **④ L3 권한 바닥:** `/config` 실측 — 3개 strict 에이전트가 `mode=subagent` + 정확한 permission 맵으로 로드. **런타임 deny 실강제 확인**: `write:deny`→write 도구 미제공; write+edit+bash 전부 deny→파일 생성 불가.
+
+**결함→fix-forward(이번 사이클 반영):**
+- **버전 탐지 신뢰불가:** 런타임 SDK `client.app.get()`=undefined, `client.config.get()`/`client.path.get()`=**행(hang)**. 서버 `/app`은 웹UI HTML, `/doc` openapi version=API버전(1.0.0). 신뢰원천은 **CLI `opencode --version`(=1.17.11)뿐**. → `version.js` `enforcementFor(detected)`가 탐지 실패 시 **설치-검증 플로어(`VERSION_FLOOR=1.17.11`)로 폴백** + 로그에 `assumed` 표기(정직). 권위적 버전 게이트는 **설치/검증 시점 `opencode --version` ≥ 플로어**로 이동(R2 fail-loud 철학). governance.js probe는 1.5s timeout-guard.
+- **★offline-safety (번들 레이아웃 보정):** opencode는 config-dir의 `package.json`을 발견하면 **자동 install**(devDeps→deps 재작성 + lockfile 생성 + 오프라인 env서 **네트워크 시도**). 런타임 플러그인은 순수 ESM(상대 import만)이라 `@opencode-ai/plugin`(빌드타임 타입) 불필요. → **zip에서 `package.json`·`package-lock.json`·`bun.lock*` 제외**(§5 트리는 이미 미포함; 빌드 dir 한정 보유). README ship 명령에 반영.
+
+**테스트 방법론(빌드박스 교훈, _oracle):**
+- **OPENCODE_CONFIG_DIR은 격리하지 않음:** opencode가 글로벌 `~/.config/opencode` 플러그인을 **union 로드** → 스테일 글로벌 배포와 이중 로드. 충실 검증은 **실배포(글로벌 ~/.config/opencode, CONFIG_DIR 없음)** 또는 글로벌 비운 뒤 staged temp. 빌드 dir을 CONFIG_DIR로 가리키면 package.json 오염.
+- **캡처는 멀티-요청:** opencode는 run당 ≥2요청(메인 에이전트 + 제목/요약). 마지막-요청만 보면 헌법 없는 짧은 제목요청(~2k자)에 속음 → 캡처-서버는 **전 요청 JSONL 누적**.
+- **헤드리스 종료:** `opencode run`은 stdin 대기 → `</dev/null` 필수(없으면 작업 완료해도 미종료).
+- **CCS 프록시 = L1 테스트 불가:** 프록시가 시스템 프롬프트를 **Claude Code 것으로 하이재킹**(커스텀 system="TESTBOT"에도 "Claude Code"로 응답) → opencode 시스템프롬프트 미관찰. L1은 캡처로만.
+
+**설계 검증(spec 보강):**
+- **bash-리다이렉트 우회 실증 → L2 필요성 확정:** write/edit만 deny 시 모델이 `echo > file`(bash)로 우회. review-strict의 `* > *` deny + L2 `redirect-targets.js` 게이트(Plan 2)가 정확히 이 구멍을 봉인 — 설계 타당성 실측 확인.
+- **구현 노트:** plugin 파일은 §5의 `*.ts` 표기와 달리 **순수 `.js`로 구현**(zero-transpile 오프라인 로드 = C′ 키스톤에 더 부합). 후속 plan의 게이트도 `.js`.
+
+**잔여(차기 plan):** L2 throw 게이트 실강제 E2E(Plan 2) — 서브에이전트가 mutation 시도→deny까지의 런타임 시나리오는 게이트 + 스크립트 시나리오와 함께(Plan 2/5 acceptance). 이번엔 config-shape + deny 메커니즘까지 확정.

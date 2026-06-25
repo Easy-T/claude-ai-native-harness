@@ -6,6 +6,8 @@
 **RPI-Cycle:** 42 (opencode-harness migration — plan 1 of N)
 **Started:** 2026-06-26
 
+**Live Verification (2026-06-26, opencode 1.17.11 installed):** all 4 integration checks **PASS** — ① plugin loads offline (single clean load) · ② arg-keys match live shapes (R2) · ③ AGENTS.md constitution injected into the main agent request (§1–§8 markers 8/8, via outbound-request capture) · ④ L3 floor: 3 strict subagents loaded `mode=subagent` with exact permission maps, and `deny` enforced at runtime. Fix-forward this cycle: version `enforcementFor()` floor-fallback (runtime SDK probe unreliable), `package.json` excluded from the zip (opencode auto-installs config-dir package.json → offline network risk). Full record + build-box test methodology in spec §13. NOTE: constraint below ("via `OPENCODE_CONFIG_DIR`") is corrected by §13 — `OPENCODE_CONFIG_DIR` does NOT isolate from the global `~/.config/opencode` (plugins union); test against a clean real deploy or emptied global.
+
 **Goal:** Stand up the offline opencode-harness staging bundle with a loading v1 plugin substrate (fail-open + frozen arg-keys + version probe), the L1 AGENTS.md constitution, and the L3 permission subagent floor — verified in live opencode 1.17.9.
 
 **Architecture:** A git-tracked staging dir `~/.claude/opencode-harness/` is the zip root that unpacks to `~/.config/opencode/`. The plugin is authored in **plain ESM `.js`** (zero transpile; runs identically under `node` for unit tests and under opencode's Bun at runtime) as a **v1 Promise plugin** (function export, deny = `throw`). This plan builds only the substrate + L1 + L3; the L2 dynamic gates, node-parser reuse, skills vendoring, worktree teardown, and the differential conformance oracle are later plans.
