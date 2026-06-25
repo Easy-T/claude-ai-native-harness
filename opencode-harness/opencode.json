@@ -3,7 +3,8 @@
   "instructions": [],
   "permission": {
     "edit": "allow",
-    "bash": "allow"
+    "bash": { "*": "allow", "rm -rf *": "ask", "git push *": "ask" },
+    "webfetch": "allow"
   },
   "compaction": { "auto": true }
 }
