@@ -1,12 +1,21 @@
 // opencode-harness/plugin/gates/rpi-gate.js
 import { BlockError } from "../lib/fail-open.js";
-import { isCodePath, codeExtRegexSource } from "../lib/code-exts.js";
+import { isCodePath, codeExtRegexSource, normalizePath } from "../lib/code-exts.js";
 import { hasActivePlan } from "../lib/plan-status.js";
 import { extractRedirectTarget } from "../lib/redirect-targets.js";
 
 const NONCODE_WHITELIST = /(\.(md|txt|gitignore)|\/CLAUDE\.md|\/README(\.(rst|adoc|markdown|org))?|\/\.gitkeep)$/i;
 const CONFIG_DIR = /\/(\.claude|docs|\.github)\//;
-const lineCount = (s) => (s ? String(s).split(/\r?\n/).length : 0);
+// awk 'END{print NR}' twin: \n-terminated record count, with a trailing unterminated
+// chunk counting too (enforce-rpi-cycle.sh:63-65). A naive split(/\n/).length over-counts
+// trailing-newline content by 1, shrinking the ≤5 trivial window to ≤4 — fixed here.
+const lineCount = (s) => {
+  if (s == null || s === "") return 0;
+  const str = String(s);
+  let n = (str.match(/\n/g) || []).length;
+  if (!str.endsWith("\n")) n += 1;
+  return n;
+};
 
 // fs = {readdirSync, readFileSync} ; injected for testability.
 export function rpiGate({ tool, args, cwd, env, fs }) {
@@ -29,8 +38,9 @@ export function rpiGate({ tool, args, cwd, env, fs }) {
     );
   }
 
-  // path tools (edit/write/apply_patch/notebook)
-  const fp = args.filePath || args.notebookPath || "";
+  // path tools (edit/write/apply_patch/notebook). Normalize backslashes so the
+  // `/`-literal path regexes below match on Windows (parity with bash normalize_path).
+  const fp = normalizePath(args.filePath || args.notebookPath || "");
   if (!fp) return;
 
   // (a) spec-before-plan

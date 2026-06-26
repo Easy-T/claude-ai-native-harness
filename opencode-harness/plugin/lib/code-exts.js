@@ -6,8 +6,17 @@ export const CODE_EXTS = [
   "pl","ps1","psm1","c","cc","cpp","h","hpp","java","kt","swift","scala","lua","sql","ipynb",
 ];
 
-// is_code_path twin: Dockerfile or any CODE_EXTS suffix.
+// normalize_path twin (~/.claude/hooks/_common.sh): backslash → forward-slash.
+// Required on Windows (opencode passes raw args.filePath with backslashes); without it
+// the `/`-literal path regexes in the gates silently miss (spec-before-plan bypass, R2-class).
+export function normalizePath(p) {
+  return String(p ?? "").replace(/\\/g, "/");
+}
+
+// is_code_path twin: Dockerfile or any CODE_EXTS suffix. Normalizes first so a
+// backslash Dockerfile path is recognized (parity with bash is_code_path post-normalize).
 export function isCodePath(p) {
+  p = normalizePath(p);
   if (!p) return false;
   if (/(?:^|\/)Dockerfile$/.test(p)) return true;
   return CODE_EXTS.some((ext) => p.endsWith("." + ext));

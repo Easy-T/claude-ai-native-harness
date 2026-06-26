@@ -1,7 +1,18 @@
 // opencode-harness/tests/code-exts.test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { CODE_EXTS, isCodePath, codeExtRegexSource } from "../plugin/lib/code-exts.js";
+import { CODE_EXTS, isCodePath, codeExtRegexSource, normalizePath } from "../plugin/lib/code-exts.js";
+
+test("normalizePath converts Windows backslashes to forward slashes", () => {
+  assert.equal(normalizePath("C:\\proj\\docs\\plans\\p.md"), "C:/proj/docs/plans/p.md");
+  assert.equal(normalizePath("a/b/c"), "a/b/c");
+  assert.equal(normalizePath(""), "");
+});
+
+test("isCodePath recognizes a backslash Dockerfile path (post-normalize)", () => {
+  assert.equal(isCodePath("C:\\proj\\Dockerfile"), true);
+  assert.equal(isCodePath("C:\\proj\\x.py"), true);
+});
 
 test("CODE_EXTS matches the _common.sh SSOT verbatim", () => {
   assert.equal(CODE_EXTS.join(" "),

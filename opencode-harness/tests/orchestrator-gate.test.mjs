@@ -19,3 +19,12 @@ test("marked skill missing skeleton blocks; complete skeleton allows", () => {
 test("no orchestrator marker = opt-out allow", () => {
   assert.doesNotThrow(() => orchestratorGate({ tool: "write", args: { filePath: "/s/skills/foo/SKILL.md", content: "# Phase 1\njust a simple skill" }, fs }));
 });
+
+test("nested skill path is gated (parity with bash */skills/*/skill.md)", () => {
+  // bash glob `*` spans `/`, so a nested middle segment must still be gated.
+  assert.throws(() => orchestratorGate({ tool: "write", args: { filePath: "/s/skills/foo/bar/SKILL.md", content: "orchestrator_skill: true\n# Phase 1" }, fs }), BlockError);
+});
+
+test("Windows backslash skill path is normalized and gated", () => {
+  assert.throws(() => orchestratorGate({ tool: "write", args: { filePath: "C:\\s\\skills\\foo\\SKILL.md", content: "orchestrator_skill: true\n# Phase 1" }, fs }), BlockError);
+});

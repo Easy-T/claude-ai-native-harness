@@ -1,12 +1,15 @@
 // opencode-harness/plugin/gates/orchestrator-gate.js
 import { BlockError } from "../lib/fail-open.js";
 import { scanSkeleton } from "../lib/skeleton-scan.js";
+import { normalizePath } from "../lib/code-exts.js";
 
-const SKILL_PATH = /\/skills\/[^/]+\/skill\.md$/i;
+// Parity with bash glob `*/skills/*/skill.md`: the shell `*` spans `/`, so the middle
+// segment uses `.+` (not `[^/]+`) to also match nested skills/foo/bar/skill.md.
+const SKILL_PATH = /\/skills\/.+\/skill\.md$/i;
 
 export function orchestratorGate({ tool, args, fs }) {
   args = args || {};
-  const fp = args.filePath || "";
+  const fp = normalizePath(args.filePath || "");
   if (!SKILL_PATH.test(fp)) return;
 
   let content;

@@ -26,3 +26,9 @@ test("SECRET_SCAN_SKIP and clean payloads allow", () => {
   assert.doesNotThrow(() => secretGate({ tool: "write", args: { content: "key=" + akia }, env: { SECRET_SCAN_SKIP: "approved" } }));
   assert.doesNotThrow(() => secretGate({ tool: "write", args: { content: "nothing secret" }, env: {} }));
 });
+
+test("a secret only in oldString (deleted text) is NOT blocked (bash parity)", () => {
+  // bash scans [content, new_string, command, new_source] — never old_string.
+  const akia = "AKIA" + "ABCDEFGHIJKLMNOP";
+  assert.doesNotThrow(() => secretGate({ tool: "edit", args: { oldString: "key=" + akia, newString: "key=REDACTED" }, env: {} }));
+});

@@ -31,3 +31,15 @@ test("RPI_SKIP and spec-before-plan", () => {
   const noSpecFs = { readdirSync: (d) => d.endsWith("specs") ? [] : ["q.md"], readFileSync: () => "**Status:** completed\n" };
   blocks(() => rpiGate({ ...base, fs: noSpecFs, tool: "write", args: { filePath: "/proj/docs/superpowers/plans/new.md", content: "x" } }));
 });
+
+test("trivial line-count matches awk NR at the ≤5 boundary (trailing newline)", () => {
+  // 5 newline-terminated lines = 5 records (awk NR); must be trivial-allowed even with no plan.
+  allows(() => rpiGate({ ...base, fs: noPlanFs, tool: "write", args: { filePath: "/proj/x.py", content: "a\nb\nc\nd\ne\n" } }));
+  // 6 lines exceeds the window → blocks without a plan.
+  blocks(() => rpiGate({ ...base, fs: noPlanFs, tool: "write", args: { filePath: "/proj/x.py", content: "a\nb\nc\nd\ne\nf\n" } }));
+});
+
+test("Windows backslash path is normalized before the spec-before-plan gate", () => {
+  const noSpecFs = { readdirSync: (d) => d.endsWith("specs") ? [] : ["q.md"], readFileSync: () => "**Status:** completed\n" };
+  blocks(() => rpiGate({ ...base, fs: noSpecFs, tool: "write", args: { filePath: "C:\\proj\\docs\\superpowers\\plans\\new.md", content: "x" } }));
+});
