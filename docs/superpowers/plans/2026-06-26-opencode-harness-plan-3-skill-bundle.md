@@ -2,9 +2,16 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Status:** active
+**Status:** completed
 **RPI-Cycle:** 44 (opencode-harness migration — plan 3 of 5)
 **Started:** 2026-06-26
+**Completed:** 2026-06-26
+
+> **Verification record (spec §15):** T1–T4 + T5 live, ALL PASS. Unit **66/66** · skill-discovery oracle **20/20, 0 violations** · 5/5 orchestrator skeletons PASS · diff oracle 20/20. **Live (opencode 1.17.11):** T5(a) opencode injects `<available_skills>` into the system prompt and discovers exactly **20 bundle skills** (14 superpowers + 6 ports) with descriptions; T5(b) orchestrator-gate denies a malformed orchestrator SKILL.md write live (`[orchestrator] FAIL: phase=1<3`, file not created).
+> **Beyond-plan fixes surfaced by T5 live verification (committed this cycle):**
+> 1. **★ship-blocker — ship `package.json`** (commit 952bd4e): opencode HANGS at plugin load with no config-dir `package.json`; Plan 1's "package.json MUST NOT ship" is **reversed**. Dependency install is background/fail-open offline (plugin is pure ESM, no installed deps needed). `_stage.sh`/README/scaffold updated.
+> 2. **orchestrator-gate relative path** (commit 0c09ca8): opencode forwards the model's relative `filePath`; the gate required a leading slash → `(?:^|\/)skills?\/`. Caught live-only (unit tests used absolute paths).
+> 3. **orchestrator-gate singular `skill/`** (commit c266051): opencode scans `skill/` (bundle convention) + `skills/`; gate broadened from plural-only.
 
 **Goal:** Make the harness's RPI methodology available to the opencode model on-demand by vendoring the pinned superpowers v6.0.3 skill set and porting the 6 invocable custom skills into opencode's **native** `skills/<name>/SKILL.md` mechanism — fully offline, discoverable with zero network.
 
