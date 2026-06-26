@@ -32,7 +32,9 @@ function walk(dir) {
   }
 }
 
+const MIN_SKILLS = 20; // ship floor: 14 superpowers + 6 custom (spec §17). Fewer = broken/incomplete tree.
 if (!existsSync(ROOT)) { console.error("no skill/ dir"); process.exit(1); }
 walk(ROOT);
+if (count < MIN_SKILLS) fail(`only ${count} skills discoverable (< ${MIN_SKILLS} floor) — skill tree incomplete`);
 console.log(fails === 0 ? `OK ${count} skills discoverable, 0 violations` : `FAIL ${fails} violation(s) across ${count} skills`);
 process.exit(fails === 0 ? 0 : 1);

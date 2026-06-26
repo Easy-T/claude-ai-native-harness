@@ -33,3 +33,13 @@ test("package.json is load-critical, ships, and keeps plugin types as devDepende
   assert.ok(!pkg.dependencies || !pkg.dependencies["@opencode-ai/plugin"], "must not be a runtime dependency");
   assert.ok(!pkg.engines, "no engines lock (would exclude 1.17.9)");
 });
+
+test("plan 5 ship + build-box assets exist", () => {
+  // ship assets (must be in the zip) + build-box verification entrypoints
+  for (const f of ["install.sh", "PREREQUISITES.md"]) {
+    assert.ok(existsSync(join(ROOT, f)), `ship asset missing: ${f}`);
+  }
+  for (const f of ["_oracle/verify-all.sh", "_oracle/acceptance.sh"]) {
+    assert.ok(existsSync(join(ROOT, f)), `build-box tool missing: ${f}`);
+  }
+});
