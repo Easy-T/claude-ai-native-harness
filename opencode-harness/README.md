@@ -13,8 +13,8 @@ opencode loads plugins from the GLOBAL `~/.config/opencode` *in addition to* any
 `OPENCODE_CONFIG_DIR`, so the config-dir override does NOT isolate a run (plugins
 union, causing double-loads against a stale global). The build-box scripts stage a
 clean copy to a temp dir (keeping `package.json` — required for plugin load — and
-stripping only `node_modules`/lockfiles; see Ship) and inject a TEST-ONLY model
-backend at runtime:
+stripping the canonical exclusion set: build-box tooling + generated/VCS files; see
+Ship) and inject a TEST-ONLY model backend at runtime:
 
     bash _oracle/oc-test.sh "say hello"                  # via the CCS proxy backend
     node _oracle/capture-server.mjs out.jsonl 8319 &     # capture outbound requests
@@ -36,8 +36,9 @@ box, a harmless cosmetic mutation, but offline it is simply skipped). `node_modu
 + lockfiles are platform-specific and regenerated — they MUST NOT ship.
 
     # from ~/.claude/opencode-harness  (package.json SHIPS; node_modules/lockfiles do not)
+    # CANONICAL exclusion set — identical to install.sh + _oracle/_stage.sh.
     zip -r ../opencode-harness.zip . \
-      -x '_oracle/*' 'node_modules/*' 'tests/*' \
+      -x '_oracle/*' 'tests/*' 'node_modules/*' '.git/*' \
          'package-lock.json' 'bun.lock*' '.gitignore' '_skills_capture.jsonl'
 
 ## Prerequisites & Install

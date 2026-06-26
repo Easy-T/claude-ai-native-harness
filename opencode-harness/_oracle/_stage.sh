@@ -13,7 +13,9 @@ stage_bundle() {
   local src="$1" dst
   dst="$(mktemp -d)"
   cp -r "$src"/. "$dst"/ 2>/dev/null
-  rm -rf "$dst/_oracle" "$dst/tests" "$dst/node_modules" "$dst/.git" \
-         "$dst/package-lock.json" "$dst"/bun.lock* 2>/dev/null
+  # CANONICAL ship-exclusion set (kept identical in install.sh + README zip -x): build-box
+  # tooling, generated files, VCS, and capture artifacts. package.json is KEPT (spec §15).
+  rm -rf "$dst/_oracle" "$dst/tests" "$dst/node_modules" "$dst/.git" "$dst/.gitignore" \
+         "$dst/package-lock.json" "$dst"/bun.lock* "$dst/_skills_capture.jsonl" 2>/dev/null
   printf '%s\n' "$dst"
 }

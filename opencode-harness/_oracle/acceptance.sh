@@ -22,8 +22,9 @@ WORK="$(mktemp -d)"; ZIP="$WORK/opencode-harness.zip"; OUT="$WORK/unzipped"
 trap 'rm -rf "$WORK"' EXIT
 mkdir -p "$OUT"
 
-# 1. SHIP tree = stage_bundle (identical exclusion set to the README zip -x list: _oracle, tests,
-#    node_modules, .git, lockfiles — package.json KEPT). Then a real archive round-trip.
+# 1. SHIP tree = stage_bundle (the CANONICAL exclusion set, identical to install.sh + README zip -x:
+#    _oracle, tests, node_modules, .git, .gitignore, lockfiles, _skills_capture.jsonl — package.json
+#    KEPT, spec §15). Then a real archive round-trip.
 SHIP="$(stage_bundle "$BUNDLE")"
 make_zip_ok=0
 if command -v zip >/dev/null 2>&1; then
@@ -32,21 +33,27 @@ elif command -v powershell.exe >/dev/null 2>&1; then
   SW="$(cygpath -w "$SHIP")"; ZW="$(cygpath -w "$ZIP")"
   powershell.exe -NoProfile -Command "Compress-Archive -Path '$SW\\*' -DestinationPath '$ZW' -Force" >/dev/null 2>&1 && make_zip_ok=1
 fi
-if [ "$make_zip_ok" = 1 ] && [ -f "$ZIP" ]; then
-  ok "zip built ($(du -h "$ZIP" 2>/dev/null | cut -f1 || echo '?'))"
-  # Info-ZIP `unzip` exits 1 with a warning on PowerShell Compress-Archive's backslash-separator
-  # zips (a Windows-only Compress-Archive quirk; the documented `zip` on Linux is forward-slash and
-  # clean). Extraction still succeeds — verify by the extracted tree, not unzip's exit code.
-  ( cd "$OUT" && unzip -qo "$ZIP" >/dev/null 2>&1 ) || true
-  if [ -f "$OUT/package.json" ] && [ -d "$OUT/plugin" ]; then ok "unzip extracted ship tree"; else fail "unzip produced no usable tree"; fi
-else
-  fail "no archiver (zip/PowerShell) available — falling back to staged ship tree (round-trip skipped)"
-  cp -r "$SHIP"/. "$OUT"/ 2>/dev/null
+if [ "$make_zip_ok" != 1 ] || [ ! -f "$ZIP" ]; then
+  rm -rf "$SHIP"
+  echo "✗ no archiver (zip/PowerShell) available — a real round-trip is REQUIRED; cannot run acceptance"; exit 1
 fi
+ok "zip built ($(du -h "$ZIP" 2>/dev/null | cut -f1 || echo '?'))"
+# Archive integrity (CRC). Info-ZIP `unzip -t` exits 1 with a warning on PowerShell Compress-Archive's
+# backslash-separator entry names (Windows-only quirk; Linux `zip` is forward-slash and clean), but it
+# still reports "No errors detected" when the compressed data is sound — accept either signal.
+if ( unzip -t "$ZIP" >/tmp/_acc_t.log 2>&1 ) || grep -q "No errors detected" /tmp/_acc_t.log; then
+  ok "zip integrity (no CRC errors)"
+else
+  fail "zip integrity check failed — see /tmp/_acc_t.log"
+fi
+# Info-ZIP `unzip` likewise exits 1 on the backslash quirk though extraction succeeds — verify by the
+# extracted tree, not unzip's exit code.
+( cd "$OUT" && unzip -qo "$ZIP" >/dev/null 2>&1 ) || true
+if [ -f "$OUT/package.json" ] && [ -d "$OUT/plugin" ]; then ok "unzip extracted ship tree"; else fail "unzip produced no usable tree"; fi
 rm -rf "$SHIP"
 
 # 2. install triggers / build-box-only payload MUST be absent from the shipped tree
-for bad in node_modules package-lock.json _oracle tests .git; do
+for bad in node_modules package-lock.json _oracle tests .git .gitignore _skills_capture.jsonl; do
   if [ -e "$OUT/$bad" ]; then fail "ship leaked: $bad"; else ok "ship excludes $bad"; fi
 done
 if ls "$OUT"/bun.lock* >/dev/null 2>&1; then fail "ship leaked: bun.lock*"; else ok "ship excludes bun.lock*"; fi

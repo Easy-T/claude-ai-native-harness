@@ -16,11 +16,17 @@ command -v git  >/dev/null 2>&1 || echo "⚠ git not on PATH (worktree-prune liv
 
 cd "$BUNDLE" || { echo "✗ cannot cd to bundle"; exit 1; }
 
-# 1. unit tests
-if node --test tests/*.test.mjs >/tmp/_va_unit.log 2>&1; then
-  ok "unit tests ($(grep -oE '# pass [0-9]+' /tmp/_va_unit.log | head -1 || echo pass))"
+# 1. unit tests — must run a REAL suite: an empty glob / 0 tests exits 0 and would
+#    otherwise read as green (M7). Enforce a test-count floor + fail==0, not just exit code.
+node --test tests/*.test.mjs >/tmp/_va_unit.log 2>&1; UT_RC=$?
+# summary lines are "ℹ tests N" (spec reporter) or "# tests N" (tap reporter); match either.
+_utn() { grep -oE "[[:space:]]$1 [0-9]+$" /tmp/_va_unit.log | grep -oE '[0-9]+$' | head -1; }
+UT_TESTS="$(_utn tests)"; UT_PASS="$(_utn pass)"; UT_FAIL="$(_utn fail)"
+UT_FLOOR=80   # current suite: 84 tests. Floor catches an empty glob (0) or a catastrophic drop.
+if [ "$UT_RC" -eq 0 ] && [ -n "${UT_TESTS:-}" ] && [ "$UT_TESTS" -ge "$UT_FLOOR" ] && [ "${UT_FAIL:-1}" -eq 0 ]; then
+  ok "unit tests (${UT_PASS:-?}/${UT_TESTS} pass, >= $UT_FLOOR floor)"
 else
-  fail "unit tests — see /tmp/_va_unit.log"
+  fail "unit tests — rc=$UT_RC tests=${UT_TESTS:-0} fail=${UT_FAIL:-?} (floor $UT_FLOOR) — see /tmp/_va_unit.log"
 fi
 
 # 2. differential parser oracle
@@ -44,7 +50,7 @@ if [ ! -d "$S/node_modules" ] && [ ! -f "$S/package-lock.json" ] && ! ls "$S"/bu
 else
   fail "stage: install triggers leaked into the shipped stage"
 fi
-if grep -qE '"urls"' "$S/opencode.json" 2>/dev/null; then fail "stage: opencode.json declares network skills.urls"; else ok "stage: opencode.json has no network skills.urls"; fi
+if [ ! -f "$S/opencode.json" ]; then fail "stage: opencode.json missing from shipped stage"; elif grep -qE '"urls"' "$S/opencode.json"; then fail "stage: opencode.json declares network skills.urls"; else ok "stage: opencode.json has no network skills.urls"; fi
 # offline plugin import + init (relative specifier; cwd = stage)
 if ( cd "$S" && node --input-type=module -e "await import('./plugin/governance.js').then(m=>m.Governance({client:{},directory:'.'}))" ) >/tmp/_va_plug.log 2>&1; then
   ok "stage: plugin imports + inits offline"
