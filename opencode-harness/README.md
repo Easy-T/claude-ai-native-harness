@@ -6,6 +6,7 @@ Unpacks to `~/.config/opencode/`. Build/staging dir is git-tracked under `~/.cla
 - `agent/` — constrained subagents (mode:subagent + permission floor).
 - `skill/`, `command/`, `docs/ai-context/`, `AGENTS.md` — governance assets.
 - `_oracle/` — BUILD-BOX ONLY test/conformance tooling. **Excluded from the shipped zip.**
+- `install.sh`, `PREREQUISITES.md` — **ship**: target deploy helper + prerequisites (read PREREQUISITES.md first).
 
 ## Local testing
 opencode loads plugins from the GLOBAL `~/.config/opencode` *in addition to* any
@@ -37,4 +38,18 @@ box, a harmless cosmetic mutation, but offline it is simply skipped). `node_modu
     # from ~/.claude/opencode-harness  (package.json SHIPS; node_modules/lockfiles do not)
     zip -r ../opencode-harness.zip . \
       -x '_oracle/*' 'node_modules/*' 'tests/*' \
-         'package-lock.json' 'bun.lock*' '.gitignore'
+         'package-lock.json' 'bun.lock*' '.gitignore' '_skills_capture.jsonl'
+
+## Prerequisites & Install
+Read **PREREQUISITES.md** (opencode ≥ 1.17.11, git, an internal LLM provider; no runtime internet).
+On the target box, after unzipping:
+
+    cd <unzipped-bundle>
+    bash install.sh        # backs up any existing ~/.config/opencode, deploys (keeps package.json)
+    # then set provider/model in ~/.config/opencode/opencode.json, restart opencode
+
+## Verify & Accept (build box)
+    bash _oracle/verify-all.sh    # all units + differential & discovery oracles + clean-stage gate
+    bash _oracle/acceptance.sh    # build zip → unzip → assert self-contained + offline plugin load
+
+Both are non-destructive (never mutate `~/.config/opencode`) and offline.
