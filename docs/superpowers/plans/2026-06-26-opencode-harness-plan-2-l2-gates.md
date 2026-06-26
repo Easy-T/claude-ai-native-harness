@@ -2,9 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Status:** active
+**Status:** completed (offline-verified + adversarial-review-fixed + live-verified, 2026-06-26)
 **RPI-Cycle:** 43 (opencode-harness migration — plan 2 of 5)
 **Started:** 2026-06-26
+
+**Verification (2026-06-26):** unit **63/63**, differential oracle **diff==0 (20 cases)**. A 5-agent adversarial review (442k tok) confirmed 4 real gate-parity gaps → all fixed (commit 221ccca): backslash `normalizePath` (Windows spec-before-plan bypass, MAJOR), `lineCount` awk-NR parity (trailing-newline ≤5 window), orchestrator `SKILL_PATH` `.+` (bash `*` spans `/`), secret-gate added-content-only (drop oldString). Stray Plan-1 `_probe-arg-keys.js` removed. **Live opencode 1.17.11** (4 checks): A2 no-plan 8-line code write → **BLOCKED**; C2 active-plan write → **ALLOWED**; B `echo > evil.py` bash-redirect no-plan → **BLOCKED** (the plan-1 §13 bypass, sealed live); trivial 1-line write → allowed (exemption works). Full record in spec §14.
 
 **Goal:** Port the `~/.claude` L2 dynamic enforcement (the actual `tool.execute.before` throw gate) into the opencode plugin: the RPI plan-gate (Edit/Write/NotebookEdit + Bash side-door), the secret-scan gate, and the orchestrator-skeleton gate — each backed by Bun-native parser libs refactored byte-for-byte from the harness's node parsers — plus a differential conformance oracle proving the refactored parsers match the bash reference per-case (`diff == ∅`).
 

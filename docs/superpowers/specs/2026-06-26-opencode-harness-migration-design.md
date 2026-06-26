@@ -254,3 +254,25 @@
 - **구현 노트:** plugin 파일은 §5의 `*.ts` 표기와 달리 **순수 `.js`로 구현**(zero-transpile 오프라인 로드 = C′ 키스톤에 더 부합). 후속 plan의 게이트도 `.js`.
 
 **잔여(차기 plan):** L2 throw 게이트 실강제 E2E(Plan 2) — 서브에이전트가 mutation 시도→deny까지의 런타임 시나리오는 게이트 + 스크립트 시나리오와 함께(Plan 2/5 acceptance). 이번엔 config-shape + deny 메커니즘까지 확정.
+
+---
+
+## 14. 검증 결과 — Plan 2 L2 게이트 (2026-06-26, opencode 1.17.11 실측)
+
+L2 동적 강제(RPI plan-gate + secret + orchestrator)를 5개 lib(verbatim 리팩터) + 3 gate + governance 배선 + 차등 오라클로 구현. **검증 전부 통과 + 라이브 확정.**
+
+**검증 다층:** 단위 **63/63** · 차등 오라클 **diff==0(20 케이스, 리팩터된 lib ↔ 소스 node CLI 동치)** · **5-에이전트 적대적 리뷰(442k tok, 4차원)** · **라이브 opencode**(아래).
+
+**라이브 L2 (실배포 `~/.config/opencode`, CCS프록시 백엔드):**
+- A2: 활성 plan 없는 cwd서 8줄 `.py` write → **BLOCKED**(rpiGate throw→opencode deny).
+- C2: 활성 plan(`**Status:** active`) cwd서 동일 write → **ALLOWED**(파일 생성).
+- B: 활성 plan 없는 cwd서 `printf ... > evil.py`(bash) → **BLOCKED** — **Plan 1 §13 bash-redirect 우회가 L2 bash 경로로 라이브 봉인됨**.
+- trivial(1줄) write → ALLOWED(≤5 면제 작동). → write-tool도 plan-gate가 동일 적용 실증.
+
+**★적대적 리뷰가 잡은 실제 parity 버그 4건(차기 plan/회사반입 재사용 교훈):**
+- **backslash 경로 정규화 필수(MAJOR, unsafe):** opencode는 Windows서 `args.filePath`를 backslash로 전달 → `/`-리터럴 경로 정규식이 silent 미스 → spec-before-plan 게이트 우회. **모든 경로 게이트는 입력 즉시 `normalizePath`(=`_common.sh` `${p//\\//}`)** 적용 필수. `code-exts.isCodePath`/`rpi-gate.fp`/`orchestrator-gate.fp`에 반영. → **Plans 3-5의 경로 처리 전부 동일 원칙.**
+- **awk NR vs split 라인카운트:** `s.split(/\n/).length`는 trailing-newline에서 +1 과다(5줄→6) → ≤5 trivial 창이 ≤4로 축소. **awk `END{print NR}` 등가 = `\n`개수 + (마지막이 `\n`아니면 1)**. (safe 방향이나 parity 깨짐.)
+- **bash glob `*`는 `/`를 가로지른다:** `[[ x == */skills/*/skill.md ]]`의 `*`는 중첩 세그먼트 매칭 → JS는 `[^/]+`아닌 **`.+`**. (셸 `[[ ]]` 패턴 ≠ 파일 글로빙.)
+- **secret 스캔은 *추가* 콘텐츠만:** bash는 `[content,new_string,command,new_source]`만 스캔(old_string 제외) → JS도 `oldString` 제외(content/newString/command). 시크릿 *삭제* 편집을 false-positive 차단하지 않도록.
+- 제거: Plan-1 잔재 `_probe-arg-keys.js`(plugin/lib서 dormant 적재). PASS 차원: verbatim-fidelity(regex byte-identical)·fail-open-wiring(BlockError만 deny·기타 swallow+surface)·spec-drift.
+- 잔여(R2): opencode NotebookEdit content key 미프로브 → secret-gate `new_source` 등가 미배선(회사 env서 notebook 사용 시 재프로브). 비-load-bearing(주 경로 content/newString/command 커버).
