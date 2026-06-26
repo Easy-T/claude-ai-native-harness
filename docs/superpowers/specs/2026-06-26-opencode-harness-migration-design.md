@@ -301,3 +301,27 @@ superpowers v6.0.3(14) vendoring + 커스텀 6 스킬을 **opencode 네이티브
 **범위 정합(spec §5 대비):** `common-agent-contract`은 `agent/*.md`에 인라인(스킬 미포팅). `init-ai-ready` opencode-emission은 **Plan 3b**로 분리(별도 템플릿셋+project deny-gate). superpowers 본문 verbatim(상류 규칙) + `references/opencode-tools.md`만 신규. start-rpi-cycle Closeout 자기검증을 `~/.claude/setup/*.sh`→opencode 하네스 검증(`node --test`+오라클)으로 retarget.
 
 **잔여(수용):** (1) 네트워크 있는 회사 박스 첫 실행 시 `package.json` devDeps→deps 변조 + node_modules 생성(우리 repo 무관·코스메틱; 오프라인이면 무변조). (2) node_modules 미-ship → 첫 실행 install-WARN 1회(무해, fail-open). (3) Plan 5 verify 하네스가 통합 검증 엔트리포인트 제공 예정.
+
+## 16. 설계 — Plan 4: worktree teardown substitute + tool.execute.after 어드바이저리 (research wf_34d8b979)
+
+opencode 1.17.11 v1 Hooks 표면(설치 `@opencode-ai/plugin/dist/index.d.ts` 실측): `dispose?()`·`event?({event})`·`tool.execute.after?(input,output:{title,output,metadata})` 전부 존재. 4-각도 research로 설계 확정.
+
+**A. tool.execute.after 어드바이저리 (substantive):**
+- **★ADR(R4 상향) — 네이티브 도구 after-output은 *모델-주입 채널*이다.** opencode `session/tools.ts`는 네이티브 도구(bash/edit/write/apply_patch)에서 `tool.execute.after`를 **모델에 반환되는 바로 그 `output` 객체**에 발화 후 `return output` → `output.output` append가 모델에 도달. (MCP 경로는 별도 객체라 미도달 → **네이티브 도구 한정**.) 이는 spec §6 R4("model-injected additionalContext 부재, AGENTS.md만") + §본문 "BlockError가 유일 mid-turn 주입"을 **상향**: CC PreToolUse `additionalContext`(=`emit_additional_context`)의 등가 비차단 모델 채널이 opencode에 존재(오히려 PostToolUse 타이밍과 정확 일치). **이전 결정 supersede, append-only 기록**(global §5).
+- 포팅 어드바이저리 2종(+1 옵션), 전부 fail-open·세션당1회 dedup(`Set<sessionID:kind>` in Governance closure)·`output.output += "\n\n[harness] "+msg`:
+  - **(A1) RPI-bypass 표면화** — `process.env.RPI_SKIP` 설정 + 도구∈{bash,edit,write,apply_patch}(네이티브 mutation 집합; apply_patch는 before-gate mutation 집합과 parity로 포함) → CC `surface_bypass`(`_common.sh`) 경고 환기. rpi-gate가 RPI_SKIP early-return 시 *삼키는* surfacing을 복원(CONTEXT "fail-open/우회는 표면화, silent 금지" 준수).
+  - **(A2) surface-constitution §5/§8** — `args.filePath`가 의존성 매니페스트셋(package.json/go.mod/requirements.txt/pyproject.toml/Cargo.toml/pom.xml/build.gradle(.kts)/Gemfile/composer.json/*.csproj/pubspec.yaml) 매칭 → §5 ADR 환기; UI 확장자셋(.tsx/.jsx/.vue/.svelte/.css/.scss/.sass/.less/.styl) 매칭 → §8 ui-design 환기. CC `surface-constitution.sh`(cycle-16) 텍스트 포팅.
+  - (A3 옵션) 루트 AGENTS.md/CLAUDE.md 편집 시 거버넌스-변경 환기(CC `stable-claude-md` 캐시논리는 opencode 무관 → 평범 advisory로 retarget).
+- **미포팅(차단은 before에):** RPI/secret/orchestrator 차단은 `tool.execute.before`(BlockError) 유지 — after는 side-effect 이후라 throw 무의미. MCP 결과 advisory(output-mutation 미도달)·verify-loop/auto-compact(event 영역).
+- **리스크:** after-mutation 채널은 sst/opencode dev 소스로 확인(핀 1.17.11 태그 아님) → **빌드박스 라이브 E2E 필수**(RPI_SKIP 발화→assistant-visible 도구결과에 advisory 텍스트 출현 단언). 미도달이어도 advisory라 fail-open(no-op, 비-실패).
+
+**B. worktree teardown substitute (정직한 축소):**
+- **범위 = (c) 식별-무관 방어적 정리.** opencode는 세션/서브에이전트당 워크트리 **자동생성 안 함**(project는 launch dir를 worktree로 사용); 네이티브 워크트리 서브시스템은 `OPENCODE_EXPERIMENTAL_WORKSPACES=true` 게이트+명시-사용자-only+`opencode/` 접두사+remove() 자가정리. 하네스는 EnterWorktree 미노출 → 모델이 superpowers `using-git-worktrees`로 `.worktrees/<BRANCH>`에 **임의 브랜치명** `git worktree add` (bash). `finishing-a-development-branch`가 `git worktree remove`+`branch -d/-D`로 **자가정리**.
+- **결정: `git worktree prune`만 포팅**(등록-only 정리=dir-사라진 등록 제거, **브랜치 절대 미터치·live 워크트리 미터치=무조건 안전**). CC cycle-41 sweep의 브랜치-D(`worktree-*` 컨벤션)는 **미포팅** — opencode superpowers는 고정 브랜치 접두사가 없어 안전 타깃 부재(임의 브랜치 -D=데이터손실 위험); `opencode/` 접두사는 네이티브 소유라 명시 제외. = 정직한 substitute(무단축소 아님, 여기 기록).
+- **트리거:** `PluginInput.worktree`(repo 루트; `directory`는 서브디렉터리 가능) 대상. **plugin init(=session-start 아날로그, 이전 크래시 잔재 정리=신뢰 backstop)** + **`dispose()`(인스턴스 종료=SessionEnd 아날로그, 동일세션 정리)** 양쪽 배선. 둘 다 inside-git-repo 가드+fail-open(throw 금지, 항상 void). `event`/`session.idle`(매 턴 발화) backstop은 불채택(init+dispose로 양방향 커버, git-spawn 최소화).
+- **리스크/검증:** SDK가 `dispose()` 발화 타이밍 미문서화 → **라이브 smoke-test 필수**(dispose서 로그 기록→실발화 관찰); 미발화여도 init-prune이 차기 실행서 정리(설계는 dispose 비의존). `worktree`≠`directory`(서브디렉터리 launch 시) → git cwd는 `worktree` 사용. git PATH 부재 시 fail-open.
+
+**검증 결과 — Plan 4 (2026-06-27, opencode 1.17.11 실측). 전부 PASS.** 단위 **83/83**·오라클 diff==0(20)+discovery 20/20·3-렌즈 적대적리뷰(206k, fail-open/dedup/spec-offline 전부 PASS, critical/major 0 → minor 5 반영: 비-string output 가드·sessionID→callID fallback·dispose no-throw 테스트·매니페스트 regex 보강·apply_patch 노트). **라이브 3종:**
+- **T4-A ★모델-채널 확정(spec §16.A 리스크 해소):** CCS프록시 실모델+`RPI_SKIP` set+bash `echo` → bash 도구결과에 `[harness] ⚠ RPI 게이트 우회…` 어드바이저리가 **모델-가시 출력에 append되어 렌더링됨**. `tool.execute.after` output-mutation이 핀 1.17.11 네이티브 도구서 실제 모델에 도달 확정(R4 상향 실증).
+- **T4-B dispose 발화 확정:** 배포 dir에 dispose-probe 플러그인 추가 → headless `opencode run` 완료 시 `[DISPOSEPROBE] dispose fired` 관찰. dispose-prune 실행 보장.
+- **T4-C prune 안전성 확정:** 실 git repo에 워크트리 등록 → dir `rm` → `pruneWorktrees(win-path)` → `{ran:true,pruned:true}`, 고아 등록 제거됨·브랜치 `feature-foo` 보존(브랜치 미삭제 불변식 실증). ★빌드박스 함정: MSYS `/tmp` 경로를 Windows-git(node-spawn)에 넘기면 `not-a-repo`(실 플러그인은 opencode가 Windows 경로 전달이라 무관) → 테스트는 `cygpath -m` Windows 경로 사용.
