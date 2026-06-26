@@ -11,8 +11,9 @@ Unpacks to `~/.config/opencode/`. Build/staging dir is git-tracked under `~/.cla
 opencode loads plugins from the GLOBAL `~/.config/opencode` *in addition to* any
 `OPENCODE_CONFIG_DIR`, so the config-dir override does NOT isolate a run (plugins
 union, causing double-loads against a stale global). The build-box scripts stage a
-clean copy to a temp dir (excluding `package.json` so opencode never auto-installs)
-and inject a TEST-ONLY model backend at runtime:
+clean copy to a temp dir (keeping `package.json` — required for plugin load — and
+stripping only `node_modules`/lockfiles; see Ship) and inject a TEST-ONLY model
+backend at runtime:
 
     bash _oracle/oc-test.sh "say hello"                  # via the CCS proxy backend
     node _oracle/capture-server.mjs out.jsonl 8319 &     # capture outbound requests
