@@ -21,9 +21,14 @@ test("opencode.json is valid JSON with no network plugin array", () => {
   assert.ok(cfg.permission && typeof cfg.permission === "object", "permission block required");
 });
 
-test("package.json keeps the plugin types as a devDependency only", () => {
+test("package.json is load-critical, ships, and keeps plugin types as devDependency only", () => {
+  // LOAD-CRITICAL (spec §15): opencode HANGS at plugin load when no package.json exists
+  // in the config dir, so this file MUST ship (NOT be stripped by _stage.sh / the zip).
+  // `type: module` is the load-critical field. @opencode-ai/plugin stays a devDependency
+  // (types only): the runtime plugin imports only node: builtins + relative files, and
+  // opencode's background dep-install is fail-open offline, so it is never a runtime need.
   const pkg = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"));
-  assert.equal(pkg.type, "module");
+  assert.equal(pkg.type, "module", "type:module is required for opencode to load plugin/*.js as ESM");
   assert.ok(pkg.devDependencies?.["@opencode-ai/plugin"], "plugin types must be a devDependency");
   assert.ok(!pkg.dependencies || !pkg.dependencies["@opencode-ai/plugin"], "must not be a runtime dependency");
   assert.ok(!pkg.engines, "no engines lock (would exclude 1.17.9)");
