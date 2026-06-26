@@ -3,9 +3,12 @@ import { BlockError } from "../lib/fail-open.js";
 import { scanSkeleton } from "../lib/skeleton-scan.js";
 import { normalizePath } from "../lib/code-exts.js";
 
-// Parity with bash glob `*/skills/*/skill.md`: the shell `*` spans `/`, so the middle
-// segment uses `.+` (not `[^/]+`) to also match nested skills/foo/bar/skill.md.
-const SKILL_PATH = /\/skills\/.+\/skill\.md$/i;
+// opencode scans BOTH `skill/` (singular — the bundle convention per spec §5) and `skills/`
+// (plural), so the dir segment is `skills?`. Parity with bash glob `*/skills/*/skill.md`: the
+// shell `*` spans `/`, so the middle segment uses `.+` (not `[^/]+`) to also match nested
+// skills/foo/bar/skill.md. Gate is opt-in (only fires when the orchestrator marker is present),
+// so the broadened match cannot false-positive on a non-orchestrator skill.
+const SKILL_PATH = /\/skills?\/.+\/skill\.md$/i;
 
 export function orchestratorGate({ tool, args, fs }) {
   args = args || {};
