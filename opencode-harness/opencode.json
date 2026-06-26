@@ -4,7 +4,8 @@
   "permission": {
     "edit": "allow",
     "bash": { "*": "allow", "rm -rf *": "ask", "git push *": "ask" },
-    "webfetch": "allow"
+    "webfetch": "allow",
+    "skill": { "*": "allow" }
   },
   "compaction": { "auto": true }
 }

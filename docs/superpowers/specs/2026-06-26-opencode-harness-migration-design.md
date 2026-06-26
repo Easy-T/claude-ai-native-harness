@@ -276,3 +276,28 @@ L2 동적 강제(RPI plan-gate + secret + orchestrator)를 5개 lib(verbatim 리
 - **secret 스캔은 *추가* 콘텐츠만:** bash는 `[content,new_string,command,new_source]`만 스캔(old_string 제외) → JS도 `oldString` 제외(content/newString/command). 시크릿 *삭제* 편집을 false-positive 차단하지 않도록.
 - 제거: Plan-1 잔재 `_probe-arg-keys.js`(plugin/lib서 dormant 적재). PASS 차원: verbatim-fidelity(regex byte-identical)·fail-open-wiring(BlockError만 deny·기타 swallow+surface)·spec-drift.
 - 잔여(R2): opencode NotebookEdit content key 미프로브 → secret-gate `new_source` 등가 미배선(회사 env서 notebook 사용 시 재프로브). 비-load-bearing(주 경로 content/newString/command 커버).
+
+## 15. 검증 결과 — Plan 3 스킬 번들 + ★오프라인 플러그인-로드 (2026-06-26, opencode 1.17.11 실측)
+
+superpowers v6.0.3(14) vendoring + 커스텀 6 스킬을 **opencode 네이티브 SKILL.md**로 포팅. **검증 전부 통과 + 라이브 확정.** 단위 **66/66** · skill-discovery 오라클 **20/20 0위반** · 5 오케스트레이터 스켈레톤 **5/5 PASS** · 6-에이전트 포팅 워크플로 + 스킬별 적대적 검증 · **라이브 opencode**(아래). 이 단계의 라이브 검증이 **Plan 1 오프라인 설계를 뒤집는 ship-blocker 1건 + 게이트 버그 2건**을 표면화 — 회사반입 전 필수 발견.
+
+**라이브 T5(a) — 스킬 발견(capture-server로 outbound 요청 ground-truth):** opencode가 시스템 프롬프트에 `<available_skills>` 블록(각 `<name>/<description>/<location>`) 주입 → `skill` 도구 def는 제네릭(`name` 파라미터만; "match one of the skills listed in your system prompt"). 우리 번들 `~/.config/opencode/skill/`서 **정확히 20개**(superpowers 14 + 커스텀 6) 전부 description 동반 발견. (opencode는 `~/.claude/skills`·`~/.agents/skills`도 스캔 → 빌드박스선 25개; 회사 env엔 `~/.claude` 부재라 우리 20만.) **L1(AGENTS.md constitution)도 동일 요청서 §RPI/orchestrator 마커 재확인.**
+
+**라이브 T5(b) — orchestrator-gate 라이브 deny(실배포 + CCS프록시 실모델):** 모델에 `skill/badorch/SKILL.md`(marker + `# Phase 1`만) 작성 유도 → `✗ Write ... failed — [orchestrator] FAIL: phase=1<3` deny + 파일 미생성. **단, 최초 시도는 통과(FAIL)했고 수정 후 PASS** — 아래 ★버그2.
+
+**★헤드라인 ship-blocker — `package.json` 부재 시 플러그인-로드 HANG(치명, 회사 env 거버넌스 사망 위험):**
+- 증상: clean 배포(`package.json` 제외, Plan 1 오프라인 설계)서 `opencode run`이 config-로드 직후 **무한 행**(모델 요청 0건). `--pure`(외부 플러그인 없이)면 정상 → **플러그인 로딩이 행 원인**.
+- 격리: plain node `import()`로 플러그인 자체는 31ms 로드 + init 1ms(`[harness] loaded`) → **opencode의 플러그인-로딩 방식** 문제. 빈 config여도 글로벌 `~/.config/opencode`가 항상 추가 로드(double-load).
+- 근본원인: opencode 플러그인 로더는 config-dir에 **`package.json` 존재**를 요구(`.js`를 ESM으로 인식). 부재 시 행.
+- ★의존성 설치는 **백그라운드·fail-OPEN**: `package.json` 있으면 opencode가 `@opencode-ai/plugin`을 주입+설치 시도하나, **오프라인이면 `WARN background dependency install failed` 로깅 후 로컬 플러그인을 그대로 로드**(node_modules 불필요 — 플러그인은 `node:` builtin + 상대 import만). dead-registry+node_modules 제거로 실증(graceful).
+- **해결(최소·오프라인 완결):** **`package.json`만 ship**(node_modules·lockfile·setup-install·플랫폼별 네이티브 바이너리 전부 불필요). `_stage.sh`서 strip 제거·README/zip-exclude 정정·`scaffold.test`에 load-critical 명문화. `@opencode-ai/plugin`은 types-only devDependency 유지(런타임 불필요). → **Plan 1 "package.json MUST NOT ship" 결정 폐기·역전.**
+- 재사용 교훈: **Plan 1 라이브검증은 L1(AGENTS.md)·L3(permission)만 커버, L2 플러그인의 clean-deploy 로드는 미검증이었음** — 폴루션 잔재(이전 install의 node_modules)가 행을 가렸다. clean 배포(generated 전부 제거)로 테스트해야 ship-blocker가 드러남.
+
+**★게이트 버그 2건(라이브에서만 드러난 경로 매칭; 단위테스트는 절대경로라 통과):**
+- **상대경로 미스(T5b 최초 FAIL):** opencode write 도구는 **모델이 쓴 경로 그대로**(상대, 예 `skill/badorch/SKILL.md`) 전달 → `orchestrator-gate` `SKILL_PATH`가 **선행 `/` 요구**(`/skills?/`)해 상대경로 silent 통과. **`(?:^|\/)skills?\/`**(start-OR-slash 앵커)로 수정. (write arg-key는 `content`/`filePath` 확인 — drift 아님.)
+- **단수 `skill/` 미스:** opencode는 `skill/`(단수, 번들 컨벤션 spec §5)·`skills/`(복수) 양쪽 스캔하나 게이트는 복수만 매칭 → 단수 트리 새 orchestrator가 스켈레톤 불변식 회피(§2 mandate 무력화). `skills?`로 확장. CC 복수-only bash hook과 **의도적 분기**(플랫폼 적응; 게이트는 opt-in이라 false-positive 0).
+- 교훈: **경로 게이트는 opencode가 전달하는 실제 arg shape(상대/단수/backslash)로 라이브 검증해야 함** — 단위테스트 절대경로 가정은 live-only 버그를 마스킹. (§14 backslash-normalize와 동류 = "경로는 런타임 실측".)
+
+**범위 정합(spec §5 대비):** `common-agent-contract`은 `agent/*.md`에 인라인(스킬 미포팅). `init-ai-ready` opencode-emission은 **Plan 3b**로 분리(별도 템플릿셋+project deny-gate). superpowers 본문 verbatim(상류 규칙) + `references/opencode-tools.md`만 신규. start-rpi-cycle Closeout 자기검증을 `~/.claude/setup/*.sh`→opencode 하네스 검증(`node --test`+오라클)으로 retarget.
+
+**잔여(수용):** (1) 네트워크 있는 회사 박스 첫 실행 시 `package.json` devDeps→deps 변조 + node_modules 생성(우리 repo 무관·코스메틱; 오프라인이면 무변조). (2) node_modules 미-ship → 첫 실행 install-WARN 1회(무해, fail-open). (3) Plan 5 verify 하네스가 통합 검증 엔트리포인트 제공 예정.

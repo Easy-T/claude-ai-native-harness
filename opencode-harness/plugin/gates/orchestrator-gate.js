@@ -3,9 +3,15 @@ import { BlockError } from "../lib/fail-open.js";
 import { scanSkeleton } from "../lib/skeleton-scan.js";
 import { normalizePath } from "../lib/code-exts.js";
 
-// Parity with bash glob `*/skills/*/skill.md`: the shell `*` spans `/`, so the middle
-// segment uses `.+` (not `[^/]+`) to also match nested skills/foo/bar/skill.md.
-const SKILL_PATH = /\/skills\/.+\/skill\.md$/i;
+// opencode forwards the path AS THE MODEL WROTE IT, which is often RELATIVE (e.g. the model
+// writing `skill/foo/SKILL.md` from the project cwd) — so the dir segment is anchored at
+// start-OR-slash `(?:^|\/)`, not a bare leading `/` (that silently let relative writes through,
+// spec §15). opencode also scans BOTH `skill/` (singular, the bundle convention per spec §5) and
+// `skills/` (plural) → `skills?`. The middle segment uses `.+` (not `[^/]+`) to also match nested
+// skills/foo/bar/skill.md (parity with the bash glob `*/skills/*/skill.md`, where `*` spans `/`).
+// Gate is opt-in (only fires when the orchestrator marker is present), so the broadened match
+// cannot false-positive on a non-orchestrator skill.
+const SKILL_PATH = /(?:^|\/)skills?\/.+\/skill\.md$/i;
 
 export function orchestratorGate({ tool, args, fs }) {
   args = args || {};
