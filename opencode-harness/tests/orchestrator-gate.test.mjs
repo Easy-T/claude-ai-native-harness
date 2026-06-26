@@ -35,3 +35,12 @@ test("opencode SINGULAR skill/ dir is gated (bundle ships ~/.config/opencode/ski
   assert.throws(() => orchestratorGate({ tool: "write", args: { filePath: "/c/Users/x/.config/opencode/skill/foo/SKILL.md", content: "orchestrator_skill: true\n# Phase 1" }, fs }), BlockError);
   assert.doesNotThrow(() => orchestratorGate({ tool: "write", args: { filePath: "/c/Users/x/.config/opencode/skill/foo/SKILL.md", content: full }, fs }));
 });
+
+test("RELATIVE skill path is gated (opencode passes the model's relative filePath, no leading slash)", () => {
+  // Live finding (spec §15): opencode's write tool forwards the path AS THE MODEL WROTE IT.
+  // A model writing `skill/badorch/SKILL.md` (relative, leading `skill/`) must still be gated —
+  // the prior `/skills?/` anchor required a leading slash and silently let relative writes through.
+  assert.throws(() => orchestratorGate({ tool: "write", args: { filePath: "skill/badorch/SKILL.md", content: "orchestrator_skill: true\n# Phase 1" }, fs }), BlockError);
+  assert.throws(() => orchestratorGate({ tool: "write", args: { filePath: "skills/badorch/SKILL.md", content: "orchestrator_skill: true\n# Phase 1" }, fs }), BlockError);
+  assert.doesNotThrow(() => orchestratorGate({ tool: "write", args: { filePath: "skill/badorch/SKILL.md", content: full }, fs }));
+});
