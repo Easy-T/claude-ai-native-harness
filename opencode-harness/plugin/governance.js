@@ -63,7 +63,13 @@ export const Governance = async ({ client, directory, worktree }) => {
     "tool.execute.after": failOpen(async (input, output) => {
       const tool = String(input?.tool ?? "").toLowerCase();
       if (!NATIVE_TOOLS.has(tool)) return;
-      const sid = input?.sessionID || "unknown";
+      // Append only to a string result — never coerce a structured `output` field (the `+`
+      // would stringify it). Only native-tool string output reaches the model (spec §16.A).
+      if (output.output != null && typeof output.output !== "string") return;
+      // Once-per-session dedup. If sessionID is absent (not in the documented after-shape),
+      // fall back to callID so the advisory RE-FIRES per call rather than collapsing every
+      // session into one "unknown" bucket that would silently suppress it (review fix).
+      const sid = input?.sessionID || input?.callID || "anon";
       for (const a of advisoriesFor({ tool, args: input?.args ?? {}, env: process.env })) {
         const key = `${sid}:${a.kind}`;
         if (seenAdvisory.has(key)) continue;

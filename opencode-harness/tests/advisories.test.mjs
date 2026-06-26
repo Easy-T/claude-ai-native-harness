@@ -20,9 +20,17 @@ test("RPI_SKIP surfaces a bypass advisory on bash/edit/write only", () => {
 });
 
 test("dependency manifests trigger the §5 ADR advisory", () => {
-  for (const fp of ["package.json", "/proj/go.mod", "/p/requirements.txt", "/p/Cargo.toml", "/p/pom.xml", "/p/pyproject.toml", "/p/app.csproj"]) {
+  for (const fp of [
+    "package.json", "/proj/go.mod", "/p/requirements.txt", "/p/Cargo.toml", "/p/pom.xml",
+    "/p/pyproject.toml", "/p/app.csproj",
+    // regex-fragile entries (optional .kts group + the rest of the manifest set)
+    "/p/build.gradle", "/p/build.gradle.kts", "/p/Gemfile", "/p/composer.json", "/p/pubspec.yaml",
+  ]) {
     assert.ok(kinds(advisoriesFor({ tool: "edit", args: { filePath: fp }, env: {} })).includes("adr"), `adr for ${fp}`);
   }
+  // negative: a near-miss must NOT match (anchor sanity for the build.gradle(.kts)? group)
+  assert.ok(!kinds(advisoriesFor({ tool: "edit", args: { filePath: "/p/build.gradlex" }, env: {} })).includes("adr"), "build.gradlex must not match");
+  assert.ok(!kinds(advisoriesFor({ tool: "edit", args: { filePath: "/p/mypackage.json.bak" }, env: {} })).includes("adr"), "package.json.bak must not match");
 });
 
 test("UI files trigger the §8 ui-design advisory", () => {
