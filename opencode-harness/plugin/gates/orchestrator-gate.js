@@ -1,0 +1,34 @@
+// opencode-harness/plugin/gates/orchestrator-gate.js
+import { BlockError } from "../lib/fail-open.js";
+import { scanSkeleton } from "../lib/skeleton-scan.js";
+
+const SKILL_PATH = /\/skills\/[^/]+\/skill\.md$/i;
+
+export function orchestratorGate({ tool, args, fs }) {
+  args = args || {};
+  const fp = args.filePath || "";
+  if (!SKILL_PATH.test(fp)) return;
+
+  let content;
+  const t = String(tool || "").toLowerCase();
+  if (t === "edit") {
+    let cur = "";
+    try { cur = fs.readFileSync(fp, "utf8"); } catch { cur = ""; }
+    const oldS = args.oldString || "", newS = args.newString || "";
+    content = cur ? (oldS && cur.indexOf(oldS) >= 0 ? cur.replace(oldS, newS) : cur) : newS;
+  } else {
+    content = (typeof args.content === "string" && args.content) ? args.content : (args.newString || "");
+  }
+  if (!content) return;
+
+  const { hasMarker, phase, agent, contract } = scanSkeleton(content);
+  if (hasMarker !== 1) return; // opt-out
+
+  let reason = "";
+  if (phase < 3) reason = `phase=${phase}<3`;
+  else if (agent < 1) reason = "agent_calls=0";
+  else if (contract < 1) reason = "no-protocol-section";
+  if (reason) {
+    throw new BlockError(`[orchestrator] FAIL: ${reason}. Phase≥3 / Agent(subagent_type=)≥1 / Communication Protocol≥1. create-orchestrator-skill 사용 또는 frontmatter에서 orchestrator_skill 제거.`);
+  }
+}
