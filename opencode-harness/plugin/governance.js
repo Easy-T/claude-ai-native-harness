@@ -1,9 +1,13 @@
 // opencode-harness/plugin/governance.js
 // v1 Promise plugin (function export = most portable load shape). deny = throw BlockError.
 // Runs unchanged on opencode 1.17.9 (primary-agent only) and >=1.17.10 (also subagent calls).
-import { failOpen, BlockError } from "./lib/fail-open.js";
-import { ARG_KEYS, assertArgKeys, pathArg } from "./lib/arg-keys.js";
+import { failOpen } from "./lib/fail-open.js";
+import { assertArgKeys } from "./lib/arg-keys.js";
 import { enforcementFor } from "./lib/version.js";
+import { rpiGate } from "./gates/rpi-gate.js";
+import { secretGate } from "./gates/secret-gate.js";
+import { orchestratorGate } from "./gates/orchestrator-gate.js";
+import * as nodeFs from "node:fs";
 
 export const Governance = async ({ client, directory }) => {
   // One-time version + arg-key self-test (R2: fail LOUD if arg shape drifted).
@@ -34,9 +38,13 @@ export const Governance = async ({ client, directory }) => {
   return {
     "tool.execute.before": failOpen(async (input, output) => {
       selfTest(input, output);
-      // Plan 1: no gates yet — resolve the path/command for later gates and allow.
-      void pathArg(input.tool, output?.args ?? {});
-      void ARG_KEYS; void BlockError; // referenced; real gates land in plan 2
+      const tool = input?.tool;
+      const args = output?.args ?? {};
+      const ctx = { tool, args, cwd: directory ?? ".", env: process.env, fs: nodeFs };
+      // order: secret (content) → rpi (plan-gate) → orchestrator (skeleton). First BlockError denies.
+      secretGate(ctx);
+      rpiGate(ctx);
+      orchestratorGate(ctx);
     }),
   };
 };

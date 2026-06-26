@@ -12,10 +12,12 @@ test("Governance is a v1 function plugin exposing tool.execute.before", async ()
   assert.equal(typeof hooks["tool.execute.before"], "function");
 });
 
-test("no-op gate allows a normal edit (no throw)", async () => {
+test("wired gate allows a whitelisted docs edit (no plan needed)", async () => {
+  // Plan 2 wired the real L2 gates; a code edit with no active plan now blocks,
+  // but a whitelisted .md edit is always allowed (composed behavior covered in governance-gate.test).
   const hooks = await Governance({ client: fakeClient("1.17.9"), directory: "/proj" });
   await assert.doesNotReject(() =>
-    hooks["tool.execute.before"]({ tool: "edit", sessionID: "s", callID: "c" }, { args: { filePath: "/proj/a.py" } })
+    hooks["tool.execute.before"]({ tool: "edit", sessionID: "s", callID: "c" }, { args: { filePath: "/proj/notes.md", newString: "hi" } })
   );
 });
 
