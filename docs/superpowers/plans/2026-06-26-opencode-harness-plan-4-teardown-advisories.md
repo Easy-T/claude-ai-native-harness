@@ -2,9 +2,12 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: superpowers:test-driven-development for each task (RED→GREEN). Steps use checkbox (`- [ ]`).
 
-**Status:** active
+**Status:** completed
 **RPI-Cycle:** 45 (opencode-harness migration — plan 4 of 5)
 **Started:** 2026-06-26
+**Completed:** 2026-06-27
+
+> **Verification record (spec §16):** T1–T5 ALL PASS. Unit **83/83** · oracles diff==0(20) + discovery 20/20 · 3-lens adversarial review PASS (0 critical/major; 5 minors applied). **Live (opencode 1.17.11):** T4-A advisory text reaches the model-visible bash result (`tool.execute.after` output-mutation IS a model channel on the pinned version — spec §16.A risk resolved); T4-B `dispose()` fires on headless run completion; T4-C `pruneWorktrees` removes an orphan worktree registration and preserves the branch (branch-D never called).
 
 **Goal:** Add the two remaining runtime behaviours from spec §16: (A) `tool.execute.after` advisories that surface RPI bypass + §5/§8 constitution reminders into the model-visible tool output (native tools only, once-per-session, fail-open), and (B) a `git worktree prune` teardown substitute wired to plugin init + `dispose()` (the honest scoped-down worktree cleanup — branch-D is NOT ported, see spec §16.B). Success = unit tests green + live E2E: an RPI_SKIP'd bash call's tool result carries the advisory text the model reads; `dispose()` fires; prune removes a dir-gone worktree registration; no regression (full suite + verify-setup).
 
