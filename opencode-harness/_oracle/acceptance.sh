@@ -74,9 +74,15 @@ if ( cd "$OUT" && node -e "const p=require('./package.json'); process.exit(p.dep
 if grep -qE '"urls"' "$OUT/opencode.json"; then fail "opencode.json declares network skills.urls"; else ok "no network skills.urls"; fi
 if ( cd "$OUT" && node -e "const c=require('./opencode.json'); process.exit(c.permission&&c.permission.skill?0:1)" ); then ok "permission.skill present"; else fail "permission.skill missing"; fi
 
-# 6. skills shipped (>=20 SKILL.md in the unzipped tree)
+# 6. skills shipped (>=21 SKILL.md in the unzipped tree: 14 superpowers + 7 custom incl. init-ai-ready-project)
 SKN="$(find "$OUT/skill" -name SKILL.md 2>/dev/null | wc -l | tr -d ' ')"
-if [ "${SKN:-0}" -ge 20 ]; then ok "shipped skill/ has $SKN SKILL.md (>=20)"; else fail "shipped skill/ has only ${SKN:-0} SKILL.md"; fi
+if [ "${SKN:-0}" -ge 21 ]; then ok "shipped skill/ has $SKN SKILL.md (>=21)"; else fail "shipped skill/ has only ${SKN:-0} SKILL.md (need >=21)"; fi
+# init-ai-ready-project skill + its templates must ship
+if [ -f "$OUT/skill/init-ai-ready-project/SKILL.md" ] && [ -f "$OUT/skill/init-ai-ready-project/templates/AGENTS.md.tpl" ] && [ -f "$OUT/skill/init-ai-ready-project/templates/project-opencode.json.tpl" ]; then
+  ok "ships: init-ai-ready-project skill + templates"
+else
+  fail "init-ai-ready-project skill/templates missing from ship tree"
+fi
 
 # 7. OFFLINE plugin import + init from the unzipped tree (the decisive load proof)
 if ( cd "$OUT" && node --input-type=module -e "await import('./plugin/governance.js').then(m=>m.Governance({client:{},directory:'.'}))" ) >/tmp/_acc_plug.log 2>&1; then

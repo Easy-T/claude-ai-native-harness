@@ -4,7 +4,7 @@ Unpacks to `~/.config/opencode/`. Build/staging dir is git-tracked under `~/.cla
 
 - `plugin/` — v1 ESM governance plugin (loaded offline by opencode).
 - `agent/` — constrained subagents (mode:subagent + permission floor).
-- `skill/`, `command/`, `docs/ai-context/`, `AGENTS.md` — governance assets.
+- `skill/` (21: 14 superpowers + 7 custom incl. `init-ai-ready-project` = opencode-target project bootstrap), `command/`, `docs/ai-context/`, `AGENTS.md` — governance assets.
 - `_oracle/` — BUILD-BOX ONLY test/conformance tooling. **Excluded from the shipped zip.**
 - `install.sh`, `PREREQUISITES.md` — **ship**: target deploy helper + prerequisites (read PREREQUISITES.md first).
 
