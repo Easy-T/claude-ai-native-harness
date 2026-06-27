@@ -32,9 +32,12 @@ fi
 # 2. differential parser oracle
 if node _oracle/diff-parsers.mjs 2>/dev/null | grep -q "OK diff==0"; then ok "differential parser oracle (diff==0)"; else fail "differential parser oracle"; fi
 
-# 3. skill discovery (>=20, 0 violations)
+# 3. skill discovery (>=21, 0 violations)
 SK="$(node _oracle/skill-discovery.mjs 2>/dev/null)"
 if echo "$SK" | grep -q "0 violations"; then ok "skill-discovery — $SK"; else fail "skill-discovery — $SK"; fi
+
+# 3b. init-ai-ready-project emission oracle (renders templates -> valid opencode-target project, spec §18)
+if node _oracle/init-emission.mjs 2>/dev/null | grep -q "OK init-emission"; then ok "init-emission oracle (12 files, 0 violations)"; else fail "init-emission oracle — run: node _oracle/init-emission.mjs"; fi
 
 # 4. clean-stage gate (spec §15/§17): the shipped stage is offline-loadable + install-trigger-free
 source "$ORACLE/_stage.sh"

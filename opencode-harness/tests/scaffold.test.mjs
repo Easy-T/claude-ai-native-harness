@@ -43,3 +43,20 @@ test("plan 5 ship + build-box assets exist", () => {
     assert.ok(existsSync(join(ROOT, f)), `build-box tool missing: ${f}`);
   }
 });
+
+test("plan 3b: init-ai-ready-project skill ships with opencode templates", () => {
+  // native bundle skill that scaffolds an opencode-TARGET project (AGENTS.md + opencode.json deny-gate).
+  const SK = join(ROOT, "skill", "init-ai-ready-project");
+  assert.ok(existsSync(join(SK, "SKILL.md")), "init skill SKILL.md missing");
+  for (const t of ["AGENTS.md.tpl", "project-opencode.json.tpl", "deny-patterns.md.tpl", "CONTEXT.md.tpl", "state.json.tpl"]) {
+    assert.ok(existsSync(join(SK, "templates", t)), `template missing: ${t}`);
+  }
+  // CC-only artifacts must NOT have been copied into the opencode skill
+  assert.ok(!existsSync(join(SK, "templates", "CLAUDE.md.tpl")), "CLAUDE.md.tpl must not ship (opencode uses AGENTS.md.tpl)");
+  assert.ok(!existsSync(join(SK, "templates", "pre-commit-deny.sh.tpl")), "pre-commit-deny.sh.tpl must not ship (opencode uses permission.bash deny)");
+  assert.ok(existsSync(join(SK, "references", "placeholder-spec.md")), "placeholder-spec.md missing");
+  assert.ok(existsSync(join(ROOT, "_oracle", "init-emission.mjs")), "init-emission oracle missing");
+  const fm = readFileSync(join(SK, "SKILL.md"), "utf8");
+  assert.match(fm, /name:\s*init-ai-ready-project/, "SKILL.md name must be init-ai-ready-project (folder==name)");
+  assert.match(fm, /description:/, "SKILL.md needs a description (else opencode silently drops it)");
+});
