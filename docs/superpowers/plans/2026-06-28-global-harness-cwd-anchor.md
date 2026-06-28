@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Status:** active
+**Status:** completed (2026-06-28 · verify-all ALL PASS[STAGE 3b worktree E2E 25/0 신규]·review-strict 8/8 drift0·앵커 commit b5cdeba)
 
 **Goal:** `~/.claude` 하네스의 RPI 게이트를 cwd-상대 단일레벨에서 git-루트/상위탐색 앵커로 교정하고(item ①), 이미 cwd-독립인 worktree-teardown의 고아 테스트를 수용 게이트에 배선하며(item ②), 동시세션 격리 규약을 인코딩(item ③)한다.
 

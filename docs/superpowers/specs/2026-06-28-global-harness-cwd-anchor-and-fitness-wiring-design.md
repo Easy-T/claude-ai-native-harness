@@ -39,12 +39,18 @@
 
 **신규 `_common.sh::resolve_project_root <cwd>`** — 단일 앵커 SSOT:
 ```
-1) git -C <cwd> rev-parse --show-toplevel  (워크트리 루트 = git 루트; plans 가 거기 위치)
-2) (1) 실패 또는 git-루트에 plans 부재 시: cwd→상위로 docs/superpowers/plans 를 만날 때까지 탐색 (git top 까지 bound)
-3) 둘 다 실패: 원래 cwd 반환 (회귀 0 — 기존 cwd-상대 동작 보존)
+git repo/워크트리: [cwd..git-top] 범위서 docs/superpowers 보유 최근접 조상(모노레포 서브프로젝트 대응),
+                   없으면 git-top. 상위탐색을 git 경계로 bound.
+비-git:            상위탐색 안 함 → 원래 cwd 반환 (회귀 0 — 기존 cwd-상대 동작 보존).
 ```
-- Windows 경로: `normalize_path`로 백슬래시→슬래시 후 처리. git은 슬래시 출력.
-- 상위탐색은 git top에서 멈춰 repo 밖($HOME 등)으로 안 나감(비-git이면 FS 루트까지, 미발견 시 cwd).
+- **★경계화(run-all 회귀로 실증·정련)**: 무경계 비-git 상위탐색은 **공유 부모(mktemp $SCRATCH 등)의 active plan을
+  오상속**한다(테스트 fixture가 plans-없는 자식을 plans-있는 부모 아래 둘 때 escape → enforce-rpi-bash가 BLOCK 대신
+  PASS). 따라서 상위탐색은 **git 경계 내로만**(repo 밖 escape 차단), 비-git은 cwd 보존. 실 cwd-drift 재발은 전부
+  git(worktree/repo subdir) 현상이라 `git rev-parse --show-toplevel`가 전 케이스 해소(non-obvious Action a가 git
+  rev-parse를 준거로 명시 — "워크트리 루트=git 루트 일치"). 마커=`docs/superpowers`(plans의 부모) → plans 미생성
+  프로젝트도 루트로 인식(부모 plan 미상속).
+- Windows 경로: `normalize_path`로 백슬래시→슬래시 후 처리. git은 슬래시 출력(`rev-parse --show-toplevel`은
+  `C:/...` Windows형 반환 가능하나, 워크가 cwd-인자 형식으로 docs/superpowers를 먼저 만나 일관 형식 출력).
 
 **`has_active_plan <cwd>`** — 첫 줄에서 `resolve_project_root` 호출해 root 산정 후 `$root/docs/superpowers/plans`
 스캔. **계약 불변**(여전히 cwd 받음) → 4 호출자(enforce-rpi-cycle:95·enforce-rpi-bash:54·verify-loop-watch:28·
