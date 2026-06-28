@@ -101,14 +101,40 @@ plan_status() {
   ' || true
 }
 
+# --- resolve_project_root <cwd>: cwd(또는 그 상위)에서 프로젝트 루트를 앵커로 해소 (cwd-drift 봉인) ---
+# enforce-rpi-cycle/bash·has_active_plan 이 공유하는 SSOT. 서브디렉터리 cwd(app/frontend 등)에서도
+# 루트의 plans/specs 를 찾도록: ① git rev-parse --show-toplevel(워크트리 루트=git 루트, plans 가 거기 위치)
+# ② 비-git 또는 git-루트에 plans 부재 시 docs/superpowers/plans 를 만날 때까지 상위탐색(git top 까지 bound)
+# ③ 둘 다 실패 시 원래 cwd 반환(회귀 0 — 기존 cwd-상대 동작 보존). 항상 0 exit(fail-open).
+resolve_project_root() {
+  local cwd; cwd=$(normalize_path "${1:-.}")
+  local top; top=$(git -C "$cwd" rev-parse --show-toplevel 2>/dev/null) && top=$(normalize_path "$top") || top=""
+  if [ -n "$top" ]; then
+    # git repo/워크트리: [cwd..git-top] 범위서 docs/superpowers 보유 최근접 조상(모노레포 서브프로젝트 대응),
+    # 없으면 git-top. 상위탐색을 git 경계로 bound → 무관 부모(공유 temp 등) plan 오상속 차단.
+    local d="$cwd"
+    while [ -n "$d" ]; do
+      [ -d "$d/docs/superpowers" ] && { printf '%s' "$d"; return 0; }
+      [ "$d" = "$top" ] && break
+      case "$d" in */*) d="${d%/*}" ;; *) d="" ;; esac
+    done
+    printf '%s' "$top"; return 0
+  fi
+  # 비-git: 상위탐색 안 함(공유 부모 plan 오상속 차단) → 원래 cwd(회귀 0, 기존 cwd-상대 동작 보존).
+  # 실 cwd-drift 재발은 전부 git(worktree/repo) 현상이라 git rev-parse 가 전 케이스 해소(non-obvious Action a).
+  printf '%s' "$cwd"
+}
+
 # --- has_active_plan: <cwd>의 docs/superpowers/plans에 active plan이 있으면 경로 출력+return 0 ---
 # Usage: if PLAN=$(has_active_plan "$CWD"); then ...; fi
 # enforce-rpi-cycle 와 enforce-rpi-bash 가 공유 (로직 drift 방지).
 # cycle-23 D-LIFECYCLE: 명시 Status(active|in_progress)만 인정 — checkbox-fallback 제거
 # (Status 없는 plan이 게이트를 영구 개방하던 stale-active 경로 봉쇄. seal #27 + session-start 표면과 3중.)
+# cycle-42 (item①): plan_dir 산정을 resolve_project_root 앵커로 — 서브디렉터리 cwd false-negative 봉인.
 has_active_plan() {
   local cwd="${1:-.}"
-  local plan_dir="$cwd/docs/superpowers/plans"
+  local root; root=$(resolve_project_root "$cwd")   # cwd-drift 앵커 (서브디렉터리 cwd 수용)
+  local plan_dir="$root/docs/superpowers/plans"
   [ -d "$plan_dir" ] || return 1
   local plan
   for plan in "$plan_dir"/*.md; do

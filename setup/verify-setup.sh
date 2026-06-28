@@ -267,6 +267,60 @@ ERR30=$(SCHEMA="$HOME/.claude/state.schema.json" DATA="$HOME/.claude/state.json"
 ' 2>/dev/null)
 [ -z "$ERR30" ] && ok "state.json ↔ schema 검증" || fail "state.json schema 위반: $ERR30"
 
+# 31. cwd-drift 앵커 (item①·non-obvious:152 재발3): 공유 루트해소가 git rev-parse --show-toplevel 앵커 사용 +
+#     enforce-rpi-cycle 이 그 앵커(resolve_project_root)를 소비. 미이행 시 즉시 RED(cwd-상대 단일레벨 회귀).
+A31A=$(grep -c 'rev-parse --show-toplevel' "$HOME/.claude/hooks/_common.sh" 2>/dev/null || echo 0)
+A31B=$(grep -c 'resolve_project_root' "$HOME/.claude/hooks/enforce-rpi-cycle.sh" 2>/dev/null || echo 0)
+if [ "$A31A" -ge 1 ] && [ "$A31B" -ge 1 ]; then
+  ok "cwd-drift 앵커: _common rev-parse($A31A) + enforce-rpi-cycle resolve_project_root($A31B)"
+else
+  fail "cwd-drift 앵커 미이행 (_common rev-parse=$A31A, enforce-rpi-cycle resolve_project_root=$A31B — cwd-상대 단일레벨 회귀)"
+fi
+
+# 32. cwd-drift 서브디렉터리 회귀 (item①, 실측): 임시 git repo + 루트 active plan, cwd=$repo/app/frontend 에서
+#     plan-dir 게이트(코드 Write exit0 / plan부재 exit2) + spec-dir 게이트(plan Write·spec부재 exit2 / spec존재 exit0).
+#     주: JSON content 는 node JSON.stringify 로 이스케이프(printf+리터럴 개행=무효 JSON→no-cwd-failopen 위양성 회피).
+T32=$(mktemp -d)
+git -C "$T32" init -q 2>/dev/null
+git -C "$T32" -c user.email=t@t -c user.name=t commit -q --allow-empty -m i 2>/dev/null
+mkdir -p "$T32/docs/superpowers/plans" "$T32/app/frontend/src"
+printf '# p\n**Status:** active\n' > "$T32/docs/superpowers/plans/p.md"
+ev32(){ FP="$1" CT="$2" CW="$3" node -e 'console.log(JSON.stringify({tool_name:"Write",tool_input:{file_path:process.env.FP,content:process.env.CT},cwd:process.env.CW}))'; }
+B32=$'a\nb\nc\nd\ne\nf\ng'
+R32_OK=$(ev32 "$T32/app/frontend/src/x.ts" "$B32" "$T32/app/frontend" | bash "$HOME/.claude/hooks/enforce-rpi-cycle.sh" >/dev/null 2>&1; echo $?)
+printf '# p\n**Status:** completed\n' > "$T32/docs/superpowers/plans/p.md"
+R32_NO=$(ev32 "$T32/app/frontend/src/x.ts" "$B32" "$T32/app/frontend" | bash "$HOME/.claude/hooks/enforce-rpi-cycle.sh" >/dev/null 2>&1; echo $?)
+printf '# p\n**Status:** active\n' > "$T32/docs/superpowers/plans/p.md"
+PB32=$'# Plan\n**Status:** active\n- [ ] s'
+R32_NOSPEC=$(ev32 "$T32/docs/superpowers/plans/new.md" "$PB32" "$T32/app/frontend" | bash "$HOME/.claude/hooks/enforce-rpi-cycle.sh" >/dev/null 2>&1; echo $?)
+mkdir -p "$T32/docs/superpowers/specs"; printf '# d\n' > "$T32/docs/superpowers/specs/x.md"
+R32_SPEC=$(ev32 "$T32/docs/superpowers/plans/new.md" "$PB32" "$T32/app/frontend" | bash "$HOME/.claude/hooks/enforce-rpi-cycle.sh" >/dev/null 2>&1; echo $?)
+rm -rf "$T32"
+if [ "$R32_OK" = 0 ] && [ "$R32_NO" = 2 ] && [ "$R32_NOSPEC" = 2 ] && [ "$R32_SPEC" = 0 ]; then
+  ok "cwd-drift subdir 게이트: plan(0/2)+spec(2/0) — 서브디렉터리 cwd 회귀 가드"
+else
+  fail "cwd-drift subdir 게이트 회귀: plan-ok=$R32_OK(want0) plan-no=$R32_NO(want2) spec-no=$R32_NOSPEC(want2) spec-yes=$R32_SPEC(want0)"
+fi
+
+# 33. worktree-teardown E2E 배선 + 핵심 단언 (item②·non-obvious:211): 고아화 봉인.
+#     (a) verify-all.sh 에 worktree-teardown.test.sh 배선됨 (b) 테스트가 stale-정리(마커 fallback)+정션-불변 단언 보유.
+WTT="$HOME/.claude/hooks/tests/worktree-teardown.test.sh"
+if grep -q 'worktree-teardown.test.sh' "$HOME/.claude/setup/verify-all.sh" 2>/dev/null \
+   && grep -q '마커 fallback' "$WTT" 2>/dev/null \
+   && grep -q 'junction NOT followed' "$WTT" 2>/dev/null; then
+  ok "worktree-teardown E2E 배선(verify-all 3b) + Ta(마커 fallback)·T1(정션 불변) 단언 실재"
+else
+  fail "worktree-teardown E2E 미배선 또는 핵심 단언 부재 (item② 고아화 — verify-all 배선/Ta/T1 확인)"
+fi
+
+# 34. 동시-세션 격리 규약 (item③·non-obvious:93): SECURITY.md 에 "상대 프로세스 kill 금지" 규약 실재.
+if grep -q '동시-세션 격리' "$HOME/.claude/SECURITY.md" 2>/dev/null \
+   && grep -q 'kill 금지' "$HOME/.claude/SECURITY.md" 2>/dev/null; then
+  ok "동시-세션 격리 규약 SECURITY.md 실재 (상대 프로세스 kill 금지)"
+else
+  fail "동시-세션 격리 규약 SECURITY.md 부재 (item③ 미인코딩)"
+fi
+
 echo
 echo "verify-setup: PASS=$PASS FAIL=$FAIL"
 exit $FAIL
