@@ -14,12 +14,13 @@ FILE_PATH=$(normalize_path "$FILE_PATH")
 record_worktree_marker "$SID" "$FILE_PATH"
 # 빈/누락 cwd → plan 위치 판단 불가 → fail-open (S12, resolve_cwd 공유)
 CWD=$(echo "$INPUT" | resolve_cwd) || { hook_log "enforce-rpi-cycle" "$FILE_PATH" "PASS" "no-cwd-failopen"; exit 0; }
+ROOT=$(resolve_project_root "$CWD")   # cwd-drift 앵커: spec/plan 게이트 공유 (서브디렉터리 cwd 수용, item①·non-obvious:152)
 
 # === Spec-before-plan 게이트 (cycle-12): Phase-P plan은 Phase-R design spec을 전제 ===
 # plans/*.md 작성 시 sibling specs/*.md 가 없으면 차단 (grill→spec 역류 누락의 기계적 바닥).
 case "$FILE_PATH" in
   */docs/superpowers/plans/*.md)
-    if [ -z "${RPI_SKIP:-}" ] && ! ls "$CWD/docs/superpowers/specs"/*.md >/dev/null 2>&1; then
+    if [ -z "${RPI_SKIP:-}" ] && ! ls "$ROOT/docs/superpowers/specs"/*.md >/dev/null 2>&1; then
       hook_log "enforce-rpi-cycle" "$FILE_PATH" "BLOCK" "no-spec-before-plan"
       cat >&2 <<EOF
 [rpi] 차단: plan 작성 전 design spec 없음 (docs/superpowers/specs/*.md).
@@ -78,7 +79,7 @@ if [ -n "${RPI_SKIP:-}" ]; then
 fi
 
 # === 검증: 활성 plan 존재 확인 ===
-PLAN_DIR="$CWD/docs/superpowers/plans"
+PLAN_DIR="$ROOT/docs/superpowers/plans"
 if [ ! -d "$PLAN_DIR" ]; then
   hook_log "enforce-rpi-cycle" "$FILE_PATH" "BLOCK" "no-plans-dir"
   cat >&2 <<EOF
@@ -92,7 +93,7 @@ EOF
 fi
 
 # 활성 plan 식별 (로직은 _common.sh has_active_plan 으로 공유 — enforce-rpi-bash 와 동일 기준)
-if ACTIVE=$(has_active_plan "$CWD"); then
+if ACTIVE=$(has_active_plan "$ROOT"); then
   hook_log "enforce-rpi-cycle" "$FILE_PATH" "PASS" "plan=$(basename "$ACTIVE")"
   exit 0
 fi
