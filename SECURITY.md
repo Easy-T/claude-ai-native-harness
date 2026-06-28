@@ -56,6 +56,16 @@
 - **실패 모드는 전부 "잔존"(악화 없음)**: crash 미발화·cwd 락·powershell 부재 → 삭제 안 함(오늘의 수동 상태와 동일). SessionEnd는 종료를 막을 수 없어 항상 exit 0·멱등.
 - **검증**: `hooks/tests/worktree-teardown.test.sh`(격리 temp repo E2E)가 메인 target 무사·메인/비-worktree no-op·reason 게이트·멱등·dev서버 kill·**cd-out 마커 fallback 정리·빈 SID 마커 미사용**을 실측(13/13). SessionStart 마커 write/skip/prune 은 `hooks/tests/run-all.sh`(156-160). 설계기록: `docs/superpowers/specs/2026-06-21-worktree-teardown-sessionend-design.md`(§9 cd-out 개정, 2026-06-22).
 
+## 동시-세션 격리 (concurrent-session isolation)
+- 단일 운영자라도 **병렬 Claude 세션**은 ambient 싱글톤을 공유한다: Playwright MCP chrome user-data-dir,
+  dev 포트(`:8000`/`:5173`), dev서버 프로세스(node/esbuild/vite/uvicorn/python). 대상 repo
+  `docs/ai-context/non-obvious.md`("2026-06-16 Playwright 프로필 동시점유")가 상호 차단·상호 kill 위험을 기록.
+- **규약(상호 파괴 방지)**: 동시 세션은 **상대 세션의 chrome/uvicorn/vite/dev서버 프로세스를 kill 금지**.
+  잠금 충돌 시 (a) 대기, 또는 (b) 세션-고유 `--isolated`/ephemeral 프로필 + 세션별 포트로 회피.
+- **안전 패턴 = 경로-스코프 kill**: `worktree-teardown.sh` STEP A는 프로세스 CommandLine이 *자기* 워크트리
+  절대경로를 포함할 때만 kill(타세션·메인 무영향) — 광역 이름 매칭 kill 금지의 준거.
+- 강제는 hook이 아닌 규약(차단 대상 tool-콜이 모호하고 정당 kill 오살 위험) — 단일 운영자 가정의 수락 상한.
+
 ## 범위 밖 (의도적으로 하지 않는 것)
 - 네트워크 egress 필터링, PII 스캐닝, SAST, 런타임 콘텐츠 모더레이션, 권한 모델 강제(bypassPermissions 유지).
 - 단일 운영자 데스크톱 도구에는 과하다고 판단해 제외. 멀티유저/규제 환경으로 가면 재검토 필요.

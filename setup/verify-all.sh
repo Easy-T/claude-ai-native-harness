@@ -39,6 +39,13 @@ echo
 echo "=== STAGE 3: hook unit tests ==="
 bash "$HOME/.claude/hooks/tests/run-all.sh"    || { echo "FAIL hook tests"; exit 1; }
 echo
+echo "=== STAGE 3b: worktree-teardown E2E (Windows 정션·powershell 가드) ==="
+if command -v powershell >/dev/null 2>&1; then
+  bash "$HOME/.claude/hooks/tests/worktree-teardown.test.sh" || { echo "FAIL worktree-teardown.test"; exit 1; }
+else
+  echo "[stage3b] skip — powershell 부재(비-Windows): worktree-teardown E2E는 Windows 정션 전용"
+fi
+echo
 echo "=== STAGE 4: integration ==="
 bash "$HOME/.claude/setup/verify-integration.sh" || { echo "FAIL integration"; exit 1; }
 echo
