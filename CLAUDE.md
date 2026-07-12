@@ -70,6 +70,11 @@ Minimum code that solves the problem. Nothing speculative.
 - No abstractions for single-use code.
 - No "flexibility" or "configurability" that wasn't requested.
 - No error handling for impossible scenarios.
+- **Scope minimalism ≠ architecture downgrade.** 이 절은 *스코프*를 깎는 규칙이지, 채택한 설계의
+  *품질*을 깎는 알리바이가 아니다. 같은 스코프를 구현하는 방식 중에서는 — 구현이 어렵고 복잡하더라도 —
+  알려진 가장 기능적·확장 가능한 방향을 택한다. 최선안과 다른 채택은 plan의 Best-Direction Check에
+  `DOWNGRADE-DECLARED(사유)`로 선언 없이는 불가 (silent downgrade 금지 — CONTEXT.md 용어).
+  난이도는 사이클 분할 사유일 뿐, 방향 변경 사유가 아니다.
 
 ## Surgical Changes
 Touch only what you must. Clean up only your own mess.
