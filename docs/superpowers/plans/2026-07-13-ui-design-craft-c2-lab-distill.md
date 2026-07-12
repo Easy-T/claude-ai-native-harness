@@ -1,6 +1,6 @@
 # UI-Design Craft C2 — Lab L2·L3 + Distill Implementation Plan
 
-**Status:** active
+**Status:** completed
 **RPI-Cycle:** 49
 **Started:** 2026-07-13
 
@@ -75,7 +75,7 @@
 - Create: `_design-lab/briefs/L2.md`, `_design-lab/LOG-L2.md`, `_design-lab/lab/src/pages/L2.jsx`(셸)
 - Modify: `_design-lab/lab/src/App.jsx`(라우트+인덱스 링크)
 
-- [ ] **Step 1: 브리프 verbatim 작성** (`_design-lab/briefs/L2.md`):
+- [x] **Step 1: 브리프 verbatim 작성** (`_design-lab/briefs/L2.md`):
 
 ```markdown
 # L2 브리프 — 온도 저널: 「화면 위의 조판」
@@ -110,25 +110,25 @@
 - anti-slop 18/18 + 실측 게이트 ALL PASS.
 ```
 
-- [ ] **Step 2: LOG-L2.md 헤더 생성** (LOG-L1 형식 동일 — 5축 표).
-- [ ] **Step 3: 라우트 스캐폴드** — `L2.jsx` 셸(`<main className="min-h-[100dvh] bg-neutral-0"><p>L2</p></main>`), App.jsx에 `/l2` 라우트 + Home 인덱스에 링크 추가.
-- [ ] **Step 4: dev 서버 기동(ephemeral 포트) + 렌더 스모크** — `PORT=$((5300+RANDOM%700))`, `.port`/`.devpid` 갱신, Playwright navigate `/l2` 콘솔 에러 0.
+- [x] **Step 2: LOG-L2.md 헤더 생성** (LOG-L1 형식 동일 — 5축 표).
+- [x] **Step 3: 라우트 스캐폴드** — `L2.jsx` 셸(`<main className="min-h-[100dvh] bg-neutral-0"><p>L2</p></main>`), App.jsx에 `/l2` 라우트 + Home 인덱스에 링크 추가.
+- [x] **Step 4: dev 서버 기동(ephemeral 포트) + 렌더 스모크** — `PORT=$((5300+RANDOM%700))`, `.port`/`.devpid` 갱신, Playwright navigate `/l2` 콘솔 에러 0.
 
 ### Task 2: L2 라운드 0 구현 (v1-strict)
 
 **Files:**
 - Modify: `_design-lab/lab/src/pages/L2.jsx`(전면), `_design-lab/lab/src/index.css`(L2 실험 블록 — `.l2-*` 스코프)
 
-- [ ] **Step 1: 브리프 → JSX.** 본문은 실에세이(한국어, 소제목 4·문단 ≥14·인용 1·피겨 2·각주 3·미주 3). 실험은 전부 FRICTION 주석: 페이퍼 표면(`.l2-paper` 로컬 변수 실험 → F-L2 채록), fluid 표제(`.l2-headline` clamp), measure(`.l2-measure` — max-width ch 실험), 드롭캡(`.l2-dropcap::first-letter`), 풀 인용 bleed, 피겨 그라데이션(§7 허용 범위), 본문 17px(§2 표 밖 — 채록).
-- [ ] **Step 2: 렌더 확인** — 6섹션 존재, 콘솔 에러 0.
-- [ ] **Step 3: LOG-L2 r0 기록.**
+- [x] **Step 1: 브리프 → JSX.** 본문은 실에세이(한국어, 소제목 4·문단 ≥14·인용 1·피겨 2·각주 3·미주 3). 실험은 전부 FRICTION 주석: 페이퍼 표면(`.l2-paper` 로컬 변수 실험 → F-L2 채록), fluid 표제(`.l2-headline` clamp), measure(`.l2-measure` — max-width ch 실험), 드롭캡(`.l2-dropcap::first-letter`), 풀 인용 bleed, 피겨 그라데이션(§7 허용 범위), 본문 17px(§2 표 밖 — 채록).
+- [x] **Step 2: 렌더 확인** — 6섹션 존재, 콘솔 에러 0.
+- [x] **Step 3: LOG-L2 r0 기록.**
 
 ### Task 3: L2 자기비평 루프 + 실측 게이트 + FRICTION
 
-- [ ] **Step 1: 루프 r1~r6** (C1 프로토콜: 통상 3샷 light-1440/dark-1440/light-390, r3·최종 6매트릭스; 5축 비평; 조기종료 규칙). 라이브 IO 검증 1회(느린 스크롤 missing 0 — L2는 표제 fade-up뿐이므로 진입 모션 가시성 확인).
-- [ ] **Step 2: 실측 게이트 6항목** (C1 스크립트 재사용 — URL만 `/l2`): 오버플로우 8조합 0 · jsx 하드코딩 색 0(grep — `.l2-*` 실험 블록은 index.css) · reduced-motion 동등 · CLS<0.02 · **review-strict anti-slop 18/18**(context: design.md+L2.jsx+index.css+tokens.css+config) · 실카피.
-- [ ] **Step 3: FRICTION 채록 완결** — L2 예상 검증축: G2(fluid 본문 스케일)·G4(grain/질감)·G5(이미지/피겨)·G6(장문 리듬)·F-L1-08 후속(페이퍼)·본문 measure(신규)·드롭캡/인용/각주 관용구(신규). 각 항목 증거(샷·라인) + v2 방향.
-- [ ] **Step 4: 본 plan의 FRICTION Digest 표에 L2 행 추가.**
+- [x] **Step 1: 루프 r1~r6** (C1 프로토콜: 통상 3샷 light-1440/dark-1440/light-390, r3·최종 6매트릭스; 5축 비평; 조기종료 규칙). 라이브 IO 검증 1회(느린 스크롤 missing 0 — L2는 표제 fade-up뿐이므로 진입 모션 가시성 확인).
+- [x] **Step 2: 실측 게이트 6항목** (C1 스크립트 재사용 — URL만 `/l2`): 오버플로우 8조합 0 · jsx 하드코딩 색 0(grep — `.l2-*` 실험 블록은 index.css) · reduced-motion 동등 · CLS<0.02 · **review-strict anti-slop 18/18**(context: design.md+L2.jsx+index.css+tokens.css+config) · 실카피.
+- [x] **Step 3: FRICTION 채록 완결** — L2 예상 검증축: G2(fluid 본문 스케일)·G4(grain/질감)·G5(이미지/피겨)·G6(장문 리듬)·F-L1-08 후속(페이퍼)·본문 measure(신규)·드롭캡/인용/각주 관용구(신규). 각 항목 증거(샷·라인) + v2 방향.
+- [x] **Step 4: 본 plan의 FRICTION Digest 표에 L2 행 추가.**
 
 ### Task 4: L3 브리프 + 스캐폴드
 
@@ -136,7 +136,7 @@
 - Create: `_design-lab/briefs/L3.md`, `_design-lab/LOG-L3.md`, `_design-lab/lab/src/pages/L3.jsx`(셸)
 - Modify: `_design-lab/lab/src/App.jsx`(라우트+링크)
 
-- [ ] **Step 1: 브리프 verbatim 작성** (`_design-lab/briefs/L3.md`):
+- [x] **Step 1: 브리프 verbatim 작성** (`_design-lab/briefs/L3.md`):
 
 ```markdown
 # L3 브리프 — 온도 옵스: 스튜디오 운영 대시보드
@@ -171,22 +171,22 @@
 - §3 셸 무결성 + anti-slop 18/18 + 실측 게이트 ALL PASS (앱 셸이므로 §3①~④ 항목이 이번엔 전부 실판정).
 ```
 
-- [ ] **Step 2: LOG-L3.md 헤더 + L3.jsx 셸 + 라우트/링크 + 렌더 스모크.**
+- [x] **Step 2: LOG-L3.md 헤더 + L3.jsx 셸 + 라우트/링크 + 렌더 스모크.**
 
 ### Task 5: L3 라운드 0 구현 (v1-strict)
 
 **Files:**
 - Modify: `_design-lab/lab/src/pages/L3.jsx`(전면), `_design-lab/lab/src/index.css`(`.l3-*` 실험 블록)
 
-- [ ] **Step 1: 브리프 → JSX.** §3① 골격 verbatim(root dvh+overflow-hidden·min-h-0·main만 overflow-y-auto), §3③ 모바일 접힘(드로어+세그먼트), §4 컴포넌트 base(버튼·인풋·Badge·카드), §8 Empty State. 상태 데모 셀렉트로 normal/loading/empty 전환. 실험 FRICTION 주석: tabular-nums, skeleton 레시피, focus-visible ring, 진행률 bar, KPI 스태거.
-- [ ] **Step 2: 렌더 확인 + LOG-L3 r0.**
+- [x] **Step 1: 브리프 → JSX.** §3① 골격 verbatim(root dvh+overflow-hidden·min-h-0·main만 overflow-y-auto), §3③ 모바일 접힘(드로어+세그먼트), §4 컴포넌트 base(버튼·인풋·Badge·카드), §8 Empty State. 상태 데모 셀렉트로 normal/loading/empty 전환. 실험 FRICTION 주석: tabular-nums, skeleton 레시피, focus-visible ring, 진행률 bar, KPI 스태거.
+- [x] **Step 2: 렌더 확인 + LOG-L3 r0.**
 
 ### Task 6: L3 자기비평 루프 + 실측 게이트 + FRICTION
 
-- [ ] **Step 1: 루프 r1~r6** (프로토콜 동일 + 앱 셸 특화: 모바일 드로어 열림/닫힘 샷, loading/empty 상태 샷, Tab 순회 focus 샷).
-- [ ] **Step 2: 실측 게이트** — 기본 6항목 + **§3④ 앱 셸 실측**: 세로 오버플로우(내부 스크롤 영역 외 body 스크롤 0), 390에서 주 콘텐츠 풀폭, 드로어/탭 작동. reduced-motion에서 KPI 스태거 소거·기능 동등.
-- [ ] **Step 3: FRICTION 채록 완결** — L3 예상 검증축: G1(스태거·무모션 규칙)·G3(elevation)·G7(상태 스펙: skeleton show-delay/min-visible·focus ring 값·hover 보상)·G9(ceiling: 밀도 정돈)·tabular-nums(신규)·Badge 상태색 사용법(신규).
-- [ ] **Step 4: digest 표에 L3 행 추가 + dev 서버 종료(자기 PID).**
+- [x] **Step 1: 루프 r1~r6** (프로토콜 동일 + 앱 셸 특화: 모바일 드로어 열림/닫힘 샷, loading/empty 상태 샷, Tab 순회 focus 샷).
+- [x] **Step 2: 실측 게이트** — 기본 6항목 + **§3④ 앱 셸 실측**: 세로 오버플로우(내부 스크롤 영역 외 body 스크롤 0), 390에서 주 콘텐츠 풀폭, 드로어/탭 작동. reduced-motion에서 KPI 스태거 소거·기능 동등.
+- [x] **Step 3: FRICTION 채록 완결** — L3 예상 검증축: G1(스태거·무모션 규칙)·G3(elevation)·G7(상태 스펙: skeleton show-delay/min-visible·focus ring 값·hover 보상)·G9(ceiling: 밀도 정돈)·tabular-nums(신규)·Badge 상태색 사용법(신규).
+- [x] **Step 4: digest 표에 L3 행 추가 + dev 서버 종료(자기 PID).**
 
 ### Task 7: Distill — design.md v2
 
@@ -197,7 +197,7 @@
 - Consumes: FRICTION Digest 전체(L1+L2+L3), 랩 실험 코드(검증된 값만).
 - Produces: ≤880줄 design.md v2 — C3 cold-agent fitness의 유일한 입력.
 
-- [ ] **Step 1: 신설 섹션 작성** — 각 규칙에 `// evidence: F-…` 인용:
+- [x] **Step 1: 신설 섹션 작성** — 각 규칙에 `// evidence: F-…` 인용:
   - **§0 하위 "Craft Manifesto (v2)"**: 검증된 서열(타이포→완급→모션→단일 hue→1px)·signature move 1개 규칙·대비의 드라마 — spec §2 가설 중 랩이 실증한 것만.
   - **§1 수정**: 다크 블록 primary-base/hover/active 3줄 실코드(F-L1-01) + config에 transparent/current(F-L1-02) + scrim 기존 유지. before/after 주석.
   - **§2 추가**: fontSize config 블록(F-L1-03) + 마이크로 라벨 트래킹 예외(F-L1-07) + 본문 measure 규칙(L2 증거).
@@ -209,20 +209,20 @@
   - **§13 A11y Floor**: reduced-motion 분기 의무·hit target·모바일 input 16px·대비 — 랩 실측 항목만.
   - **§14 Page Rhythm**: 완급 문법(숨/밀도 교차)·와이드 앵커 규칙(F-L1-10)·"빈 사분면 2+=부재".
   - **§15 Craft Ceiling Checklist**: 위계 점프 ≥3단계·signature move 정확히 1·hover 보상·밀도 완급·focus-visible 가시·(장르별 해당 시) 잉크/페이퍼 리듬 — 랩 3장르가 실제 통과한 항목만.
-- [ ] **Step 2: §6 floor 문구 정련** — 삭제 0, 스코프 명시만 (예: letter-spacing 항목에 "§2 마이크로 라벨 예외 제외"). §7에 §10 상호참조 1줄.
-- [ ] **Step 3: 줄수 게이트** — `wc -l` ≤880. 초과 시: §9·§10 실코드를 `craft-recipes.md`(aux)로 이관하고 본문엔 규칙+참조만, SKILL.md Phase 1에 장르별 라우팅 추가.
-- [ ] **Step 4: 검증** — (a) `grep -c "evidence: F-" design.md` ≥ 신설 규칙 수 확인, (b) 기존 토큰명 전수 불변 diff 확인(`--color-*` 키·fontSize 토큰명·§4 클래스), (c) review-strict: "v2 신규 규칙 전부에 FRICTION 인용 존재·§6 18항목 존치·토큰명 불변·§0 정체성 유지" PASS.
+- [x] **Step 2: §6 floor 문구 정련** — 삭제 0, 스코프 명시만 (예: letter-spacing 항목에 "§2 마이크로 라벨 예외 제외"). §7에 §10 상호참조 1줄.
+- [x] **Step 3: 줄수 게이트** — `wc -l` ≤880. 초과 시: §9·§10 실코드를 `craft-recipes.md`(aux)로 이관하고 본문엔 규칙+참조만, SKILL.md Phase 1에 장르별 라우팅 추가.
+- [x] **Step 4: 검증** — (a) `grep -c "evidence: F-" design.md` ≥ 신설 규칙 수 확인, (b) 기존 토큰명 전수 불변 diff 확인(`--color-*` 키·fontSize 토큰명·§4 클래스), (c) review-strict: "v2 신규 규칙 전부에 FRICTION 인용 존재·§6 18항목 존치·토큰명 불변·§0 정체성 유지" PASS.
 
 ### Task 8: Distill — SKILL.md v2 + 커밋
 
 **Files:**
 - Modify: `skills/ui-design/SKILL.md`
 
-- [ ] **Step 1: 5-Phase 재구성** (frontmatter 3마커 불변·설명만 갱신):
+- [x] **Step 1: 5-Phase 재구성** (frontmatter 3마커 불변·설명만 갱신):
   - `# Phase 1 — Load` (기존+aux 라우팅 조건부), `# Phase 2 — Concept`(브리프 강제: 컨셉 1줄·무드·signature move 1·색타입 전략 — 페이지/컴포넌트 규모별 경량화 규칙), `# Phase 3 — Apply`(§1~§14 적용 순서), `# Phase 4 — Verify`(anti-slop floor + §15 ceiling — review-strict Agent() 호출 유지), `# Phase 5 — Visual QA`(Playwright 실측 — 메인 세션; 게이트 6항목; review-strict는 브라우저 불가 명시).
   - Communication Protocol 갱신(ceiling 결과 필드 추가).
-- [ ] **Step 2: 게이트 검증** — Write가 enforce-orchestrator 통과(차단 시 골격 미달 — 수정), `bash setup/verify-setup.sh` 70/0 (#6·#7 SKILL.md 마커).
-- [ ] **Step 3: 커밋** (plan digest 갱신분 포함):
+- [x] **Step 2: 게이트 검증** — Write가 enforce-orchestrator 통과(차단 시 골격 미달 — 수정), `bash setup/verify-setup.sh` 70/0 (#6·#7 SKILL.md 마커).
+- [x] **Step 3: 커밋** (plan digest 갱신분 포함):
 ```bash
 cd ~/.claude && git add skills/ui-design/design.md skills/ui-design/SKILL.md \
   docs/superpowers/plans/2026-07-13-ui-design-craft-c2-lab-distill.md
