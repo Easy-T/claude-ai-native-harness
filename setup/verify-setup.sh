@@ -321,6 +321,27 @@ else
   fail "동시-세션 격리 규약 SECURITY.md 부재 (item③ 미인코딩)"
 fi
 
+# 35. Best-Direction Mandate 토큰 parity (GAP-001, #17 동형): start-rpi-cycle 본문에
+#     Phase P 필수 필드 'Best-Direction Check'(Phase P + Gate P = >=2)와 'DOWNGRADE-DECLARED'(>=1) 실재.
+SRC_SKILL="$HOME/.claude/skills/start-rpi-cycle/SKILL.md"
+BD_CNT=$(grep -c 'Best-Direction Check' "$SRC_SKILL" 2>/dev/null || true)
+DG_CNT=$(grep -c 'DOWNGRADE-DECLARED' "$SRC_SKILL" 2>/dev/null || true)
+if [ "${BD_CNT:-0}" -ge 2 ] && [ "${DG_CNT:-0}" -ge 1 ]; then
+  ok "Best-Direction Mandate 토큰: start-rpi-cycle 'Best-Direction Check' x${BD_CNT}(>=2) + 'DOWNGRADE-DECLARED' x${DG_CNT}(>=1)"
+else
+  fail "Best-Direction Mandate 토큰 부재/부족 (GAP-001): 'Best-Direction Check' x${BD_CNT:-0}(<2) 또는 'DOWNGRADE-DECLARED' x${DG_CNT:-0}(<1) — skills/start-rpi-cycle/SKILL.md"
+fi
+
+# 36. verify-setup 총 체크수 <-> README 선언 parity (GAP-009 M1 봉인, 런타임 자기-카운트):
+#     이 시점까지의 PASS+FAIL+1(이 체크 자신) == README "(현재 N PASS)" 선언. 체크 추가 시 README 미동기가 자동 FAIL.
+EXPECTED_TOTAL=$((PASS + FAIL + 1))
+README_DECL=$(grep -oE '현재 [0-9]+ PASS' "$HOME/.claude/README.md" 2>/dev/null | grep -oE '[0-9]+' | tail -1)
+if [ -n "$README_DECL" ] && [ "$README_DECL" -eq "$EXPECTED_TOTAL" ]; then
+  ok "verify-setup 카운트 seal: README 선언(${README_DECL}) == 런타임 실측(${EXPECTED_TOTAL})"
+else
+  fail "verify-setup 카운트 drift (GAP-009 M1): README 선언(${README_DECL:-부재}) != 런타임 실측(${EXPECTED_TOTAL}) — README.md '현재 N PASS' 동기 필요"
+fi
+
 echo
 echo "verify-setup: PASS=$PASS FAIL=$FAIL"
 exit $FAIL
