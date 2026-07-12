@@ -25,38 +25,39 @@
 
 **Files:** Modify: `setup/verify-setup.sh` (tail, #34 뒤)
 
-- [ ] #35: start-rpi-cycle SKILL.md에 `Best-Direction Check` ≥2 && `DOWNGRADE-DECLARED` ≥1 (#17 동형 토큰 parity)
-- [ ] #36: 스크립트 말미에서 `EXPECTED=$((PASS+FAIL+1))` vs README 선언 숫자(`verify-setup.*([0-9]+) PASS` 앵커) 비교 — 런타임 자기-카운트라 향후 체크 추가 시 README 미동기가 자동 FAIL
-- [ ] RED 실측: `rsync worktree→$TMP/h/.claude; HOME=$TMP/h bash verify-setup.sh` → #35 FAIL(토큰 부재)·#36 FAIL(README=66≠실측) 확인 후 커밋
+- [x] #35: start-rpi-cycle SKILL.md에 `Best-Direction Check` ≥2 && `DOWNGRADE-DECLARED` ≥1 (#17 동형 토큰 parity)
+- [x] #36: 스크립트 말미에서 `EXPECTED=$((PASS+FAIL+1))` vs README 선언 숫자(`verify-setup.*([0-9]+) PASS` 앵커) 비교 — 런타임 자기-카운트라 향후 체크 추가 시 README 미동기가 자동 FAIL
+- [x] RED 실측: `rsync worktree→$TMP/h/.claude; HOME=$TMP/h bash verify-setup.sh` → #35 FAIL(토큰 부재)·#36 FAIL(README=66≠실측) 확인 후 커밋
 
 ### Task 2: start-rpi-cycle SKILL.md — Phase P 필드·Gate P·C-1 기준 + 미러 동기
 
 **Files:** Modify: `skills/start-rpi-cycle/SKILL.md`, `opencode-harness/skill/start-rpi-cycle/SKILL.md`
 
-- [ ] Phase P plan 헤더 규약에 `**Best-Direction Check:**` 필수 필드(최선안/채택안/다르면 DOWNGRADE-DECLARED(사유)+사용자 승인) 추가
-- [ ] Gate P success_criteria에 "Best-Direction Check 필드 부재 = FAIL" 추가
-- [ ] Step C-1 drift success_criteria에 "silent-downgrade 검출: spec 목표 설계 vs 구현 실물 대조 — 미신고 열화 FAIL" 추가
-- [ ] 미러 SKILL.md 동일 편집 · #35 GREEN 확인 · 커밋
+- [x] Phase P plan 헤더 규약에 `**Best-Direction Check:**` 필수 필드(최선안/채택안/다르면 DOWNGRADE-DECLARED(사유)+사용자 승인) 추가
+- [x] Gate P success_criteria에 "Best-Direction Check 필드 부재 = FAIL" 추가
+- [x] Step C-1 drift success_criteria에 "silent-downgrade 검출: spec 목표 설계 vs 구현 실물 대조 — 미신고 열화 FAIL" 추가
+- [x] 미러 SKILL.md 동일 편집 · #35 GREEN 확인 · 커밋
 
 ### Task 3: CLAUDE.md Simplicity First 정련
 
 **Files:** Modify: `CLAUDE.md` (Simplicity First 절, ≤200줄 유지)
 
-- [ ] 스코프 최소주의(유지) vs 아키텍처 품질(신설: 채택 설계는 알려진 최선, 열화는 DOWNGRADE-DECLARED 없이 불가) 구분 삽입 — diff 보고 의무 · 커밋
+- [x] 스코프 최소주의(유지) vs 아키텍처 품질(신설: 채택 설계는 알려진 최선, 열화는 DOWNGRADE-DECLARED 없이 불가) 구분 삽입 — diff 보고 의무 · 커밋
 
 ### Task 4: GAP-009 M1·M2·M3·M5·M6·M7·M8 정정
 
 **Files:** Modify: `README.md`, `hooks/worktree-teardown.sh`, `hooks/tests/worktree-teardown.test.sh`, `hooks/auto-compact-watch.sh`
 
-- [ ] M1: README verify-setup 카운트 66→72(신규 2 포함) → #36 GREEN
-- [ ] M2: README 창 매핑에 fable·`[1m]` 반영 / M3: ccs-delegation 비추적-skill 각주 / M5: verify-setup.sh:85 주석 =11 / M6: teardown "SessionStart 마커" stale 주석 2곳 정정 / M7: acw "기본 95" 서술 정정(행동 무변경) / M8: GUARD 4 결번 주석 · 커밋
+- [x] M1: README verify-setup 카운트 66→72(신규 2 포함) → #36 GREEN
+- [x] M2: README 창 매핑에 fable·`[1m]` 반영 / M3: ccs-delegation 비추적-skill 각주 / M5: verify-setup.sh:85 주석 =11 / M6: teardown "SessionStart 마커" stale 주석 2곳 정정 / M7: acw "기본 95" 서술 정정(행동 무변경) / M8: GUARD 4 결번 주석 · 커밋
 
 ### Task 5: 전건 검증 (staged-HOME)
 
-- [ ] 내 plan Status→completed flip(active ≤1 성립) → fresh rsync staged-HOME에서 `verify-setup` **72/0** + `verify-all` ALL PASS + 워크트리 `run-all` 156/156
-- [ ] FAIL 시 flip 되돌려 수정 후 재실행
+- [x] 내 plan Status→completed flip(active ≤1 성립) → fresh staged-HOME에서 `verify-setup` **72/0 실측** + 워크트리 `run-all` **156/156** + `worktree-teardown.test` **25/25**
+- [x] verify-all은 staged-HOME 재실행으로 확증(아래 Task 5b) — 1차 staged 실행의 doctor FAIL 2건은 `.gitconfig` 미복사 스테이징 아티팩트(git identity), 실환경 무관
+- [x] FAIL 시 flip 되돌려 수정 후 재실행 — 발생: drift 검사가 체크박스 미갱신 2건 적발(신규 silent-downgrade 기준의 첫 자기적용이 자기 사이클 기록 누락을 포착) → 본 갱신으로 시정
 
 ### Task 6: Closeout
 
-- [ ] 03 D10 재채점(1→4, 사유+증거) · 04 GAP-001/009 DONE + GAP-017 처분 판정(신규 seal 대표 변이 여부) · README 상태(C1 완료, 다음 C2=GAP-003) — 같은 커밋
-- [ ] PR 생성→auto-merge → state.json 50 → 드리프트 검사(신규 C-1 기준 포함 — silent-downgrade 자기적용) → 한국어 보고(+CLAUDE.md diff) + next-cycle-goal(C2=GAP-003)
+- [x] 03 D10 재채점(1→4, 사유+증거) · 04 GAP-001/009 DONE + GAP-017 처분 판정(신규 seal 대표 변이 여부) · README 상태(C1 완료, 다음 C2=GAP-003) — 같은 커밋
+- [x] PR 생성→auto-merge → state.json 50 → 드리프트 검사(신규 C-1 기준 포함 — silent-downgrade 자기적용) → 한국어 보고(+CLAUDE.md diff) + next-cycle-goal(C2=GAP-003)
