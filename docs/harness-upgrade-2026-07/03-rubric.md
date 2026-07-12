@@ -129,8 +129,9 @@
 | 4 | 3 + closeout drift 기준에 silent-downgrade 검출(spec 목표 설계 vs 구현 실물 대조) + 필드 존재 seal |
 | 5 | 4 + 교차모델 적대 리뷰가 열화 판정을 정기 반증 |
 
-**현행 1** — 증거: 01 §4 매핑표 — Simplicity First·Think Before Coding 완전 미강제, plan 템플릿·closeout 기준 어디에도 최선안 대조 없음. 사용자 관찰(goal §4 canonical)이 실증 사례. **목표 4. 델타 3.**
+**현행 4** — 증거: 01 §4 매핑표 — Simplicity First·Think Before Coding 완전 미강제, plan 템플릿·closeout 기준 어디에도 최선안 대조 없음. 사용자 관찰(goal §4 canonical)이 실증 사례. **목표 4. 델타 0 (C1 도달).**
 **C0 적대 리뷰 반박 검토**: "Think Before Coding의 'If a simpler approach exists, say so / Surface tradeoffs'가 L1의 '어떤 장치도 없음'을 반증한다"는 공격 — **기각**: 해당 문구는 열화-회피 장치가 아니라 단순-방향 압력이며 스코프/품질을 구분하지 않아 오히려 관찰된 실패의 일부다. L1 유지. 단 GAP-001의 1순위 **1차 근거는 산식이 아닌 spec §4 사용자 고정**임을 명시(델타 3은 부차 근거).
+**C1 재채점(2026-07-13, 1→4)**: L2=CLAUDE.md Simplicity First에 "Scope minimalism ≠ architecture downgrade" 구분 명문화 · L3=start-rpi-cycle Phase P 필수 필드 Best-Direction Check(+DOWNGRADE-DECLARED 규약, canonical+opencode 미러) + Gate P "필드 부재=FAIL" · L4=Step C-1 silent-downgrade 실물 대조 기준 + seal #35(토큰 parity, staged-HOME RED x0→GREEN x5/x4 실증). L5(교차모델 정기 반증)는 GAP-006 소관 — 목표 4 충족.
 
 ## D11. 보안 (인젝션·공급망·시크릿) — ⚠️ 기준 상승 차원
 
@@ -186,9 +187,9 @@
 | D7 eval/fitness | 3 | 4 | 1 | |
 | D8 이식성 | 4 | 4 | 0 | 목표-충족(스코프 판단) |
 | D9 핸드오프 복원력 | 3 | 5 | 2 | 이 이니셔티브가 직접 상승 중 |
-| **D10 Best-Direction** | **1** | **4** | **3** | **GAP-001 (1차 근거=spec §4 고정, 델타 3은 부차)** |
+| **D10 Best-Direction** | **4** | **4** | **0** | **C1 도달(2026-07-13)** — L5는 GAP-006 소관 |
 | D11 보안 | 3 | 4 | 1 | 기준 상승(6월 4) |
 | **D12 스캐폴드 노화** | **1** | **3** | **2** | Fable 5 가이드 직접 충돌 |
 
-**min = 1 (D10·D12).** 6월 종결 시점 "전 차원 ≥4"는 6월 앵커 기준으로 여전히 참 — v2의 min=1은 축 확장(신규 4축)·기준 상승(D4·D11)·오채점 교정(D3)의 결과다. 우선 델타 순서: D10(3) > D3·D5·D6·D9·D12(2) > D1·D2·D4·D7·D11(1) > D8(0).
+**min = 1 (D12)** (C1에서 D10 1→4 해소). C0 시점 min=1(D10·D12)은 축 확장(신규 4축)·기준 상승(D4·D11)·오채점 교정(D3)의 결과였다. 잔여 우선 델타: D3·D5·D6·D9·D12(2) > D1·D2·D4·D7·D11(1) > D8·D10(0).
 **채점 방법론 노트**: C0 채점은 fresh-context 적대 리뷰(refute-by-default, 동일 패밀리·별도 컨텍스트)를 1회 통과 — 7건 발견 중 점수 교정 1(D3 4→3), 잔여 명시 1(D1), 반박-기각 1(D10), 순위·기준 정정은 04에 반영. 교차패밀리 리뷰는 인프라 실패로 GAP-006에 위임(README 방법론 기록).

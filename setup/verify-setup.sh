@@ -82,7 +82,7 @@ done
 # 13. .installed marker
 [ -f "$HOME/.claude/setup/.installed" ] && ok ".installed marker" || fail ".installed missing"
 
-# 14. settings.json has >=9 hook command entries (4 PreToolUse Write|Edit|NotebookEdit + 2 Bash + 1 PostToolUse + 1 SessionStart + 1 Stop)
+# 14. settings.json has >=9 hook command entries (실측 11: 5 PreToolUse W|E|N + 2 Bash + 1 PostToolUse + 1 SessionStart + 1 Stop + 1 SessionEnd — >=9는 하한 게이트)
 COUNT=$(node -e '
   const cfg = JSON.parse(require("fs").readFileSync(process.env.HOME + "/.claude/settings.json", "utf8"));
   const all = [];
@@ -319,6 +319,27 @@ if grep -q '동시-세션 격리' "$HOME/.claude/SECURITY.md" 2>/dev/null \
   ok "동시-세션 격리 규약 SECURITY.md 실재 (상대 프로세스 kill 금지)"
 else
   fail "동시-세션 격리 규약 SECURITY.md 부재 (item③ 미인코딩)"
+fi
+
+# 35. Best-Direction Mandate 토큰 parity (GAP-001, #17 동형): start-rpi-cycle 본문에
+#     Phase P 필수 필드 'Best-Direction Check'(Phase P + Gate P = >=2)와 'DOWNGRADE-DECLARED'(>=1) 실재.
+SRC_SKILL="$HOME/.claude/skills/start-rpi-cycle/SKILL.md"
+BD_CNT=$(grep -c 'Best-Direction Check' "$SRC_SKILL" 2>/dev/null || true)
+DG_CNT=$(grep -c 'DOWNGRADE-DECLARED' "$SRC_SKILL" 2>/dev/null || true)
+if [ "${BD_CNT:-0}" -ge 2 ] && [ "${DG_CNT:-0}" -ge 1 ]; then
+  ok "Best-Direction Mandate 토큰: start-rpi-cycle 'Best-Direction Check' x${BD_CNT}(>=2) + 'DOWNGRADE-DECLARED' x${DG_CNT}(>=1)"
+else
+  fail "Best-Direction Mandate 토큰 부재/부족 (GAP-001): 'Best-Direction Check' x${BD_CNT:-0}(<2) 또는 'DOWNGRADE-DECLARED' x${DG_CNT:-0}(<1) — skills/start-rpi-cycle/SKILL.md"
+fi
+
+# 36. verify-setup 총 체크수 <-> README 선언 parity (GAP-009 M1 봉인, 런타임 자기-카운트):
+#     이 시점까지의 PASS+FAIL+1(이 체크 자신) == README "(현재 N PASS)" 선언. 체크 추가 시 README 미동기가 자동 FAIL.
+EXPECTED_TOTAL=$((PASS + FAIL + 1))
+README_DECL=$(grep -oE '현재 [0-9]+ PASS' "$HOME/.claude/README.md" 2>/dev/null | grep -oE '[0-9]+' | tail -1)
+if [ -n "$README_DECL" ] && [ "$README_DECL" -eq "$EXPECTED_TOTAL" ]; then
+  ok "verify-setup 카운트 seal: README 선언(${README_DECL}) == 런타임 실측(${EXPECTED_TOTAL})"
+else
+  fail "verify-setup 카운트 drift (GAP-009 M1): README 선언(${README_DECL:-부재}) != 런타임 실측(${EXPECTED_TOTAL}) — README.md '현재 N PASS' 동기 필요"
 fi
 
 echo

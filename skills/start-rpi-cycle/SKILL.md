@@ -70,6 +70,14 @@ plan 상단 헤더 주입 (writing-plans 표준 헤더 위에):
   **RPI-Cycle:** N
   **Started:** YYYY-MM-DD
 
+★ plan 본문 필수 필드 — **Best-Direction Check** (자가-표면화, GAP-001):
+  **Best-Direction Check:** 최선안 = <알려진 가장 기능적·확장 가능한 설계 — 구현 난이도 불문> / 채택안 = <이번 plan의 설계>
+  - 채택안 == 최선안 → "DOWNGRADE-DECLARED: 없음" 명시.
+  - 채택안 != 최선안 → `DOWNGRADE-DECLARED(<구체 사유>)` + **사용자 승인 필요**(무인 모드는 사이클 보고에 표면화 후 승인 대기 항목으로).
+  ※ 목적: silent downgrade(무선언 열화) 차단 — CONTEXT.md 용어 참조. 스코프 축소(YAGNI)는 열화가 아니다 —
+    이 필드가 묻는 건 "같은 스코프를 구현하는 방식 중 최선인가"이지 "기능을 더 넣었는가"가 아니다.
+  ※ 난이도·복잡도는 채택 사유가 될 수 없다(사이클 분할 사유는 가능 — 방향 유지 + 단계화는 열화 아님).
+
 ## Gate P
 
 1. active plan 파일 존재 확인 (enforce-rpi-cycle hook이 의존)
@@ -86,11 +94,13 @@ plan 상단 헤더 주입 (writing-plans 표준 헤더 위에):
           - plan에 spec 범위 밖 scope creep 없음
           - 각 task의 검증 기준이 명확함
           - task 간 의존 순서가 논리적
+          - plan에 'Best-Direction Check' 필드 존재 + (채택안==최선안 또는 DOWNGRADE-DECLARED(사유) 명시) — 필드 부재 = FAIL
 
           FAIL with:
           - 미커버 spec 요구사항 목록
           - scope creep 의심 task 목록
           - 불명확한 검증 기준 목록
+          - Best-Direction Check 부재/무선언 열화 의심
         ")
 
    FAIL 시:
@@ -166,6 +176,9 @@ closeout-pr-cycle 결과를 받아:
           - domain-glossary.md 갱신 또는 변경 없음 확인
           - 사이클 중 발생한 실패가 5 Whys 통과 후 non-obvious.md 누적 (또는 명시 면제)
           - plan 모든 체크박스 [x] 또는 명시적 미완료 사유 기록
+          - silent-downgrade 검출 (Best-Direction Check 실물 대조): spec/plan이 선언한 목표 설계 vs 구현 실물이
+            일치하는가 — 미신고 열화(선언 없이 더 쉬운 대안으로 대체된 지점) 발견 시 FAIL.
+            plan에 DOWNGRADE-DECLARED(사유)가 있으면 그 범위는 열화가 아니라 선언된 결정.
           - finishing-a-development-branch 산출물(브랜치/PR)이 존재 시 일관성 (선택)
         ")
 

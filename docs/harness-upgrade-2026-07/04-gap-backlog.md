@@ -9,7 +9,7 @@
 
 | 순위 | ID | 제목 | 차원(델타) | 레버리지 | 상태 |
 |---|---|---|---|---|---|
-| 1 | GAP-001 | Best-Direction Mandate | D10(3) | 전 후속 사이클의 plan 품질에 작용 | PENDING — **C1 고정(spec §4 = 1차 근거)** |
+| 1 | GAP-001 | Best-Direction Mandate | D10(3→0) | 전 후속 사이클의 plan 품질에 작용 | **DONE(C1, 2026-07-13)** — 4층 전부: CLAUDE.md 정련·Phase P 필드+Gate P·C-1 silent-downgrade·seal #35(RED→GREEN) |
 | 2 | GAP-003 | 사이클 run-log (관측 기반) | D4(1) | D5 예산 측정·D7 인사이트·D12 사용통계·GAP-002/005/012를 unblock — 최대 레버리지 | PENDING |
 | 3 | GAP-002 | 자율성 예산 governor | D5(2) | 무인 goal-loop 전체의 안전 상한 — 이 이니셔티브 자신이 무인 | PENDING |
 | 4 | GAP-005 | 스캐폴드 노화 관리 | D12(2) | 전 skill/hook/seal 표면에 작용; Δ2 동률 내 tie-break=긴급도(Fable 5 가이드 직접 충돌) | PENDING |
@@ -20,13 +20,13 @@
 | 9 | GAP-013 | Rule-of-Two 세션 분리 | D11(1)의 절반+D5 | 인젝션 표면 구조 분리; GAP-012와 레버리지 동률로 판정, tie-break=severity(심도) | PENDING |
 | 10 | GAP-012 | 실패→회귀픽스처 루프 | D7(1) | eval 인프라의 마지막 층 — 발생 빈도 의존 | PENDING |
 | 11 | GAP-019 | skill/agent 본문 drift seal + ccs-delegation 계약 연결 | D1·D2 보조 | 드리프트 방어의 자기적용(하네스 정체성) — GAP-006이 의존하는 ccs-delegation의 무계약 해소 포함 | PENDING — **신설(적대 리뷰 발견 7)** |
-| 12 | GAP-009 | 문서↔실물 정합 일괄 + 카운트 seal | D2(1)의 일부 | quick-win — 어느 사이클에나 부수 가능 | PENDING |
+| 12 | GAP-009 | 문서↔실물 정합 일괄 + 카운트 seal | D2(1)의 일부 | quick-win — 어느 사이클에나 부수 가능 | **DONE(C1, 2026-07-13)** — M1-M8 정정(M4/M9/M10 의도기록 유지) + seal #36(런타임 자기-카운트 parity, RED 66≠72→GREEN 72==72) |
 | 13 | GAP-010 | 미테스트 표면 커버 | D1(1)의 일부 | 알려진 공백의 봉인(커버 목록은 항목 블록 — "전수" 주장 정정) | PENDING |
 | 14 | GAP-015 | MCP 쓰기 게이트 | D1(1)의 일부 | 6월 G1-a 계승 — MCP 사용 빈도가 낮아 레버리지 중간 | PENDING |
 | 15 | GAP-014 | MEMORY.md 인덱스 예산 seal | D3(1)의 일부 | 저비용 — GAP-004에 병합 가능 | PENDING |
 | 16 | GAP-016 | 사이클 proof-artifact 규약 | D7 보조 | 6월 defer 계승 — GAP-003 run-log가 사실상 대체 가능(재평가) | PENDING |
 | 17 | GAP-007 | OS-레벨 sandbox 층 | D5 L5·D11 L5 | 상한 확장 — GAP-002가 D5=4를 먼저 달성하므로 후순위(레버리지 순서이지 난이도 아님) | PENDING |
-| 18 | GAP-017 | seal-regression Part B (rank9B) | D2 보조 | 6월 defer — 대표 변이 3종 커버로 한계효용 낮음 | PENDING(재평가) |
+| 18 | GAP-017 | seal-regression Part B (rank9B) | D2 보조 | 6월 defer — 대표 변이 3종 커버로 한계효용 낮음 | PENDING(재평가) — **C1 판정: 대표 변이 미추가.** 사유: #35=토큰-존재형(기존 #17류와 동형 — 대표 변이가 이미 count/parity/schema 3유형 커버), #36=런타임 자기-카운트형(신유형이나 RED가 staged-HOME에서 직접 실증됨 — seal-regression 우회 불필요). 차기 신유형 seal 등장 시 재평가 유지 |
 | — | GAP-008 | 핸드오프 복원력 완성 | D9(2) | — | **IN-CYCLE(C0/C-final)** — 이 이니셔티브 자체가 해소 |
 
 **D8(이식성) 처분 명시** (적대 리뷰 발견 5 — 03이 "04에서 재평가 가능"으로 위임한 잔여): 전-플랫폼 CI는 **REJECTED(개인 규모 ROI — 03 D8 스코프 판단 승인)**. 단 D8 잔여 중 실결함 2건은 기존 항목에 편입: 비-Windows STAGE 3b skip → GAP-010 커버 목록, opencode skill 본문 parity → GAP-019. `/tmp`·절대 $HOME source 가정은 관찰 기록만(발화 조건이 "하네스 재배치"뿐이라 백로그 미승격 — 재배치 시 GAP-009류 정합 작업에 동반).
