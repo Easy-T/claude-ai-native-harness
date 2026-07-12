@@ -31,7 +31,8 @@ SSOT (복사 금지 — 항상 원본을 읽고 원본을 수정):
      방출). 테스트에 하드 단언 있음 — 세그먼트를 늘리면 반드시 바이트 재감사.
    - **창 크기 FLOOR 테이블.** CC/프록시가 `context_window_size`를 과소보고
      (base Fable·Opus → 실제 1M인데 200K로 옴). `model.id`의 `[1m]` 접미사 = 1M SSOT.
-     gpt 라우팅 슬롯(GPT-5.5/mini) = 272k. FLOOR는 올리기만 — 절대 내리지 않는다.
+     gpt 라우팅 슬롯 = GPT-5.6(Sol/Luna) 372k · legacy GPT-5.5/mini 272k (v2.2).
+     FLOOR는 올리기만 — 절대 내리지 않는다.
    - **usage API 계약.** `GET https://api.anthropic.com/api/oauth/usage`,
      헤더 `Authorization: Bearer <access_token>` + `anthropic-beta: oauth-2025-04-20`.
      필드: `five_hour`/`seven_day`의 `.utilization`(0–100 float)·`.resets_at`(ISO8601, offset-aware 파싱).
