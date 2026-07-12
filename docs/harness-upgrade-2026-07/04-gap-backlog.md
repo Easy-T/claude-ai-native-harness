@@ -166,6 +166,7 @@
 - **목표 상태**: non-obvious 등록 절차(§4)에 "재현 픽스처 동반" 규약 — AI 실패가 5 Whys 통과 시 run-all 케이스 또는 전용 테스트로 고정(가능한 경우). 20-50 과제 스위트는 개인 규모 재해석: 기존 156 케이스+E2E가 이미 그 역할 — 신규는 실패-유래만 추가.
 - **Best-direction 근거**: 처음부터 50-과제 스위트 구축은 실패-추적성 없는 투기(02 §6 ETH·HumanLayer 역풍) — 실패-유래 케이스만 추가가 5-Whys 절차와 정합인 최선.
 - **수용 기준**: CLAUDE.md §4 또는 non-obvious.md 헤더에 픽스처 규약 grep && 차기 등록 1건에 실적용.
+- **테스트 계획(RED)**: 규약 추가 전 — 최근 non-obvious 등록 이력에 픽스처 동반 0건임을 grep으로 확인(RED 상태의 실증) → 규약 추가 후 차기 등록 1건에서 픽스처 파일 실재 확인(GREEN).
 - **복잡도**: 저 · **의존성**: GAP-003(transcript 원천) 시너지 · **Opus-실행성**: 높음.
 
 ## GAP-013 — Rule-of-Two 세션 분리
@@ -175,6 +176,7 @@
 - **목표 상태**: 웹-읽기 중심 작업(deep-research 등)의 reader 서브에이전트에 쓰기 도구 미부여 규약 명문화 + 본체는 검증 후 행동 — skill/playbook 레벨 규약(도구 allowlist는 wrapper agent 패턴 재사용).
 - **Best-direction 근거**: 더 쉬운 대안 = "인젝션 조심" 프롬프트 — 02 §4 "영구 속성" 평가가 기각. 구조 분리(도구 박탈)가 유일하게 작동하는 방어이고 wrapper-agent 인프라로 저비용.
 - **수용 기준**: 해당 skill 본문에 도구 제약 grep && wrapper 정의에 반영.
+- **테스트 계획(RED)**: 현행 deep-research류 실행 경로에서 웹-읽기 단계가 쓰기 도구 보유 상태임을 skill 본문/agent 정의 grep으로 확인(RED) → 규약 반영 후 reader 단계 도구 목록에 Write/Edit/Bash 부재 grep(GREEN) + seal-regression 패턴으로 제약 문구 제거 변이 시 검사 FAIL 증명.
 - **복잡도**: 저-중 · **Opus-실행성**: 높음.
 
 ## GAP-014 — MEMORY.md 인덱스 예산 seal
@@ -183,6 +185,7 @@
 - **증거**: 02 §1(첫 200줄/25KB만 시작-로드 — 공식); 현행 MEMORY.md 줄당 길이 비대(01 §4).
 - **목표/수용**: session-start-audit 예산 체크(GAP-004 (c)와 동일 구현) — 병합 실행.
 - **Best-direction 근거**: 독립 항목 유지보다 GAP-004 병합이 SSOT — 동일 구현 지점(session-start-audit)의 중복 규약을 피한다(병합은 열화가 아니라 중복 제거).
+- **테스트 계획(RED)**: N/A(병합 처분) — RED는 GAP-004의 "201줄 MEMORY.md ALERT" 케이스가 커버(중복 계획 작성은 SSOT 위반). GAP-004 착수 시 이 항목을 DONE(병합)으로 동시 처분.
 
 ## GAP-015 — MCP 쓰기 게이트
 
@@ -191,6 +194,7 @@
 - **목표 상태**: PreToolUse matcher에 위험 MCP 도구 패턴 추가(파라미터-인지 규칙 활용 — 02 §1 `Tool(param:value)` v2.1.178) 또는 deny 규칙(GAP-007a와 통합).
 - **Best-direction 근거**: 전 MCP 범용 게이트는 도구 스키마 다양성으로 불가(6월 판정 유지) — 알려진 위험 도구 열거+파라미터 규칙이 현실 최선(전부-아니면-전무 오류 회피).
 - **수용 기준**: 대상 도구 호출이 게이트 발화(격리 검증) && 기존 케이스 무회귀.
+- **테스트 계획(RED)**: 격리 설정에서 대상 MCP 도구(예: 파일-쓰기 가능 browser_run_code) 호출이 현행 무게이트 통과함을 확인(RED) → 규칙 추가 후 동일 호출 차단/프롬프트 확인(GREEN) + settings parity(#23) 무회귀.
 - **복잡도**: 중 · **Opus-실행성**: 중(matcher 문법 검증 필요).
 
 ## GAP-016 — 사이클 proof-artifact 규약
@@ -199,6 +203,7 @@
 - **증거**: 6월 defer(proof-artifact); 02 §2(Antigravity Artifacts — 로그 아닌 리뷰 가능 증거물); 현행 plan 체크박스+검증 출력이 부분 대체(02 §7 P14 ◐).
 - **목표 상태**: GAP-003 run-log가 착륙하면 사이클 보고에 게이트 통계+검증 커맨드 출력 고정 포맷 — 별도 artifact 규약이 불필요한지 재평가 후 DONE/REJECTED 판정.
 - **Best-direction 근거**: 중복 규약 신설은 SSOT 위반 위험 — 재평가가 정직한 처리.
+- **수용 기준**: 재평가-처분형 — GAP-003 DONE 후 1사이클 내 이 항목의 DONE(흡수)/REJECTED(사유) 판정이 04에 기록되면 충족. **테스트 계획(RED)**: N/A(처분 판정 항목 — 구현물 없음; 판정 미기록 상태가 RED에 상당).
 
 ## GAP-017 — seal-regression Part B (rank9B)
 
@@ -206,10 +211,11 @@
 - **증거**: 6월 rank9 Part A 봉인(대표 변이 3종: schema #30·parity #23·count #20), Part B(전 seal 변이 커버) defer — `docs/superpowers/specs/2026-06-13-external-standards-audit.md` 참조.
 - **목표 상태**: 신규 seal(GAP-001 #35·GAP-009 카운트)이 추가되는 시점에 대표 변이 세트 확장 여부 재평가 — 전수 커버는 한계효용 낮음(Part A가 메커니즘 증명 완료).
 - **Best-direction 근거**: 전수 변이는 유지비>효용(6월 판정 유지가 최선 — 신규 seal 유형 추가 시에만 대표 변이 1종 추가).
+- **수용 기준**: 재평가-처분형 — GAP-001/009의 신규 seal 착륙 사이클에서 "대표 변이 추가(구현) / 불요(사유)" 판정이 04에 기록되면 충족. 구현 선택 시 seal-regression.test.sh에 신규 seal 대상 변이 1종 추가가 그 사이클의 수용 기준에 편입. **테스트 계획(RED)**: N/A(처분 판정 항목) — 구현 선택 시 RED는 "신규 seal이 변이 주입에도 GREEN인 상태"의 실증으로 정의.
 
 ## GAP-008 — 핸드오프 복원력 완성 (IN-CYCLE)
 
-- **차원**: D9(3→5, Δ2) · **상태**: **IN-CYCLE(C0=문서 세트로 L4, C-final=cold-agent fitness로 L5)**
+- **차원**: D9(3→5, Δ2) · **severity**: HIGH(이 이니셔티브의 존재 이유 — deadline invariant) · **상태**: **IN-CYCLE(C0=문서 세트로 L4, C-final=cold-agent fitness로 L5)**
 - **증거**: 03 D9. 이 문서 세트 자체가 구현체 — 별도 백로그 작업 없음. C-final에서 fitness FAIL 시 문서 결함으로 회귀 수정(spec §6).
 - **Best-direction 근거**: 더 쉬운 대안 = "auto-memory에 요약 남기기" — 머신-로컬이라 핸드오프 실패(D9 앵커 3의 정의 그 자체). self-contained 문서 세트+fitness 실증이 goal deadline invariant의 유일 충족 경로.
 - **수용 기준**(적대 리뷰 정정 — "착수 성공" 무정의·보장-통과 루프 차단): C-final cold-agent fitness에서 fresh subagent(이 문서 세트 외 컨텍스트 0)가 05+04의 1항목만 받아 **(i) 유효 plan 초안(Status 헤더+해당 GAP 수용 기준 전사) (ii) 그 GAP의 RED 재현 커맨드를 무도움(추가 질문 0회)으로 산출** — 둘 중 하나라도 실패하면 문서 수정 후 재시도하되, **재시도 이력(몇 회·무엇을 고쳤나)을 C-final 보고에 전수 기록**(무한 fail→fix→pass를 통과로 위장 불가; ≤2회 내 통과가 목표선, 초과 시 D9=5 미달로 채점).
