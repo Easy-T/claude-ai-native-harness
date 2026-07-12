@@ -22,7 +22,7 @@ USED="${READ%%$'\t'*}"; MODEL="${READ#*$'\t'}"
 # transcript엔 창 크기 필드가 없어 모델명 매핑 사용. effort(high/xhigh/max)는 창을 바꾸지 않음.
 LIMIT=$(node "$HOME/.claude/hooks/lib/model-window.js" "$MODEL")
 
-# native auto-compact 발동 %(= CLAUDE_AUTOCOMPACT_PCT_OVERRIDE, 기본 95). 경고는 그보다 먼저.
+# native auto-compact 발동 %(= CLAUDE_AUTOCOMPACT_PCT_OVERRIDE, env 부재 시 CLI 자체 기본 ~83.5% — 아래 95 는 보수적 경고 상한일 뿐 실제 트리거 아님). 경고는 그보다 먼저.
 OVERRIDE_PCT="${CLAUDE_AUTOCOMPACT_PCT_OVERRIDE:-95}"
 case "$OVERRIDE_PCT" in *[!0-9]*|"") OVERRIDE_PCT=95 ;; esac
 WARN_PCT="${COMPACT_WARN_PCT:-}"

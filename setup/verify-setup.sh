@@ -82,7 +82,7 @@ done
 # 13. .installed marker
 [ -f "$HOME/.claude/setup/.installed" ] && ok ".installed marker" || fail ".installed missing"
 
-# 14. settings.json has >=9 hook command entries (4 PreToolUse Write|Edit|NotebookEdit + 2 Bash + 1 PostToolUse + 1 SessionStart + 1 Stop)
+# 14. settings.json has >=9 hook command entries (실측 11: 5 PreToolUse W|E|N + 2 Bash + 1 PostToolUse + 1 SessionStart + 1 Stop + 1 SessionEnd — >=9는 하한 게이트)
 COUNT=$(node -e '
   const cfg = JSON.parse(require("fs").readFileSync(process.env.HOME + "/.claude/settings.json", "utf8"));
   const all = [];

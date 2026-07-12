@@ -24,7 +24,7 @@ esac
 CWD=$(echo "$INPUT" | resolve_cwd) || { hook_log "worktree-teardown" "-" "PASS" "noop:no-cwd"; exit 0; }
 
 # GUARD 1 (+ 마커 fallback): teardown 대상 경로 결정 — cwd(authoritative) 또는 session_id 마커(fallback).
-#  세션이 워크트리 밖으로 cd 해도(closeout 가 메인루트로 이동) SessionStart 가 남긴 마커로 정리. 마커는 GUARD2/3 가 검증(맹신 안 함).
+#  세션이 워크트리 밖으로 cd 해도(closeout 가 메인루트로 이동) 마커로 정리 — 주 기록자는 PreToolUse(enforce-rpi-cycle/bash, cycle-40)이고 SessionStart 는 보조. 마커는 GUARD2/3 가 검증(맹신 안 함).
 SRCPATH=""
 case "$CWD" in
   */.claude/worktrees/*) SRCPATH="$CWD" ;;   # authoritative: 현재 cwd 가 워크트리 안
@@ -62,7 +62,7 @@ case "$WT_ROOT" in
   *) hook_log "worktree-teardown" "$WT_ROOT" "PASS" "noop:no-marker"; exit 0 ;;
 esac
 
-# GUARD 3: WT_ROOT 가 *링크된* git 워크트리인가 (메인 체크아웃·비-worktree 보호).
+# GUARD 3: WT_ROOT 가 *링크된* git 워크트리인가 (메인 체크아웃·비-worktree 보호). (번호 주: GUARD 4 는 결번 — 재번호 시 C5 용어 고정(문서·테스트)이 깨져 유지. 누락 아님.)
 #  --absolute-git-dir 이 <repo>/.git/worktrees/<name> (/worktrees/ 세그먼트) 이고 basename==NAME 일 때만 동작.
 #  메인 체크아웃·비-worktree 서브디렉터리는 .../.git (worktrees 세그먼트 없음) → 거부.
 #  (주의: git-dir 은 절대, git-common-dir 은 상대(../../../.git)로 혼용 출력돼 문자열비교가 메인 repo 를
