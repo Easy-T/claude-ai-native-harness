@@ -18,7 +18,7 @@ durable spec: [`docs/superpowers/specs/2026-07-13-harness-upgrade-2026-07-design
 
 | 사이클 | 내용 | 상태 |
 |---|---|---|
-| **C0** | 문서 세트 6종(재감사+로드맵+플레이북) | **완료 (2026-07-13, RPI-Cycle 49)** |
+| **C0** | 문서 세트 6종(재감사+로드맵+플레이북) | **완료 (2026-07-13, RPI-Cycle 49 — 동시 세션 ui-design C1=48 선점 반영)** |
 | C1 | GAP-001 Best-Direction Mandate (4층: 헌법 정련·plan 필수 필드·closeout 검출·seal) | 대기 — **다음 착수** |
 | C2.. | 04 순위순 (GAP-003 run-log → GAP-002 예산 governor → GAP-005 스캐폴드 노화 → GAP-004 메모리 → GAP-018 트리거 → …) | 대기 |
 | C-final | 핸드오프 봉인(최종 재채점·cold-agent fitness·최종 보고) | 대기 |

@@ -1,10 +1,11 @@
 # Harness Upgrade 2026-07 — C0 문서 사이클 Plan
 
-**Status:** active
-**RPI-Cycle:** 48
+**Status:** completed
+**RPI-Cycle:** 49
 **Started:** 2026-07-13
+**Completed:** 2026-07-13
 
-> RPI-Cycle 정정(49→48): state.json 규칙은 +1 단조(현행 47). 작성 시점엔 ui-design C1(브랜치, PR#14 open)을 48로 가정했으나 미완료 — 완료 순서 기준으로 이 사이클이 48이 맞다. (gpt56-swap plan은 ops-config로 의도적 비계상 — 01 M10 기록)
+> RPI-Cycle 번호 확정(48→49 재정정): 동시 세션의 ui-design C1이 PR#14로 머지 완료·live state.json 48 선점 확인(2026-07-13). +1-at-completion 규약상 이 사이클(두 번째 완료)=49. 동시 세션 ui-design C2 plan이 49를 선-주장 중이나 그쪽 closeout은 자기 시점 +1(→50)로 기록하게 됨 — 타 세션 파일 무수정 원칙(동시-세션 격리)에 따라 여기서만 기록. (gpt56-swap plan은 ops-config로 의도적 비계상 — 01 M10)
 
 > **For agentic workers:** 이 plan은 문서-전용 사이클 — Phase I는 메인 세션이 직접 실행(executing-plans). 리서치 6축(R-A~R-F)·인벤토리 4축(I-1~I-4) 결과는 메인 세션 컨텍스트에 이미 수집됨 — subagent 위임 시 이 원료가 소실되므로 문서 작성은 위임 금지.
 
@@ -105,4 +106,4 @@
 
 - [x] **Step 1: review-strict 계약 검증** — 1차 FAIL(04 필드 결락 7건: GAP-012/013/014/015/016/017 RED·수용기준, GAP-008 severity) → 전건 수정(N/A는 사유 명시) → 재검증 **7/7 PASS**.
 - [x] **Step 2: 하네스 검증 3종** — verify-setup **PASS=70 FAIL=0** · run-all **156/156 (100%)** · verify-all **"ALL PASS — system meets §6.6 acceptance gate"**. 기준선 무변동(문서 전용) 확인.
-- [x] **Step 3: Closeout** — closeout-pr-cycle(PR→auto-merge) → plan Status: completed → state.json bump(48, 헤더 정정 참조) → 드리프트 검사 → 한국어 사이클 보고 + next-cycle-goal(C1=GAP-001).
+- [x] **Step 3: Closeout** — closeout-pr-cycle(PR#15→auto-merge) → plan Status: completed → state.json bump(49, 동시-세션 48 선점 반영 — 헤더 노트) → 드리프트 검사 → 한국어 사이클 보고 + next-cycle-goal(C1=GAP-001).
