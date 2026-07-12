@@ -1,8 +1,10 @@
 # Harness Upgrade 2026-07 — C0 문서 사이클 Plan
 
 **Status:** active
-**RPI-Cycle:** 49
+**RPI-Cycle:** 48
 **Started:** 2026-07-13
+
+> RPI-Cycle 정정(49→48): state.json 규칙은 +1 단조(현행 47). 작성 시점엔 ui-design C1(브랜치, PR#14 open)을 48로 가정했으나 미완료 — 완료 순서 기준으로 이 사이클이 48이 맞다. (gpt56-swap plan은 ops-config로 의도적 비계상 — 01 M10 기록)
 
 > **For agentic workers:** 이 plan은 문서-전용 사이클 — Phase I는 메인 세션이 직접 실행(executing-plans). 리서치 6축(R-A~R-F)·인벤토리 4축(I-1~I-4) 결과는 메인 세션 컨텍스트에 이미 수집됨 — subagent 위임 시 이 원료가 소실되므로 문서 작성은 위임 금지.
 
@@ -60,9 +62,9 @@
 - Consumes: 01(현행 실측) + 02(외부 기준).
 - Produces: ≥10차원 × (1-5 앵커 + 현행 점수 + 증거 file:line + 목표 + 델타) — Task 4의 순위 산식 입력. 6월 8차원 매핑표.
 
-- [ ] **Step 1: 작성** — spec §3 최소 10차원. 각 레벨 앵커는 관찰 가능 기준(결정론 신호로 판정 가능하게). 채점 증거는 01/02의 실측 인용 — 산출물 자기서술("all pass" 문자열) 금지. 재채점 절차(구현 사이클마다) 명시.
-- [ ] **Step 2: 결정론 계약 체크** — 차원 수 ≥10 && 각 차원에 "현행"·"목표"·앵커 5레벨 && 6월 매핑표 존재.
-- [ ] **Step 3: Commit** — `"docs(harness-upgrade): 03 루브릭 v2 — 12차원 앵커+채점"`
+- [x] **Step 1: 작성** — spec §3 최소 10차원. 각 레벨 앵커는 관찰 가능 기준(결정론 신호로 판정 가능하게). 채점 증거는 01/02의 실측 인용 — 산출물 자기서술("all pass" 문자열) 금지. 재채점 절차(구현 사이클마다) 명시.
+- [x] **Step 2: 결정론 계약 체크** — 차원 12(≥10) · 앵커 행 60(12×5레벨) · 현행/목표 쌍 13 · 매핑표 존재(4매치). PASS.
+- [x] **Step 3: Commit** — done. 이후 적대 리뷰 반영으로 D3 4→3 교정 커밋(2a30b0a).
 
 ### Task 4: 04-gap-backlog.md 작성
 
@@ -73,9 +75,9 @@
 - Consumes: 01 불일치·미강제 목록 + 02 부재 패턴 + 03 델타 + 6월 defer 잔여(goal §5 목록) + Best-Direction Mandate(spec §4).
 - Produces: self-contained 백로그 — C1..Cn 구현 사이클의 작업 원천. GAP-001 = Best-Direction Mandate(무조건 1순위, spec §4).
 
-- [ ] **Step 1: 작성** — 항목 스키마 전 필드(ID/차원/severity/증거/목표/best-direction 근거/구현 스케치/수용 기준(결정론 커맨드)/테스트 계획(RED 재현자)/복잡도/의존성/Opus-실행성 주석). 순위 = 레버리지×델타, 난이도 강등 금지. 6월 defer 잔여(goal-loop 예산·observability·dead-scaffold pruning·sandbox 티어·G6-b·G3-a·rank9B) 자동 편입 재평가.
-- [ ] **Step 2: 결정론 계약 체크** — 모든 항목에 "Best-direction:"·"수용 기준"·"RED" 필드 존재(grep) && GAP-001이 Best-Direction Mandate.
-- [ ] **Step 3: Commit** — `"docs(harness-upgrade): 04 갭 백로그 — N항목 + 순위 산식"`
+- [x] **Step 1: 작성** — 항목 스키마 전 필드(ID/차원/severity/증거/목표/best-direction 근거/구현 스케치/수용 기준(결정론 커맨드)/테스트 계획(RED 재현자)/복잡도/의존성/Opus-실행성 주석). 순위 = 레버리지×델타, 난이도 강등 금지. 6월 defer 잔여 7건 전수 매핑.
+- [x] **Step 2: 결정론 계약 체크** — 19항목(17+적대 리뷰 신설 2) / Best-direction 근거 19/19 / 수용 기준 18(+GAP-016은 재평가-처분형) / RED 16. GAP-001 = Best-Direction Mandate(1순위, spec §4 고정). PASS.
+- [x] **Step 3: Commit** — done (c112906 + 2a30b0a).
 
 ### Task 5: 05-playbook.md + README.md 작성
 
@@ -87,20 +89,20 @@
 - Consumes: 01~04 전부 + 하네스 운영 규약(start-rpi-cycle·closeout-pr-cycle·검증 커맨드).
 - Produces: Opus가 문서만으로 착수 가능한 플레이북 + 진입점 README(읽기 순서·이니셔티브 상태).
 
-- [ ] **Step 1: 05 작성** — 사이클 운영 규약(spec/plan 경로·게이트·검증 커맨드 전문: verify-setup/run-all/verify-all/드리프트), 항목 착수 절차, 재채점 절차, 롤백 규약, 하네스 함정(캐시 §1·seal 발화·opencode 미러 sync·enforce-orchestrator 골격·worktree 규약·[1m] suffix 등) 인라인. auto-memory 참조 0 (grep 'MEMORY.md\|projects.*memory' 매치는 "참조 금지" 선언부만 허용).
-- [ ] **Step 2: README 작성** — 문서 지도·읽기 순서·상태 테이블(C0 완료, C1.. 대기)·Opus 첫 착수 포인터(GAP-001).
-- [ ] **Step 3: Commit** — `"docs(harness-upgrade): 05 플레이북 + README 진입점"`
+- [x] **Step 1: 05 작성** — 운영 규약·착수 절차·재채점·롤백·함정 11종 인라인. auto-memory grep = 선언부 1매치만(계약 충족).
+- [x] **Step 2: README 작성** — 지도·읽기 순서·상태 테이블·GAP-001 포인터·방법론 기록(적대 리뷰 결과 포함).
+- [x] **Step 3: Commit** — done (2a30b0a).
 
 ### Task 6: 교차패밀리 적대 리뷰 + 반영
 
 **Files:**
 - Modify: `docs/harness-upgrade-2026-07/*.md` (지적 반영분만)
 
-- [ ] **Step 1: ccs gpt 프로필로 03·04 핵심 판정 refute-by-default 리뷰 시도** — Run: `ccs` CLI 가용 확인 후 03 채점·04 순위에 대한 반증 요청. 불가 시(프록시/인증) 사유를 README 상태 절에 기록하고 진행(spec §5).
-- [ ] **Step 2: 반영 커밋** — 유효 지적만 수정. `"docs(harness-upgrade): 적대 리뷰 반영"`. 지적 0건이면 커밋 생략하고 README에 결과 기록.
+- [x] **Step 1: ccs 교차패밀리 리뷰 시도** — 3프로필 전부 실패(glm=프로필 부재 / codex=400 파라미터 비호환 / kimi=대화형 인증 필요). 사유 README 기록 + **fresh-context 적대 리뷰(동일 패밀리·별도 컨텍스트·refute-by-default)로 대체 수행 — 7건 발견**(점수 산술 모순 1·앵커 위반 1·순위 산식 위반 3·수용 기준 결함 3·누락 갭 1; 일부 중복 집계).
+- [x] **Step 2: 반영 커밋** — 7건 전부 반영(D3 4→3·D1 잔여 명시·D10 기각 기록·순위 스왑+tie-break 재선언·GAP-005/006/008/010 수용 기준 강화·GAP-018/019 신설). 커밋 2a30b0a.
 
 ### Task 7: 계약 검증 + Closeout
 
-- [ ] **Step 1: review-strict 계약 검증** — spec §2 표의 6문서 계약 항목별 PASS/FAIL + spec §7 수용 기준. FAIL 시 수정 후 재실행.
-- [ ] **Step 2: 하네스 검증 3종** — Run: `bash setup/verify-setup.sh`(70/0) && `bash hooks/tests/run-all.sh`(156/156) && `bash setup/verify-all.sh`(ALL PASS). 문서 전용이므로 기준선 무변동이어야 정상.
-- [ ] **Step 3: Closeout** — closeout-pr-cycle(PR 생성→검증→auto-merge, MERGE_POLICY: auto) → plan Status: completed → state.json bump(49) → 드리프트 검사 → 한국어 사이클 보고 + next-cycle-goal(C1=GAP-001).
+- [x] **Step 1: review-strict 계약 검증** — 1차 FAIL(04 필드 결락 7건: GAP-012/013/014/015/016/017 RED·수용기준, GAP-008 severity) → 전건 수정(N/A는 사유 명시) → 재검증 **7/7 PASS**.
+- [x] **Step 2: 하네스 검증 3종** — verify-setup **PASS=70 FAIL=0** · run-all **156/156 (100%)** · verify-all **"ALL PASS — system meets §6.6 acceptance gate"**. 기준선 무변동(문서 전용) 확인.
+- [x] **Step 3: Closeout** — closeout-pr-cycle(PR→auto-merge) → plan Status: completed → state.json bump(48, 헤더 정정 참조) → 드리프트 검사 → 한국어 사이클 보고 + next-cycle-goal(C1=GAP-001).
