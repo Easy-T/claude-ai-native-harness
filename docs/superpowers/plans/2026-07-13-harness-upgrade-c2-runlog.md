@@ -4,7 +4,7 @@
 **RPI-Cycle:** 52
 **Started:** 2026-07-13
 
-**Best-Direction Check:** 최선안 = hook_log 초크포인트에 JSONL 이미터를 피기백(전 판정 지점 100% 커버, 단일 편집점) + gen_ai.* 필드 정렬 + 4 차단 hook의 기존 json_get_many 호출 확장(node 스폰 0 추가) / 채택안 = 동일. log_summary는 TSV 포맷 유지 + 신규 runlog_summary 분리(기존 doctor 소비 계약 보존 — SSOT/호환 판단이지 열화 아님). DOWNGRADE-DECLARED: 없음.
+**Best-Direction Check:** 최선안 = hook_log 초크포인트에 JSONL 이미터를 피기백(**hook_log를 부르는 모든 verdict 지점 커버** — GAP-003 열거 이벤트(발화·차단·우회·FAILOPEN·active-plan PASS)는 전부 hook_log 경유이므로 포함. silent exit-0 비-verdict 경로·secret-scan clean-pass(line 51, 고빈도라 의도적 무로깅)는 기존 hook_log 설계상 제외 — 열화 아닌 기존 계약 승계) + gen_ai.* 필드 정렬 + 4 차단 hook의 기존 json_get(_many) 확장(rpi-cycle/rpi-bash/orchestrator 스폰 0, secret-scan +1 저빈도) / 채택안 = 동일. log_summary는 TSV 포맷 유지 + 신규 runlog_summary 분리(기존 doctor 소비 계약 보존 — SSOT/호환 판단이지 열화 아님). DOWNGRADE-DECLARED: 없음.
 
 **Goal:** 게이트 발화·차단·우회·FAILOPEN이 구조화 JSONL(`hooks/.runlog/YYYY-MM.jsonl`, gen_ai.* 필드)로 기록되고 closeout이 요약을 소비한다 (04 GAP-003 수용 기준이 SSOT).
 

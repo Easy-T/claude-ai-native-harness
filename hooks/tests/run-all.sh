@@ -744,6 +744,35 @@ LOGT=$(mktemp "$SCRATCH/logsum-XXXXXX.log")
   printf 'ts\tredirect-targets.js\tparser\tFAILOPEN\tparser-exit-1\n'; } > "$LOGT"
 test_lib "153-logsummary-counts" "BLOCK=2 SKIP=1 FAILOPEN=1 ALERT=0" "$(bash -c 'source "$HOME/.claude/hooks/_common.sh"; log_summary "$1"' _ "$LOGT")"
 
+# ==================== CYCLE-52 (GAP-003): 사이클 run-log JSONL (hook_log 피기백 + runlog_summary) ====================
+# rl-171: hook_log 초크포인트가 run_log_event 를 피기백해 RUNLOG_DIR 에 유효 JSONL 1줄(gen_ai.* 필드) 방출.
+#         node 는 마지막 줄 JSON.parse 유효성만; 필드는 grep(값 미노출). RUNLOG_DIR override = hermetic.
+RLD1="$SCRATCH/rl171"
+RUNLOG_DIR="$RLD1" RL_SID="s171" RL_TOOL="Bash" bash -c 'source "$HOME/.claude/hooks/_common.sh"; hook_log "enforce-rpi-bash" "foo.py" "BLOCK" "no-active-plan"' 2>/dev/null
+RLF1=$(ls "$RLD1"/*.jsonl 2>/dev/null | head -1)
+TOTAL=$((TOTAL+1)); g_rl1=bad
+if [ -n "$RLF1" ] \
+   && node -e 'JSON.parse(require("fs").readFileSync(process.argv[1],"utf8").trim().split(/\n/).pop())' "$RLF1" 2>/dev/null \
+   && grep -q '"verdict":"BLOCK"' "$RLF1" && grep -q '"gen_ai.tool.name":"Bash"' "$RLF1" && grep -q '"session_id":"s171"' "$RLF1"; then g_rl1=ok; fi
+[ "$g_rl1" = ok ] && PASSED=$((PASSED+1)) || FAILED_LIST+=("run-log/rl-171-emit-chain (got=$g_rl1)")
+
+# rl-172: 우회(skip) verdict 도 JSONL 로 방출 — PASS + reason skip: 캡처(우회 관측).
+RLD2="$SCRATCH/rl172"
+RUNLOG_DIR="$RLD2" RL_SID="s172" RL_TOOL="Write" bash -c 'source "$HOME/.claude/hooks/_common.sh"; hook_log "enforce-rpi-cycle" "x.ts" "PASS" "skip:hotfix"' 2>/dev/null
+RLF2=$(ls "$RLD2"/*.jsonl 2>/dev/null | head -1)
+TOTAL=$((TOTAL+1)); g_rl2=bad
+if [ -n "$RLF2" ] && grep -q '"verdict":"PASS"' "$RLF2" && grep -q '"reason":"skip:hotfix"' "$RLF2"; then g_rl2=ok; fi
+[ "$g_rl2" = ok ] && PASSED=$((PASSED+1)) || FAILED_LIST+=("run-log/rl-172-emit-bypass (got=$g_rl2)")
+
+# rl-173: runlog_summary 가 JSONL 을 소비해 verdict 카운트 출력(closeout 소비 원천, 값 미노출).
+RLJT=$(mktemp "$SCRATCH/rljson-XXXXXX.jsonl")
+{ printf '{"verdict":"BLOCK","reason":"no-active-plan"}\n'
+  printf '{"verdict":"BLOCK","reason":"no-active-plan"}\n'
+  printf '{"verdict":"PASS","reason":"skip:hotfix"}\n'
+  printf '{"verdict":"PASS","reason":"plan=p.md"}\n'
+  printf '{"verdict":"FAILOPEN","reason":"parser-exit-1"}\n'; } > "$RLJT"
+test_lib "rl-173-runlog-summary" "EVENTS=5 BLOCK=2 PASS=2 SKIP=1 FAILOPEN=1 ALERT=0" "$(bash -c 'source "$HOME/.claude/hooks/_common.sh"; runlog_summary "$1"' _ "$RLJT")"
+
 # ==================== CYCLE-40: PRETOOLUSE 워크트리 마커 WRITE (실-입력 shape) + wt_root_from_path 단위 ====================
 # 주: test_lib(538) 정의 이후 배치 — 165/166 가 test_lib 사용. 실 $HOME/.claude/worktrees-marker 사용(고유 SID+즉시 정리).
 # 실-입력 shape: cwd=메인 레포 루트(워크트리 아님) + tool_input 에 워크트리 절대경로 → record 가 마커 기록.
