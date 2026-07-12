@@ -10,7 +10,7 @@
 | 순위 | ID | 제목 | 차원(델타) | 레버리지 | 상태 |
 |---|---|---|---|---|---|
 | 1 | GAP-001 | Best-Direction Mandate | D10(3→0) | 전 후속 사이클의 plan 품질에 작용 | **DONE(C1, 2026-07-13)** — 4층 전부: CLAUDE.md 정련·Phase P 필드+Gate P·C-1 silent-downgrade·seal #35(RED→GREEN) |
-| 2 | GAP-003 | 사이클 run-log (관측 기반) | D4(1) | D5 예산 측정·D7 인사이트·D12 사용통계·GAP-002/005/012를 unblock — 최대 레버리지 | PENDING |
+| 2 | GAP-003 | 사이클 run-log (관측 기반) | D4(1→0) | D5 예산 측정·D7 인사이트·D12 사용통계·GAP-002/005/012를 unblock — 최대 레버리지 | **DONE(C2, 2026-07-13)** — run_log_event JSONL(gen_ai.*)+runlog_summary+doctor 20e; G6-b/G3-a 흡수(아래) |
 | 3 | GAP-002 | 자율성 예산 governor | D5(2) | 무인 goal-loop 전체의 안전 상한 — 이 이니셔티브 자신이 무인 | PENDING |
 | 4 | GAP-005 | 스캐폴드 노화 관리 | D12(2) | 전 skill/hook/seal 표면에 작용; Δ2 동률 내 tie-break=긴급도(Fable 5 가이드 직접 충돌) | PENDING |
 | 5 | GAP-004 | 메모리 수명주기 정책 | D6(2) | 포이즈닝 방어+rot 방지 — 메모리 소비 전 세션에 작용 (Δ2 — 적대 리뷰로 구 5위 GAP-006과 스왑) | PENDING |
@@ -91,6 +91,10 @@
 - **테스트 계획(RED)**: run-all에 runlog 단언 케이스 추가 — 구현 전 파일 부재로 FAIL → 구현 후 GREEN. FAILOPEN 경로는 failopen-surface.test.sh 확장.
 - **복잡도**: 중 · **의존성**: 없음(GAP-002·005·012가 이것에 의존) · **사이클 분할**: 단일.
 - **Opus-실행성**: 높음. 함정: hook은 성능 민감(PreToolUse 매 호출) — append-only 1줄 write로 제한; JSON 조립은 node 아닌 printf(파서 의존 최소화, fail-open 원칙 — 로깅 실패가 판정을 막으면 안 됨 `|| true`).
+- **DONE(C2, 2026-07-13)**: `_common.sh` `run_log_event`(printf JSONL, `_json_escape`, `RUNLOG_DIR` override)를 `hook_log` 초크포인트에 피기백 → 4 차단 hook `RL_SID`/`RL_TOOL` export(rpi-cycle/rpi-bash/orchestrator 스폰 0, secret-scan +1). `runlog_summary` 소비(doctor 20e: 로테이션+FAILOPEN>0 WARN, start-rpi-cycle Step C-1 사이클 보고). `hooks/RUNLOG.md` 스키마. RED(run-all rl-171/172/173 FAIL, functions 부재)→GREEN(159/159, doctor "run-log 당월 집계"). **RED 실제 구현 = 3 대표 케이스**(04 초안의 failopen-surface 확장 대신 — FAILOPEN은 피기백으로 자동 포착, 별도 확장 불요). **doctor 이상탐지 포함**(초안 SKILL.md-only에서 04 목표 완주로 확장 — Best-Direction). **opencode 미러 미터치**(claude-hooks 전용 기능, 별도 이니셔티브).
+  - **G6-b 흡수(6월 defer, fail-open 표면화 3번째 조각)**: FAILOPEN verdict가 이제 JSONL로도 구조화 기록 + doctor 20e가 FAILOPEN>0을 WARN으로 능동 표면화(session-start-audit 런타임 ALERT에 더해 집계 레벨 표면 완성). **DONE**.
+  - **G3-a 흡수(우회 실시간 표면 잔여)**: RPI_SKIP/SECRET_SCAN_SKIP 우회가 이제 `reason:"skip:..."`로 JSONL 기록 + runlog_summary SKIP 카운트 + doctor 집계 노출(rev2 #3 additionalContext 실시간 표면에 더해 사후 집계 표면 완성). **DONE**.
+  - **GAP-016(proof-artifact) 처분 카운트다운 개시**: run-log 착륙 → 사이클 보고 게이트 통계 고정 포맷이 사실상 proof-artifact. C3 closeout까지 GAP-016 DONE(흡수)/REJECTED 판정 기록 필요.
 
 ## GAP-004 — 메모리 수명주기 정책
 
