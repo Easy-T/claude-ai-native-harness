@@ -41,6 +41,30 @@ _Avoid_: "강제"(advisory 표면과 혼동 금지).
 SessionEnd hook `worktree-teardown.sh`가 종료 세션의 *링크된* 워크트리를 삭제하는 절차. 불변식=데이터손실 0: 삭제 대상은 `git rev-parse --absolute-git-dir`로 링크 워크트리(`/worktrees/` 세그먼트 + basename==NAME)임이 증명된 단 하나; reparse point(정션)는 `rm` 전 *링크-only 선제거*(PowerShell 비재귀 `[IO.Directory]::Delete($false)`)로 제거해 정션이 `rm`에 도달 못 하게 한다. `git worktree remove --force` 미사용(정션 추종 사고 1차 범인). matcher가 `clear`/`resume` 제외(세션 지속 보호). SessionStart/End hook cwd는 항상 CLI 실행디렉터리(메인루트)지 워크트리가 아니므로(cycle-40 정정, spec §10), 워크트리 절대경로가 실제 도달하는 **PreToolUse**(enforce-rpi-cycle/bash)가 `session_id`-키 마커(`~/.claude/worktrees-marker/<sid>`=WT_ROOT)를 기록하고 SessionEnd가 자기 SID 마커를 소비하는 **fallback**을 둔다(SessionStart는 launched-from-worktree 보조; cwd가 authoritative·마커는 GUARD2/3 통과 후에만 삭제·빈 SID는 마커 skip·다른 SID 마커가 같은 WT_ROOT면 정리 보류=C5 동시성 가드). 워크트리 *디렉터리*가 harness/외부에 의해 제거돼 SessionEnd가 식별 못 하는 잔여(git 등록 prunable + `worktree-*` 브랜치 누적)는 `session-start-audit`의 **self-healing sweep**(`git worktree prune` + live worktree 미점유 고아 `worktree-*` 브랜치만 `-D`)가 식별-무관하게 청소; 활성 워크트리/타세션 브랜치/비-컨벤션 브랜치 보호(C5 원리), `.claude/worktrees` 존재 프로젝트로 게이트(spec §11).
 _Avoid_: "워크트리 정리"(`git worktree prune`와 혼동), "rm 워크트리"(가드 생략 함의), "마커=삭제권한"(마커는 fallback 식별자일 뿐, GUARD2/3가 authoritative).
 
+### anti-slop floor
+design.md §6 체크리스트가 검사하는 "나쁨의 부재" 기준선(18항목). 삭제 절대 금지 — 문구 정련·랩 증거 기반 스코프 예외만 허용.
+_Avoid_: "anti-slop 완화"(floor 삭제 함의), "체크리스트 축소".
+
+### craft ceiling
+"좋음의 존재"를 검사하는 상한 기준(위계 점프 ≥3단계·signature move 존재·밀도 완급 등, design.md v2 신설). floor와 이원 축 — floor 통과가 ceiling 통과를 함의하지 않는다.
+_Avoid_: "quality bar"(단일 축 오해).
+
+### signature move
+페이지당 정확히 1개 허용되는 기억에 남는 표현 순간(오프닝 안무·스크롤 전환·예상 밖 그리드 등). 0개 = ceiling 미달, 2개+ = 완급 붕괴.
+_Avoid_: "wow factor"(수량 상한 없는 어휘).
+
+### FRICTION 채록
+design lab에서 현행 design.md가 침묵/부족/과광역/틀림/충돌인 지점을 규칙 단위(`F-L<n>-<seq>`)로 증거(스크린샷·코드 라인)와 함께 기록하는 절차. v2 신규 규칙의 유일한 원료 — 무증거 규칙 금지.
+_Avoid_: "버그 리포트"(코드 결함과 혼동 — 대상은 문서의 결함).
+
+### cold-agent fitness
+문서**만** 받은 새 에이전트가 ≤N 이터레이션 내 floor+ceiling을 재현하는지로 **문서 품질**을 판정하는 수용 기준. FAIL은 사이트가 아니라 문서의 결함으로 회귀한다.
+_Avoid_: "사이트 품질 테스트"(판정 대상 오인).
+
+### design lab
+`~/.claude/_design-lab/` — gitignored(`/_*/`) 실증 작업장. 실사이트 제작으로 미학 상한을 실증하고 FRICTION을 채록한다. 사이트는 증거, 문서가 제품 — 랩 산출물 자체는 배포물이 아니다.
+_Avoid_: "데모 사이트"(산출물로 오인).
+
 ### 동시-세션 격리 (concurrent-session isolation)
 병렬 Claude 세션이 공유하는 ambient 싱글톤(Playwright chrome 프로필·dev 포트·dev서버 프로세스)에 대한 규약: 동시 세션은 상대 프로세스를 kill하지 않고(상호 파괴 방지) 대기 또는 isolated/ephemeral 프로필+세션별 포트로 회피. 경로-스코프 kill(worktree-teardown STEP A: 자기 워크트리 경로 매칭만)이 안전 준거. SECURITY.md에 안전모델 명시.
 _Avoid_: "프로세스 정리"(광역 kill 함의), "stale-process kill"(단일세션 시간축과 혼동 — 이쪽은 다중세션 공간축).
