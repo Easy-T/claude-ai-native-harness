@@ -1,6 +1,6 @@
 # UI-Design Craft C3 — Verify + Closeout Implementation Plan
 
-**Status:** active
+**Status:** completed
 **RPI-Cycle:** 51
 **Started:** 2026-07-13
 
@@ -31,7 +31,7 @@
 - Modify: `_design-lab/lab/src/App.jsx` (라우트 `/l4` — 메인이 수행, 디자인 결정 아님)
 - Create: `_design-lab/FITNESS-L4.md` (판정 기록)
 
-- [ ] **Step 1: cold agent 디스패치** — execute-strict에 정확히 이 프롬프트(디자인 힌트 0):
+- [x] **Step 1: cold agent 디스패치** — execute-strict에 정확히 이 프롬프트(디자인 힌트 0):
 
 ```
 task: 스튜디오 온도(디지털 크래프트 스튜디오)의 서비스 「온도 옵스」 프라이싱 페이지를 React 단일 파일 컴포넌트로 제작하라.
@@ -44,39 +44,39 @@ context_paths: ["C:/Users/12132/.claude/skills/ui-design/design.md"]
 ```
 ※ CSS 신규 클래스가 필요하면(모션·잉크 등) L4.jsx 내 `<style>` 또는 인라인로 자족시키게 두기 — index.css 접근권 없음이 곧 "문서만으로 재현" 시험.
 
-- [ ] **Step 2: 라우트 배선 + 렌더 스모크** — App.jsx에 `/l4` 추가, dev 서버(ephemeral 포트) 기동, 콘솔 에러 0.
-- [ ] **Step 3: 실측 게이트 (§4.4)** — 오버플로우(390/768/1440×light/dark, root+내부)=0 · 다크 무결 · reduced-motion 동등 · CLS<0.02. 결과를 FITNESS-L4.md에 표로.
-- [ ] **Step 4: floor+ceiling 채점** — review-strict: §6 18항목 + §15 ceiling 전항(위계 점프·signature move 정확히 1·완급·hover 보상·focus-visible·reduced-motion·tabular-nums(해당)·다크 무결). context: design.md + L4.jsx. 판정을 FITNESS-L4.md에.
-- [ ] **Step 5: 판정 분기** — ALL PASS → Task 2 skip, Task 3으로. FAIL → 각 FAIL 항목을 "문서의 어느 §가 침묵/모호해서 cold agent가 틀렸나"로 역추적해 FITNESS-L4.md에 기록 + design.md 회귀 수정(additive, evidence는 `F-FIT-<seq>`로 FRICTION.md에 채록) → Task 2.
+- [x] **Step 2: 라우트 배선 + 렌더 스모크** — App.jsx에 `/l4` 추가, dev 서버(ephemeral 포트) 기동, 콘솔 에러 0.
+- [x] **Step 3: 실측 게이트 (§4.4)** — 오버플로우(390/768/1440×light/dark, root+내부)=0 · 다크 무결 · reduced-motion 동등 · CLS<0.02. 결과를 FITNESS-L4.md에 표로.
+- [x] **Step 4: floor+ceiling 채점** — review-strict: §6 18항목 + §15 ceiling 전항(위계 점프·signature move 정확히 1·완급·hover 보상·focus-visible·reduced-motion·tabular-nums(해당)·다크 무결). context: design.md + L4.jsx. 판정을 FITNESS-L4.md에.
+- [x] **Step 5: 판정 분기** — ALL PASS → Task 2 skip, Task 3으로. FAIL → 각 FAIL 항목을 "문서의 어느 §가 침묵/모호해서 cold agent가 틀렸나"로 역추적해 FITNESS-L4.md에 기록 + design.md 회귀 수정(additive, evidence는 `F-FIT-<seq>`로 FRICTION.md에 채록) → Task 2.
 
 ### Task 2: cold-agent fitness — iter 2 (조건부: iter 1 FAIL 시만)
 
-- [ ] **Step 1: 새 cold agent** (iter 1과 무관한 fresh 컨텍스트, 같은 프롬프트+수정된 design.md) → L4.jsx 재생성.
-- [ ] **Step 2: 게이트+채점 재실행** (Task 1 Step 3–4 동일).
-- [ ] **Step 3: 최종 판정** — PASS → 문서 합격. FAIL → **이니셔티브 수용 기준 미달**: FITNESS-L4.md에 잔여 결함 목록 명기, 사용자 보고 항목으로 승격 (goal §4 — fitness는 핵심 수용 기준이므로 자체판단 종결 불가).
+- [x] **Step 1: 새 cold agent** (iter 1과 무관한 fresh 컨텍스트, 같은 프롬프트+수정된 design.md) → L4.jsx 재생성.
+- [x] **Step 2: 게이트+채점 재실행** (Task 1 Step 3–4 동일).
+- [x] **Step 3: 최종 판정** — PASS → 문서 합격. FAIL → **이니셔티브 수용 기준 미달**: FITNESS-L4.md에 잔여 결함 목록 명기, 사용자 보고 항목으로 승격 (goal §4 — fitness는 핵심 수용 기준이므로 자체판단 종결 불가).
 
 ### Task 3: 교차패밀리 적대 리뷰 (best-effort)
 
-- [ ] **Step 1: ccs 가용 확인** — `ccs --version` + 프로필 목록에 gpt 계열 존재 확인. 불가 시: FITNESS-L4.md에 "교차 리뷰 SKIP: <사유>" 기록 후 Task 4 (spec §7 "가능 시").
-- [ ] **Step 2: 가용 시** — `ccs <gpt-profile> -p "design.md v2를 refute-by-default로 리뷰: 규칙 간 모순·재현 불가능한 모호 규칙·한국어 프로덕트 관점 결함을 각각 §번호와 함께. 칭찬 금지, 결함만."` 결과를 FITNESS-L4.md에 요약, 실결함만 design.md 수정(무증거 제안은 차기 후보로).
+- [x] **Step 1: ccs 가용 확인** — `ccs --version` + 프로필 목록에 gpt 계열 존재 확인. 불가 시: FITNESS-L4.md에 "교차 리뷰 SKIP: <사유>" 기록 후 Task 4 (spec §7 "가능 시").
+- [x] **Step 2: 가용 시** — `ccs <gpt-profile> -p "design.md v2를 refute-by-default로 리뷰: 규칙 간 모순·재현 불가능한 모호 규칙·한국어 프로덕트 관점 결함을 각각 §번호와 함께. 칭찬 금지, 결함만."` 결과를 FITNESS-L4.md에 요약, 실결함만 design.md 수정(무증거 제안은 차기 후보로).
 
 ### Task 4: opencode 미러 sync
 
 **Files:**
 - Modify: `opencode-harness/skill/ui-design/design.md` (byte-sync), `opencode-harness/skill/ui-design/SKILL.md` (구조-sync)
 
-- [ ] **Step 1: design.md byte-copy** — `cp skills/ui-design/design.md opencode-harness/skill/ui-design/design.md` 후 `cmp` 0 확인.
-- [ ] **Step 2: SKILL.md 구조-sync** — 미러의 기존 분기 2건(오프라인 CDN 노트·task-도구 디스패치) 위치 확인 후, v2 5-Phase 본문으로 갱신하되 그 분기를 보존 재적용. frontmatter에 http(s):// 금지 확인.
-- [ ] **Step 3: opencode 오라클** — `node opencode-harness/_oracle/skill-discovery.mjs` PASS (MIN_SKILLS≥21·frontmatter 규칙).
+- [x] **Step 1: design.md byte-copy** — `cp skills/ui-design/design.md opencode-harness/skill/ui-design/design.md` 후 `cmp` 0 확인.
+- [x] **Step 2: SKILL.md 구조-sync** — 미러의 기존 분기 2건(오프라인 CDN 노트·task-도구 디스패치) 위치 확인 후, v2 5-Phase 본문으로 갱신하되 그 분기를 보존 재적용. frontmatter에 http(s):// 금지 확인.
+- [x] **Step 3: opencode 오라클** — `node opencode-harness/_oracle/skill-discovery.mjs` PASS (MIN_SKILLS≥21·frontmatter 규칙).
 
 ### Task 5: README + 하네스 검증 트리플 + 커밋
 
 **Files:**
 - Modify: `README.md` (:56 ui-design Phase 표기 → `1(Load) → 2(Concept) → 3(Apply) → 4(Verify) → 5(Visual QA)`, :299-301 트리 설명 갱신)
 
-- [ ] **Step 1: README 갱신** — 위 2곳. 다른 행 비접촉 (Surgical).
-- [ ] **Step 2: 검증 트리플** — `bash setup/verify-setup.sh`(70/0) · `bash hooks/tests/run-all.sh`(156/156) · `bash setup/verify-all.sh`(ALL PASS). FAIL 시 수정 후 재실행.
-- [ ] **Step 3: 커밋** —
+- [x] **Step 1: README 갱신** — 위 2곳. 다른 행 비접촉 (Surgical).
+- [x] **Step 2: 검증 트리플** — `bash setup/verify-setup.sh`(70/0) · `bash hooks/tests/run-all.sh`(156/156) · `bash setup/verify-all.sh`(ALL PASS). FAIL 시 수정 후 재실행.
+- [x] **Step 3: 커밋** —
 ```bash
 cd ~/.claude && git add _design-lab 2>/dev/null; git add skills/ui-design/ opencode-harness/skill/ui-design/ README.md \
   docs/superpowers/plans/2026-07-13-ui-design-craft-c3-verify-closeout.md
