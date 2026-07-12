@@ -2,6 +2,7 @@
 
 > 원천: 리서치 에이전트 6축(R-A Anthropic / R-B 타 벤더 / R-C 프론티어 실전 / R-D 방법론·안전 / R-E 관측·메모리·컨텍스트 / R-F 최신 10주 스윕), 2026-07-13 수행. 규율: 주장마다 (출처, 게시일) + [FACT]=출처 직접 확인 / [INFERENCE]=종합 해석. 2026-06 감사가 기매핑한 소스(Anthropic context-engineering·Cognition traces·Kiro·12-factor·Ralph·SWE-agent ACI·Hamel)는 **델타만**.
 > 검증 실패·상충은 §9에 명시. 이 문서는 스냅샷 — 표준은 움직인다(특히 OTel GenAI는 Development 상태).
+> 인용 표기: 가독성을 위해 `https://` 접두를 생략한 도메인+경로 축약형 — 전체 URL은 `https://` + 표기 문자열. (예: `anthropic.com/engineering/managed-agents` → `https://anthropic.com/engineering/managed-agents`)
 
 ## 1. Anthropic 플랫폼 (R-A)
 

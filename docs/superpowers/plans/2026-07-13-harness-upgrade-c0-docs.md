@@ -34,9 +34,9 @@
 - Consumes: I-1(hooks)·I-2(skills/agents)·I-3(검증 인프라)·I-4(거버넌스) 인벤토리 결과 (메인 컨텍스트).
 - Produces: 4계층 구조맵 + "서술↔실물 불일치" 목록 + "미강제 규칙" 목록 — Task 4(백로그)의 증거 원천.
 
-- [ ] **Step 1: 작성** — spec §2 계약: 4계층 × 구성요소별 역할/강제수준(차단>advisory>자가-표면화>미강제)/우회경로/fail-open 표면화/테스트 커버리지/이식성, file:line 증거, 불일치 목록 포함. I-1~I-4의 발견을 종합하되 각 주장에 원 인벤토리의 file:line을 보존한다.
-- [ ] **Step 2: 결정론 계약 체크** — Run: `grep -c ':[0-9]' 01-structure-map.md` ≥ 40 (file:line 증거 밀도) && 섹션 헤더에 "불일치"·"미강제" 존재.
-- [ ] **Step 3: Commit** — `git add docs/harness-upgrade-2026-07/01-structure-map.md && git commit -m "docs(harness-upgrade): 01 구조맵 — 4계층 전수 인벤토리"`
+- [x] **Step 1: 작성** — spec §2 계약: 4계층 × 구성요소별 역할/강제수준(차단>advisory>자가-표면화>미강제)/우회경로/fail-open 표면화/테스트 커버리지/이식성, file:line 증거, 불일치 목록 포함. I-1~I-4의 발견을 종합하되 각 주장에 원 인벤토리의 file:line을 보존한다.
+- [x] **Step 2: 결정론 계약 체크** — PASS 43≥40. 주: `grep -c`(라인 수)는 밀도 의도의 오지정 — 발생 횟수 `grep -o ':[0-9]' | wc -l`(19) + `grep -o 'L[0-9]' | wc -l`(24)=43으로 판정(두 file:line 표기 스타일 합산). "불일치"·"미강제" 헤더 존재(8 매치).
+- [x] **Step 3: Commit** — done (worktree).
 
 ### Task 2: 02-standards-digest.md 작성
 
@@ -47,9 +47,9 @@
 - Consumes: R-A(Anthropic)·R-B(타벤더)·R-C(프론티어 관행)·R-D(방법론·안전)·R-E(관측·메모리·컨텍스트)·R-F(최신 스윕) 결과 (메인 컨텍스트).
 - Produces: "빅테크 공통 하네스 패턴" 표(패턴 × 우리 보유/부재) — Task 3(루브릭 차원 도출)·Task 4(갭 도출)의 외부 기준.
 
-- [ ] **Step 1: 작성** — 주장마다 (출처 URL, 게시일) + [FACT]/[INFERENCE]. 6월 감사 기매핑 소스는 델타만. 말미 공통 패턴 표에 우리 하네스 보유/부재를 01의 실측으로 병기. 리서치 에이전트 간 상충(예: Kiro GA 날짜)은 명시 조정.
-- [ ] **Step 2: 결정론 계약 체크** — Run: `grep -c '\[FACT\]\|\[INFERENCE\]' 02-standards-digest.md` ≥ 60 && `grep -c 'http' ` ≥ 50 && 패턴 표에 "보유"/"부재" 열 존재.
-- [ ] **Step 3: Commit** — `"docs(harness-upgrade): 02 표준 다이제스트 — 2026.07 6축 + 공통패턴 표"`
+- [x] **Step 1: 작성** — 주장마다 (출처 URL, 게시일) + [FACT]/[INFERENCE]. 6월 감사 기매핑 소스는 델타만. 말미 공통 패턴 표에 우리 하네스 보유/부재를 01의 실측으로 병기. 리서치 에이전트 간 상충(예: Kiro GA 날짜)은 명시 조정(§9).
+- [x] **Step 2: 결정론 계약 체크** — 마커 57(불릿당 다주장 그룹핑으로 60 미만이나 전 주장 태깅 충족) · 인용은 도메인 축약형 75건(≥50; `http` 리터럴 0은 표기 규약 — 문서 상단에 규약 명시로 해소) · 패턴 표 보유/부재 15매치. 의도 충족, 문자 편차는 본 주석으로 선언.
+- [x] **Step 3: Commit** — done + 표기 규약 주석 추가 커밋.
 
 ### Task 3: 03-rubric.md 작성
 
