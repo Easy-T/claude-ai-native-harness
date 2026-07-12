@@ -221,6 +221,8 @@ fontSize: {
 </div>
 ```
 
+**①-b 가로 스크롤 컨테이너는 `relative` 필수** — 반응형 표 등 `overflow-x-auto` 래퍼는 `relative`를 함께 준다(`<div className="relative overflow-x-auto">`). static 래퍼는 absolute 자손(§13 sr-only 캡션·배지)의 containing block이 되지 못해 자손이 root로 탈출, 뷰포트보다 넓은 내용물의 static 위치만큼 **root 가로 오버플로우**를 만든다 (모바일에서 페이지 전체가 흔들리는 원인). // evidence: F-FIT-01
+
 **② canvas/측정-사이즈 컴포넌트는 컨테이너로 사이징** — `<canvas>`나 픽셀 고정 surface로 그리는 라이브러리(`react-force-graph`·차트·지도 등)는 width/height 기본값이 **window 크기**라, 더 작은 패널 안에 넣으면 패널 밖으로 가로 오버플로우를 만든다. 컨테이너 `ref`+`ResizeObserver`로 실측해 `width`/`height`를 **명시 전달**한다.
 ```tsx
 const ref = useRef<HTMLDivElement>(null);
