@@ -53,7 +53,7 @@
 | `closeout-pr-cycle` | "PR 만들어줘", "merge 준비해줘", "작업 마무리해줘" | Preflight → 1(Local Gate) → 2(PR Gate) → 3(CI Gate) → 4(Senior Review) → 5(User Approval) → 6(Merge/Cleanup) |
 | `create-orchestrator-skill` | "이거 skill로", "orchestrator", "<X> skill 만들어줘" | 1(Capture) → 2(skill-creator) → 3(Inject Skeleton) → 4(Verify) |
 | `improve-codebase-architecture` | "아키텍처 개선해줘", "README 만들어줘", "코드 구조 점검" | Preflight → 1(Explore) → 2(Candidates) → 3(Execute, optional) → 4(README) |
-| `ui-design` | UI/UX 컴포넌트, Tailwind, CSS, "디자인 만들어줘", "예쁘게" | 1(Load Reference) → 2(Apply) → 3(Verify) |
+| `ui-design` | UI/UX 컴포넌트, Tailwind, CSS, "디자인 만들어줘", "예쁘게" | 1(Load) → 2(Concept·브리프) → 3(Apply) → 4(Verify floor+ceiling) → 5(Visual QA·실측) |
 | `common-agent-contract` | (자동 주입) | wrapper agent 3종에 Input/Output 표준 주입 |
 
 > 이 외 **비강제 on-demand skill**: `statusline` — 커스텀 상태줄(`statusline.sh`) 수정·수리·복원 시에만 가져다 쓰는 유지보수 skill. 하네스 게이트(위 6개)와 무관하며, 필요한 경우에만 호출.
@@ -297,8 +297,8 @@ bash ~/.claude/setup/doctor.sh
 │   ├── improve-codebase-architecture/SKILL.md  구조 개선 + README orchestrator
 │   ├── statusline/SKILL.md               상태줄 유지보수 (비강제 on-demand)
 │   └── ui-design/                        UI/UX 디자인 orchestrator
-│       ├── SKILL.md
-│       └── design.md                     디자인 토큰 + Anti-Slop Checklist
+│       ├── SKILL.md                      5-Phase (Load→Concept→Apply→Verify→Visual QA)
+│       └── design.md                     디자인 토큰 + Anti-Slop floor(§6) + Craft Ceiling(§9–§15)
 │   ※ 디스크에는 git-미추적 skill 2종이 추가로 존재 가능: grill-with-docs(doctor 자동설치·gitignored),
 │      ccs-delegation(로컬 정션·비추적 — CCS CLI 위임용, 하네스 게이트와 무관)
 │
