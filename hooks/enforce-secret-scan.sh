@@ -13,6 +13,9 @@ source "$HOME/.claude/hooks/_common.sh"
 require_node
 
 INPUT=$(read_input)
+# GAP-003: run-log 인리치(session_id + tool_name). 저빈도 hook 이라 node 1회 추가 수용(전 verdict SID 커버).
+IFS=$'\037' read -r RL_SID RL_TOOL <<< "$(echo "$INPUT" | json_get_many session_id tool_name)"
+export RL_SID RL_TOOL
 
 # Write/Edit/NotebookEdit/Bash 어디서 와도 검사 대상 텍스트를 모은다.
 PAYLOAD=$(echo "$INPUT" | node -e '
@@ -27,7 +30,7 @@ PAYLOAD=$(echo "$INPUT" | node -e '
 
 if [ -n "${SECRET_SCAN_SKIP:-}" ]; then
   hook_log "enforce-secret-scan" "payload" "PASS" "skip:${SECRET_SCAN_SKIP}"
-  surface_bypass "secret-scan" "$(echo "$INPUT" | json_get session_id)" "⚠ 시크릿 스캔 우회 (SECRET_SCAN_SKIP='${SECRET_SCAN_SKIP}') — 이 페이로드 미검사; 의도된 우회인지 확인"
+  surface_bypass "secret-scan" "$RL_SID" "⚠ 시크릿 스캔 우회 (SECRET_SCAN_SKIP='${SECRET_SCAN_SKIP}') — 이 페이로드 미검사; 의도된 우회인지 확인"
   exit 0
 fi
 

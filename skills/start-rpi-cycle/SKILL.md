@@ -204,6 +204,7 @@ closeout-pr-cycle 결과를 받아:
 6. 전역 하네스(~/.claude) 자체를 수정한 사이클이면: `bash ~/.claude/setup/verify-setup.sh` 실행 →
    PASS 확인 (cross-doc drift 게이트 #17: §3↔Phase R, #18: next-cycle-goal, #19: harness-verify 포함). FAIL이면 문서 불일치 수정 후 재실행.
    → 결과는 Communication Protocol `harness-verify:` **전용 필드**로 보고(복합 evidence에 접지 않음 — 누락 시 구조적 불완전).
+   → 하네스 수정 사이클이면 **run-log 요약도 소비**(GAP-003): `source ~/.claude/hooks/_common.sh; runlog_summary ~/.claude/hooks/.runlog/$(date +%Y-%m).jsonl` 출력(EVENTS/BLOCK/SKIP/FAILOPEN 카운트)을 사이클 보고에 1줄 포함 — 이번 사이클의 게이트 발화·우회 관측(값 미표시, 카운트만). 파일 부재 시 생략.
 
 7. 다음 사이클 goal 초안 (advisory — cycle.count ≥ 1일 때 필수; 출력 = Communication Protocol `next-cycle-goal` **고유 필수 필드**):
    ※ 목적: 1단계처럼 길게 한 사이클을 돈 뒤, 사용자가 다음 사이클을 큰 흐름(goal)으로 제어하고,

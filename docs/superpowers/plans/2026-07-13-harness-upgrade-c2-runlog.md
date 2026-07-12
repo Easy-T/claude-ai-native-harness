@@ -14,7 +14,7 @@
 - cases.tsv·README 케이스 카운트 156→159 동기(seal #20). verify-setup 72 불변(#36 무영향).
 
 ### Task 1: `run_log_event` + hook_log 피기백 + runlog_summary (_common.sh)
-- [ ] JSONL 필드: ts, session_id(RL_SID env), gen_ai.tool.name(RL_TOOL env), gen_ai.operation.name(hook명), verdict, target, reason — \\·" 이스케이프, 개행 불가(printf 1줄)
+- [ ] JSONL 필드: ts, session_id(RL_SID env), gen_ai.tool.name(RL_TOOL env), gen_ai.operation.name(hook명), verdict, target, reason — \\·" 이스케이프(`_json_escape`), 개행 불가(printf 1줄), `RUNLOG_DIR` override(hermetic)
 - [ ] hook_log 말미에 run_log_event 호출(초크포인트) · runlog_summary(당월 총 이벤트+verdict 카운트) · .gitignore `hooks/.runlog/` · `hooks/RUNLOG.md` 스키마 문서(간결)
 
 ### Task 2: 4 차단 hook RL_SID/RL_TOOL 인리치
@@ -25,8 +25,10 @@
 - [ ] run-all에 rl-171(BLOCK 기록+JSON 유효성 node 파스)·rl-172(RPI_SKIP 우회 기록)·rl-173(active-plan PASS 기록) — 고유 타깃명 grep, 구현 전 RED 확인
 - [ ] cases.tsv 3행 + README "156 케이스"→159 (seal #20 GREEN)
 
-### Task 4: closeout 소비 규약 (SKILL.md canonical+미러)
-- [ ] start-rpi-cycle Step C-1에 "runlog_summary 출력을 사이클 보고에 포함" 서브라인 (골격·seal 토큰 불변)
+### Task 4: closeout 소비 규약 (SKILL.md canonical) + doctor 이상탐지
+- [ ] start-rpi-cycle Step C-1 sub-step 6에 "runlog_summary 출력을 사이클 보고에 1줄 포함" 서브라인 (골격·seal 토큰 불변)
+- [ ] **doctor 20e 추가**(04 GAP-003 목표 "doctor 이상 패턴 ALERT" 이행 — plan 초안이 SKILL.md만 적었으나 04 목표 완주가 Best-Direction; 무선언 열화 회피): runlog_summary 소비 + 로테이션(≤6) + FAILOPEN>0 시 WARN
+- [ ] **opencode 미러 미터치 선언**: run-log 는 claude-hooks(_common.sh) 전용 — opencode 하네스는 `~/.config/opencode` 경로+자체 governance.js 로깅이라 `~/.claude/hooks/.runlog` 참조가 부적절. 미러 Step C-1(sub-step 6=opencode 오라클)은 무관. 이식은 별도 opencode 이니셔티브 사안(scope 밖, DOWNGRADE 아님)
 
 ### Task 5: 검증 + Closeout
 - [ ] staged-HOME 수용 실측(차단·우회·통과→JSONL≥3+필드) · run-all 159/159 · verify-setup 72/0
