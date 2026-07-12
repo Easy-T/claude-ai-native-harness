@@ -1,6 +1,6 @@
 # Status line — design spec (durable, statusline subsystem)
 
-**Date:** 2026-05-31 (v1, RPI cycle 11) — **revised in-place 2026-06-11 (v2, RPI cycle 22); v2.1 live-feedback corrections 2026-06-12 (same cycle)**
+**Date:** 2026-05-31 (v1, RPI cycle 11) — **revised in-place 2026-06-11 (v2, RPI cycle 22); v2.1 live-feedback corrections 2026-06-12 (same cycle); v2.2 GPT-slot window remap 2026-07-12 (gpt-5.6 Sol/Luna swap)**
 **Source authority:** https://code.claude.com/docs/en/statusline + live OAuth usage API probe (2026-06-11)
 **v2 rationale:** user requested screenshot-parity multiline redesign (Desktop/statusline.png) with
 5h/7d rate-limit bars, Fable 5 mapping, icons/colors. v1 "Out of scope" items (multi-line,
@@ -106,9 +106,14 @@ Process spawn on Windows Git Bash is ~30–80ms; statusline refreshes every ~300
 |---|---|---|
 | `model.id` ends `[1m]` (any model) | 1,000,000 | Claude Code 1M picker variants (Fable/Opus/Sonnet via gateway discovery) |
 | display `*Opus*` | 1,000,000 | Anthropic 1M default; proxy under-reports 200K (v1 addendum still valid) |
-| display `*GPT-5.5*`/`*gpt-5.5*` | 272,000 | OpenAI standard tier (custom slot) |
-| display `*Haiku*`/`*mini*` | 272,000 | gpt-5.4-mini (haiku slot) |
+| display `*GPT-5.6*`/`*gpt-5.6*` (Sol/Luna/Terra) | 372,000 | v2.2 (2026-07-12): GPT slots swapped to gpt-5.6-sol (custom) / gpt-5.6-luna (haiku). CLIProxy 7.2.62-5 codex catalog reports `context_window: 372000` for all gpt-5.6 tiers (threshold-style value, same family as old 272K; OpenAI docs say 1.05M but keep FLOOR conservative at catalog value). Matches `display_name` only (like all non-[1m] rows); covers both slot `_NAME`s ("GPT-5.6 Sol"/"GPT-5.6 Luna") and the raw-id-as-display case (`--model gpt-5.6-*` direct runs, where display falls back to the id string). |
+| display `*GPT-5.5*`/`*gpt-5.5*` | 272,000 | OpenAI standard tier (legacy custom slot; kept for old transcripts/direct `--model gpt-5.5`) |
+| display `*Haiku*`/`*mini*` | 272,000 | gpt-5.4-mini (legacy haiku slot; kept for direct use) |
 | `Fable 5` base, `Sonnet` (real), others | trust reported | Claude Code base Fable/Sonnet report 200,000 correctly (verified 2026-06-11 capture); [1m] variant is the 1M opt-in |
+
+v2.2 ordering note: the gpt-5.6 case must sit **above** the `*mini*`/legacy-GPT cases in the
+script so "GPT-5.6 Luna" doesn't fall through to a lower floor; FLOOR semantics (only raise)
+otherwise unchanged.
 
 % recomputed from `total_input_tokens` against the floored window (v1 mechanism).
 

@@ -1,0 +1,11 @@
+{
+  "session_id": "test-gpt56-luna",
+  "cwd": "C:\\Users\\12132\\.claude",
+  "effort": { "level": "" },
+  "model": { "id": "gpt-5.6-luna", "display_name": "GPT-5.6 Luna" },
+  "workspace": { "current_dir": "C:\\Users\\12132\\.claude" },
+  "output_style": { "name": "default" },
+  "cost": { "total_cost_usd": 0, "total_duration_ms": 30000, "total_lines_added": 0, "total_lines_removed": 0 },
+  "context_window": { "total_input_tokens": 74536, "context_window_size": 200000, "used_percentage": 37 },
+  "thinking": { "enabled": false }
+}

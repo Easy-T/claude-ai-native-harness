@@ -96,6 +96,13 @@ check "T6 no branch glyph"            "$(grep -c '⎇' <<<"$out")" '^0$'
 check "T6 path shown"                 "$out" 'C:/Windows'
 rm -rf "$d"
 
+# --- T7: GPT-5.6 slot floor 200K -> 372K (v2.2, gpt-5.6 Sol/Luna swap 2026-07-12) ---
+d=$(mktemp -d); seed_caches "$d" 5
+out=$(run gpt56-luna.json "$d")
+check "T7 floored to 372k + recomputed pct" "$out" '20% \(74k/372k\)'
+check "T7 no 1M chip on gpt slot"     "$(head -1 <<<"$out")" '^[^[]*$'
+rm -rf "$d"
+
 echo "---"
 echo "pass=$PASS fail=$FAIL"
 [ "$FAIL" -eq 0 ]

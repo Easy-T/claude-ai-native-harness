@@ -142,8 +142,9 @@ case "$MID" in
   *"[1m]") CW=1000000 ;;                         # any 1M picker variant
   *) case "$MODEL" in
        *Opus*|*Fable*)               CW=1000000 ;;  # CC under-reports both (Fable: live 368k/200k, v2.1)
-       *GPT-5.5*|*gpt-5.5*)          CW=272000  ;;  # custom slot (OpenAI std tier)
-       *Haiku*|*mini*|*Mini*)        CW=272000  ;;  # haiku slot -> gpt-5.4-mini
+       *GPT-5.6*|*gpt-5.6*)          CW=372000  ;;  # v2.2 Sol/Luna slots (CLIProxy 7.2.62-5 catalog)
+       *GPT-5.5*|*gpt-5.5*)          CW=272000  ;;  # legacy custom slot (OpenAI std tier)
+       *Haiku*|*mini*|*Mini*)        CW=272000  ;;  # legacy haiku slot -> gpt-5.4-mini
        *)                            CW=0       ;;  # real Sonnet reports correctly
      esac ;;
 esac
