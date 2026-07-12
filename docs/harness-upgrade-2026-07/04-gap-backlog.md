@@ -156,6 +156,7 @@
 - **차원**: D3 보조 · **severity**: LOW · **상태**: PENDING (GAP-004에 병합 권장)
 - **증거**: 02 §1(첫 200줄/25KB만 시작-로드 — 공식); 현행 MEMORY.md 줄당 길이 비대(01 §4).
 - **목표/수용**: session-start-audit 예산 체크(GAP-004 (c)와 동일 구현) — 병합 실행.
+- **Best-direction 근거**: 독립 항목 유지보다 GAP-004 병합이 SSOT — 동일 구현 지점(session-start-audit)의 중복 규약을 피한다(병합은 열화가 아니라 중복 제거).
 
 ## GAP-015 — MCP 쓰기 게이트
 
@@ -184,3 +185,5 @@
 
 - **차원**: D9(3→5, Δ2) · **상태**: **IN-CYCLE(C0=문서 세트로 L4, C-final=cold-agent fitness로 L5)**
 - **증거**: 03 D9. 이 문서 세트 자체가 구현체 — 별도 백로그 작업 없음. C-final에서 fitness FAIL 시 문서 결함으로 회귀 수정(spec §6).
+- **Best-direction 근거**: 더 쉬운 대안 = "auto-memory에 요약 남기기" — 머신-로컬이라 핸드오프 실패(D9 앵커 3의 정의 그 자체). self-contained 문서 세트+fitness 실증이 goal deadline invariant의 유일 충족 경로.
+- **수용 기준**: C-final cold-agent fitness — 새 subagent가 05-playbook+백로그 1항목만으로 착수 성공(spec §6). **테스트 계획(RED)**: fitness 자체가 RED 테스트(FAIL=문서 결함 회귀 수정).
