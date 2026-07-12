@@ -1,32 +1,58 @@
 # 04 — 갭 백로그 (2026-07-13)
 
-> 순위 산식: **레버리지(다른 차원·갭을 몇 개 unblock하는가) × 루브릭 델타(03)**. **구현 난이도는 순위에 불반영** — 난이도는 "사이클 분할" 필드에만 반영한다(goal §4 Best-Direction 정신; 어렵다고 뒤로 밀지 않는다).
+> 순위 산식: **레버리지(다른 차원·갭을 몇 개 unblock하는가) × 루브릭 델타(03)**; **동률(tie) 시에만 severity/긴급도로 세분**. **구현 난이도는 순위에 불반영** — 난이도는 "사이클 분할" 필드에만 반영한다(goal §4 Best-Direction 정신; 어렵다고 뒤로 밀지 않는다). GAP-001의 1순위만 예외적으로 산식이 아닌 **spec §4 사용자 고정**이 1차 근거다.
 > 각 항목은 self-contained: 이 문서 + 01/02/03 + 05-playbook만으로 착수 가능해야 한다. 증거 표기는 01/02/03 문서 섹션 참조(원 file:line은 01에 보존).
 > 상태: `PENDING` → `IN-CYCLE(Cn)` → `DONE(Cn, commit)` / `DEFERRED(사유)` / `REJECTED(사유)`. 구현 사이클마다 이 파일의 상태·03 재채점·README 상태를 같은 PR에서 갱신(spec §2 갱신 계약).
+> **C0 적대 리뷰(2026-07-13) 반영**: 순위 스왑(구 5↔6), 산식 tie-break 재선언, GAP-018·019 신설, GAP-005/006/008/010 수용 기준·서술 정정 — 각 항목 블록에 개별 표기.
 
 ## 우선순위 요약
 
 | 순위 | ID | 제목 | 차원(델타) | 레버리지 | 상태 |
 |---|---|---|---|---|---|
-| 1 | GAP-001 | Best-Direction Mandate | D10(3) | 전 후속 사이클의 plan 품질에 작용 | PENDING — **C1 고정(spec §4)** |
+| 1 | GAP-001 | Best-Direction Mandate | D10(3) | 전 후속 사이클의 plan 품질에 작용 | PENDING — **C1 고정(spec §4 = 1차 근거)** |
 | 2 | GAP-003 | 사이클 run-log (관측 기반) | D4(1) | D5 예산 측정·D7 인사이트·D12 사용통계·GAP-002/005/012를 unblock — 최대 레버리지 | PENDING |
 | 3 | GAP-002 | 자율성 예산 governor | D5(2) | 무인 goal-loop 전체의 안전 상한 — 이 이니셔티브 자신이 무인 | PENDING |
-| 4 | GAP-005 | 스캐폴드 노화 관리 | D12(2) | **긴급**: Fable 5 공식 가이드와 직접 충돌(현행 skill이 현 모델 출력 열화 가능) | PENDING |
-| 5 | GAP-006 | 교차모델 검증자 분리 | D2(1)+D10 L5 | 자기채점 편향의 구조 해소 — 전 [모델-판단] 게이트 신뢰도에 작용 | PENDING |
-| 6 | GAP-004 | 메모리 수명주기 정책 | D6(2) | 포이즈닝 방어+rot 방지 — 메모리 소비 전 세션에 작용 | PENDING |
-| 7 | GAP-011 | skill/플러그인 공급망 규약 | D11(1)의 절반 | 신뢰 경계 — superpowers 등 20+ 외부 skill 전체 | PENDING |
-| 8 | GAP-013 | Rule-of-Two 세션 분리 | D11(1)의 절반+D5 | deep-research류 인젝션 표면 — 낮은 빈도, 높은 심도 | PENDING |
-| 9 | GAP-012 | 실패→회귀픽스처 루프 | D7(1) | eval 인프라의 마지막 층 — 발생 빈도 의존 | PENDING |
-| 10 | GAP-009 | 문서↔실물 정합 일괄 + 카운트 seal | D2(1)의 일부 | quick-win — 어느 사이클에나 부수 가능 | PENDING |
-| 11 | GAP-010 | 미테스트 표면 커버 | D1(1)의 일부 | 알려진 공백 6건의 봉인 | PENDING |
-| 12 | GAP-015 | MCP 쓰기 게이트 | D1(1)의 일부 | 6월 G1-a 계승 — MCP 사용 빈도가 낮아 레버리지 중간 | PENDING |
-| 13 | GAP-014 | MEMORY.md 인덱스 예산 seal | D3(1)의 일부 | 저비용 — GAP-004에 병합 가능 | PENDING |
-| 14 | GAP-016 | 사이클 proof-artifact 규약 | D7 보조 | 6월 defer 계승 — GAP-003 run-log가 사실상 대체 가능(재평가) | PENDING |
-| 15 | GAP-007 | OS-레벨 sandbox 층 | D5 L5·D11 L5 | 상한 확장 — GAP-002가 D5=4를 먼저 달성하므로 후순위(레버리지 순서이지 난이도 아님) | PENDING |
-| 16 | GAP-017 | seal-regression Part B (rank9B) | D2 보조 | 6월 defer — 대표 변이 3종 커버로 한계효용 낮음 | PENDING(재평가) |
+| 4 | GAP-005 | 스캐폴드 노화 관리 | D12(2) | 전 skill/hook/seal 표면에 작용; Δ2 동률 내 tie-break=긴급도(Fable 5 가이드 직접 충돌) | PENDING |
+| 5 | GAP-004 | 메모리 수명주기 정책 | D6(2) | 포이즈닝 방어+rot 방지 — 메모리 소비 전 세션에 작용 (Δ2 — 적대 리뷰로 구 5위 GAP-006과 스왑) | PENDING |
+| 6 | GAP-018 | autocompact 트리거 재캘리브레이션 | D3(2)의 주 레버 | 전 장기 세션의 rot 노출 — 550K→rot-이전(≤400K)으로; D3 L4 anchor의 직접 요건 | PENDING — **신설(적대 리뷰 발견 1)** |
+| 7 | GAP-006 | 교차모델 검증자 분리 | D2(1)+D10 L5 | 자기채점 편향의 구조 해소 — 전 [모델-판단] 게이트 신뢰도에 작용 | PENDING |
+| 8 | GAP-011 | skill/플러그인 공급망 규약 | D11(1)의 절반 | 신뢰 경계 — superpowers 등 20+ 외부 skill 전체 | PENDING |
+| 9 | GAP-013 | Rule-of-Two 세션 분리 | D11(1)의 절반+D5 | 인젝션 표면 구조 분리; GAP-012와 레버리지 동률로 판정, tie-break=severity(심도) | PENDING |
+| 10 | GAP-012 | 실패→회귀픽스처 루프 | D7(1) | eval 인프라의 마지막 층 — 발생 빈도 의존 | PENDING |
+| 11 | GAP-019 | skill/agent 본문 drift seal + ccs-delegation 계약 연결 | D1·D2 보조 | 드리프트 방어의 자기적용(하네스 정체성) — GAP-006이 의존하는 ccs-delegation의 무계약 해소 포함 | PENDING — **신설(적대 리뷰 발견 7)** |
+| 12 | GAP-009 | 문서↔실물 정합 일괄 + 카운트 seal | D2(1)의 일부 | quick-win — 어느 사이클에나 부수 가능 | PENDING |
+| 13 | GAP-010 | 미테스트 표면 커버 | D1(1)의 일부 | 알려진 공백의 봉인(커버 목록은 항목 블록 — "전수" 주장 정정) | PENDING |
+| 14 | GAP-015 | MCP 쓰기 게이트 | D1(1)의 일부 | 6월 G1-a 계승 — MCP 사용 빈도가 낮아 레버리지 중간 | PENDING |
+| 15 | GAP-014 | MEMORY.md 인덱스 예산 seal | D3(1)의 일부 | 저비용 — GAP-004에 병합 가능 | PENDING |
+| 16 | GAP-016 | 사이클 proof-artifact 규약 | D7 보조 | 6월 defer 계승 — GAP-003 run-log가 사실상 대체 가능(재평가) | PENDING |
+| 17 | GAP-007 | OS-레벨 sandbox 층 | D5 L5·D11 L5 | 상한 확장 — GAP-002가 D5=4를 먼저 달성하므로 후순위(레버리지 순서이지 난이도 아님) | PENDING |
+| 18 | GAP-017 | seal-regression Part B (rank9B) | D2 보조 | 6월 defer — 대표 변이 3종 커버로 한계효용 낮음 | PENDING(재평가) |
 | — | GAP-008 | 핸드오프 복원력 완성 | D9(2) | — | **IN-CYCLE(C0/C-final)** — 이 이니셔티브 자체가 해소 |
 
+**D8(이식성) 처분 명시** (적대 리뷰 발견 5 — 03이 "04에서 재평가 가능"으로 위임한 잔여): 전-플랫폼 CI는 **REJECTED(개인 규모 ROI — 03 D8 스코프 판단 승인)**. 단 D8 잔여 중 실결함 2건은 기존 항목에 편입: 비-Windows STAGE 3b skip → GAP-010 커버 목록, opencode skill 본문 parity → GAP-019. `/tmp`·절대 $HOME source 가정은 관찰 기록만(발화 조건이 "하네스 재배치"뿐이라 백로그 미승격 — 재배치 시 GAP-009류 정합 작업에 동반).
+
 6월 defer 잔여 매핑(전수): goal-loop 예산→GAP-002 · observability/run-log→GAP-003 · dead-scaffold pruning→GAP-005 · sandbox/권한 티어→GAP-007 · proof-artifact→GAP-016 · G6-b(fail-open 표면화 3번째 조각, 정의는 `docs/superpowers/specs/2026-06-13-external-standards-audit.md` §D⑥)→GAP-003에 흡수 재평가 · G3-a 잔여(우회 실시간 표면 — rev2 #3이 additionalContext 표면화로 부분 해소)→GAP-003에 흡수 · rank9B→GAP-017.
+
+## GAP-018 — autocompact 트리거 재캘리브레이션 ★신설(C0 적대 리뷰)
+
+- **차원**: D3(3→5의 주 레버, Δ2) · **severity**: MED-HIGH · **상태**: PENDING
+- **증거**: 03 D3 교정 기록 — 현행 트리거 55%×1M=550K vs rot 실증 시작 ~300-400K(02 §5 Chroma·커뮤니티 실측)·dumb-zone 40%=400K(02 §4 Horthy). 무인 장기 세션이 rot 구간(400-550K)에서 150K어치를 열화 상태로 작업.
+- **목표 상태**: `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE`를 rot-이전(≤40%, 1M 기준 ≤400K)으로 하향 + auto-compact-watch 경고 임계 동기 + 하향이 무인 goal-loop의 compact 빈도·연속성(read-before 재주입)에 주는 영향 실측 1세션.
+- **Best-direction 근거**: 더 쉬운 대안 = "55% 유지(과거 죽음의-나선 트라우마 회피)" — 그 나선의 원인은 창 오인식(1M→200K 붕괴)이지 트리거 %가 아니었다(settings 이력). 수치를 외부 실증(rot 곡선)에 정렬하는 것이 최선이며, RPI 하네스의 post-compact 연속성(spec·plan 재주입)이 이미 compact 비용을 흡수한다.
+- **구현 스케치**: settings.json PCT 55→40 + settings.example parity(#23 주의 — 단 env 값은 hook parity 대상 아님을 확인) + auto-compact-watch 기본값 서술 정정(M7 겸) + 1세션 관찰 기록.
+- **수용 기준**: settings 값 40 확인 && `/context` 트리거 표시 ~400K && 관찰 세션에서 compact 후 작업 연속성 유지 기록.
+- **테스트 계획(RED)**: 현행 55%에서 auto-compact-watch 경고가 400K+에서만 발화함을 확인(rot 구간 무경고 = RED 상태 그 자체) → 하향 후 조기 발화 확인.
+- **복잡도**: 저 · **의존성**: 없음 · **Opus-실행성**: 높음. 함정: WINDOW=1M 인식이 전제(플레이북 §5-5 `[1m]` suffix) — 창이 200K로 붕괴한 상태에서 40%를 적용하면 80K 트리거로 과빈발.
+
+## GAP-019 — skill/agent 본문 drift seal + ccs-delegation 계약 연결 ★신설(C0 적대 리뷰)
+
+- **차원**: D1·D2 보조 · **severity**: MED · **상태**: PENDING
+- **증거**: 01 §6-4(start-rpi-cycle 외 skill 6종+design.md 본문 무봉인·agents/*.md 프롬프트 무검사)·§6-5(opencode skill 본문 parity 부재)·01 §2 표(ccs-delegation: README 부재+계약 무연결+위임 결과 무검증 — GAP-006의 교차모델 리뷰가 이 무계약 컴포넌트에 의존하는 모순).
+- **목표 상태**: (a) 각 skill 본문의 load-bearing 토큰(위임 대상 agent명·필수 필드명·게이트 문구)에 #17-동형 content seal — 전문 봉인이 아닌 앵커 토큰만(전문 봉인은 편집 마찰 과대) (b) agents/*.md의 계약 문구 parity (c) ccs-delegation에 result/evidence/unknowns 계약 연결(M3의 README 등재는 GAP-009와 공동) (d) opencode 미러 skill의 대응 토큰 동기 검사.
+- **Best-direction 근거**: 더 쉬운 대안 = "skill은 자주 안 바뀌니 방치" — #17이 존재하는 이유(§3↔skill 드리프트 실사고)가 그대로 반증. 하네스의 핵심 정체성(drift seal)이 자기 skill에 미적용인 상태는 self-consistency 결함.
+- **수용 기준**: 신규 seal이 skill 6종 각각의 앵커 토큰 검사 && seal-regression 패턴으로 토큰 제거 변이 시 FAIL 증명 && ccs-delegation SKILL.md에 Communication Protocol 섹션 grep.
+- **테스트 계획(RED)**: 변이 복제본(앵커 토큰 제거)에서 신규 seal FAIL → 원본 PASS.
+- **복잡도**: 중 · **의존성**: GAP-009(README 정합)와 같은 사이클 권장 · **Opus-실행성**: 높음 — #17 구현이 템플릿. 함정: ccs-delegation SKILL.md 편집은 enforce-orchestrator 게이트 비대상(orchestrator 마커 없음)이나 새로 Communication Protocol을 넣어도 마커를 추가하지 않는 한 골격 요구 미발동 — 마커 추가 여부는 skill 성격(위임형 아님)상 불필요로 판정.
 
 ---
 
@@ -83,7 +109,7 @@
 - **목표 상태**: (a) 각 hook/skill/seal에 "존재 이유" 메타(어느 실패·사이클에 추적되는가 — 대부분 이미 커밋 메시지·spec에 있음: 인덱스만) (b) 모델 업그레이드 트리거 체크리스트(신모델 도입 시 과처방 후보 리뷰 — 05-playbook에 절차) (c) improve-codebase-architecture 5-사이클 감사에 프루닝 후보 보고 단계.
 - **Best-direction 근거**: 더 쉬운 대안 = "언젠가 수동 대청소" — 트리거가 없어 실행되지 않음(01 실측: 한 번도 없었음). 자동 A/B strip-and-measure(L4)는 run-log(GAP-003) 없이 측정 불가 — L3까지를 이번 목표로 하는 것은 의존성 순서이지 열화 아님. **1차 실행을 이니셔티브 내 수행**: Fable 5 가이드 기준으로 현행 skill 7종의 과처방 텍스트 1회 감사(즉효).
 - **구현 스케치**: `docs/ai-context/scaffold-registry.md`(구성요소→존재 이유→추적 커밋/spec 인덱스, 01 구조맵에서 생성) + improve-codebase-architecture SKILL.md에 프루닝 단계 추가(enforce-orchestrator 골격 유지) + 05-playbook에 모델-업그레이드 체크리스트 + 1차 과처방 감사 실행(별도 plan task — 삭제는 사용자 diff 보고 후).
-- **수용 기준**: registry에 hook 10+skill 10+seal 18 전 항목 && SKILL.md에 프루닝 단계 grep && 1차 감사 보고서(과처방 후보 목록+근거) 존재.
+- **수용 기준**(적대 리뷰 정정: seal 수 18→**17**(9+4+4, #26 소각 — 01 §3 실측; 착수 시점 재실측 우선), 공허-통과 차단): registry에 hook 10+skill 10+seal 17(착수 시점 실측치) 전 항목 && SKILL.md에 프루닝 단계 grep && 1차 감사 보고서 — **skill 7종 각각에 유지/트림 판정+근거 1줄 의무**(후보 0건이어도 skill별 판정 근거가 있어야 유효; 근거 없는 빈 보고서는 FAIL).
 - **테스트 계획(RED)**: verify-setup에 registry 존재+카운트 seal — 구현 전 FAIL. · **복잡도**: 중 · **의존성**: L4는 GAP-003 후속 · **Opus-실행성**: 중(과처방 판단은 모델-판단 — Fable 가이드 기준을 playbook에 인용 필수).
 
 ## GAP-006 — 교차모델 검증자 분리
@@ -92,8 +118,8 @@
 - **증거**: 03 D2 잔여(wrapper 전원 동일 패밀리 — 01 §2); 02 §3(Factory 교차-프로바이더 검증 "자기 학습편향 회피"); 02 §1(fresh-context 검증자 교리); ccs 멀티모델 라우팅 실재(01 §2 ccs-delegation).
 - **목표 상태**: 고-스테이크 판정(senior review·적대 리뷰·루브릭 재채점)에 교차패밀리(gpt 프로필) 라우팅 옵션을 closeout-pr-cycle Phase 4·start-rpi-cycle에 명문 옵션으로 + 실패 시(프록시 다운) 동일-패밀리 fallback 기록 규약.
 - **Best-direction 근거**: 더 쉬운 대안 = "review-strict 프롬프트에 '비판적으로' 추가" — agreement bias는 지시로 안 풀림(6월 감사 §③ 기각 근거 계승). 교차모델이 구조 해소이며 인프라(ccs)가 이미 있어 순수 규약 작업.
-- **구현 스케치**: closeout-pr-cycle Phase 4에 "교차패밀리 시도→불가 시 사유 기록" 분기(C0에서 실측한 함정: `ccs -p` 비대화형 파일 컨텍스트 불안정 — 파일 내용을 프롬프트에 인라인 전달하는 래퍼 필요) + ui-design C1 선례 참조.
-- **수용 기준**: SKILL.md 분기 grep && 1회 실전 실행 기록(사이클 보고).
+- **구현 스케치**: closeout-pr-cycle Phase 4에 "교차패밀리 시도→불가 시 사유 기록" 분기 + 인라인-프롬프트 래퍼. C0 실측 함정 3건 인라인: `ccs glm`=프로필 부재(가용 프로필은 `ccs --help` 실측 — codex/gemini/kimi 등), `ccs codex`=400 "reasoning: Extra inputs are not permitted"(프록시↔모델 파라미터 비호환 — 프록시 설정 조정 필요), `ccs kimi`=대화형 디바이스-코드 인증(무인 불가; 사전 `ccs kimi --auth` 필요).
+- **수용 기준**(적대 리뷰 강화 — fallback 기록만으로 전 기준 통과 가능하던 결함 차단): SKILL.md 분기 grep && **교차패밀리 실행 최소 1회 성공 증빙(응답에 비-Claude 모델 ID/프로필명 명시)** — 인프라 실패로 1회도 불가하면 이 GAP은 DONE이 아닌 **DEFERRED(인프라 사유)**로만 처분 가능.
 - **테스트 계획(RED)**: 본문 토큰 seal(#22 동형) — 구현 전 부재. · **복잡도**: 저-중 · **의존성**: 없음 · **Opus-실행성**: 높음.
 
 ## GAP-007 — OS-레벨 sandbox 층
@@ -118,8 +144,8 @@
 ## GAP-010 — 미테스트 표면 커버
 
 - **차원**: D1 보조 · **severity**: MED · **상태**: PENDING
-- **증거**: 01 §6-2 전수: secret-scan 5/7 패턴·stable-claude-md ALERT 미단언·session-start selfcheck syntax:/nonexec: 분기·teardown abort 2경로·model-window `/1m/` 행·enforce-orchestrator ERR-센티넬 무로깅(→로깅 추가 포함).
-- **목표 상태**: 6건 각각 run-all/전용 테스트 케이스 + ERR-센티넬 hook_log 추가(무로깅 fail-open 0화 — D1 L5 요건).
+- **증거**: 01 §6-2·§6-3에서 선별한 커버 목록(적대 리뷰 정정 — "전수" 아님): ① secret-scan 5/7 패턴 ② stable-claude-md ALERT 미단언 ③ session-start selfcheck syntax:/nonexec: 분기 ④ teardown abort 2경로 ⑤ model-window `/1m/` 행 ⑥ enforce-orchestrator ERR-센티넬 무로깅(§6-3) ⑦ 비-Windows STAGE 3b skip(01 §6-2 6번째 — D8 잔여 편입) ⑧ orchestrator 마커-제거 우회 표면화(03 D1 잔여 — surface_bypass 커버 검토).
+- **목표 상태**: ①-⑥ 각각 run-all/전용 테스트 케이스 + ⑥ ERR-센티넬 hook_log 추가(무로깅 fail-open 0화 — D1 L5 요건) + ⑦ 비-Windows에서 실행 가능한 teardown 서브셋 분리 또는 명시 skip-사유 게이트 + ⑧ 마커-제거가 게이트 소멸임을 README/SECURITY 위협모델에 명기(표면화는 감시 비용 대비 판정 기록).
 - **Best-direction 근거**: 더 쉬운 대안 = "작동 중이니 방치" — cycle-37 교훈(vacuous RED: 가드 변경이 기존 차단을 무효화해도 침묵)이 기각. 커버리지가 회귀의 유일한 감지선.
 - **수용 기준**: run-all 카운트 +6 이상(cases.tsv·README·#20 동기) && ERR-센티넬 경로 hook_log 단언.
 - **테스트 계획(RED)**: 각 케이스가 현행 미커버 확인(기존 스위트에서 부재 grep) → 추가. · **복잡도**: 중 · **Opus-실행성**: 높음 — 기존 케이스 패턴 복제.
@@ -186,4 +212,4 @@
 - **차원**: D9(3→5, Δ2) · **상태**: **IN-CYCLE(C0=문서 세트로 L4, C-final=cold-agent fitness로 L5)**
 - **증거**: 03 D9. 이 문서 세트 자체가 구현체 — 별도 백로그 작업 없음. C-final에서 fitness FAIL 시 문서 결함으로 회귀 수정(spec §6).
 - **Best-direction 근거**: 더 쉬운 대안 = "auto-memory에 요약 남기기" — 머신-로컬이라 핸드오프 실패(D9 앵커 3의 정의 그 자체). self-contained 문서 세트+fitness 실증이 goal deadline invariant의 유일 충족 경로.
-- **수용 기준**: C-final cold-agent fitness — 새 subagent가 05-playbook+백로그 1항목만으로 착수 성공(spec §6). **테스트 계획(RED)**: fitness 자체가 RED 테스트(FAIL=문서 결함 회귀 수정).
+- **수용 기준**(적대 리뷰 정정 — "착수 성공" 무정의·보장-통과 루프 차단): C-final cold-agent fitness에서 fresh subagent(이 문서 세트 외 컨텍스트 0)가 05+04의 1항목만 받아 **(i) 유효 plan 초안(Status 헤더+해당 GAP 수용 기준 전사) (ii) 그 GAP의 RED 재현 커맨드를 무도움(추가 질문 0회)으로 산출** — 둘 중 하나라도 실패하면 문서 수정 후 재시도하되, **재시도 이력(몇 회·무엇을 고쳤나)을 C-final 보고에 전수 기록**(무한 fail→fix→pass를 통과로 위장 불가; ≤2회 내 통과가 목표선, 초과 시 D9=5 미달로 채점).
