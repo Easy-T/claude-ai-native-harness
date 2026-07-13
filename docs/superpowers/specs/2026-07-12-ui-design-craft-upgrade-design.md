@@ -157,10 +157,10 @@ durable spec 1(본 문서) · 사이클별 plan 3 · `_design-lab/` 3사이트+s
 v2(§1–§10)는 durable SSOT로 불변. 이 델타는 §8이 "차기 개선 후보"로 flagged한 **design.md 콘텐츠 seal 신설**을 해소하고, cold-agent fitness(§7·FITNESS-L4)가 남긴 2개 내적 긴장을 정련한다. goal: `~/.claude/_goal/ui-design-v3-seal-refine-goal.md` (MERGE_POLICY: **wait** — v2의 auto override 미이월). 단일 사이클.
 
 **신규 불변식 (봉인)** — design.md 콘텐츠가 이제 verify-setup drift seal로 보호된다 (v2까지는 #6/#7이 SKILL.md 존재·마커만 검사, design.md *내용*은 무검사였음):
-- **verify-setup #37** — opencode 미러 byte-sync: `opencode-harness/skill/ui-design/design.md` ≡ `skills/ui-design/design.md` (`cmp -s` 동일). 미러 부재 시 vacuous-PASS(설치본·fresh-clone 카운트 결정성 보존), 존재+상이 시 FAIL. §8 "미러 byte-sync" 원칙을 이제 강제 — 향후 design.md 편집은 **양 미러 동시 갱신** 필수(편도 편집은 #37로 차단). #23 two-file parity 선례 계열.
-- **verify-setup #38** — §6 anti-slop floor 카운트: §6 스코프(`# 6.`~`# 7.`) `- [ ]` 체크박스 == **18** (§6.2 "삭제 절대 금지" 강제). 향후 floor 가감은 seal 동반 갱신 = 의도적 governance 이벤트(tripwire).
-- seal-regression.test.sh: 각 seal에 대표 변이 케이스(미러 편도 변경→#37 RED · §6 체크박스 삭제→#38 RED). #37 TDD 위해 `make_replica`가 미러 파일도 복제하도록 확장(additive; 기존 3케이스·control·witness 무영향).
-- README:284 count 73→75, verify-setup self-count(#36) 동기.
+- **verify-setup #38** — opencode 미러 byte-sync: `opencode-harness/skill/ui-design/design.md` ≡ `skills/ui-design/design.md` (`cmp -s` 동일). 미러 부재 시 vacuous-PASS(설치본·fresh-clone 카운트 결정성 보존), 존재+상이 시 FAIL. §8 "미러 byte-sync" 원칙을 이제 강제 — 향후 design.md 편집은 **양 미러 동시 갱신** 필수(편도 편집은 #38로 차단). #23 two-file parity 선례 계열.
+- **verify-setup #39** — §6 anti-slop floor 카운트: §6 스코프(`# 6.`~`# 7.`) `- [ ]` 체크박스 == **18** (§6.2 "삭제 절대 금지" 강제). 향후 floor 가감은 seal 동반 갱신 = 의도적 governance 이벤트(tripwire).
+- seal-regression.test.sh: 각 seal에 대표 변이 케이스(미러 편도 변경→#38 RED · §6 체크박스 삭제→#39 RED). #38 TDD 위해 `make_replica`가 미러 파일도 복제하도록 확장(additive; 기존 3케이스·control·witness 무영향).
+- README:284 count 74→76, verify-setup self-count(#36) 동기. **병합 정합(2026-07-14)**: 동시 harness-upgrade C4가 #37(scaffold-registry parity)을 선점 → 본 seal은 **#38(미러)·#39(floor)**로 배정, origin/master 병합으로 정합(seal 라벨은 위치 아닌 식별자 — needle 기반 seal-regression 무영향; verify-setup 73→74→76).
 
 **정련 (무증거 금지 준수 — FITNESS-L4 비채점 관찰 → FRICTION 승격)**:
 - **F-FIT-02 (충돌)** — §9 "총 안무 <700ms"가 700ms line-rise 표준 레시피와 내적 모순(개별 지속 vs 시퀀스 spread 미분리). 정련: **2축 분리** — 개별 요소 지속 ≤700ms(motion-hero) + 마지막 요소 시작 지연 ≤300ms → 체감 총 ≤~1000ms. design.md §9 stagger 규칙 대체.

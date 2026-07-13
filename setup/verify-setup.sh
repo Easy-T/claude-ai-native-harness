@@ -332,30 +332,54 @@ else
   fail "Best-Direction Mandate 토큰 부재/부족 (GAP-001): 'Best-Direction Check' x${BD_CNT:-0}(<2) 또는 'DOWNGRADE-DECLARED' x${DG_CNT:-0}(<1) — skills/start-rpi-cycle/SKILL.md"
 fi
 
-# 37. opencode 미러 byte-sync (v3 — design.md 콘텐츠 무검사 봉인): 미러 design.md가 정본과 byte-동일.
+# 37. scaffold-registry ⊇ live hook/skill parity (GAP-005 C4, 노화 방지 트리거): registry 존재 +
+#     모든 live hook(−_common) basename·모든 live skill dir 이 registry 에 등재. 신규 구성요소를
+#     registry 에 안 적으면 FAIL — 무한 누적만 하던 스캐폴드에 제거-리뷰 앵커. (#36 앞에 배치 = 총계 포함.)
+REG="$HOME/.claude/docs/ai-context/scaffold-registry.md"
+if [ ! -f "$REG" ]; then
+  fail "scaffold-registry 부재 (GAP-005): docs/ai-context/scaffold-registry.md 생성 필요"
+else
+  REG_MISS=""
+  for _hf in "$HOME/.claude/hooks"/*.sh; do
+    _hb=$(basename "$_hf"); [ "$_hb" = "_common.sh" ] && continue
+    grep -qF "$_hb" "$REG" 2>/dev/null || REG_MISS="$REG_MISS $_hb"
+  done
+  for _sk in "$HOME/.claude/skills"/*/; do
+    [ -d "$_sk" ] || continue
+    _sb=$(basename "$_sk")
+    grep -qF "$_sb" "$REG" 2>/dev/null || REG_MISS="$REG_MISS $_sb"
+  done
+  if [ -z "$REG_MISS" ]; then
+    ok "scaffold-registry ⊇ live hook/skill (노화 registry 최신)"
+  else
+    fail "scaffold-registry 미등재 (GAP-005 — registry 갱신 필요):$REG_MISS"
+  fi
+fi
+
+# 38. opencode 미러 byte-sync (v3 — design.md 콘텐츠 무검사 봉인): 미러 design.md가 정본과 byte-동일.
 #     미러 부재(fresh-clone/설치본) 시 vacuous-PASS로 카운트 결정성 보존, 존재+상이 시 FAIL(편도 편집 차단).
 #     #23 two-file parity 계열. design.md 편집 시 양 미러 동시 갱신 강제.
-SRC37="$HOME/.claude/skills/ui-design/design.md"
-MIR37="$HOME/.claude/opencode-harness/skill/ui-design/design.md"
-if [ ! -f "$MIR37" ]; then
+SRC38="$HOME/.claude/skills/ui-design/design.md"
+MIR38="$HOME/.claude/opencode-harness/skill/ui-design/design.md"
+if [ ! -f "$MIR38" ]; then
   ok "opencode 미러 부재 — design.md byte-sync N/A (vacuous PASS)"
-elif [ ! -f "$SRC37" ]; then
-  fail "정본 design.md 부재 ($SRC37)"
-elif cmp -s "$SRC37" "$MIR37"; then
+elif [ ! -f "$SRC38" ]; then
+  fail "정본 design.md 부재 ($SRC38)"
+elif cmp -s "$SRC38" "$MIR38"; then
   ok "opencode 미러 design.md byte-sync"
 else
   fail "opencode 미러 design.md drift (정본과 상이 — 양 미러 동시 갱신 필요)"
 fi
 
-# 38. §6 anti-slop floor 카운트 봉인 (v3 — §0.1/§6.2 "삭제 절대 금지" 강제): §6 스코프(# 6.~# 7.)의
+# 39. §6 anti-slop floor 카운트 봉인 (v3 — §0.1/§6.2 "삭제 절대 금지" 강제): §6 스코프(# 6.~# 7.)의
 #     '- [ ]' 체크박스가 정확히 18. floor 가감은 seal 동반 갱신 = 의도적 governance(tripwire). §6 밖
 #     편집(evidence 인용·§9~§15 문구)엔 불감(awk 섹션 스코프).
-DESIGN38="$HOME/.claude/skills/ui-design/design.md"
-FLOOR38=$(awk '/^# 6\./{f=1;next} /^# 7\./{f=0} f' "$DESIGN38" 2>/dev/null | grep -cE '^- \[ \]')
-if [ "$FLOOR38" -eq 18 ]; then
+DESIGN39="$HOME/.claude/skills/ui-design/design.md"
+FLOOR39=$(awk '/^# 6\./{f=1;next} /^# 7\./{f=0} f' "$DESIGN39" 2>/dev/null | grep -cE '^- \[ \]')
+if [ "$FLOOR39" -eq 18 ]; then
   ok "design.md §6 anti-slop floor = 18 항목"
 else
-  fail "design.md §6 floor 카운트 drift: $FLOOR38 (기대 18 — §6.2 '삭제 절대 금지' 위반?)"
+  fail "design.md §6 floor 카운트 drift: $FLOOR39 (기대 18 — §6.2 '삭제 절대 금지' 위반?)"
 fi
 
 # 36. verify-setup 총 체크수 <-> README 선언 parity (GAP-009 M1 봉인, 런타임 자기-카운트):

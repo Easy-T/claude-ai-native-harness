@@ -34,11 +34,13 @@ make_replica() {
   done
   mkdir -p "$C/docs/superpowers/plans"
   cp -a "$SRC/docs/superpowers/plans/." "$C/docs/superpowers/plans/" 2>/dev/null || true
-  # v3: replicate opencode mirror (design.md만 — seal #37이 비교하는 유일 파일) so 미러-sync seal 검증 가능.
+  # v3: replicate opencode mirror (design.md만 — seal #38이 비교하는 유일 파일) so 미러-sync seal 검증 가능.
   if [ -f "$SRC/opencode-harness/skill/ui-design/design.md" ]; then
     mkdir -p "$C/opencode-harness/skill/ui-design"
     cp -p "$SRC/opencode-harness/skill/ui-design/design.md" "$C/opencode-harness/skill/ui-design/design.md"
   fi
+  mkdir -p "$C/docs/ai-context"   # seal #37 (GAP-005) inspects docs/ai-context/scaffold-registry.md
+  cp -a "$SRC/docs/ai-context/." "$C/docs/ai-context/" 2>/dev/null || true
   rm -rf "$C/hooks/.log"   # drop runtime noise the seals never read
   chmod +x "$C/hooks/"*.sh "$C/setup/"*.sh 2>/dev/null || true  # guard cp -a +x loss on win32
 }
@@ -79,9 +81,9 @@ mut_readme_cases() {
   local actual; actual=$(grep -vcE '^[[:space:]]*(#|$)' "$1/hooks/tests/cases.tsv")
   sed -i -E "s/${actual} (케이스|cases?)/$((actual-1)) \1/g" "$1/README.md"
 }
-# Mutator 4 — seal #37 (opencode 미러 byte-sync): 미러만 발산(비-floor 편집) → 정본≠미러, §6 카운트 불변.
+# Mutator 4 — seal #38 (opencode 미러 byte-sync): 미러만 발산(비-floor 편집) → 정본≠미러, §6 카운트 불변.
 mut_mirror_drift() { printf '\n<!-- v3 seal-regression mirror-drift probe -->\n' >> "$1/opencode-harness/skill/ui-design/design.md"; }
-# Mutator 5 — seal #38 (§6 floor-18): §6 첫 체크박스를 정본·미러 양쪽에서 삭제(byte-동일 유지 → #37 불감, #38만 발화).
+# Mutator 5 — seal #39 (§6 floor-18): §6 첫 체크박스를 정본·미러 양쪽에서 삭제(byte-동일 유지 → #38 불감, #39만 발화).
 mut_floor_shrink() {
   local F
   for F in "skills/ui-design/design.md" "opencode-harness/skill/ui-design/design.md"; do
