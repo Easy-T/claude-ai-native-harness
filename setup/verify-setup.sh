@@ -356,30 +356,41 @@ else
   fi
 fi
 
-# 38. opencode 미러 byte-sync (v3 — design.md 콘텐츠 무검사 봉인): 미러 design.md가 정본과 byte-동일.
+# 38. memory-policy.md 존재 + 통합/프루닝/검증 3규약 (GAP-004 D6 L3): 메모리 수명주기 규약이 사라지면 FAIL
+#     (문서화된 거버넌스 사실 drift 봉인 — #37 registry 동형). seal-regression 이 docs/ai-context 스테이징(C4)→자동 커버.
+MPOL="$HOME/.claude/docs/ai-context/memory-policy.md"
+if [ ! -f "$MPOL" ]; then
+  fail "memory-policy 부재 (GAP-004): docs/ai-context/memory-policy.md 생성 필요"
+elif grep -qE '통합|Consolidation' "$MPOL" && grep -qE '프루닝|Pruning' "$MPOL" && grep -qE '검증|Verification' "$MPOL"; then
+  ok "memory-policy 3규약(통합/프루닝/검증) 존재"
+else
+  fail "memory-policy 3규약 불완전 (GAP-004): 통합/프루닝/검증 중 누락"
+fi
+
+# 39. opencode 미러 byte-sync (v3 — design.md 콘텐츠 무검사 봉인): 미러 design.md가 정본과 byte-동일.
 #     미러 부재(fresh-clone/설치본) 시 vacuous-PASS로 카운트 결정성 보존, 존재+상이 시 FAIL(편도 편집 차단).
 #     #23 two-file parity 계열. design.md 편집 시 양 미러 동시 갱신 강제.
-SRC38="$HOME/.claude/skills/ui-design/design.md"
-MIR38="$HOME/.claude/opencode-harness/skill/ui-design/design.md"
-if [ ! -f "$MIR38" ]; then
+SRC39="$HOME/.claude/skills/ui-design/design.md"
+MIR39="$HOME/.claude/opencode-harness/skill/ui-design/design.md"
+if [ ! -f "$MIR39" ]; then
   ok "opencode 미러 부재 — design.md byte-sync N/A (vacuous PASS)"
-elif [ ! -f "$SRC38" ]; then
-  fail "정본 design.md 부재 ($SRC38)"
-elif cmp -s "$SRC38" "$MIR38"; then
+elif [ ! -f "$SRC39" ]; then
+  fail "정본 design.md 부재 ($SRC39)"
+elif cmp -s "$SRC39" "$MIR39"; then
   ok "opencode 미러 design.md byte-sync"
 else
   fail "opencode 미러 design.md drift (정본과 상이 — 양 미러 동시 갱신 필요)"
 fi
 
-# 39. §6 anti-slop floor 카운트 봉인 (v3 — §0.1/§6.2 "삭제 절대 금지" 강제): §6 스코프(# 6.~# 7.)의
+# 40. §6 anti-slop floor 카운트 봉인 (v3 — §0.1/§6.2 "삭제 절대 금지" 강제): §6 스코프(# 6.~# 7.)의
 #     '- [ ]' 체크박스가 정확히 18. floor 가감은 seal 동반 갱신 = 의도적 governance(tripwire). §6 밖
 #     편집(evidence 인용·§9~§15 문구)엔 불감(awk 섹션 스코프).
-DESIGN39="$HOME/.claude/skills/ui-design/design.md"
-FLOOR39=$(awk '/^# 6\./{f=1;next} /^# 7\./{f=0} f' "$DESIGN39" 2>/dev/null | grep -cE '^- \[ \]')
-if [ "$FLOOR39" -eq 18 ]; then
+DESIGN40="$HOME/.claude/skills/ui-design/design.md"
+FLOOR40=$(awk '/^# 6\./{f=1;next} /^# 7\./{f=0} f' "$DESIGN40" 2>/dev/null | grep -cE '^- \[ \]')
+if [ "$FLOOR40" -eq 18 ]; then
   ok "design.md §6 anti-slop floor = 18 항목"
 else
-  fail "design.md §6 floor 카운트 drift: $FLOOR39 (기대 18 — §6.2 '삭제 절대 금지' 위반?)"
+  fail "design.md §6 floor 카운트 drift: $FLOOR40 (기대 18 — §6.2 '삭제 절대 금지' 위반?)"
 fi
 
 # 36. verify-setup 총 체크수 <-> README 선언 parity (GAP-009 M1 봉인, 런타임 자기-카운트):
