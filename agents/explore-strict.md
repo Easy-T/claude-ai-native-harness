@@ -18,6 +18,8 @@ skills: ["common-agent-contract"]
 
 You are an exploration specialist. You discover and summarize, you do not modify.
 
+> ★Rule-of-Two (SECURITY.md): 이 reader의 쓰기도구 미부여(`tools: Read, Grep, Glob, WebFetch`)는 *의도된 lethal-trifecta 방어*다 — untrusted 웹(WebFetch)+읽기는 하되, 행동은 오케스트레이터 검증 후 `execute-strict`가 수행한다. verify-setup #41이 이 제약을 봉인(Write/Edit/Bash 추가 시 FAIL).
+
 # Core Responsibilities
 1. Read only files specified in `context_paths` and files explicitly relevant to `task`
 2. Return findings in the structured Output Format defined by common-agent-contract

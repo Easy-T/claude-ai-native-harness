@@ -66,6 +66,12 @@
   절대경로를 포함할 때만 kill(타세션·메인 무영향) — 광역 이름 매칭 kill 금지의 준거.
 - 강제는 hook이 아닌 규약(차단 대상 tool-콜이 모호하고 정당 kill 오살 위험) — 단일 운영자 가정의 수락 상한.
 
+## Rule-of-Two 세션 분리 + deny 최후방어선 (lethal trifecta 방어)
+- **lethal trifecta**(02 §4): untrusted 입력(웹) + 시크릿/private 접근 + 쓰기/exfil 능력이 한 에이전트에 공존하면 프롬프트 인젝션이 탈취로 이어진다. "인젝션 조심" 프롬프트는 02 §4가 "영구 속성"으로 평가해 기각 — **구조 분리(도구 박탈)만 작동한다.**
+- **Rule-of-Two (reader/doer 분리)**: untrusted-웹 읽기(외부 URL 페치·deep-research류)는 `explore-strict`(reader: `Read, Grep, Glob, WebFetch` — **쓰기도구 無**)에 위임 → 발견만 반환. **오케스트레이터가 검증한 뒤** privileged 행동은 `execute-strict`(writer: Write/Edit/Bash — untrusted 웹 페치 안 함)에 위임한다. untrusted-웹 능력과 쓰기 능력을 한 wrapper에 공존시키지 않는다. **강제**: `setup/verify-setup.sh` **seal #41**이 explore-strict의 쓰기도구 미부여를 봉인(누군가 Write 추가 시 FAIL).
+- **deny 최후방어선**: `settings.json`(템플릿 `settings.example.json`) `permissions.deny`에 자격증명 read(`.credentials.json`·`.env`·SSH 키)·파괴 명령(`rm -rf ~|/`) 차단 규칙 — **`bypassPermissions` 하에서도 유효한 최후 층**(deny는 allow/bypass보다 우선한다; 아래 "범위 밖"의 권한-모델-미강제에 대한 *의식적 예외* = 최소 deny는 유지). **강제**: **seal #42**가 deny 규칙 존재를 봉인. 잔여(정직): 런타임 `bypassPermissions` 실차단 검증 = per-machine(라이브 `settings.json`은 gitignored); OS-레벨 sandbox(srt) = GAP-007 L5 별 사이클.
+- 잔여(정직): 메인 오케스트레이터 세션은 전 도구 보유(구조상 불가피) — Rule-of-Two는 *위임 패턴* 권고, seal은 *wrapper*(explore-strict) 강제. 단일 운영자 가정의 수락 상한(동시-세션 격리 §과 동형).
+
 ## 범위 밖 (의도적으로 하지 않는 것)
-- 네트워크 egress 필터링, PII 스캐닝, SAST, 런타임 콘텐츠 모더레이션, 권한 모델 강제(bypassPermissions 유지).
+- 네트워크 egress 필터링, PII 스캐닝, SAST, 런타임 콘텐츠 모더레이션, 권한 모델 *전면* 강제(bypassPermissions 유지 — **단 최소 deny 최후방어선은 의식적 예외**, Rule-of-Two § 참조).
 - 단일 운영자 데스크톱 도구에는 과하다고 판단해 제외. 멀티유저/규제 환경으로 가면 재검토 필요.

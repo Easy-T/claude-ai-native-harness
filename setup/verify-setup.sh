@@ -390,6 +390,28 @@ else
   fail "plugin-pins cksum 핀 부재 (GAP-011): skill-cksum: <N> 라인 필요"
 fi
 
+# 41. explore-strict(웹-읽기 reader) 쓰기도구 미부여 = Rule-of-Two 봉인 (GAP-013 D11 L4):
+#     lethal trifecta(untrusted 웹+시크릿+쓰기) 구조분리 — reader tools 에 Write/Edit/Bash/NotebookEdit 부여 시 FAIL. bash grep(staged-safe).
+ES_TOOLS=$(grep -E '^tools:' "$HOME/.claude/agents/explore-strict.md" 2>/dev/null | head -1)
+if [ -z "$ES_TOOLS" ]; then
+  fail "explore-strict tools 라인 부재 (GAP-013)"
+elif echo "$ES_TOOLS" | grep -qE '\bWebFetch\b' && ! echo "$ES_TOOLS" | grep -qE '\b(Write|Edit|NotebookEdit|Bash)\b'; then
+  ok "explore-strict reader 쓰기도구 미부여 (Rule-of-Two)"
+else
+  fail "explore-strict Rule-of-Two 위반 (GAP-013): reader tools 에 쓰기도구 부여 또는 WebFetch 부재 — lethal trifecta 표면"
+fi
+
+# 42. settings.example deny 최후방어선 존재 (GAP-007a D11 L4): 자격증명 read·파괴명령 deny 규칙이 사라지면 FAIL.
+#     bypassPermissions 에서도 유효한 층(02 §4). bash grep(staged-safe).
+EX_SET="$HOME/.claude/settings.example.json"
+if [ ! -f "$EX_SET" ]; then
+  fail "settings.example.json 부재 (GAP-007a)"
+elif grep -qE '"deny"' "$EX_SET" && grep -qE 'credentials|\.env|id_rsa' "$EX_SET" && grep -qE 'rm -rf' "$EX_SET"; then
+  ok "settings.example deny 최후방어선(자격증명·파괴명령) 존재"
+else
+  fail "settings.example deny 최후방어선 부재 (GAP-007a): permissions.deny 에 자격증명 read·파괴명령 규칙 필요"
+fi
+
 # 36. verify-setup 총 체크수 <-> README 선언 parity (GAP-009 M1 봉인, 런타임 자기-카운트):
 #     이 시점까지의 PASS+FAIL+1(이 체크 자신) == README "(현재 N PASS)" 선언. 체크 추가 시 README 미동기가 자동 FAIL.
 EXPECTED_TOTAL=$((PASS + FAIL + 1))

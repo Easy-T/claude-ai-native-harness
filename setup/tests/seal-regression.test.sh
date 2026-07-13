@@ -76,10 +76,16 @@ mut_readme_cases() {
   local actual; actual=$(grep -vcE '^[[:space:]]*(#|$)' "$1/hooks/tests/cases.tsv")
   sed -i -E "s/${actual} (케이스|cases?)/$((actual-1)) \1/g" "$1/README.md"
 }
+# Mutator 4 — seal #41 (explore-strict Rule-of-Two): reader tools 에 Write 부여 → #41 FAIL.
+mut_explore_write() { sed -i -E 's/^(tools:.*WebFetch.*)$/\1, Write/' "$1/agents/explore-strict.md"; }
+# Mutator 5 — seal #42 (deny 최후방어선): settings.example 의 deny 규칙 블록 제거 → #42 FAIL.
+mut_strip_deny() { sed -i -E '/"deny"[[:space:]]*:/,/\]/d' "$1/settings.example.json"; }
 
 assert_seal_fires "state_schema"    mut_state_count_string "state.json schema 위반"
 assert_seal_fires "settings_parity" mut_settings_matcher   "settings/example harness-hook drift"
 assert_seal_fires "readme_cases"    mut_readme_cases       "README cases drift"
+assert_seal_fires "explore_rule_of_two" mut_explore_write   "explore-strict Rule-of-Two 위반"
+assert_seal_fires "deny_last_line"      mut_strip_deny      "deny 최후방어선 부재"
 
 # === Live immutability: witnessed files byte-identical (all mutation stayed in replicas) ===
 LIVE_AFTER="$(witness)"
