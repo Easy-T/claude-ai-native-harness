@@ -47,7 +47,35 @@ json_get_many() {
   ' "$@"
 }
 
-# --- hook_log: ~/.claude/hooks/.log/YYYY-MM.log에 한 줄 누적 ---
+# --- _json_escape <str>: JSON 문자열 값용 최소 이스케이프(\ " 개행/탭/CR → 공백). run_log_event 전용. ---
+_json_escape() {
+  local s="${1:-}"
+  s=${s//\\/\\\\}      # backslash 먼저
+  s=${s//\"/\\\"}      # double quote
+  s=${s//$'\n'/ }      # 개행 → 공백 (한 줄 JSONL 불변식)
+  s=${s//$'\t'/ }
+  s=${s//$'\r'/ }
+  printf '%s' "$s"
+}
+
+# --- run_log_event: hooks/.runlog/YYYY-MM.jsonl 에 구조화 1줄(gen_ai.* 정렬) 누적 (GAP-003). ---
+# hook_log 초크포인트에서 피기백 호출됨 → hook_log 를 부르는 모든 verdict 를 관측(발화·차단·우회·FAILOPEN·PASS).
+# session_id/tool_name 은 RL_SID/RL_TOOL env(각 차단 hook 이 설정)에서 취득; 비면 빈 문자열(fail-open).
+# 필드명은 OTel GenAI semconv 정렬(gen_ai.tool.name/operation.name) → 백엔드 이식 무비용.
+# RUNLOG_DIR override 로 테스트 hermetic. 로깅 실패는 판정 무영향(|| true).
+run_log_event() {
+  local operation="$1" target="$2" verdict="$3" reason="${4:-}"
+  local dir="${RUNLOG_DIR:-$HOME/.claude/hooks/.runlog}"
+  mkdir -p "$dir" 2>/dev/null || return 0
+  local f="$dir/$(date +%Y-%m).jsonl"
+  local ts; ts=$(date -Iseconds 2>/dev/null || date +"%Y-%m-%dT%H:%M:%S%z")
+  printf '{"ts":"%s","session_id":"%s","gen_ai.tool.name":"%s","gen_ai.operation.name":"%s","verdict":"%s","target":"%s","reason":"%s"}\n' \
+    "$(_json_escape "$ts")" "$(_json_escape "${RL_SID:-}")" "$(_json_escape "${RL_TOOL:-}")" \
+    "$(_json_escape "$operation")" "$(_json_escape "$verdict")" "$(_json_escape "$target")" "$(_json_escape "$reason")" \
+    >> "$f" 2>/dev/null || true
+}
+
+# --- hook_log: ~/.claude/hooks/.log/YYYY-MM.log에 한 줄 누적 (+ run_log_event 피기백) ---
 # Usage: hook_log "<hook-name>" "<target>" "<verdict>" "[<reason>]"
 hook_log() {
   local hook="$1"; local target="$2"; local verdict="$3"; local reason="${4:-}"
@@ -57,6 +85,7 @@ hook_log() {
   local ts
   ts=$(date -Iseconds 2>/dev/null || date +"%Y-%m-%dT%H:%M:%S%z")
   printf "%s\t%s\t%s\t%s\t%s\n" "$ts" "$hook" "$target" "$verdict" "$reason" >> "$logfile" 2>/dev/null || true
+  run_log_event "$hook" "$target" "$verdict" "$reason"   # GAP-003: 구조화 JSONL 병행(초크포인트 피기백)
 }
 
 # --- node 가용성 체크 (Claude Code 런타임이라 보장되지만 방어적) ---
@@ -249,6 +278,22 @@ log_summary() {
     ($4=="PASS" && $5 ~ /^skip:/){s++}
     END{printf "BLOCK=%d SKIP=%d FAILOPEN=%d ALERT=%d", b+0, s+0, fo+0, a+0}
   ' "$f" 2>/dev/null || printf 'BLOCK=0 SKIP=0 FAILOPEN=0 ALERT=0'
+}
+
+# --- runlog_summary <jsonlfile>: 당월 run-log JSONL 의 총 이벤트 + verdict 카운트 (GAP-003 closeout 소비, 값 미표시) ---
+# 각 이벤트는 1줄 JSON → 줄 단위 verdict 서브스트링 매칭(로컬 신뢰 로그, node 무의존 = fail-open).
+runlog_summary() {
+  local f="${1:-}"
+  if [ ! -f "$f" ]; then printf 'EVENTS=0 BLOCK=0 PASS=0 SKIP=0 FAILOPEN=0 ALERT=0'; return 0; fi
+  awk '
+    { ev++ }
+    /"verdict":"BLOCK"/{b++}
+    /"verdict":"PASS"/{p++}
+    /"verdict":"FAILOPEN"/{fo++}
+    /"verdict":"ALERT"/{a++}
+    /"reason":"skip:/{s++}
+    END{printf "EVENTS=%d BLOCK=%d PASS=%d SKIP=%d FAILOPEN=%d ALERT=%d", ev+0, b+0, p+0, s+0, fo+0, a+0}
+  ' "$f" 2>/dev/null || printf 'EVENTS=0 BLOCK=0 PASS=0 SKIP=0 FAILOPEN=0 ALERT=0'
 }
 
 # --- resolve_cwd: stdin JSON 의 cwd 를 정규화해 출력. 비면 비-zero return (호출자가 fail-open/skip 결정, S12) ---

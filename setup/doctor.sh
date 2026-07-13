@@ -297,6 +297,26 @@ if [ -f "$LOGMONTH" ] && [ -r "$CLAUDE_HOME/hooks/_common.sh" ]; then
   fi
 fi
 
+# 20e. hooks/.runlog 당월 JSONL 집계 소비 + 이상 패턴 ALERT (GAP-003 — read-only, 카운트만).
+#      로테이션(≤6 월파일)도 병행. FAILOPEN>0 = 파서 크래시 신호 → WARN(이상 패턴 표면화).
+RUNLOGDIR="$CLAUDE_HOME/hooks/.runlog"
+if [ -d "$RUNLOGDIR" ]; then
+  OLD_RL=$({ ls -t "$RUNLOGDIR"/*.jsonl 2>/dev/null || true; } | tail -n +7)
+  [ -n "$OLD_RL" ] && printf '%s\n' "$OLD_RL" | while read -r rf; do rm -f "$rf"; done
+  RLMONTH="$RUNLOGDIR/$(date +%Y-%m).jsonl"
+  if [ -f "$RLMONTH" ] && [ -r "$CLAUDE_HOME/hooks/_common.sh" ]; then
+    RLSUM=$( source "$CLAUDE_HOME/hooks/_common.sh" 2>/dev/null; runlog_summary "$RLMONTH" 2>/dev/null ) || RLSUM=""
+    RL_FO=$(printf '%s' "$RLSUM" | grep -oE 'FAILOPEN=[0-9]+' | grep -oE '[0-9]+' || echo 0)
+    if [ -z "$RLSUM" ]; then
+      check "run-log 당월 집계" "WARN" "집계 불가"
+    elif [ "${RL_FO:-0}" -gt 0 ]; then
+      check "run-log 당월 집계" "WARN" "$RLSUM — FAILOPEN>0 (파서 크래시 이상 신호, session-start-audit 로그 확인)"
+    else
+      check "run-log 당월 집계" "PASS" "$RLSUM"
+    fi
+  fi
+fi
+
 # 21. hook 파일 존재 + 실행권한
 REQUIRED_HOOKS=(
   "enforce-orchestrator.sh"

@@ -20,10 +20,11 @@ durable spec: [`docs/superpowers/specs/2026-07-13-harness-upgrade-2026-07-design
 |---|---|---|
 | **C0** | 문서 세트 6종(재감사+로드맵+플레이북) | **완료 (2026-07-13, RPI-Cycle 49 — 동시 세션 ui-design C1=48 선점 반영)** |
 | **C1** | GAP-001 Best-Direction Mandate(4층) + GAP-009 정합·seal #35/#36 | **완료 (2026-07-13, RPI-Cycle 50)** — D10 1→4, verify-setup 70→72 |
-| C2.. | 04 순위순 (GAP-003 run-log → GAP-002 예산 governor → GAP-005 스캐폴드 노화 → GAP-004 메모리 → GAP-018 트리거 → …) | 대기 — **다음 착수 = GAP-003** |
+| **C2** | GAP-003 사이클 run-log (JSONL gen_ai.*·runlog_summary·doctor 20e; G6-b/G3-a 흡수) | **완료 (2026-07-13, RPI-Cycle 52)** — D4 3→4, run-all 156→159 |
+| C3.. | 04 순위순 (GAP-002 예산 governor → GAP-005 스캐폴드 노화 → GAP-004 메모리 → GAP-018 트리거 → …) | 대기 — **다음 착수 = GAP-002**(run-log 기반 마련됨) |
 | C-final | 핸드오프 봉인(최종 재채점·cold-agent fitness·최종 보고) | 대기 |
 
-**루브릭 현황 (C1 재채점)**: min=1 (D12 스캐폴드 노화 — D10은 C1에서 4 도달). 상세는 03 종합표. 6월 감사 대비 축 4개 신설 + 기준 상승 2건(D4·D11)이며 6월 종결 항목의 회귀는 없음.
+**루브릭 현황 (C2 재채점)**: min=1 (D12 스캐폴드 노화 — D10·D4는 C1·C2에서 4 도달). 상세는 03 종합표. 6월 감사 대비 축 4개 신설 + 기준 상승 2건(D4·D11)이며 6월 종결 항목의 회귀는 없음.
 
 ## 방법론 기록 (정직성)
 

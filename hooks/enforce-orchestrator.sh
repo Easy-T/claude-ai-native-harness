@@ -3,7 +3,9 @@ source "$HOME/.claude/hooks/_common.sh"
 require_node
 
 INPUT=$(read_input)
-FILE_PATH=$(echo "$INPUT" | json_get 'tool_input.file_path')
+# file_path + session_id + tool_name 을 node 1회로(스폰 0 추가) — RL_* 는 run-log 인리치(GAP-003)
+IFS=$'\037' read -r FILE_PATH RL_SID RL_TOOL <<< "$(echo "$INPUT" | json_get_many tool_input.file_path session_id tool_name)"
+export RL_SID RL_TOOL
 FILE_PATH=$(normalize_path "$FILE_PATH")
 
 # 1. 대상 path 확인 — */skills/*/SKILL.md (대소문자 무시: skill.md/Skill.md 등도 검증, S13)

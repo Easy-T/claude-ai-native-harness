@@ -20,6 +20,7 @@ CMD=$(echo "$INPUT" | json_get 'tool_input.command')
 #   strictly fail-open: helper 가 항상 return 0 (exit/판정 영향 0). SID 는 아래 우회표면화에서도 재사용.
 SID=$(echo "$INPUT" | json_get session_id)
 record_worktree_marker "$SID" "$CMD"
+export RL_SID="$SID" RL_TOOL="Bash"   # GAP-003: run-log 인리치(Bash tool 고정)
 # 빈/누락 cwd → fail-open (S12, resolve_cwd 공유)
 CWD=$(echo "$INPUT" | resolve_cwd) || { hook_log "enforce-rpi-bash" "bash" "PASS" "no-cwd-failopen"; exit 0; }
 

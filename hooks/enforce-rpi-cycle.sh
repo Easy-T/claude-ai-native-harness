@@ -7,6 +7,7 @@ INPUT=$(read_input)
 IFS=$'\037' read -r FILE_PATH NB_PATH TOOL SID <<< "$(echo "$INPUT" | json_get_many tool_input.file_path tool_input.notebook_path tool_name session_id)"
 [ -z "$FILE_PATH" ] && FILE_PATH="$NB_PATH"   # NotebookEdit는 file_path 대신 notebook_path 사용
 FILE_PATH=$(normalize_path "$FILE_PATH")
+export RL_SID="$SID" RL_TOOL="$TOOL"   # GAP-003: run-log 인리치(hook_log 피기백이 소비)
 
 # --- WORKTREE MARKER (cycle-40): 워크트리 경로를 만지는 PreToolUse 에서 session_id-키 마커 기록 (SessionEnd teardown).
 #   SessionStart cwd 는 항상 CLI 실행디렉터리(메인루트)라 워크트리 식별 불가 → 워크트리 절대경로가 실제 도달하는

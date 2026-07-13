@@ -170,3 +170,7 @@ hooks-lib	167-sweep-prunable-zero	output	gen_sweep_167
 hooks-lib	168-sweep-orphan-deleted	output	gen_sweep_168
 hooks-lib	169-sweep-active-kept	output	gen_sweep_169
 hooks-lib	170-sweep-nonconv-kept	output	gen_sweep_170
+# cycle-52 (2026-07-13) — GAP-003 사이클 run-log JSONL (hook_log 피기백 방출 + runlog_summary 소비)
+run-log	rl-171-emit-chain	jsonl	gen_rl_171
+run-log	rl-172-emit-bypass	jsonl	gen_rl_172
+hooks-lib	rl-173-runlog-summary	output	gen_rl_173
