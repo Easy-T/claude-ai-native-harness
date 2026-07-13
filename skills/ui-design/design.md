@@ -532,7 +532,7 @@ svg path[fill="black"] { fill: currentColor; }
 
 - **enter/exit = ease-out 계열**, 화면 내 이동 = ease-in-out. `transition: all` 금지 — 애니메이트할 property를 명시.
 - **transform/opacity만** 애니메이트 (layout property(width/height/top) 금지 — CLS·jank). 진입 모션 중 layout shift 0이어야 한다 (실측: PerformanceObserver CLS < 0.02).
-- **stagger**: 순차 등장은 60–120ms 간격 (KPI 카드 60ms·hero 행 120ms 실측). 총 안무 <700ms.
+- **stagger**: 순차 등장은 60–120ms 간격 (KPI 카드 60ms·hero 행 120ms 실측). **안무 예산은 2축**이다 — *개별 요소 지속* ≤700ms(motion-hero 상한)와 *마지막 요소의 시작 지연* ≤300ms(요소 ~5개 이내)는 별개 축. 체감 총 길이 = 개별 지속 + 시작 지연 spread ≤ **~1000ms**. (v2 "총 안무 <700ms"는 700ms line-rise 레시피와 모순 — 개별 지속과 시퀀스 spread를 혼동했음.) // evidence: F-FIT-02
 - **반복 사용 화면은 무모션**: 대시보드·목록 등 매일 여러 번 보는 화면은 진입 스태거 1회 외 전부 `transition-colors`만. 반복 키보드 액션은 절대 애니메이트하지 않는다.
 - **연속 고novelty 금지**: 큰 모션 섹션 뒤에는 조용한 섹션 (§14 완급).
 
@@ -654,7 +654,8 @@ html[data-surface="paper"]:not([data-theme="dark"]) {
 
 # 12. Interaction States // evidence: F-L1-09, F-L2-09, F-L3-02, F-L3-03, F-L3-08
 ### Hover — 주의를 보상한다
-- 목록 행: 배경 1단차 (`hover:bg-neutral-100`, 서브틀 배경 위에선 `hover:bg-neutral-0` 반전) + 보조 신호 1개(인덱스 primary화·화살표 슬라이드 등 transform ≤8px).
+- **인터랙티브 목록 행**(클릭 시 이동·선택되는 내비/리스트 행): 배경 1단차 (`hover:bg-neutral-100`, 서브틀 배경 위에선 `hover:bg-neutral-0` 반전) + 보조 신호 1개(인덱스 primary화·화살표 슬라이드 등 transform ≤8px). 화살표 슬라이드는 *이동 어포던스*이므로 이동하는 행에만.
+- **비인터랙티브 행**(읽기 전용 데이터 표·정보 행): 배경 1단차만 (`hover:bg-neutral-100`) — 방향 신호(화살표)는 거짓 어포던스라 금지. 행이 클릭 대상이 아니면 hover는 "읽는 위치" 표시일 뿐이다. // evidence: F-FIT-03
 - 버튼·링크: §4 색 전환만 (`transition-colors`). bouncy·scale 금지.
 
 ### Focus-visible — 키보드 순회가 눈으로 따라가져야 한다
