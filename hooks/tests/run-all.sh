@@ -556,6 +556,23 @@ test_acw_model() {
 test_acw_model "60-opus48-1M"   claude-opus-4-8   480000 1000000
 test_acw_model "61-sonnet-200k" claude-sonnet-4-6 100000 200000
 
+# rot-timing (GAP-018): 350K(rot-zone, opus 1M)에서 PCT=55는 무경고(WARN 45%→THRESHOLD 450K>350K)=재캘리브 前 문제,
+# PCT=40은 경고(WARN 30%→THRESHOLD 300K<350K)=rot 이전 조기 발화. auto-compact-watch 파라메트릭(WARN=PCT-10) 관계 가드.
+test_acw_rot() {  # $1 name  $2 pct  $3 want(warn|silent)
+  TOTAL=$((TOTAL+1))
+  local tf; tf=$(mktemp "$SCRATCH/acwrot-XXXXXX.jsonl")
+  printf '{"message":{"model":"claude-opus-4-8","usage":{"input_tokens":350000,"cache_read_input_tokens":0,"cache_creation_input_tokens":0}}}\n' > "$tf"
+  local sid="acwrot-$$-$1"; rm -f "/tmp/compact-alerted-$sid"
+  local out; out=$(echo "{\"session_id\":\"$sid\",\"transcript_path\":\"$tf\"}" | CLAUDE_AUTOCOMPACT_PCT_OVERRIDE="$2" "$HOOKS/auto-compact-watch.sh" 2>&1)
+  rm -f "/tmp/compact-alerted-$sid" "$tf"
+  local good=0
+  if [ "$3" = "warn" ]; then echo "$out" | grep -q 'auto-compact' && good=1
+  else [ -z "$out" ] && good=1; fi
+  [ "$good" = 1 ] && PASSED=$((PASSED+1)) || FAILED_LIST+=("auto-compact-watch/$1 (want=$3 got:$out)")
+}
+test_acw_rot "189-rot-pct55-silent" 55 silent
+test_acw_rot "190-rot-pct40-warn"   40 warn
+
 # ==================== PATCH-F: hooks/lib unit tests (extracted parsers, directly testable) ====================
 LIB="$HOME/.claude/hooks/lib"
 test_lib() {
