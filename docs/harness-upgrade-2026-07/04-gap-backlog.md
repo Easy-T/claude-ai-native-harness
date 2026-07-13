@@ -11,7 +11,7 @@
 |---|---|---|---|---|---|
 | 1 | GAP-001 | Best-Direction Mandate | D10(3→0) | 전 후속 사이클의 plan 품질에 작용 | **DONE(C1, 2026-07-13)** — 4층 전부: CLAUDE.md 정련·Phase P 필드+Gate P·C-1 silent-downgrade·seal #35(RED→GREEN) |
 | 2 | GAP-003 | 사이클 run-log (관측 기반) | D4(1→0) | D5 예산 측정·D7 인사이트·D12 사용통계·GAP-002/005/012를 unblock — 최대 레버리지 | **DONE(C2, 2026-07-13)** — run_log_event JSONL(gen_ai.*)+runlog_summary+doctor 20e; G6-b/G3-a 흡수(아래) |
-| 3 | GAP-002 | 자율성 예산 governor | D5(2) | 무인 goal-loop 전체의 안전 상한 — 이 이니셔티브 자신이 무인 | PENDING |
+| 3 | GAP-002 | 자율성 예산 governor | D5(2→1) | 무인 goal-loop 전체의 안전 상한 — 이 이니셔티브 자신이 무인 | **DONE(C3, 2026-07-13)** — (a) tool-call ceiling hook; (b)(c) DEFERRED(선언). D5 2→3 |
 | 4 | GAP-005 | 스캐폴드 노화 관리 | D12(2) | 전 skill/hook/seal 표면에 작용; Δ2 동률 내 tie-break=긴급도(Fable 5 가이드 직접 충돌) | PENDING |
 | 5 | GAP-004 | 메모리 수명주기 정책 | D6(2) | 포이즈닝 방어+rot 방지 — 메모리 소비 전 세션에 작용 (Δ2 — 적대 리뷰로 구 5위 GAP-006과 스왑) | PENDING |
 | 6 | GAP-018 | autocompact 트리거 재캘리브레이션 | D3(2)의 주 레버 | 전 장기 세션의 rot 노출 — 550K→rot-이전(≤400K)으로; D3 L4 anchor의 직접 요건 | PENDING — **신설(적대 리뷰 발견 1)** |
@@ -79,6 +79,10 @@
 - **테스트 계획(RED)**: hook 부재 상태에서 신규 케이스 4종이 FAIL(기대 차단 미발생) → 구현 → GREEN. run-all 카운트 SSOT(cases.tsv·README·#20) 동기.
 - **복잡도**: 중 · **의존성**: GAP-003과 마커 포맷 공유하면 시너지(선행 불필요) · **사이클 분할**: 단일.
 - **Opus-실행성**: 높음 — enforce-rpi-bash가 구조 템플릿. 함정: PostToolUse가 아닌 PreToolUse여야 차단 가능; matcher 광역이라 성능(파일 touch 1회/호출) 주의; 동시-세션 격리(SID-키 마커, CONTEXT.md 규약).
+- **DONE(C3, 2026-07-13) — (a)만 구현, (b)(c) DEFERRED(선언)**: `enforce-session-budget.sh`(PreToolUse `*` catch-all, claude-code-guide 확인) — 기본 OFF(`SESSION_TOOL_BUDGET` 미설정 시 source 전 즉시 exit 0)·세션당 `.budget/<sid>` 카운터 증분·초과 시 exit 2 차단(GOAL_BUDGET_SKIP 우회·80% additionalContext 경고)·run-log 피기백(C2)·`BUDGET_DIR` override hermetic·session-start-audit 7일+ prune. 5 seal 접점 동기(README 11 hook·doctor REQUIRED_HOOKS·verify-setup #8 11개+#14 주석·install.sh·settings.example #23 parity). RED(hook 부재)→GREEN(run-all 159→164 sb-180~184·verify-setup 72→73·#23 parity). 03 D5 2→3.
+  - **(b) 사이클당 반복 상한 DEFERRED**: 실패-반복 검출은 tool-count 예산과 별개 메커니즘 → GAP-010(미테스트 표면)/별도 후속. 열화 아님(별 축).
+  - **(c) goal-doc 체크포인트 슬라이싱 규약 DEFERRED**: hook 아닌 goal-작성 규약 → 문서 노트 후속(D5 L4 잔여). METR 80%-horizon 근거는 02 §4 기록됨.
+  - **★라이브 배선 한계(정직)**: 새 PreToolUse `*` matcher는 세션 재시작 후 발화(README 경고). hook **로직**은 run-all로 test-proven; **라이브 settings.json 배선**은 머지 후 hook 파일 도착 시 수행(#23 parity가 미배선 시 드리프트로 표면화 — 봉인 작동). settings.example.json은 tracked 배선 완료.
 
 ## GAP-003 — 사이클 run-log (관측 기반)
 

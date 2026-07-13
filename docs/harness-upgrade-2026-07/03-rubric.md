@@ -70,7 +70,8 @@
 | 4 | 토큰/비용/반복 ceiling이 에이전트 밖에서 강제(초과 시 차단) + 자율 구간이 체크포인트로 슬라이스 |
 | 5 | 4 + OS sandbox(write/egress deny-by-default) + 위험 표면(deep-research 등) Rule-of-Two 분리 |
 
-**현행 2** — 증거: goal 문서 back-pressure(랩 6라운드 캡·수확체감 중단)와 merge 하드게이트는 존재하나 전부 모델 순응 의존(01 §6-8 "비용·반복 예산 governor 부재"); bypassPermissions(01 §0)로 OS 백스톱 없음. 외부 바: 02 §5 "강제는 에이전트 밖"(Uber·DN42·$47K), 02 §4 METR 80%-horizon 슬라이싱, srt Windows 지원. **목표 4. 델타 2.**
+**현행 3** — 증거: goal 문서 back-pressure(랩 6라운드 캡·수확체감 중단)와 merge 하드게이트는 존재하나 모델 순응 의존; bypassPermissions(01 §0)로 OS 백스톱 없음. 외부 바: 02 §5 "강제는 에이전트 밖"(Uber·DN42·$47K), 02 §4 METR 80%-horizon 슬라이싱, srt Windows 지원. **목표 4. 델타 1.**
+**C3 재채점(2026-07-13, 2→3)**: GAP-002 착륙 — `enforce-session-budget.sh`(PreToolUse `*` catch-all)가 세션당 도구호출 카운터를 **에이전트 밖에서 결정론적으로 감시·초과 시 차단(exit 2)** = Level 3 "결정론 iteration 감시(초과 시 표면화)"를 차단으로 초과 충족. 기본 OFF(SESSION_TOOL_BUDGET opt-in)·80% 경고·GOAL_BUDGET_SKIP 우회·`.budget/<sid>` 카운터·run-log 피기백. Level 4 미달 사유: (c) 자율 구간 체크포인트 슬라이싱 규약이 이 사이클에서 DEFERRED(04 GAP-002 스코프 분할 선언) — ceiling-강제는 있으나 슬라이싱 규약 미완. L5(OS sandbox)는 GAP-007. **실측: run-all sb-180~184 GREEN·verify-setup 73/0·#23 parity. ★라이브 발화는 세션 재시작 후(새 PreToolUse matcher, README 경고) — 로직은 test-proven, 배선은 재시작 의존(정직 선언).**
 
 ## D6. 메모리 수명주기
 
@@ -183,7 +184,7 @@
 | D2 검증 정직성 | 4 | 5 | 1 | |
 | D3 컨텍스트 경제 | 3 | 5 | 2 | 적대 리뷰 교정(트리거↔rot 모순) |
 | D4 관측가능성 | 4 | 4 | 0 | **C2 도달** (GAP-003 run-log) |
-| D5 자율성 안전 | 2 | 4 | 2 | |
+| D5 자율성 안전 | 3 | 4 | 1 | **C3** (GAP-002 예산 governor); L4=체크포인트 슬라이싱 잔여 |
 | D6 메모리 수명주기 | 2 | 4 | 2 | |
 | D7 eval/fitness | 3 | 4 | 1 | |
 | D8 이식성 | 4 | 4 | 0 | 목표-충족(스코프 판단) |
@@ -192,5 +193,5 @@
 | D11 보안 | 3 | 4 | 1 | 기준 상승(6월 4) |
 | **D12 스캐폴드 노화** | **1** | **3** | **2** | Fable 5 가이드 직접 충돌 |
 
-**min = 1 (D12)** (C1에서 D10 1→4, C2에서 D4 3→4 해소). C0 시점 min=1(D10·D12)은 축 확장(신규 4축)·기준 상승(D4·D11)·오채점 교정(D3)의 결과였다. 잔여 우선 델타: D3·D5·D6·D9·D12(2) > D1·D2·D7·D11(1) > D4·D8·D10(0). 다음 착수(C3) 후보: 델타 2 중 레버리지 최대 = **GAP-002 자율성 예산 governor**(D5, run-log 기반 마련됨) 또는 GAP-005 스캐폴드 노화(D12, min 해소).
+**min = 1 (D12)** (C1 D10 1→4, C2 D4 3→4, C3 D5 2→3 해소). C0 시점 min=1(D10·D12)은 축 확장(신규 4축)·기준 상승(D4·D11)·오채점 교정(D3)의 결과였다. 잔여 우선 델타: D3·D6·D9·D12(2) > D1·D2·D5·D7·D11(1) > D4·D8·D10(0). 다음 착수(C4) 후보: 델타 2 중 레버리지 = **GAP-005 스캐폴드 노화**(D12, 유일 min=1 해소·Fable 5 가이드 충돌 긴급) 또는 GAP-004 메모리 수명주기(D6).
 **채점 방법론 노트**: C0 채점은 fresh-context 적대 리뷰(refute-by-default, 동일 패밀리·별도 컨텍스트)를 1회 통과 — 7건 발견 중 점수 교정 1(D3 4→3), 잔여 명시 1(D1), 반박-기각 1(D10), 순위·기준 정정은 04에 반영. 교차패밀리 리뷰는 인프라 실패로 GAP-006에 위임(README 방법론 기록).

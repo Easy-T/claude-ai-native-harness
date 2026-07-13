@@ -36,6 +36,7 @@ plugins/data/
 # Hook runtime logs (operational data, regenerated)
 hooks/.log/
 hooks/.runlog/
+hooks/.budget/
 
 # External skills (auto-installed by doctor.sh, managed upstream)
 skills/grill-with-docs/

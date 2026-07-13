@@ -45,8 +45,8 @@ for s in create-orchestrator-skill init-ai-ready-project start-rpi-cycle closeou
   fi
 done
 
-# 8. 10 hook scripts executable
-for h in enforce-orchestrator stable-claude-md auto-compact-watch enforce-rpi-cycle enforce-rpi-bash enforce-secret-scan verify-loop-watch session-start-audit surface-constitution worktree-teardown; do
+# 8. 11 hook scripts executable
+for h in enforce-orchestrator stable-claude-md auto-compact-watch enforce-rpi-cycle enforce-rpi-bash enforce-secret-scan enforce-session-budget verify-loop-watch session-start-audit surface-constitution worktree-teardown; do
   [ -x "$HOME/.claude/hooks/$h.sh" ] && ok "hook: $h" || fail "hook missing or non-executable: $h"
 done
 
@@ -82,7 +82,7 @@ done
 # 13. .installed marker
 [ -f "$HOME/.claude/setup/.installed" ] && ok ".installed marker" || fail ".installed missing"
 
-# 14. settings.json has >=9 hook command entries (실측 11: 5 PreToolUse W|E|N + 2 Bash + 1 PostToolUse + 1 SessionStart + 1 Stop + 1 SessionEnd — >=9는 하한 게이트)
+# 14. settings.json has >=9 hook command entries (실측 12: 1 PreToolUse `*`(budget) + 5 W|E|N + 2 Bash + 1 PostToolUse + 1 SessionStart + 1 Stop + 1 SessionEnd — >=9는 하한 게이트)
 COUNT=$(node -e '
   const cfg = JSON.parse(require("fs").readFileSync(process.env.HOME + "/.claude/settings.json", "utf8"));
   const all = [];

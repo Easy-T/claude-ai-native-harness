@@ -174,3 +174,9 @@ hooks-lib	170-sweep-nonconv-kept	output	gen_sweep_170
 run-log	rl-171-emit-chain	jsonl	gen_rl_171
 run-log	rl-172-emit-bypass	jsonl	gen_rl_172
 hooks-lib	rl-173-runlog-summary	output	gen_rl_173
+# cycle-53 (2026-07-13) — GAP-002 세션 예산 governor (PreToolUse * catch-all, 기본 OFF·임계 차단·우회·80% 경고)
+session-budget	sb-180-off-noop	pass	gen_sb_180
+session-budget	sb-181-under	pass	gen_sb_181
+session-budget	sb-182-over-block	block	gen_sb_182
+session-budget	sb-183-skip-bypass	pass	gen_sb_183
+session-budget	sb-184-warn-emit	alert	gen_sb_184

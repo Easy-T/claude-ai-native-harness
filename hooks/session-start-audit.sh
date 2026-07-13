@@ -12,6 +12,7 @@ CWD=$(echo "$INPUT" | resolve_cwd) || CWD=""
 SID=$(echo "$INPUT" | json_get 'session_id'); [ -n "$SID" ] || SID="unknown"
 WT_MARK_DIR="$HOME/.claude/worktrees-marker"
 record_worktree_marker "$SID" "$CWD"
+
 # 스테일 마커 prune: 기록된 WT_ROOT 가 더는 없으면(크래시로 SessionEnd 미발화) 마커파일만 제거(디렉터리/타세션 활성 워크트리 절대 미삭제).
 if [ -d "$WT_MARK_DIR" ]; then
   for _mk in "$WT_MARK_DIR"/*; do
@@ -19,6 +20,12 @@ if [ -d "$WT_MARK_DIR" ]; then
     _mv=$(head -1 "$_mk" 2>/dev/null)
     if [ -n "$_mv" ] && [ ! -d "$_mv" ]; then rm -f "$_mk" 2>/dev/null || true; fi
   done
+fi
+
+# 스테일 세션 예산 카운터 prune (GAP-002): .budget/<sid>·.warned-<sid> 는 세션 종료 후 잔존 → 7일+ 경과분 제거(best-effort).
+BUDGET_DIR_SSA="$HOME/.claude/hooks/.budget"
+if [ -d "$BUDGET_DIR_SSA" ]; then
+  find "$BUDGET_DIR_SSA" -maxdepth 1 -type f -mtime +7 -exec rm -f {} + 2>/dev/null || true
 fi
 
 # --- self-healing sweep (cycle-41): harness-worktree 프로젝트의 git 등록(prunable)/고아 worktree-* 브랜치 잔여 청소 ---
