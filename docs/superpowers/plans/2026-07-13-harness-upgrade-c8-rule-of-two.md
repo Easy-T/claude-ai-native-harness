@@ -2,9 +2,10 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: superpowers:executing-plans. Steps use `- [ ]` checkboxes.
 
-**Status:** active
+**Status:** completed
 **RPI-Cycle:** 56
 **Started:** 2026-07-14
+**Completed:** 2026-07-14
 
 **Best-Direction Check:** 최선안 = **D11 L4를 정직하게 완주** = 3 conjunct 전부 착륙(핀/diff-review[C7]·Rule-of-Two[C8]·deny 최후방어선[C8]). ★Gate P 정정 반영: 03 L149 앵커·C7 노트(03)가 명시한 대로 D11 L4 = **3 conjunct**이며 deny=**GAP-007a**(GAP-007의 (a) deny규칙 부분="지금 즉시 가능", 04 L138)이 **L4 conjunct**(GAP-007의 (b) srt OS-sandbox만 L5). 따라서 GAP-013 단독은 2/3(미bump) — **GAP-007a(deny)를 같은 사이클에 착륙시켜 L4 완주 → D11 3→4 HONEST**. 사용자 핵심 우려(쉬운 대안 회피·최선방향)대로 부분-착륙 방치 대신 L4 완성이 최선.
 - **Rule-of-Two(GAP-013)**: `explore-strict`(reader)는 이미 `tools: Read, Grep, Glob, WebFetch`(WebFetch=untrusted 웹·쓰기無)=구조적 Rule-of-Two reader. 이 *우연적* 분리를 **명문 통제(SECURITY.md)+seal #41**로 격상.
@@ -26,18 +27,18 @@
 ### Task 1: SECURITY.md Rule-of-Two + deny 섹션 + explore-strict 근거
 **Files:** Modify: `SECURITY.md`, `agents/explore-strict.md`
 
-- [ ] **Step 1: SECURITY.md 섹션** — `## 동시-세션 격리` 뒤에 `## Rule-of-Two 세션 분리 + deny 최후방어선 (lethal trifecta 방어)`:
+- [x] **Step 1: SECURITY.md 섹션** — `## 동시-세션 격리` 뒤에 `## Rule-of-Two 세션 분리 + deny 최후방어선 (lethal trifecta 방어)`:
   - lethal trifecta(02 §4)=untrusted 입력+시크릿 접근+쓰기/exfil 공존→인젝션 탈취. "인젝션 조심" 프롬프트는 영구속성이라 기각 — 구조 분리만 작동.
   - **Rule-of-Two**: untrusted-웹 읽기는 `explore-strict`(reader: Read/Grep/Glob/WebFetch, 쓰기無)에 위임→발견만 반환; 오케스트레이터 검증 후 privileged 행동은 `execute-strict`(writer, untrusted 웹無). 두 능력 한 wrapper 공존 금지. seal #41 봉인.
   - **deny 최후방어선**: `settings.json`(예시=`settings.example.json`) permissions.deny에 자격증명 read·파괴 명령(`rm -rf` 등) 차단 — **bypassPermissions에서도 유효한 최후 층**. seal #42 봉인. 잔여(정직): OS-레벨 sandbox(srt)=GAP-007 L5; 런타임 bypass 실차단 검증=per-machine.
   - 잔여(정직): 메인 오케스트레이터 세션은 전 도구 보유(구조상 불가피) — Rule-of-Two는 *위임 패턴* 권고, seal은 *wrapper* 강제.
-- [ ] **Step 2: explore-strict.md 본문** — 프론트매터 `tools:` **불변**. 본문에 1줄: "★Rule-of-Two(SECURITY.md): 이 reader의 쓰기도구 미부여는 *의도된 lethal-trifecta 방어*. verify-setup #41 봉인."
-- [ ] **Step 3: grep + commit** — `grep -q 'Rule-of-Two' SECURITY.md agents/explore-strict.md && grep -q 'deny 최후방어선' SECURITY.md`. commit: `docs(gap-013/007a): SECURITY.md Rule-of-Two+deny 최후방어선 + explore-strict no-write 근거`
+- [x] **Step 2: explore-strict.md 본문** — 프론트매터 `tools:` **불변**. 본문에 1줄: "★Rule-of-Two(SECURITY.md): 이 reader의 쓰기도구 미부여는 *의도된 lethal-trifecta 방어*. verify-setup #41 봉인."
+- [x] **Step 3: grep + commit** — `grep -q 'Rule-of-Two' SECURITY.md agents/explore-strict.md && grep -q 'deny 최후방어선' SECURITY.md`. commit: `docs(gap-013/007a): SECURITY.md Rule-of-Two+deny 최후방어선 + explore-strict no-write 근거`
 
 ### Task 2: settings.example permissions.deny (deny 최후방어선)
 **Files:** Modify: `settings.example.json`
 
-- [ ] **Step 1: deny 배열 추가** — permissions에 `deny`(allow 옆). 자격증명 read + 파괴 명령:
+- [x] **Step 1: deny 배열 추가** — permissions에 `deny`(allow 옆). 자격증명 read + 파괴 명령:
 ```json
     "deny": [
       "Read(**/.credentials.json)",
@@ -49,12 +50,12 @@
       "Bash(rm -rf /)"
     ]
 ```
-- [ ] **Step 2: JSON valid + commit** — `node -e "require('./settings.example.json')"`. commit: `feat(gap-007a): settings.example permissions.deny — 자격증명 read·파괴명령 최후방어선 (bypass서도 유효)`
+- [x] **Step 2: JSON valid + commit** — `node -e "require('./settings.example.json')"`. commit: `feat(gap-007a): settings.example permissions.deny — 자격증명 read·파괴명령 최후방어선 (bypass서도 유효)`
 
 ### Task 3: verify-setup seal #41(Rule-of-Two) + #42(deny) RED→GREEN
 **Files:** Modify: `setup/verify-setup.sh`, `README.md`
 
-- [ ] **Step 1: seal 삽입** — #40 뒤, #36 앞. 둘 다 bash grep:
+- [x] **Step 1: seal 삽입** — #40 뒤, #36 앞. 둘 다 bash grep:
 ```bash
 # 41. explore-strict(웹-읽기 reader) 쓰기도구 미부여 = Rule-of-Two 봉인 (GAP-013 D11 L4):
 #     lethal trifecta 구조분리 — reader tools 에 Write/Edit/Bash/NotebookEdit 부여 시 FAIL. bash grep(staged-safe).
@@ -78,14 +79,14 @@ else
   fail "settings.example deny 최후방어선 부재 (GAP-007a): permissions.deny 에 자격증명 read·파괴명령 규칙 필요"
 fi
 ```
-- [ ] **Step 2: RED 실측** — explore Write 추가 / deny 제거 복제본에서 #41·#42 FAIL(Task 4 seal-regression 정식 증명); 여기선 로직 직접 확인.
-- [ ] **Step 3: README** — `현재 77 PASS` → `79`.
-- [ ] **Step 4: GREEN + commit** — staged verify-setup 79/0. commit: `feat(gap-013/007a): verify-setup #41 Rule-of-Two + #42 deny seal (77→79, RED→GREEN)`
+- [x] **Step 2: RED 실측** — explore Write 추가 / deny 제거 복제본에서 #41·#42 FAIL(Task 4 seal-regression 정식 증명); 여기선 로직 직접 확인.
+- [x] **Step 3: README** — `현재 77 PASS` → `79`.
+- [x] **Step 4: GREEN + commit** — staged verify-setup 79/0. commit: `feat(gap-013/007a): verify-setup #41 Rule-of-Two + #42 deny seal (77→79, RED→GREEN)`
 
 ### Task 4: seal-regression 변이 mutator (Rule-of-Two·deny 위반 → FAIL 증명)
 **Files:** Modify: `setup/tests/seal-regression.test.sh`
 
-- [ ] **Step 1: mutator 2개 추가**:
+- [x] **Step 1: mutator 2개 추가**:
 ```bash
 # Mutator 4 — seal #41 (explore-strict Rule-of-Two): reader tools 에 Write 부여 → #41 FAIL.
 mut_explore_write() { sed -i -E 's/^(tools:.*WebFetch.*)$/\1, Write/' "$1/agents/explore-strict.md"; }
@@ -97,11 +98,11 @@ assert 추가:
 assert_seal_fires "explore_rule_of_two" mut_explore_write "explore-strict Rule-of-Two 위반"
 assert_seal_fires "deny_last_line"       mut_strip_deny    "deny 최후방어선 부재"
 ```
-- [ ] **Step 2: 실행** — staged seal-regression → control PASS + 2 신규 mutant PASS(#41·#42 발화). ★mut_strip_deny 후 settings.example JSON 유효성 주의: `/,/\]/d`가 deny 배열만 제거·trailing comma 잔여 가능 → seal은 텍스트 grep이라 JSON 파싱 무의존(deny 텍스트 사라지면 #42 fail)이므로 OK. PASS 5→7.
-- [ ] **Step 3: commit** — `test(gap-013/007a): seal-regression explore-Write·deny-strip 변이 → #41·#42 FAIL 증명`
+- [x] **Step 2: 실행** — staged seal-regression → control PASS + 2 신규 mutant PASS(#41·#42 발화). ★mut_strip_deny 후 settings.example JSON 유효성 주의: `/,/\]/d`가 deny 배열만 제거·trailing comma 잔여 가능 → seal은 텍스트 grep이라 JSON 파싱 무의존(deny 텍스트 사라지면 #42 fail)이므로 OK. PASS 5→7.
+- [x] **Step 3: commit** — `test(gap-013/007a): seal-regression explore-Write·deny-strip 변이 → #41·#42 FAIL 증명`
 
 ### Task 5: 검증 + Closeout
-- [ ] **Step 1: staged verify-all** — verify-setup 79/0(#41·#42 GREEN)·seal-regression 7/0(신규 2 변이 발화)·run-all 172 무회귀·verify-all ALL PASS.
-- [ ] **Step 2: 03 D11 재채점** — **3→4**(L4 완주: 핀[C7]+Rule-of-Two[C8]+deny[C8]=3 conjunct 전부). C7 노트의 "L4=4는 GAP-013·GAP-007a 후속"이 이 사이클에 실현 = 정직 일관. 종합표 D11 3→4·min 문장(D11 제거→min-3=D5·D7·D9). srt OS-sandbox(GAP-007b)=L5 잔여 명기.
-- [ ] **Step 3: 04 GAP-013 DONE + GAP-007 (a)부분 DONE(C8)·(b)srt L5 잔여** — README 상태 C8 행.
-- [ ] **Step 4: PR → (머지 직전 seal 재확인) → auto-merge → state bump(55→56) → drift review-strict → 보고+next-cycle-goal(GAP-010 D1 커버리지 또는 GAP-012 D7)**.
+- [x] **Step 1: staged verify-all** — verify-setup 79/0(#41·#42 GREEN)·seal-regression 7/0(신규 2 변이 발화)·run-all 172 무회귀·verify-all ALL PASS.
+- [x] **Step 2: 03 D11 재채점** — **3→4**(L4 완주: 핀[C7]+Rule-of-Two[C8]+deny[C8]=3 conjunct 전부). C7 노트의 "L4=4는 GAP-013·GAP-007a 후속"이 이 사이클에 실현 = 정직 일관. 종합표 D11 3→4·min 문장(D11 제거→min-3=D5·D7·D9). srt OS-sandbox(GAP-007b)=L5 잔여 명기.
+- [x] **Step 3: 04 GAP-013 DONE + GAP-007 (a)부분 DONE(C8)·(b)srt L5 잔여** — README 상태 C8 행.
+- [x] **Step 4: PR → (머지 직전 seal 재확인) → auto-merge → state bump(55→56) → drift review-strict → 보고+next-cycle-goal(GAP-010 D1 커버리지 또는 GAP-012 D7)**.
