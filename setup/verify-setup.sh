@@ -367,6 +367,17 @@ else
   fail "memory-policy 3규약 불완전 (GAP-004): 통합/프루닝/검증 중 누락"
 fi
 
+# 39. settings.example autocompact 트리거 rot-정렬 (GAP-018 D3 L4): PCT_OVERRIDE ≤40(=1M 기준 ≤400K, rot 이전).
+#     60/55 등 rot-지난 값이면 FAIL — rot 곡선(02 §5·§4 dumb-zone 40%)에 정렬된 기본값 봉인. WINDOW=1M 전제([1m] suffix).
+EX_PCT=$(node -e "try{const s=JSON.parse(require('fs').readFileSync('$HOME/.claude/settings.example.json','utf8'));console.log((s.env&&s.env.CLAUDE_AUTOCOMPACT_PCT_OVERRIDE)||'')}catch(e){}" 2>/dev/null)
+if [ -z "$EX_PCT" ]; then
+  fail "settings.example CLAUDE_AUTOCOMPACT_PCT_OVERRIDE 부재 (GAP-018)"
+elif [ "$EX_PCT" -le 40 ] 2>/dev/null; then
+  ok "settings.example autocompact 트리거 rot-정렬 (${EX_PCT}% ≤40)"
+else
+  fail "settings.example autocompact 트리거 rot-미정렬 (GAP-018): ${EX_PCT}% >40 (rot ~300-400K 이전=≤40)"
+fi
+
 # 36. verify-setup 총 체크수 <-> README 선언 parity (GAP-009 M1 봉인, 런타임 자기-카운트):
 #     이 시점까지의 PASS+FAIL+1(이 체크 자신) == README "(현재 N PASS)" 선언. 체크 추가 시 README 미동기가 자동 FAIL.
 EXPECTED_TOTAL=$((PASS + FAIL + 1))

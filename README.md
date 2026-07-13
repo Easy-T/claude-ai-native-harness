@@ -281,7 +281,7 @@ bash ~/.claude/setup/doctor.sh
 ├── setup/
 │   ├── doctor.sh                         환경 진단·치료
 │   ├── install.sh                        하네스 설치 스크립트
-│   ├── verify-setup.sh                   §6.3 file/structure 체크 (현재 75 PASS)
+│   ├── verify-setup.sh                   §6.3 file/structure 체크 (현재 76 PASS)
 │   ├── verify-integration.sh             §6.5 8개 E2E 시나리오
 │   ├── verify-all.sh                     4 stage acceptance gate
 │   └── tests/doctor.test.sh
