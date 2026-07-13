@@ -21,10 +21,12 @@ durable spec: [`docs/superpowers/specs/2026-07-13-harness-upgrade-2026-07-design
 | **C0** | 문서 세트 6종(재감사+로드맵+플레이북) | **완료 (2026-07-13, RPI-Cycle 49 — 동시 세션 ui-design C1=48 선점 반영)** |
 | **C1** | GAP-001 Best-Direction Mandate(4층) + GAP-009 정합·seal #35/#36 | **완료 (2026-07-13, RPI-Cycle 50)** — D10 1→4, verify-setup 70→72 |
 | **C2** | GAP-003 사이클 run-log (JSONL gen_ai.*·runlog_summary·doctor 20e; G6-b/G3-a 흡수) | **완료 (2026-07-13, RPI-Cycle 52)** — D4 3→4, run-all 156→159 |
-| C3.. | 04 순위순 (GAP-002 예산 governor → GAP-005 스캐폴드 노화 → GAP-004 메모리 → GAP-018 트리거 → …) | 대기 — **다음 착수 = GAP-002**(run-log 기반 마련됨) |
+| **C3** | GAP-002 자율성 예산 governor (enforce-session-budget hook, tool-call ceiling) | **완료 (2026-07-13, RPI-Cycle 53)** — D5 2→3, hook 10→11, verify-setup 72→73. (b)(c) DEFERRED |
+| C4.. | 04 순위순 (GAP-005 스캐폴드 노화 → GAP-004 메모리 → GAP-018 트리거 → …) | 대기 — **다음 착수 = GAP-005**(유일 min=1·Fable 5 가이드 긴급) |
 | C-final | 핸드오프 봉인(최종 재채점·cold-agent fitness·최종 보고) | 대기 |
 
-**루브릭 현황 (C2 재채점)**: min=1 (D12 스캐폴드 노화 — D10·D4는 C1·C2에서 4 도달). 상세는 03 종합표. 6월 감사 대비 축 4개 신설 + 기준 상승 2건(D4·D11)이며 6월 종결 항목의 회귀는 없음.
+**루브릭 현황 (C3 재채점)**: min=1 (D12 스캐폴드 노화 — D10·D4·D5는 C1·C2·C3에서 개선). 상세는 03 종합표. 6월 감사 대비 축 4개 신설 + 기준 상승 2건(D4·D11)이며 6월 종결 항목의 회귀는 없음.
+**라이브 배선 주의(C3)**: `enforce-session-budget`는 `settings.example.json`에 배선됨(tracked). 각 머신의 라이브 `settings.json`은 hook 파일 도착 후 동기 필요(install.sh 병합 또는 수동) — 새 PreToolUse `*` matcher는 세션 재시작 후 발화. `SESSION_TOOL_BUDGET` 미설정 시 무영향(기본 OFF).
 
 ## 방법론 기록 (정직성)
 
