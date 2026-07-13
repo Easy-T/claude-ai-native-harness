@@ -62,6 +62,16 @@ bash setup/verify-all.sh          # 통합: doctor→verify-setup→seal-regress
 10. **동시-세션**: 병렬 Claude 세션이 흔하다. 다른 세션의 dev 서버·브라우저 프로세스를 kill하지 말고, 세션 상태는 `session_id`-키 파일로 격리(기존 패턴: `~/.claude/worktrees-marker/<sid>`).
 11. **Fable 5→Opus 컨텍스트**: 이 문서 세트는 Fable 5(1M 창)가 작성했다. Opus 세션이 200K~1M 어느 창이든, 01·02는 필요 섹션만 발췌해 읽어도 착수 가능하게 구조화되어 있다 — 전체 프리로드보다 GAP별 참조 섹션(04 각 항목의 "증거" 필드)만 읽는 것이 컨텍스트 경제에 맞다.
 
+## 5b. 모델 업그레이드 체크리스트 (스캐폴드 노화 — GAP-005)
+
+새 모델(예: Opus → 차기, Fable 종료 등)을 하네스 기본으로 도입할 때, 스캐폴드가 낡았는지 리뷰한다 — 하네스 가정은 모델 개선으로 무용해진다(02 §1 managed-agents; Anthropic strip-and-measure). 실행:
+
+1. **registry 재확인**: `docs/ai-context/scaffold-registry.md`의 구성요소별 "존재 이유"가 새 모델에서도 유효한가? 특히 구모델 행동 방어 가드(예: 컨텍스트-창 워크어라운드·과처방 skill 텍스트).
+2. **과처방 skill 감사**(02 §1 Fable 5 가이드: "이전 모델용 과처방 skill이 출력 열화 — 리뷰·제거"): 각 SKILL.md가 새 모델에 불필요하게 장황·규정적인지. 후보를 보고(삭제는 사용자 diff 후).
+3. **strip-and-measure 후보**(run-log 착륙 후 가능, C2): 구성요소를 하나씩 제거하고 fitness/eval 델타 측정 — 무영향이면 프루닝 후보. (자동화는 D12 L4·별 사이클.)
+4. `improve-codebase-architecture` skill Phase 2의 "스캐폴드 프루닝 후보" 단계가 이 리뷰를 반정형화한다.
+5. **모델ID 워크어라운드 재검증**: §5-5 `[1m]` suffix 등 — 새 모델에서 `/context` 창 확인.
+
 ## 6. 롤백 규약
 
 - 머지 전: 워크트리 브랜치 폐기(`ExitWorktree` remove 또는 브랜치 삭제)로 흔적 0.
