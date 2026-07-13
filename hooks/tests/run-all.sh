@@ -463,6 +463,23 @@ test_ssa_mem "187-mem-ok-silent" "silent-mem" "$SCRATCH/memO"
 MEMD="$SCRATCH/memD/projA/memory"; mkdir -p "$MEMD"; printf '# idx\n- [gone](gone.md) — x\n' > "$MEMD/MEMORY.md"
 test_ssa_mem "188-mem-dangling" "dangling" "$SCRATCH/memD"
 
+# ==================== CYCLE-C7: SESSION-START-AUDIT 공급망 SKILL.md cksum 드리프트 (GAP-011) ====================
+# PLUGIN_CACHE_DIR/PLUGIN_PINS override 로 실 ~/.claude/plugins 무변이.
+test_ssa_supply() {  # $1 name  $2 want(warn|silent)  $3 cache_dir  $4 pins_file
+  TOTAL=$((TOTAL+1))
+  local err; err=$(echo '{"session_id":"s","cwd":"'"$SCRATCH"'"}' | PLUGIN_CACHE_DIR="$3" PLUGIN_PINS="$4" "$HOOKS/session-start-audit.sh" 2>&1 >/dev/null)
+  local good=0
+  if [ "$2" = "warn" ]; then echo "$err" | grep -q '\[supply-chain\]' && good=1
+  else echo "$err" | grep -q '\[supply-chain\]' || good=1; fi
+  [ "$good" = 1 ] && PASSED=$((PASSED+1)) || FAILED_LIST+=("session-start-audit/$1 (want=$2)")
+}
+SUP="$SCRATCH/supply"; mkdir -p "$SUP/cache/mp/plug/1"; printf '# skill A\n' > "$SUP/cache/mp/plug/1/SKILL.md"
+SUPCK=$(find "$SUP/cache" -name SKILL.md -type f | sort | xargs cat 2>/dev/null | cksum | cut -d' ' -f1)
+printf 'skill-cksum: %s\nskill-count: 1\n' "$SUPCK" > "$SUP/pins-match.md"
+printf 'skill-cksum: 999999999\nskill-count: 1\n' > "$SUP/pins-drift.md"
+test_ssa_supply "191-supply-match-silent" silent "$SUP/cache" "$SUP/pins-match.md"
+test_ssa_supply "192-supply-drift-warn"   warn   "$SUP/cache" "$SUP/pins-drift.md"
+
 # ==================== CYCLE-39: SESSION-START-AUDIT 워크트리 마커 (cd-out teardown fallback) ====================
 # 실제 $HOME/.claude/worktrees-marker 사용 — 고유 SID + 즉시 정리(실 세션 SID 는 UUID 라 충돌 없음).
 WT_MARK_DIR="$HOME/.claude/worktrees-marker"
