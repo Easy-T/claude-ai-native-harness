@@ -16,7 +16,7 @@
 | 5 | GAP-004 | 메모리 수명주기 정책 | D6(2→4) | 포이즈닝 방어+rot 방지 — 메모리 소비 전 세션에 작용 (Δ2 — 적대 리뷰로 구 5위 GAP-006과 스왑) | **DONE(C5)** |
 | 6 | GAP-018 | autocompact 트리거 재캘리브레이션 | D3(3→4) | 전 장기 세션의 rot 노출 — 550K→rot-이전(≤400K)으로; D3 L4 anchor의 직접 요건 | **DONE(C6)** |
 | 7 | GAP-006 | 교차모델 검증자 분리 | D2(1)+D10 L5 | 자기채점 편향의 구조 해소 — 전 [모델-판단] 게이트 신뢰도에 작용 | PENDING |
-| 8 | GAP-011 | skill/플러그인 공급망 규약 | D11(1)의 절반 | 신뢰 경계 — superpowers 등 20+ 외부 skill 전체 | PENDING |
+| 8 | GAP-011 | skill/플러그인 공급망 규약 | D11 L4 절반 | 신뢰 경계 — superpowers 등 20+ 외부 skill 전체 | **DONE(C7)** |
 | 9 | GAP-013 | Rule-of-Two 세션 분리 | D11(1)의 절반+D5 | 인젝션 표면 구조 분리; GAP-012와 레버리지 동률로 판정, tie-break=severity(심도) | PENDING |
 | 10 | GAP-012 | 실패→회귀픽스처 루프 | D7(1) | eval 인프라의 마지막 층 — 발생 빈도 의존 | PENDING |
 | 11 | GAP-019 | skill/agent 본문 drift seal + ccs-delegation 계약 연결 | D1·D2 보조 | 드리프트 방어의 자기적용(하네스 정체성) — GAP-006이 의존하는 ccs-delegation의 무계약 해소 포함 | PENDING — **신설(적대 리뷰 발견 7)** |
@@ -161,7 +161,7 @@
 
 ## GAP-011 — skill/플러그인 공급망 규약
 
-- **차원**: D11 L4 절반 · **severity**: MED · **상태**: PENDING
+- **차원**: D11 L4 절반 · **severity**: MED · **상태**: **DONE(C7, 2026-07-14)** — `docs/ai-context/plugin-pins.md`(5 플러그인 version+gitCommitSha 표 + **SKILL.md cksum 핀**[46 파일 결정론 해시]+approve-once→review-on-change 절차) + session-start-audit **D-SUPPLY-CHAIN**(캐시 cksum 재계산 vs 핀 대조→드리프트 시 `[supply-chain]` ALERT; **bash-only** find|sort|xargs cat|cksum[node 금지=C6 MSYS 교훈]·`PLUGIN_CACHE_DIR`/`PLUGIN_PINS` hermetic·|| true set-e[Gate P 포착]) + **verify-setup #40**(핀 존재+cksum 봉인, RED→GREEN 76→77) + playbook §5-12 리뷰 절차. run-all 170→172(191/192). **D11 L4 3 conjunct 중 첫째(핀/diff-review) 착륙 → 점수 3 유지**(L4=4는 GAP-013 Rule-of-Two·GAP-007a deny 후속; conjunctive=1/3 미bump, 정직 부분-진척).
 - **증거**: 02 §4(ToxicSkills 13.4%·rug-pull·approve-once; NSA 서명/핀/드리프트 경보); 01 §3(플러그인 버전 캐시만 존재).
 - **목표 상태**: superpowers 등 외부 플러그인 버전 핀 기록 + 업데이트 시 SKILL.md diff 리뷰 절차(05-playbook) + 플러그인 캐시 해시 드리프트 ALERT(session-start-audit).
 - **Best-direction 근거**: 더 쉬운 대안 = "공식 마켓플레이스 신뢰" — 02 §4 rug-pull이 기각(승인 후 변경). 해시 스냅샷+드리프트 표면화가 개인 규모에서 서명 인프라 없이 도달 가능한 최선.
