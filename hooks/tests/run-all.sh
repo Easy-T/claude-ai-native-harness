@@ -463,6 +463,23 @@ test_ssa_mem "187-mem-ok-silent" "silent-mem" "$SCRATCH/memO"
 MEMD="$SCRATCH/memD/projA/memory"; mkdir -p "$MEMD"; printf '# idx\n- [gone](gone.md) — x\n' > "$MEMD/MEMORY.md"
 test_ssa_mem "188-mem-dangling" "dangling" "$SCRATCH/memD"
 
+# ==================== CYCLE-C7: SESSION-START-AUDIT 공급망 SKILL.md cksum 드리프트 (GAP-011) ====================
+# PLUGIN_CACHE_DIR/PLUGIN_PINS override 로 실 ~/.claude/plugins 무변이.
+test_ssa_supply() {  # $1 name  $2 want(warn|silent)  $3 cache_dir  $4 pins_file
+  TOTAL=$((TOTAL+1))
+  local err; err=$(echo '{"session_id":"s","cwd":"'"$SCRATCH"'"}' | PLUGIN_CACHE_DIR="$3" PLUGIN_PINS="$4" "$HOOKS/session-start-audit.sh" 2>&1 >/dev/null)
+  local good=0
+  if [ "$2" = "warn" ]; then echo "$err" | grep -q '\[supply-chain\]' && good=1
+  else echo "$err" | grep -q '\[supply-chain\]' || good=1; fi
+  [ "$good" = 1 ] && PASSED=$((PASSED+1)) || FAILED_LIST+=("session-start-audit/$1 (want=$2)")
+}
+SUP="$SCRATCH/supply"; mkdir -p "$SUP/cache/mp/plug/1"; printf '# skill A\n' > "$SUP/cache/mp/plug/1/SKILL.md"
+SUPCK=$(find "$SUP/cache" -name SKILL.md -type f | sort | xargs cat 2>/dev/null | cksum | cut -d' ' -f1)
+printf 'skill-cksum: %s\nskill-count: 1\n' "$SUPCK" > "$SUP/pins-match.md"
+printf 'skill-cksum: 999999999\nskill-count: 1\n' > "$SUP/pins-drift.md"
+test_ssa_supply "191-supply-match-silent" silent "$SUP/cache" "$SUP/pins-match.md"
+test_ssa_supply "192-supply-drift-warn"   warn   "$SUP/cache" "$SUP/pins-drift.md"
+
 # ==================== CYCLE-39: SESSION-START-AUDIT 워크트리 마커 (cd-out teardown fallback) ====================
 # 실제 $HOME/.claude/worktrees-marker 사용 — 고유 SID + 즉시 정리(실 세션 SID 는 UUID 라 충돌 없음).
 WT_MARK_DIR="$HOME/.claude/worktrees-marker"
@@ -555,6 +572,23 @@ test_acw_model() {
 }
 test_acw_model "60-opus48-1M"   claude-opus-4-8   480000 1000000
 test_acw_model "61-sonnet-200k" claude-sonnet-4-6 100000 200000
+
+# rot-timing (GAP-018): 350K(rot-zone, opus 1M)에서 PCT=55는 무경고(WARN 45%→THRESHOLD 450K>350K)=재캘리브 前 문제,
+# PCT=40은 경고(WARN 30%→THRESHOLD 300K<350K)=rot 이전 조기 발화. auto-compact-watch 파라메트릭(WARN=PCT-10) 관계 가드.
+test_acw_rot() {  # $1 name  $2 pct  $3 want(warn|silent)
+  TOTAL=$((TOTAL+1))
+  local tf; tf=$(mktemp "$SCRATCH/acwrot-XXXXXX.jsonl")
+  printf '{"message":{"model":"claude-opus-4-8","usage":{"input_tokens":350000,"cache_read_input_tokens":0,"cache_creation_input_tokens":0}}}\n' > "$tf"
+  local sid="acwrot-$$-$1"; rm -f "/tmp/compact-alerted-$sid"
+  local out; out=$(echo "{\"session_id\":\"$sid\",\"transcript_path\":\"$tf\"}" | CLAUDE_AUTOCOMPACT_PCT_OVERRIDE="$2" "$HOOKS/auto-compact-watch.sh" 2>&1)
+  rm -f "/tmp/compact-alerted-$sid" "$tf"
+  local good=0
+  if [ "$3" = "warn" ]; then echo "$out" | grep -q 'auto-compact' && good=1
+  else [ -z "$out" ] && good=1; fi
+  [ "$good" = 1 ] && PASSED=$((PASSED+1)) || FAILED_LIST+=("auto-compact-watch/$1 (want=$3 got:$out)")
+}
+test_acw_rot "189-rot-pct55-silent" 55 silent
+test_acw_rot "190-rot-pct40-warn"   40 warn
 
 # ==================== PATCH-F: hooks/lib unit tests (extracted parsers, directly testable) ====================
 LIB="$HOME/.claude/hooks/lib"

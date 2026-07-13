@@ -14,10 +14,10 @@
 | 3 | GAP-002 | 자율성 예산 governor | D5(2→1) | 무인 goal-loop 전체의 안전 상한 — 이 이니셔티브 자신이 무인 | **DONE(C3, 2026-07-13)** — (a) tool-call ceiling hook; (b)(c) DEFERRED(선언). D5 2→3 |
 | 4 | GAP-005 | 스캐폴드 노화 관리 | D12(2→0) | 전 skill/hook/seal 표면에 작용; Δ2 동률 내 tie-break=긴급도(Fable 5 가이드 직접 충돌) | **DONE(C4, 2026-07-13)** — registry+seal #37+감사; D12 1→3(마지막 min 해소) |
 | 5 | GAP-004 | 메모리 수명주기 정책 | D6(2→4) | 포이즈닝 방어+rot 방지 — 메모리 소비 전 세션에 작용 (Δ2 — 적대 리뷰로 구 5위 GAP-006과 스왑) | **DONE(C5)** |
-| 6 | GAP-018 | autocompact 트리거 재캘리브레이션 | D3(2)의 주 레버 | 전 장기 세션의 rot 노출 — 550K→rot-이전(≤400K)으로; D3 L4 anchor의 직접 요건 | PENDING — **신설(적대 리뷰 발견 1)** |
+| 6 | GAP-018 | autocompact 트리거 재캘리브레이션 | D3(3→4) | 전 장기 세션의 rot 노출 — 550K→rot-이전(≤400K)으로; D3 L4 anchor의 직접 요건 | **DONE(C6)** |
 | 7 | GAP-006 | 교차모델 검증자 분리 | D2(1)+D10 L5 | 자기채점 편향의 구조 해소 — 전 [모델-판단] 게이트 신뢰도에 작용 | PENDING |
-| 8 | GAP-011 | skill/플러그인 공급망 규약 | D11(1)의 절반 | 신뢰 경계 — superpowers 등 20+ 외부 skill 전체 | PENDING |
-| 9 | GAP-013 | Rule-of-Two 세션 분리 | D11(1)의 절반+D5 | 인젝션 표면 구조 분리; GAP-012와 레버리지 동률로 판정, tie-break=severity(심도) | PENDING |
+| 8 | GAP-011 | skill/플러그인 공급망 규약 | D11 L4 절반 | 신뢰 경계 — superpowers 등 20+ 외부 skill 전체 | **DONE(C7)** |
+| 9 | GAP-013 | Rule-of-Two 세션 분리 | D11 L4 절반+D5 | 인젝션 표면 구조 분리; GAP-012와 레버리지 동률로 판정, tie-break=severity(심도) | **DONE(C8)** |
 | 10 | GAP-012 | 실패→회귀픽스처 루프 | D7(1) | eval 인프라의 마지막 층 — 발생 빈도 의존 | PENDING |
 | 11 | GAP-019 | skill/agent 본문 drift seal + ccs-delegation 계약 연결 | D1·D2 보조 | 드리프트 방어의 자기적용(하네스 정체성) — GAP-006이 의존하는 ccs-delegation의 무계약 해소 포함 | PENDING — **신설(적대 리뷰 발견 7)** |
 | 12 | GAP-009 | 문서↔실물 정합 일괄 + 카운트 seal | D2(1)의 일부 | quick-win — 어느 사이클에나 부수 가능 | **DONE(C1, 2026-07-13)** — M1-M8 정정(M4/M9/M10 의도기록 유지) + seal #36(런타임 자기-카운트 parity, RED 66≠72→GREEN 72==72) |
@@ -35,7 +35,7 @@
 
 ## GAP-018 — autocompact 트리거 재캘리브레이션 ★신설(C0 적대 리뷰)
 
-- **차원**: D3(3→5의 주 레버, Δ2) · **severity**: MED-HIGH · **상태**: PENDING
+- **차원**: D3(3→**4**, L4 트리거 conjunct) · **severity**: MED-HIGH · **상태**: **DONE(C6, 2026-07-14)** — **커밋분**: settings.example PCT 60→40(1M=400K rot 이전) + doctor #23 rot-정렬 권고/WARN(set>40) + **verify-setup #39**(settings.example ≤40 봉인, bash grep=Windows-safe, RED→GREEN 75→76) + auto-compact-watch rot-timing 검증(55%@350K 무경고→40% 경고, run-all 168→170) + playbook §5 rot-정렬 정책+WINDOW=1M 가드. **per-machine 지연분**(gitignored·메인 peer 점유): 라이브 settings.json PCT 55→40·재시작 후 `/context` 1M+트리거 400K 확인·1세션 연속성 관찰(RPI 재주입이 흡수). **D3 L4 달성=4**(L5의 창-매핑 auto-safe·캐시 hit-rate 잔여=별 사이클; C5가 L5 인덱스예산 seal은 전달).
 - **증거**: 03 D3 교정 기록 — 현행 트리거 55%×1M=550K vs rot 실증 시작 ~300-400K(02 §5 Chroma·커뮤니티 실측)·dumb-zone 40%=400K(02 §4 Horthy). 무인 장기 세션이 rot 구간(400-550K)에서 150K어치를 열화 상태로 작업.
 - **목표 상태**: `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE`를 rot-이전(≤40%, 1M 기준 ≤400K)으로 하향 + auto-compact-watch 경고 임계 동기 + 하향이 무인 goal-loop의 compact 빈도·연속성(read-before 재주입)에 주는 영향 실측 1세션.
 - **Best-direction 근거**: 더 쉬운 대안 = "55% 유지(과거 죽음의-나선 트라우마 회피)" — 그 나선의 원인은 창 오인식(1M→200K 붕괴)이지 트리거 %가 아니었다(settings 이력). 수치를 외부 실증(rot 곡선)에 정렬하는 것이 최선이며, RPI 하네스의 post-compact 연속성(spec·plan 재주입)이 이미 compact 비용을 흡수한다.
@@ -133,7 +133,7 @@
 
 ## GAP-007 — OS-레벨 sandbox 층
 
-- **차원**: D5 L5·D11 L5 · **severity**: MED · **상태**: PENDING
+- **차원**: D5 L5·D11 L5 · **severity**: MED · **상태**: **(a) deny 최후방어선 DONE(C8, D11 L4)** — `settings.example.json` permissions.deny(자격증명 read·파괴명령) + verify-setup **#42** 봉인; bypassPermissions서도 유효. **(b) srt OS-레벨 sandbox = PENDING(L5, 별 사이클·탐색적)** — 런타임 bypass 실차단 검증도 per-machine 지연.
 - **증거**: 01 §0(bypassPermissions)·§6-11; 02 §4(srt Windows 지원·deny-by-default·권한 프롬프트 84% 감소; deny 규칙은 bypass에서도 유효).
 - **목표 상태**: 단계적: (a) settings deny 규칙을 최후방어선으로 정의(자격증명 경로·파괴 명령 패턴 — bypass에서도 유효한 층) (b) srt 평가 스파이크(Windows research preview 성숙도 실측) → 채택/거부 판정 기록.
 - **Best-direction 근거**: 최선 = full sandbox이나 srt Windows가 research preview — **성숙도 실측 후 판정이 최선 방향의 정직한 실행**이지 회피가 아님(스파이크 결과가 REJECTED면 사유 기록 = DOWNGRADE-DECLARED 아님, 외부 제약). deny 층은 지금 즉시 가능.
@@ -161,7 +161,7 @@
 
 ## GAP-011 — skill/플러그인 공급망 규약
 
-- **차원**: D11 L4 절반 · **severity**: MED · **상태**: PENDING
+- **차원**: D11 L4 절반 · **severity**: MED · **상태**: **DONE(C7, 2026-07-14)** — `docs/ai-context/plugin-pins.md`(5 플러그인 version+gitCommitSha 표 + **SKILL.md cksum 핀**[46 파일 결정론 해시]+approve-once→review-on-change 절차) + session-start-audit **D-SUPPLY-CHAIN**(캐시 cksum 재계산 vs 핀 대조→드리프트 시 `[supply-chain]` ALERT; **bash-only** find|sort|xargs cat|cksum[node 금지=C6 MSYS 교훈]·`PLUGIN_CACHE_DIR`/`PLUGIN_PINS` hermetic·|| true set-e[Gate P 포착]) + **verify-setup #40**(핀 존재+cksum 봉인, RED→GREEN 76→77) + playbook §5-12 리뷰 절차. run-all 170→172(191/192). **D11 L4 3 conjunct 중 첫째(핀/diff-review) 착륙 → 점수 3 유지**(L4=4는 GAP-013 Rule-of-Two·GAP-007a deny 후속; conjunctive=1/3 미bump, 정직 부분-진척).
 - **증거**: 02 §4(ToxicSkills 13.4%·rug-pull·approve-once; NSA 서명/핀/드리프트 경보); 01 §3(플러그인 버전 캐시만 존재).
 - **목표 상태**: superpowers 등 외부 플러그인 버전 핀 기록 + 업데이트 시 SKILL.md diff 리뷰 절차(05-playbook) + 플러그인 캐시 해시 드리프트 ALERT(session-start-audit).
 - **Best-direction 근거**: 더 쉬운 대안 = "공식 마켓플레이스 신뢰" — 02 §4 rug-pull이 기각(승인 후 변경). 해시 스냅샷+드리프트 표면화가 개인 규모에서 서명 인프라 없이 도달 가능한 최선.
@@ -180,7 +180,7 @@
 
 ## GAP-013 — Rule-of-Two 세션 분리
 
-- **차원**: D11 L4 절반·D5 보조 · **severity**: MED · **상태**: PENDING
+- **차원**: D11 L4 절반·D5 보조 · **severity**: MED · **상태**: **DONE(C8, 2026-07-14)** — `SECURITY.md` Rule-of-Two 세션분리 § (untrusted-웹 읽기=`explore-strict`[reader 쓰기無]→검증→`execute-strict`[writer]; lethal trifecta 02 §4 구조분리) + `explore-strict.md` no-write 근거 + **verify-setup #41**(explore-strict reader 쓰기도구 미부여 봉인, seal-regression 변이 증명). **GAP-007a(deny 최후방어선)와 함께 D11 L4 완주 → D11 3→4**(핀[C7]+Rule-of-Two+deny=3 conjunct). explore-strict은 이미 구조적 reader(우연적)→명문 통제+seal로 격상.
 - **증거**: 02 §4(lethal trifecta·Meta Rule-of-Two·reader/doer 분리); deep-research skill 실재(untrusted 웹 + 쓰기 도구 + 시크릿 접근이 한 세션에 공존 가능 — 01 §0 bypassPermissions).
 - **목표 상태**: 웹-읽기 중심 작업(deep-research 등)의 reader 서브에이전트에 쓰기 도구 미부여 규약 명문화 + 본체는 검증 후 행동 — skill/playbook 레벨 규약(도구 allowlist는 wrapper agent 패턴 재사용).
 - **Best-direction 근거**: 더 쉬운 대안 = "인젝션 조심" 프롬프트 — 02 §4 "영구 속성" 평가가 기각. 구조 분리(도구 박탈)가 유일하게 작동하는 방어이고 wrapper-agent 인프라로 저비용.

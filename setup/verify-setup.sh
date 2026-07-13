@@ -367,30 +367,75 @@ else
   fail "memory-policy 3규약 불완전 (GAP-004): 통합/프루닝/검증 중 누락"
 fi
 
-# 39. opencode 미러 byte-sync (v3 — design.md 콘텐츠 무검사 봉인): 미러 design.md가 정본과 byte-동일.
+# 39. settings.example autocompact 트리거 rot-정렬 (GAP-018 D3 L4): PCT_OVERRIDE ≤40(=1M 기준 ≤400K, rot 이전).
+#     60/55 등 rot-지난 값이면 FAIL — rot 곡선(02 §5·§4 dumb-zone 40%)에 정렬된 기본값 봉인. WINDOW=1M 전제([1m] suffix).
+#     bash grep 추출(#37/#38 동형) — node readFileSync 는 staged $HOME(MSYS /tmp) 를 Windows node 가 못 읽어 false-부재.
+EX_PCT=$(grep -oE '"CLAUDE_AUTOCOMPACT_PCT_OVERRIDE"[[:space:]]*:[[:space:]]*"?[0-9]+"?' "$HOME/.claude/settings.example.json" 2>/dev/null | grep -oE '[0-9]+' | head -1)
+if [ -z "$EX_PCT" ]; then
+  fail "settings.example CLAUDE_AUTOCOMPACT_PCT_OVERRIDE 부재 (GAP-018)"
+elif [ "$EX_PCT" -le 40 ] 2>/dev/null; then
+  ok "settings.example autocompact 트리거 rot-정렬 (${EX_PCT}% ≤40)"
+else
+  fail "settings.example autocompact 트리거 rot-미정렬 (GAP-018): ${EX_PCT}% >40 (rot ~300-400K 이전=≤40)"
+fi
+
+# 40. plugin-pins.md 존재 + SKILL.md cksum 핀 (GAP-011 D11 L4 절반): 공급망 핀이 사라지면 FAIL.
+#     rug-pull 방어 앵커(session-start-audit 드리프트 검사가 이 cksum 을 소비). bash grep(#38/#39 동형, staged-safe).
+PINS="$HOME/.claude/docs/ai-context/plugin-pins.md"
+if [ ! -f "$PINS" ]; then
+  fail "plugin-pins 부재 (GAP-011): docs/ai-context/plugin-pins.md 생성 필요"
+elif grep -qE 'skill-cksum:[[:space:]]*[0-9]+' "$PINS"; then
+  ok "plugin-pins SKILL.md cksum 핀 존재"
+else
+  fail "plugin-pins cksum 핀 부재 (GAP-011): skill-cksum: <N> 라인 필요"
+fi
+
+# 41. explore-strict(웹-읽기 reader) 쓰기도구 미부여 = Rule-of-Two 봉인 (GAP-013 D11 L4):
+#     lethal trifecta(untrusted 웹+시크릿+쓰기) 구조분리 — reader tools 에 Write/Edit/Bash/NotebookEdit 부여 시 FAIL. bash grep(staged-safe).
+ES_TOOLS=$(grep -E '^tools:' "$HOME/.claude/agents/explore-strict.md" 2>/dev/null | head -1)
+if [ -z "$ES_TOOLS" ]; then
+  fail "explore-strict tools 라인 부재 (GAP-013)"
+elif echo "$ES_TOOLS" | grep -qE '\bWebFetch\b' && ! echo "$ES_TOOLS" | grep -qE '\b(Write|Edit|NotebookEdit|Bash)\b'; then
+  ok "explore-strict reader 쓰기도구 미부여 (Rule-of-Two)"
+else
+  fail "explore-strict Rule-of-Two 위반 (GAP-013): reader tools 에 쓰기도구 부여 또는 WebFetch 부재 — lethal trifecta 표면"
+fi
+
+# 42. settings.example deny 최후방어선 존재 (GAP-007a D11 L4): 자격증명 read·파괴명령 deny 규칙이 사라지면 FAIL.
+#     bypassPermissions 에서도 유효한 층(02 §4). bash grep(staged-safe).
+EX_SET="$HOME/.claude/settings.example.json"
+if [ ! -f "$EX_SET" ]; then
+  fail "settings.example.json 부재 (GAP-007a)"
+elif grep -qE '"deny"' "$EX_SET" && grep -qE 'credentials|\.env|id_rsa' "$EX_SET" && grep -qE 'rm -rf' "$EX_SET"; then
+  ok "settings.example deny 최후방어선(자격증명·파괴명령) 존재"
+else
+  fail "settings.example deny 최후방어선 부재 (GAP-007a): permissions.deny 에 자격증명 read·파괴명령 규칙 필요"
+fi
+
+# 43. opencode 미러 byte-sync (v3 — design.md 콘텐츠 무검사 봉인): 미러 design.md가 정본과 byte-동일.
 #     미러 부재(fresh-clone/설치본) 시 vacuous-PASS로 카운트 결정성 보존, 존재+상이 시 FAIL(편도 편집 차단).
 #     #23 two-file parity 계열. design.md 편집 시 양 미러 동시 갱신 강제.
-SRC39="$HOME/.claude/skills/ui-design/design.md"
-MIR39="$HOME/.claude/opencode-harness/skill/ui-design/design.md"
-if [ ! -f "$MIR39" ]; then
+SRC43="$HOME/.claude/skills/ui-design/design.md"
+MIR43="$HOME/.claude/opencode-harness/skill/ui-design/design.md"
+if [ ! -f "$MIR43" ]; then
   ok "opencode 미러 부재 — design.md byte-sync N/A (vacuous PASS)"
-elif [ ! -f "$SRC39" ]; then
-  fail "정본 design.md 부재 ($SRC39)"
-elif cmp -s "$SRC39" "$MIR39"; then
+elif [ ! -f "$SRC43" ]; then
+  fail "정본 design.md 부재 ($SRC43)"
+elif cmp -s "$SRC43" "$MIR43"; then
   ok "opencode 미러 design.md byte-sync"
 else
   fail "opencode 미러 design.md drift (정본과 상이 — 양 미러 동시 갱신 필요)"
 fi
 
-# 40. §6 anti-slop floor 카운트 봉인 (v3 — §0.1/§6.2 "삭제 절대 금지" 강제): §6 스코프(# 6.~# 7.)의
+# 44. §6 anti-slop floor 카운트 봉인 (v3 — §0.1/§6.2 "삭제 절대 금지" 강제): §6 스코프(# 6.~# 7.)의
 #     '- [ ]' 체크박스가 정확히 18. floor 가감은 seal 동반 갱신 = 의도적 governance(tripwire). §6 밖
 #     편집(evidence 인용·§9~§15 문구)엔 불감(awk 섹션 스코프).
-DESIGN40="$HOME/.claude/skills/ui-design/design.md"
-FLOOR40=$(awk '/^# 6\./{f=1;next} /^# 7\./{f=0} f' "$DESIGN40" 2>/dev/null | grep -cE '^- \[ \]')
-if [ "$FLOOR40" -eq 18 ]; then
+DESIGN44="$HOME/.claude/skills/ui-design/design.md"
+FLOOR44=$(awk '/^# 6\./{f=1;next} /^# 7\./{f=0} f' "$DESIGN44" 2>/dev/null | grep -cE '^- \[ \]')
+if [ "$FLOOR44" -eq 18 ]; then
   ok "design.md §6 anti-slop floor = 18 항목"
 else
-  fail "design.md §6 floor 카운트 drift: $FLOOR40 (기대 18 — §6.2 '삭제 절대 금지' 위반?)"
+  fail "design.md §6 floor 카운트 drift: $FLOOR44 (기대 18 — §6.2 '삭제 절대 금지' 위반?)"
 fi
 
 # 36. verify-setup 총 체크수 <-> README 선언 parity (GAP-009 M1 봉인, 런타임 자기-카운트):

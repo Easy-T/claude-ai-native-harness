@@ -47,6 +47,8 @@
 **현행 3** — 증거: auto-compact-watch 모델-인지(model-window.js)·서브에이전트 요약-반환 계약(common-agent-contract ≤500단어)·#1 size seal은 충족하나, **앵커 L4의 conjunct "compact 트리거가 rot 실증(~300-400K) 이전" 위반**: 현행 트리거 55%×1M=**550K**는 rot 시작점(02 §5)·dumb-zone 40%=400K(02 §4)를 모두 지난 뒤다. 기타 잔여: model-window.js:10-16 하드코딩, `/1m/` 행 미테스트, MEMORY.md 인덱스 무예산(02 §1 "첫 200줄/25KB" 제약). **목표 5. 델타 2.**
 **C0 적대 리뷰 반영(2026-07-13)**: 초기 채점 4는 "550K가 rot과 정합"이라는 산술적으로 거짓인 서술에 기반 — 4→3 교정(기준 상승 아닌 오채점 교정). 트리거 재캘리브레이션은 04 GAP-018 신설.
 
+**C6 재채점(2026-07-14, 3→4)**: GAP-018 착륙 — L4 conjunct "트리거 rot 이전" 충족: `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE` 기본값 55/60→**40**(1M=400K, rot 시작·dumb-zone 40% 이전) + settings.example **seal #39**(≤40 봉인, RED→GREEN 75→76) + doctor #23 rot-정렬 WARN(set>40) + auto-compact-watch rot-timing 검증(55%@350K 무경고→40% 경고). L4 앞 3 conjunct(모델-인지 창·캐시 seal·서브에이전트 격리) 기충족 → **L4 달성=4**. L5의 나머지 2 conjunct(창-매핑 신규모델 auto-safe[model-window.js:11-16 하드코딩]·캐시 적중률 측정)은 별 축·별 사이클 — C5가 L5의 인덱스 예산 seal conjunct은 이미 전달(3중 1). 라이브 PCT·`/context`·1세션 관찰=per-machine 지연 선언(gitignored·메인 peer 점유). **델타 1(목표 5까지).**
+
 ## D4. 관측가능성 (런타임 run-log) — ⚠️ 기준 상승 차원
 
 | 레벨 | 앵커 |
@@ -149,6 +151,10 @@
 
 **현행 3** — 증거: enforce-secret-scan+SECURITY.md 신뢰모델+bypass 표면화(01 §1·§4)는 6월 ③=4 근거였으나, 2026.07 외부 바(02 §4: ToxicSkills 13.4% critical·rug-pull·approve-once-trust-forever·NSA 서명/핀 권고; lethal trifecta 상시화)가 공급망·세션 분리를 요구 — **6월 4 → 신기준 3 (기준 상승)**. secret-scan 5/7 패턴 미테스트(01 §6-2)도 잔여. **목표 4. 델타 1.**
 
+**C7 부분-진척(2026-07-14, 점수 3 유지)**: GAP-011 착륙 = D11 L4 3 conjunct 중 **첫째(플러그인/skill 핀·diff-review) 충족** — `docs/ai-context/plugin-pins.md`(SKILL.md cksum 핀)+session-start-audit `[supply-chain]` 드리프트 ALERT(bash cksum, rug-pull 표면화)+verify-setup **#40**(핀 봉인)+playbook §5-12 리뷰 절차. **L4=4는 나머지 2 conjunct(Rule-of-Two 세션분리[GAP-013]·deny 최후방어선[GAP-007a]) 후속 완료 시** — conjunctive 레벨이라 1/3 착륙은 점수 미bump(정직: 방향 열화 아닌 스코프 분할, rug-pull 방어는 그 자체로 고가치).
+
+**C8 재채점(2026-07-14, 3→4)**: GAP-013(Rule-of-Two) + GAP-007a(deny 최후방어선) 착륙 = D11 L4 **3 conjunct 전부 완주** — ①핀/diff-review(C7 #40) ②Rule-of-Two 세션분리(`SECURITY.md` Rule-of-Two § + `explore-strict` 쓰기도구 미부여 + **verify-setup #41** 봉인; lethal trifecta 구조분리) ③deny 최후방어선(`settings.example.json` permissions.deny 자격증명 read·파괴명령 + **#42** 봉인; bypassPermissions서도 유효). seal-regression 변이(explore-Write·deny-strip)→#41·#42 FAIL 증명. **C7 노트의 "L4=4는 GAP-013·GAP-007a 후속"이 이 사이클에 실현 = 정직 일관**(over-claim 아님). verify-setup 77→79. **잔여**: GAP-007 (b) srt OS-레벨 sandbox = **L5**(별 사이클·탐색적); 런타임 bypass 실차단 검증 = per-machine. **델타 0(목표 4 도달).**
+
 ## D12. 스캐폴드 노화 관리 — 신규 (02 P12)
 
 | 레벨 | 앵커 |
@@ -185,7 +191,7 @@
 |---|---|---|---|---|
 | D1 강제력 | 4 | 5 | 1 | |
 | D2 검증 정직성 | 4 | 5 | 1 | |
-| D3 컨텍스트 경제 | 3 | 5 | 2 | 적대 리뷰 교정(트리거↔rot 모순) |
+| D3 컨텍스트 경제 | **4** | 5 | 1 | **C6** (GAP-018 트리거 rot-정렬); L5=창-매핑·캐시 hit-rate 잔여 |
 | D4 관측가능성 | 4 | 4 | 0 | **C2 도달** (GAP-003 run-log) |
 | D5 자율성 안전 | 3 | 4 | 1 | **C3** (GAP-002 예산 governor); L4=체크포인트 슬라이싱 잔여 |
 | D6 메모리 수명주기 | **4** | 4 | 0 | **C5 도달** (GAP-004 memory-policy+예산/dangling seal+#38) |
@@ -193,10 +199,10 @@
 | D8 이식성 | 4 | 4 | 0 | 목표-충족(스코프 판단) |
 | D9 핸드오프 복원력 | 3 | 5 | 2 | 이 이니셔티브가 직접 상승 중 |
 | **D10 Best-Direction** | **4** | **4** | **0** | **C1 도달(2026-07-13)** — L5는 GAP-006 소관 |
-| D11 보안 | 3 | 4 | 1 | 기준 상승(6월 4) |
+| D11 보안 | **4** | 4 | 0 | **C8 L4 완주** (핀[C7 #40]+Rule-of-Two[#41]+deny[#42]=3 conjunct); srt OS-sandbox=L5 잔여 |
 | **D12 스캐폴드 노화** | **3** | **3** | **0** | **C4 도달** (GAP-005 registry+seal #37+감사) |
 
-**min = 3** — C5에서 **D6 2→4로 마지막 <3 차원(D6) 해소 → 전 차원 진짜 ≥3 실현**. (정직성: C4는 'min=1 해소'는 달성했으나 D6=2 상태로 '전 차원 ≥3'을 조기 선언 — C5가 이를 실현. 개선 이력: C1 D10 1→4 · C2 D4 3→4 · C3 D5 2→3 · C4 D12 1→3 · C5 D6 2→4. C0 시점 min=1은 축 확장(신규 4축)·기준 상승(D4·D11)·오채점 교정(D3)의 결과였다.) 잔여 델타(목표까지): **D3**(GAP-018 트리거 재캘리브, 3→5) · D5(L4 체크포인트 슬라이싱, 3→4) · D7(GAP-012, 3→4) · D9(3→5; ※종합표 현행 3 vs C0→C3 before/after 4→5 — 표 간 불일치, D9 재채점 별도 필요) · D11(GAP-011/013 보안, 3→4). 다음 착수(C6) 후보: **GAP-018**(D3, 저비용·rot 노출) 또는 GAP-006(D2/D10 L5 교차모델).
+**min = 3** — C5에서 **D6 2→4로 마지막 <3 차원(D6) 해소 → 전 차원 진짜 ≥3 실현**. (정직성: C4는 'min=1 해소'는 달성했으나 D6=2 상태로 '전 차원 ≥3'을 조기 선언 — C5가 이를 실현. 개선 이력: C1 D10 1→4 · C2 D4 3→4 · C3 D5 2→3 · C4 D12 1→3 · C5 D6 2→4. C0 시점 min=1은 축 확장(신규 4축)·기준 상승(D4·D11)·오채점 교정(D3)의 결과였다.) 잔여 델타(목표까지): **D3 C6 완료(3→4, L4 트리거; L5 창-매핑·캐시 hit-rate 잔여)** · D5(L4 체크포인트 슬라이싱, 3→4) · D7(GAP-012, 3→4) · D9(3→5; ※종합표 현행 3 vs C0→C3 before/after 4→5 — 표 간 불일치, D9 재채점 별도 필요) · D11(**C8 완료: 3→4, L4 완주=핀[C7]+Rule-of-Two+deny 3 conjunct**; srt OS-sandbox=L5 잔여). **현행 min-3 차원: D5·D7·D9**(+D12=3이나 목표=3 충족이라 잔여 델타 아님; D3·D11=C6·C8로 4). 다음 착수(C9) 후보: **GAP-010**(D1 4→5 커버리지·6+ 케이스·ERR-센티넬) 또는 GAP-012(D7 3→4 회귀픽스처)·GAP-002bc(D5 3→4 슬라이싱).
 **채점 방법론 노트**: C0 채점은 fresh-context 적대 리뷰(refute-by-default, 동일 패밀리·별도 컨텍스트)를 1회 통과 — 7건 발견 중 점수 교정 1(D3 4→3), 잔여 명시 1(D1), 반박-기각 1(D10), 순위·기준 정정은 04에 반영. 교차패밀리 리뷰는 인프라 실패로 GAP-006에 위임(README 방법론 기록).
 
 ## C0 → C3 진척 요약 (before/after, C-final 봉인 2026-07-13)

@@ -359,9 +359,13 @@ SETTINGS_JSON="$CLAUDE_HOME/settings.json"
 if [ -f "$SETTINGS_JSON" ]; then
   compact_val=$(node -e "try{const s=JSON.parse(require('fs').readFileSync('$SETTINGS_JSON','utf8'));console.log(s.env&&s.env.CLAUDE_AUTOCOMPACT_PCT_OVERRIDE||'')}catch(e){}" 2>/dev/null || echo "")
   if [ -n "$compact_val" ]; then
-    check "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE" "PASS" "${compact_val}%"
+    if [ "$compact_val" -le 40 ] 2>/dev/null; then
+      check "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE" "PASS" "${compact_val}% (rot-정렬 ≤40)"
+    else
+      check "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE" "WARN" "${compact_val}% — rot(~300-400K) 지남. ≤40 권장(WINDOW=1M 전제; 모델ID [1m] suffix)"
+    fi
   else
-    check "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE" "WARN" "미설정 — 기본값 95%. settings.json env에 \"CLAUDE_AUTOCOMPACT_PCT_OVERRIDE\": \"60\" 추가 권장"
+    check "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE" "WARN" "미설정 — 기본값 95%. settings.json env에 \"CLAUDE_AUTOCOMPACT_PCT_OVERRIDE\": \"40\" 추가 권장(rot-이전)"
   fi
 else
   check "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE" "WARN" "settings.json 없음 — settings.example.json 복사 후 설정"

@@ -106,6 +106,22 @@ if [ -d "$MEM_PROJECTS" ]; then
   done
 fi
 
+# --- D-SUPPLY-CHAIN: 플러그인 캐시 SKILL.md 콘텐츠 해시 드리프트 (GAP-011, rug-pull 방어) ---
+#   승인-후-변경(02 §4 ToxicSkills·rug-pull)을 핀 cksum 대조로 표면화. bash 파일옵스만(node 금지 — staged MSYS 경로 미독, C6 #39 교훈).
+#   PLUGIN_CACHE_DIR/PLUGIN_PINS override=hermetic. advisory(exit 0 유지)·fail-open(|| true=set-e 안전; 메모리 블록 뒤=출력 보호).
+PLUGIN_CACHE="${PLUGIN_CACHE_DIR:-$HOME/.claude/plugins/cache}"
+PINS_FILE="${PLUGIN_PINS:-$HOME/.claude/docs/ai-context/plugin-pins.md}"
+if [ -d "$PLUGIN_CACHE" ] && [ -f "$PINS_FILE" ]; then
+  PINNED_CK=$(grep -oE 'skill-cksum:[[:space:]]*[0-9]+' "$PINS_FILE" 2>/dev/null | grep -oE '[0-9]+' | head -1 || true)
+  if [ -n "$PINNED_CK" ]; then
+    CUR_CK=$(find "$PLUGIN_CACHE" -name 'SKILL.md' -type f 2>/dev/null | sort | xargs cat 2>/dev/null | cksum | cut -d' ' -f1 || true)
+    if [ -n "$CUR_CK" ] && [ "$CUR_CK" != "$PINNED_CK" ]; then
+      hook_log "session-start-audit" "plugin-drift" "ALERT" "cksum $PINNED_CK->$CUR_CK"
+      echo "[supply-chain] ⚠ 플러그인 캐시 SKILL.md 콘텐츠 변경 (cksum $PINNED_CK→$CUR_CK) — rug-pull 가능. docs/ai-context/plugin-pins.md 절차대로 diff 리뷰 후 핀 갱신" >&2
+    fi
+  fi
+fi
+
 CLAUDE_MD="$HOME/.claude/CLAUDE.md"
 [ ! -f "$CLAUDE_MD" ] && {
   echo "[audit] 글로벌 CLAUDE.md 없음. /init-ai-ready 1회 실행 권장." >&2

@@ -71,6 +71,8 @@ enforce-orchestrator	14-s3-gut-via-edit	2	gen_eo_s3_gut
 enforce-orchestrator	15-s4-commented-agent	2	gen_eo_s4_comment
 auto-compact-watch	60-opus48-1M	alert-win-1000000	gen_acw_opus48
 auto-compact-watch	61-sonnet-200k	alert-win-200000	gen_acw_sonnet
+auto-compact-watch	189-rot-pct55-silent	silent	inline_acw_rot
+auto-compact-watch	190-rot-pct40-warn	alert	inline_acw_rot
 # Patch F (2026-05-30) — hooks/lib extracted-parser unit tests (cycle-8 [3])
 hooks-lib	70-transcript-usage	output	gen_lib_70
 hooks-lib	71-transcript-missing	output	gen_lib_71
@@ -115,6 +117,8 @@ session-start-audit	185-mem-over-lines	alert	inline_ssa_mem
 session-start-audit	186-mem-over-bytes	alert	inline_ssa_mem
 session-start-audit	187-mem-ok-silent	silent	inline_ssa_mem
 session-start-audit	188-mem-dangling	alert	inline_ssa_mem
+session-start-audit	191-supply-match-silent	silent	inline_ssa_supply
+session-start-audit	192-supply-drift-warn	alert	inline_ssa_supply
 hooks-lib	110-dd-code	output	gen_lib_110
 hooks-lib	111-install-code	output	gen_lib_111
 hooks-lib	112-rsync-code	output	gen_lib_112

@@ -7,7 +7,7 @@
 **Started:** 2026-07-14
 **Completed:** 2026-07-14
 
-> **병합 정합 노트 (2026-07-14, closeout)**: 본문의 seal 번호(#37 미러·#38 floor)는 **계획 시점 값**. 실제는 동시 harness-upgrade **C4(#37 scaffold-registry)·C5(#38 memory-policy)와 2회 병합 정합**으로 **#39(미러)·#40(floor)**, README count 77, state 54. seal-regression은 needle(FAIL 문자열) 기반이라 seal 번호 무영향. durable SSOT = spec §11(정확). **전 task 완료** (Task 8 교차패밀리 리뷰만 SKIP — FITNESS-L5.md 문서화). fitness L5(설정) iter1 ALL PASS.
+> **병합 정합 노트 (2026-07-14, closeout)**: 본문의 seal 번호(#37 미러·#38 floor)는 **계획 시점 값**. 실제는 동시 harness-upgrade **C4~C8(#37~#42) 5사이클 연속 선점 → 3회 병합 정합**으로 최종 **#43(미러)·#44(floor)**, README count 81, state 57. seal-regression은 needle(FAIL 문자열) 기반이라 seal 번호 무영향. durable SSOT = spec §11(정확). **전 task 완료** (Task 8 교차패밀리 리뷰만 SKIP — FITNESS-L5.md 문서화). fitness L5(설정) iter1 ALL PASS.
 
 **Goal:** design.md v2 투자(700줄·24 evidence·floor18/ceiling9·opencode byte-sync)를 verify-setup drift seal로 봉인하고, cold-agent fitness가 남긴 §9·§12 내적 긴장 2건을 evidence 인용과 함께 정련한다. 정련 후 design.md v3만으로 새 장르(설정 화면)가 ≤2 iter 재현됨을 실증(회귀 게이트).
 
