@@ -1,6 +1,6 @@
 # 05 — Opus 운영 플레이북 (harness-upgrade-2026-07 이니셔티브)
 
-> 대상 독자: **이 문서 세트만 가진 임의 모델·임의 세션**(Opus 상정). 전제 = 이 git repo(`~/.claude`) + Claude Code + 이 디렉터리의 문서 6종. **이 머신의 auto-memory(프로젝트 메모리)를 참조하지 않는다** — 필요한 사실은 전부 여기 인라인되어 있고, 메모리와 이 문서가 충돌하면 **문서+실물 코드가 우선**이다.
+> 대상 독자: **이 문서 세트만 가진 임의 모델·임의 세션**(Opus 상정). 전제 = 이 git repo(`~/.claude`) + Claude Code + 이 디렉터리의 문서 6종. **이 머신의 auto-memory(프로젝트 메모리)를 참조하지 않는다** — 판단에 필요한 사실은 여기에 있거나, 이 문서가 가리키는 저장소 파일(01 구조맵·02 표준·durable spec·04 GAP의 증거 필드가 지목하는 코드/문서)을 읽어 얻는다. **참조된 파일을 읽는 것은 self-containment 위반이 아니다**(문서는 *지도*이지 전문 복제가 아니다 — 05는 어디를 읽을지 가리킨다). auto-memory와 이 문서가 충돌하면 **문서+실물 코드가 우선**. **핵심 원칙: 문서의 카운트·기준선 숫자는 stale일 수 있으니 항상 실측(§5-7) 후 진행** — 숫자는 참고, 실물이 SSOT.
 > 목적: 04-gap-backlog의 항목을 하네스 규약대로 안전하게 구현하고, 03-rubric을 갱신하며, 핸드오프 불변식(어느 시점에 끊겨도 재개 가능)을 유지한다.
 
 ## 0. 30초 오리엔테이션
@@ -17,11 +17,11 @@
 절차 (start-rpi-cycle skill이 canonical — `skills/start-rpi-cycle/SKILL.md` 필독):
 
 1. **Phase R**: 이 이니셔티브의 durable spec은 이미 존재 — `docs/superpowers/specs/2026-07-13-harness-upgrade-2026-07-design.md`. 재진입 사이클은 spec을 **읽고**, 새 설계 결정이 생겼으면 in-place 개정(개정일 명기), 없으면 "delta 없음" 명시. Gate R = review-strict로 spec↔CONTEXT.md 용어 정합 검증.
-2. **Phase P**: `docs/superpowers/plans/YYYY-MM-DD-harness-upgrade-c<N>-<topic>.md` 작성. 헤더 필수: `**Status:** active` / `**RPI-Cycle:** <state.json count+1>` / `**Started:** YYYY-MM-DD`. Gate P = review-strict로 spec↔plan 정합.
+2. **Phase P**: 파일명 = `docs/superpowers/plans/2026-07-13-harness-upgrade-c<N>-<topic>.md`. **파일명의 c<N>은 이니셔티브-로컬 순번**(C0=문서, C1, C2, C3, C4…)이지 전역 사이클 번호가 아니다. 헤더 필수: `**Status:** active` / `**RPI-Cycle:** <M>` / `**Started:** YYYY-MM-DD`. **RPI-Cycle 번호 규약(중요 — cold-agent가 걸린 지점)**: `state.json`(gitignored, **라이브 카운터**, tracked 사본과 다를 수 있음 — 라이브 값이 SSOT)을 읽어 그 값+1을 헤더에 쓴다. 단 **동시 세션(예: ui-design 이니셔티브)이 병렬 진행 중이면** 같은 번호를 선점당할 수 있다 — closeout에서 state를 bump할 때 `max(현재 라이브값, 내가 쓴 헤더값)+1`로 조정하고 헤더에 1줄 노트를 남긴다(+1-at-completion 규약; 헤더 번호는 advisory, 라이브 state가 authoritative). 과거 사이클 헤더가 순차적이지 않은 이유가 이것이다(정상). Gate P = review-strict로 spec↔plan 정합(+ Best-Direction Check 필드 존재).
 3. **Phase I**: plan task 순서대로 TDD(RED 재현→GREEN). 04의 각 GAP에 "테스트 계획(RED)"이 있다.
-4. **Closeout**: 아래 §3 검증 → PR → 머지 → plan `**Status:** completed` → `state.json` cycle.count +1·last_completed_at 갱신 → 04 상태·03 재채점·README 상태 갱신(같은 PR에 — 갱신 계약) → 사이클 보고(한국어).
+4. **Closeout**: 아래 §3 검증 → PR → 머지 → plan `**Status:** completed` → `state.json` cycle.count = 위 규약대로 bump·last_completed_at 갱신(라이브 파일 직접 편집 — gitignored) → 04 상태·03 재채점·README 상태 갱신(같은 PR에 — 갱신 계약) → 사이클 보고(한국어).
 
-**워크트리**: 메인 디렉터리가 다른 브랜치 작업 중일 수 있다 — `EnterWorktree`(네이티브 도구)로 격리 후 origin/master 기준 작업이 안전 기본값. 이 하네스는 SessionEnd에 워크트리를 자동 정리(worktree-teardown)하며, 정리 실패 잔여는 session-start-audit의 sweep이 청소한다 — 수동 `git worktree remove --force`는 금지(정션 추종 사고 이력).
+**워크트리**: 메인 디렉터리가 다른 브랜치 작업 중일 수 있다 — `EnterWorktree`(네이티브 도구)로 격리 후 origin/master 기준 작업이 안전 기본값. **브랜치명 규약**: `harness-upgrade-c<N>`(예: `harness-upgrade-c4`). 이 하네스는 SessionEnd에 워크트리를 자동 정리(worktree-teardown)하며, 정리 실패 잔여는 session-start-audit의 sweep이 청소한다 — 수동 `git worktree remove --force`는 금지(정션 추종 사고 이력).
 
 ## 2. GAP 항목 착수 절차 (공통 체크리스트)
 
@@ -34,12 +34,13 @@
 ## 3. 검증 커맨드 전문 (Closeout 필수 — 전부 exit 0이어야 머지)
 
 ```bash
-bash setup/verify-setup.sh        # 구조·seal 검사. 2026-07-13 기준선 PASS=70 FAIL=0
-bash hooks/tests/run-all.sh       # hook 동작 156 케이스(cases.tsv 양방향 정합+95% 플로어)
+bash setup/verify-setup.sh        # 구조·seal 검사. FAIL=0 이어야 함. PASS 총수는 사이클마다 증가(체크 추가) — 절대값을 신뢰하지 말고 현재 실측 후 README:284 숫자와 일치시켜라. (참고 이력: C0 70 → C3 73)
+bash hooks/tests/run-all.sh       # hook 동작 케이스(cases.tsv 양방향 정합+95% 플로어). 케이스 수도 사이클마다 증가 — 실측 후 README와 동기. (참고: C0 156 → C3 164)
 bash setup/verify-all.sh          # 통합: doctor→verify-setup→seal-regression→failopen→run-all→teardown(E2E)→verify-integration. "ALL PASS" 출력 확인
 ```
 
-- **기준선이 움직였다면**(체크를 추가/제거한 사이클): README.md의 해당 카운트 선언도 같은 커밋에서 갱신 — seal #20(run-all 케이스 수)·#21(E2E 수)이 README와 실측의 parity를 강제하므로 어긋나면 verify-setup이 FAIL한다. verify-setup 총 수(70)는 현재 **무봉인**(GAP-009가 seal 신설 예정) — 그래도 README:283 숫자를 손으로 동기하라.
+- **기준선이 움직였다면**(체크를 추가/제거한 사이클): README.md의 해당 카운트 선언도 같은 커밋에서 갱신 — seal #20(run-all 케이스 수)·#21(E2E 수)이 README와 실측의 parity를 강제하므로 어긋나면 verify-setup이 FAIL한다. verify-setup 총 수는 **seal #36**(C1 신설, GAP-009)이 README `현재 N PASS`(README:284) 선언과 런타임 실측의 parity를 봉인 — 체크를 추가한 사이클은 이 숫자를 반드시 손으로 동기해야 verify-setup이 통과한다. **주의: #8 hook 루프에 hook을 추가하면 검사 수가 +1**(C3에서 72→73 발생) — hook 추가 사이클은 README 숫자를 +1.
+- **새 hook 추가 시(예: C3 budget)**: 5 seal 접점을 같은 PR에서 동기해야 verify-setup이 통과 — ① README `N개 hook` 카운트+표행 ② `setup/doctor.sh` REQUIRED_HOOKS 배열 ③ `setup/verify-setup.sh` #8 loop 목록+주석 ④ `setup/install.sh` REQUIRED 배열 ⑤ `settings.example.json` PreToolUse 그룹(#23 parity). **라이브 `settings.json`은 gitignored(per-machine)** — 머지 후 hook 파일이 메인 체크아웃에 도착한 뒤 수동/install.sh로 배선(현 세션서 배선하면 없는 파일 참조 오류). #23이 미배선 드리프트를 FAIL로 표면화.
 - drift 검사: closeout에서 review-strict subagent에 "CONTEXT.md·architecture 문서 갱신 여부, plan 체크박스 완결, 미신고 열화 없음"을 PASS/FAIL로 검증시킨다(start-rpi-cycle Step C-1의 success_criteria 참조).
 - PR: `gh pr create` → 검증 로그를 PR 본문에 → auto-merge(이 이니셔티브 한정) → `git checkout master && git pull`.
 
@@ -52,7 +53,7 @@ bash setup/verify-all.sh          # 통합: doctor→verify-setup→seal-regress
 1. **CLAUDE.md(글로벌·프로젝트 루트) 수정은 세션 종료 직전에만** — 시스템 프롬프트 prefix에 로드되어 세션 중 수정 = 캐시 무효화(비용 ~20배). GAP-001의 헌법 수정이 여기 해당: diff를 먼저 사이클 보고에 제시하고 마지막 커밋으로.
 2. **SKILL.md 편집은 enforce-orchestrator가 게이트** — `*/skills/*/SKILL.md` 쓰기는 orchestrator 골격(Phase ≥3 · `Agent(` 호출 ≥1 · `Communication Protocol` 섹션) 누락 시 차단. 골격을 유지한 채 편집하라(HTML 주석 속 Agent()는 불인정).
 3. **seal 연쇄**: README의 hook 표·skill 표·카운트 문장은 seal(#17~#34)이 본문과 parity 검사한다. hook/skill/케이스를 추가하면 README·settings.example.json(#23)·cases.tsv(#20)·doctor REQUIRED_HOOKS(#24)·install.sh REQUIRED(#29)를 **같은 커밋에서** 동기해야 verify-setup이 통과한다.
-4. **opencode 미러**: `opencode-harness/`는 회사 반입용 미러 하네스. `hooks/lib/*.js` 파서를 수정하면 `opencode-harness/plugin/lib/`의 대응 파일도 동기하고 `node opencode-harness/_oracle/diff-parsers.mjs`(차등 오라클: canonical과 byte-일치 검증)를 실행하라. hook 셸 스크립트 자체(비-lib)는 미러가 별도 구현이라 로직 등가만 유지.
+4. **opencode 미러**: `opencode-harness/`는 회사 반입용 미러 하네스. `hooks/lib/*.js` 파서를 수정하면 `opencode-harness/plugin/lib/`의 대응 파일도 동기하고 `node opencode-harness/_oracle/diff-parsers.mjs`(차등 오라클: canonical과 byte-일치 검증)를 실행하라. hook 셸 스크립트 자체(비-lib)는 미러가 별도 구현이라 로직 등가만 유지. **SKILL.md 미러**: `opencode-harness/skill/<name>/SKILL.md`가 존재하는 skill(start-rpi-cycle 등)의 canonical 본문을 편집하면 미러 SKILL.md의 대응 부분도 동기하라(C1 Best-Direction Check 필드가 그 선례 — canonical+미러 양쪽). **단, canonical-전용 신규 기능**(예: C2 run-log, C3 budget hook — claude-hooks에만 존재, opencode는 자체 governance)은 미러에 이식하지 않는다: 미터치를 plan에 **선언**하라(무선언 divergence 금지 — Best-Direction Mandate). 오라클(discovery·diff-parsers)은 개수·frontmatter·lib파서만 검사하므로 SKILL.md 본문 미러 drift를 자동 포착하지 못한다(GAP-019가 본문 seal 신설 예정) — 지금은 수동 동기 규율.
 5. **모델ID `[1m]` suffix**: settings.json의 모델명에 붙은 `[1m]`은 1M 컨텍스트 창 인식용 워크어라운드(wire 전송 전 strip됨). Claude Code 업데이트가 이를 정규화·제거할 수 있으니(v2.1.173 선례) 업그레이드 후 `/context`로 창이 1M인지 재검증. 200K로 붕괴하면 auto-compact가 조기 발화해 무인 루프가 죽는다.
 6. **`ccs` 교차모델 CLI**: gpt 프로필로 교차패밀리 리뷰 가능하나, **비대화형 `-p` 모드에서 파일 컨텍스트 전달이 불안정** — 파일 내용을 프롬프트 문자열에 인라인해 전달하라. 실패 시 사유 기록 후 동일-패밀리 리뷰로 fallback(기록 필수).
 7. **vacuous RED 함정**: 과거 사이클에서, 기억된 "차단되는 명령"으로 RED를 유도했더니 가드 리팩터링 탓에 이미 차단되지 않는 상태였다(테스트가 헛돌음). RED는 반드시 현 코드에서 실측 재현 후 TDD를 시작한다.
