@@ -15,7 +15,7 @@ ok()  { echo "✓ $1"; PASS=$((PASS+1)); }
 bad() { echo "✗ $1"; FAIL=$((FAIL+1)); }
 
 # --- live immutability witnesses: cksum files any mutator could touch, before & after ---
-witness() { local f; for f in state.json README.md settings.json CLAUDE.md hooks/tests/cases.tsv; do
+witness() { local f; for f in state.json README.md settings.json CLAUDE.md hooks/tests/cases.tsv skills/ui-design/design.md; do
               cksum "$SRC/$f" 2>/dev/null; done; }
 LIVE_BEFORE="$(witness)"
 
@@ -34,6 +34,11 @@ make_replica() {
   done
   mkdir -p "$C/docs/superpowers/plans"
   cp -a "$SRC/docs/superpowers/plans/." "$C/docs/superpowers/plans/" 2>/dev/null || true
+  # v3: replicate opencode mirror (design.md만 — seal #37이 비교하는 유일 파일) so 미러-sync seal 검증 가능.
+  if [ -f "$SRC/opencode-harness/skill/ui-design/design.md" ]; then
+    mkdir -p "$C/opencode-harness/skill/ui-design"
+    cp -p "$SRC/opencode-harness/skill/ui-design/design.md" "$C/opencode-harness/skill/ui-design/design.md"
+  fi
   rm -rf "$C/hooks/.log"   # drop runtime noise the seals never read
   chmod +x "$C/hooks/"*.sh "$C/setup/"*.sh 2>/dev/null || true  # guard cp -a +x loss on win32
 }
@@ -74,10 +79,22 @@ mut_readme_cases() {
   local actual; actual=$(grep -vcE '^[[:space:]]*(#|$)' "$1/hooks/tests/cases.tsv")
   sed -i -E "s/${actual} (케이스|cases?)/$((actual-1)) \1/g" "$1/README.md"
 }
+# Mutator 4 — seal #37 (opencode 미러 byte-sync): 미러만 발산(비-floor 편집) → 정본≠미러, §6 카운트 불변.
+mut_mirror_drift() { printf '\n<!-- v3 seal-regression mirror-drift probe -->\n' >> "$1/opencode-harness/skill/ui-design/design.md"; }
+# Mutator 5 — seal #38 (§6 floor-18): §6 첫 체크박스를 정본·미러 양쪽에서 삭제(byte-동일 유지 → #37 불감, #38만 발화).
+mut_floor_shrink() {
+  local F
+  for F in "skills/ui-design/design.md" "opencode-harness/skill/ui-design/design.md"; do
+    [ -f "$1/$F" ] || continue
+    awk '/^# 6\./{d=1} /^# 7\./{d=0} d && /^- \[ \]/ && !x {x=1; next} {print}' "$1/$F" > "$1/$F.t" && mv "$1/$F.t" "$1/$F"
+  done
+}
 
 assert_seal_fires "state_schema"    mut_state_count_string "state.json schema 위반"
 assert_seal_fires "settings_parity" mut_settings_matcher   "settings/example harness-hook drift"
 assert_seal_fires "readme_cases"    mut_readme_cases       "README cases drift"
+assert_seal_fires "mirror_sync"     mut_mirror_drift       "opencode 미러 design.md drift"
+assert_seal_fires "floor_18"        mut_floor_shrink       "§6 floor 카운트 drift"
 
 # === Live immutability: witnessed files byte-identical (all mutation stayed in replicas) ===
 LIVE_AFTER="$(witness)"

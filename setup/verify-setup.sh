@@ -332,6 +332,32 @@ else
   fail "Best-Direction Mandate 토큰 부재/부족 (GAP-001): 'Best-Direction Check' x${BD_CNT:-0}(<2) 또는 'DOWNGRADE-DECLARED' x${DG_CNT:-0}(<1) — skills/start-rpi-cycle/SKILL.md"
 fi
 
+# 37. opencode 미러 byte-sync (v3 — design.md 콘텐츠 무검사 봉인): 미러 design.md가 정본과 byte-동일.
+#     미러 부재(fresh-clone/설치본) 시 vacuous-PASS로 카운트 결정성 보존, 존재+상이 시 FAIL(편도 편집 차단).
+#     #23 two-file parity 계열. design.md 편집 시 양 미러 동시 갱신 강제.
+SRC37="$HOME/.claude/skills/ui-design/design.md"
+MIR37="$HOME/.claude/opencode-harness/skill/ui-design/design.md"
+if [ ! -f "$MIR37" ]; then
+  ok "opencode 미러 부재 — design.md byte-sync N/A (vacuous PASS)"
+elif [ ! -f "$SRC37" ]; then
+  fail "정본 design.md 부재 ($SRC37)"
+elif cmp -s "$SRC37" "$MIR37"; then
+  ok "opencode 미러 design.md byte-sync"
+else
+  fail "opencode 미러 design.md drift (정본과 상이 — 양 미러 동시 갱신 필요)"
+fi
+
+# 38. §6 anti-slop floor 카운트 봉인 (v3 — §0.1/§6.2 "삭제 절대 금지" 강제): §6 스코프(# 6.~# 7.)의
+#     '- [ ]' 체크박스가 정확히 18. floor 가감은 seal 동반 갱신 = 의도적 governance(tripwire). §6 밖
+#     편집(evidence 인용·§9~§15 문구)엔 불감(awk 섹션 스코프).
+DESIGN38="$HOME/.claude/skills/ui-design/design.md"
+FLOOR38=$(awk '/^# 6\./{f=1;next} /^# 7\./{f=0} f' "$DESIGN38" 2>/dev/null | grep -cE '^- \[ \]')
+if [ "$FLOOR38" -eq 18 ]; then
+  ok "design.md §6 anti-slop floor = 18 항목"
+else
+  fail "design.md §6 floor 카운트 drift: $FLOOR38 (기대 18 — §6.2 '삭제 절대 금지' 위반?)"
+fi
+
 # 36. verify-setup 총 체크수 <-> README 선언 parity (GAP-009 M1 봉인, 런타임 자기-카운트):
 #     이 시점까지의 PASS+FAIL+1(이 체크 자신) == README "(현재 N PASS)" 선언. 체크 추가 시 README 미동기가 자동 FAIL.
 EXPECTED_TOTAL=$((PASS + FAIL + 1))
