@@ -14,7 +14,7 @@
 | 3 | GAP-002 | 자율성 예산 governor | D5(2→1) | 무인 goal-loop 전체의 안전 상한 — 이 이니셔티브 자신이 무인 | **DONE(C3, 2026-07-13)** — (a) tool-call ceiling hook; (b)(c) DEFERRED(선언). D5 2→3 |
 | 4 | GAP-005 | 스캐폴드 노화 관리 | D12(2→0) | 전 skill/hook/seal 표면에 작용; Δ2 동률 내 tie-break=긴급도(Fable 5 가이드 직접 충돌) | **DONE(C4, 2026-07-13)** — registry+seal #37+감사; D12 1→3(마지막 min 해소) |
 | 5 | GAP-004 | 메모리 수명주기 정책 | D6(2→4) | 포이즈닝 방어+rot 방지 — 메모리 소비 전 세션에 작용 (Δ2 — 적대 리뷰로 구 5위 GAP-006과 스왑) | **DONE(C5)** |
-| 6 | GAP-018 | autocompact 트리거 재캘리브레이션 | D3(2)의 주 레버 | 전 장기 세션의 rot 노출 — 550K→rot-이전(≤400K)으로; D3 L4 anchor의 직접 요건 | PENDING — **신설(적대 리뷰 발견 1)** |
+| 6 | GAP-018 | autocompact 트리거 재캘리브레이션 | D3(3→4) | 전 장기 세션의 rot 노출 — 550K→rot-이전(≤400K)으로; D3 L4 anchor의 직접 요건 | **DONE(C6)** |
 | 7 | GAP-006 | 교차모델 검증자 분리 | D2(1)+D10 L5 | 자기채점 편향의 구조 해소 — 전 [모델-판단] 게이트 신뢰도에 작용 | PENDING |
 | 8 | GAP-011 | skill/플러그인 공급망 규약 | D11(1)의 절반 | 신뢰 경계 — superpowers 등 20+ 외부 skill 전체 | PENDING |
 | 9 | GAP-013 | Rule-of-Two 세션 분리 | D11(1)의 절반+D5 | 인젝션 표면 구조 분리; GAP-012와 레버리지 동률로 판정, tie-break=severity(심도) | PENDING |
@@ -35,7 +35,7 @@
 
 ## GAP-018 — autocompact 트리거 재캘리브레이션 ★신설(C0 적대 리뷰)
 
-- **차원**: D3(3→5의 주 레버, Δ2) · **severity**: MED-HIGH · **상태**: PENDING
+- **차원**: D3(3→**4**, L4 트리거 conjunct) · **severity**: MED-HIGH · **상태**: **DONE(C6, 2026-07-14)** — **커밋분**: settings.example PCT 60→40(1M=400K rot 이전) + doctor #23 rot-정렬 권고/WARN(set>40) + **verify-setup #39**(settings.example ≤40 봉인, bash grep=Windows-safe, RED→GREEN 75→76) + auto-compact-watch rot-timing 검증(55%@350K 무경고→40% 경고, run-all 168→170) + playbook §5 rot-정렬 정책+WINDOW=1M 가드. **per-machine 지연분**(gitignored·메인 peer 점유): 라이브 settings.json PCT 55→40·재시작 후 `/context` 1M+트리거 400K 확인·1세션 연속성 관찰(RPI 재주입이 흡수). **D3 L4 달성=4**(L5의 창-매핑 auto-safe·캐시 hit-rate 잔여=별 사이클; C5가 L5 인덱스예산 seal은 전달).
 - **증거**: 03 D3 교정 기록 — 현행 트리거 55%×1M=550K vs rot 실증 시작 ~300-400K(02 §5 Chroma·커뮤니티 실측)·dumb-zone 40%=400K(02 §4 Horthy). 무인 장기 세션이 rot 구간(400-550K)에서 150K어치를 열화 상태로 작업.
 - **목표 상태**: `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE`를 rot-이전(≤40%, 1M 기준 ≤400K)으로 하향 + auto-compact-watch 경고 임계 동기 + 하향이 무인 goal-loop의 compact 빈도·연속성(read-before 재주입)에 주는 영향 실측 1세션.
 - **Best-direction 근거**: 더 쉬운 대안 = "55% 유지(과거 죽음의-나선 트라우마 회피)" — 그 나선의 원인은 창 오인식(1M→200K 붕괴)이지 트리거 %가 아니었다(settings 이력). 수치를 외부 실증(rot 곡선)에 정렬하는 것이 최선이며, RPI 하네스의 post-compact 연속성(spec·plan 재주입)이 이미 compact 비용을 흡수한다.
