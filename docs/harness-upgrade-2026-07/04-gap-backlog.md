@@ -112,13 +112,14 @@
 
 ## GAP-005 — 스캐폴드 노화 관리 (dead-scaffold pruning)
 
-- **차원**: D12(1→3, Δ2) · **severity**: HIGH(긴급 — 02 §1 Fable 5 가이드 직접 충돌) · **상태**: PENDING
+- **차원**: D12(1→3, Δ2) · **severity**: HIGH(긴급 — 02 §1 Fable 5 가이드 직접 충돌) · **상태**: PENDING — **다음 착수(C4) 권장**
 - **증거**: 03 D12; 01 §6-10(제거 메커니즘 없음); 02 §1(Fable 5 공식: "과처방 skill이 출력 열화 — 리뷰·제거"; managed-agents "하네스 가정은 낡는다"); 02 §3(Anthropic strip-and-measure).
 - **목표 상태**: (a) 각 hook/skill/seal에 "존재 이유" 메타(어느 실패·사이클에 추적되는가 — 대부분 이미 커밋 메시지·spec에 있음: 인덱스만) (b) 모델 업그레이드 트리거 체크리스트(신모델 도입 시 과처방 후보 리뷰 — 05-playbook에 절차) (c) improve-codebase-architecture 5-사이클 감사에 프루닝 후보 보고 단계.
-- **Best-direction 근거**: 더 쉬운 대안 = "언젠가 수동 대청소" — 트리거가 없어 실행되지 않음(01 실측: 한 번도 없었음). 자동 A/B strip-and-measure(L4)는 run-log(GAP-003) 없이 측정 불가 — L3까지를 이번 목표로 하는 것은 의존성 순서이지 열화 아님. **1차 실행을 이니셔티브 내 수행**: Fable 5 가이드 기준으로 현행 skill 7종의 과처방 텍스트 1회 감사(즉효).
-- **구현 스케치**: `docs/ai-context/scaffold-registry.md`(구성요소→존재 이유→추적 커밋/spec 인덱스, 01 구조맵에서 생성) + improve-codebase-architecture SKILL.md에 프루닝 단계 추가(enforce-orchestrator 골격 유지) + 05-playbook에 모델-업그레이드 체크리스트 + 1차 과처방 감사 실행(별도 plan task — 삭제는 사용자 diff 보고 후).
-- **수용 기준**(적대 리뷰 정정: seal 수 18→**17**(9+4+4, #26 소각 — 01 §3 실측; 착수 시점 재실측 우선), 공허-통과 차단): registry에 hook 10+skill 10+seal 17(착수 시점 실측치) 전 항목 && SKILL.md에 프루닝 단계 grep && 1차 감사 보고서 — **skill 7종 각각에 유지/트림 판정+근거 1줄 의무**(후보 0건이어도 skill별 판정 근거가 있어야 유효; 근거 없는 빈 보고서는 FAIL).
-- **테스트 계획(RED)**: verify-setup에 registry 존재+카운트 seal — 구현 전 FAIL. · **복잡도**: 중 · **의존성**: L4는 GAP-003 후속 · **Opus-실행성**: 중(과처방 판단은 모델-판단 — Fable 가이드 기준을 playbook에 인용 필수).
+- **★착수 시점 실측 필수(카운트는 사이클마다 변함 — cold-agent fitness 지적)**: 구성요소 수는 **착수 시점에 실측**하라(05 §5-7). 참고(C3 종료 시점): **hook 11개**(`ls hooks/*.sh` − `_common.sh`), **skill 8개**(`skills/*/SKILL.md`; +정션 ccs-delegation 가시성 주의), **seal ~17개**(verify-setup #17~#34 − #26 소각; `grep -c '^# [0-9]' setup/verify-setup.sh` 아닌 실 발화 지점 계수). 04 초안의 "hook 10·skill 10·skill 7종"은 stale·내부 불일치 — **무시하고 실측치 사용**.
+- **Best-direction 근거**: 더 쉬운 대안 = "언젠가 수동 대청소" — 트리거가 없어 실행되지 않음(01 실측: 한 번도 없었음). **L4(자동 A/B strip-and-measure)의 원 blocker(run-log 부재)는 C2에서 해소됨(GAP-003 DONE)** — 따라서 이번 사이클에 L3(registry+트리거+수동 감사)까지를 목표로 하되, **L4를 이 스코프에서 제외하려면 plan Best-Direction Check에 그 사유(측정 방법론 설계는 별 축·별 사이클)를 명시**해야 한다(무선언 열화 금지; run-log 존재로 "측정 불가"는 더 이상 사유가 아님). **1차 실행을 이니셔티브 내 수행**: Fable 5 가이드 기준으로 현행 skill 전종(실측 수)의 과처방 텍스트 1회 감사(즉효).
+- **구현 스케치**: `docs/ai-context/scaffold-registry.md`(구성요소→존재 이유→추적 커밋/spec 인덱스, 01 구조맵에서 생성) + improve-codebase-architecture SKILL.md에 프루닝 단계 추가(enforce-orchestrator 골격 유지·**opencode 미러 SKILL.md 동기**, 05 §5-4) + 05-playbook에 모델-업그레이드 체크리스트 + 1차 과처방 감사 실행(별도 plan task — 삭제는 사용자 diff 보고 후). Fable 5 과처방 기준은 **02 §1**(prompting-claude-fable-5: "이전 모델용 과처방 skill이 출력 열화 — 리뷰·제거")에서 인용(참조 파일 읽기 허용, 05 상단).
+- **수용 기준**(공허-통과 차단): registry에 hook·skill·seal **전 항목**(착수 실측 수) 존재 + 추적 인덱스 && SKILL.md에 프루닝 단계 grep && 1차 감사 보고서 — **skill 전종 각각에 유지/트림 판정+근거 1줄 의무**(후보 0건이어도 skill별 판정 근거가 있어야 유효; 근거 없는 빈 보고서는 FAIL) && verify-setup 신규 registry seal PASS.
+- **테스트 계획(RED)**: `test -f docs/ai-context/scaffold-registry.md`(ABSENT=RED) + `grep -c scaffold-registry setup/verify-setup.sh`(0=seal 미신설) → 구현 후 seal이 registry 삭제/카운트 변이 복제본($HOME 격리)에서 FAIL 증명(seal-regression 패턴). · **복잡도**: 중 · **의존성**: 없음(L4 blocker 해소됨) · **Opus-실행성**: 중(과처방 판단은 모델-판단 — Fable 가이드 기준 02 §1 인용 필수).
 
 ## GAP-006 — 교차모델 검증자 분리
 
