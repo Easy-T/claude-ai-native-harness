@@ -111,6 +111,10 @@ session-start-audit	106-zero-active	alert	gen_ssa_zero
 session-start-audit	107-one-active	alert	gen_ssa_one
 session-start-audit	108-multi-active-warn	alert	gen_ssa_multi
 session-start-audit	109-no-plans-dir-silent	silent	gen_ssa_nodir
+session-start-audit	185-mem-over-lines	alert	inline_ssa_mem
+session-start-audit	186-mem-over-bytes	alert	inline_ssa_mem
+session-start-audit	187-mem-ok-silent	silent	inline_ssa_mem
+session-start-audit	188-mem-dangling	alert	inline_ssa_mem
 hooks-lib	110-dd-code	output	gen_lib_110
 hooks-lib	111-install-code	output	gen_lib_111
 hooks-lib	112-rsync-code	output	gen_lib_112

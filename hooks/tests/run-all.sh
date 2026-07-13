@@ -440,6 +440,29 @@ test_ssap "108-multi-active-warn" "stale-active" "$(ssap_ev "$SSA2")"
 SSA3="$SCRATCH/ssa3"; mkdir -p "$SSA3"
 test_ssap "109-no-plans-dir-silent" "noplanline" "$(ssap_ev "$SSA3")"
 
+# ==================== CYCLE-C5: SESSION-START-AUDIT 메모리 수명주기 예산/dangling (GAP-004) ====================
+# MEMORY_PROJECTS_DIR override 로 실 ~/.claude/projects 무변이 (RUNLOG_DIR/BUDGET_DIR 선례).
+test_ssa_mem() {  # $1 name  $2 want(부분문자열|silent-mem)  $3 projects_dir
+  TOTAL=$((TOTAL+1))
+  local err; err=$(echo '{"session_id":"s","cwd":"'"$SCRATCH"'"}' | MEMORY_PROJECTS_DIR="$3" "$HOOKS/session-start-audit.sh" 2>&1 >/dev/null)
+  local good=0
+  if [ "$2" = "silent-mem" ]; then echo "$err" | grep -q '^\[memory\]' || good=1
+  else echo "$err" | grep -qF "$2" && good=1; fi
+  [ "$good" = 1 ] && PASSED=$((PASSED+1)) || FAILED_LIST+=("session-start-audit/$1 (want=$2)")
+}
+# over-lines: 201줄(작은 바이트) → 줄 경로만 발화
+MEML="$SCRATCH/memL/projA/memory"; mkdir -p "$MEML"; for i in $(seq 1 201); do echo "- line $i"; done > "$MEML/MEMORY.md"
+test_ssa_mem "185-mem-over-lines" "예산 초과" "$SCRATCH/memL"
+# over-bytes: 3줄이지만 >25KB → 바이트 경로만 발화 (byte 바인딩 제약 실증)
+MEMB="$SCRATCH/memB/projA/memory"; mkdir -p "$MEMB"; { echo "# idx"; head -c 26000 /dev/zero | tr '\0' 'x'; echo; echo "- x"; } > "$MEMB/MEMORY.md"
+test_ssa_mem "186-mem-over-bytes" "예산 초과" "$SCRATCH/memB"
+# ok: 작은 MEMORY.md + 링크 실재 → silent
+MEMO="$SCRATCH/memO/projA/memory"; mkdir -p "$MEMO"; printf '# idx\n- [x](x.md) — ok\n' > "$MEMO/MEMORY.md"; printf 'x\n' > "$MEMO/x.md"
+test_ssa_mem "187-mem-ok-silent" "silent-mem" "$SCRATCH/memO"
+# dangling: 인덱스가 부재 파일 참조 → ALERT
+MEMD="$SCRATCH/memD/projA/memory"; mkdir -p "$MEMD"; printf '# idx\n- [gone](gone.md) — x\n' > "$MEMD/MEMORY.md"
+test_ssa_mem "188-mem-dangling" "dangling" "$SCRATCH/memD"
+
 # ==================== CYCLE-39: SESSION-START-AUDIT 워크트리 마커 (cd-out teardown fallback) ====================
 # 실제 $HOME/.claude/worktrees-marker 사용 — 고유 SID + 즉시 정리(실 세션 SID 는 UUID 라 충돌 없음).
 WT_MARK_DIR="$HOME/.claude/worktrees-marker"

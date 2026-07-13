@@ -356,6 +356,17 @@ else
   fi
 fi
 
+# 38. memory-policy.md 존재 + 통합/프루닝/검증 3규약 (GAP-004 D6 L3): 메모리 수명주기 규약이 사라지면 FAIL
+#     (문서화된 거버넌스 사실 drift 봉인 — #37 registry 동형). seal-regression 이 docs/ai-context 스테이징(C4)→자동 커버.
+MPOL="$HOME/.claude/docs/ai-context/memory-policy.md"
+if [ ! -f "$MPOL" ]; then
+  fail "memory-policy 부재 (GAP-004): docs/ai-context/memory-policy.md 생성 필요"
+elif grep -qE '통합|Consolidation' "$MPOL" && grep -qE '프루닝|Pruning' "$MPOL" && grep -qE '검증|Verification' "$MPOL"; then
+  ok "memory-policy 3규약(통합/프루닝/검증) 존재"
+else
+  fail "memory-policy 3규약 불완전 (GAP-004): 통합/프루닝/검증 중 누락"
+fi
+
 # 36. verify-setup 총 체크수 <-> README 선언 parity (GAP-009 M1 봉인, 런타임 자기-카운트):
 #     이 시점까지의 PASS+FAIL+1(이 체크 자신) == README "(현재 N PASS)" 선언. 체크 추가 시 README 미동기가 자동 FAIL.
 EXPECTED_TOTAL=$((PASS + FAIL + 1))

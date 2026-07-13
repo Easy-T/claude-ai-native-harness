@@ -80,6 +80,32 @@ if command -v node >/dev/null 2>&1; then
   fi
 fi
 
+# --- D-MEMORY-LIFECYCLE: MEMORY.md 인덱스 예산(200줄/25KB) 초과 + dangling 링크 표면화 (GAP-004/014) ---
+#   첫 200줄·25KB만 세션-로드(02 §1) → 초과분 조용히 드롭=메모리 침묵손실. dangling=삭제 파일을 인덱스가 참조(stale).
+#   전-프로젝트 글롭(슬러그-무관). MEMORY_PROJECTS_DIR override=hermetic 테스트. advisory(exit 0 유지)·fail-open.
+MEM_PROJECTS="${MEMORY_PROJECTS_DIR:-$HOME/.claude/projects}"
+if [ -d "$MEM_PROJECTS" ]; then
+  for _mem in "$MEM_PROJECTS"/*/memory/MEMORY.md; do
+    [ -f "$_mem" ] || continue
+    _memdir=$(dirname "$_mem"); _proj=$(basename "$(dirname "$_memdir")")
+    _ml=$(wc -l < "$_mem" 2>/dev/null | tr -d ' '); _mb=$(wc -c < "$_mem" 2>/dev/null | tr -d ' ')
+    if [ "${_ml:-0}" -gt 200 ] || [ "${_mb:-0}" -gt 25600 ]; then
+      hook_log "session-start-audit" "memory-budget" "ALERT" "$_proj:${_ml}L/${_mb}B"
+      echo "[memory] ⚠ MEMORY.md 시작-로드 예산 초과 ($_proj: ${_ml}줄/${_mb}B > 200줄/25KB) — 초과분 미로드. docs/ai-context/memory-policy.md 통합/프루닝 적용" >&2
+    fi
+    _links=$(grep -oE '\]\([A-Za-z0-9_.-]+\.md\)' "$_mem" 2>/dev/null | sed -E 's/^\]\((.*)\)$/\1/' || true)
+    _dangling=""
+    for _lnk in $_links; do
+      case "$_lnk" in http*|/*) continue ;; esac
+      [ -f "$_memdir/$_lnk" ] || _dangling="$_dangling $_lnk"
+    done
+    if [ -n "$_dangling" ]; then
+      hook_log "session-start-audit" "memory-dangling" "ALERT" "$_proj:$_dangling"
+      echo "[memory] ⚠ MEMORY.md dangling 인덱스 링크 ($_proj):$_dangling — 삭제된 메모리를 인덱스가 참조(stale). 인덱스 정정/파일 복원" >&2
+    fi
+  done
+fi
+
 CLAUDE_MD="$HOME/.claude/CLAUDE.md"
 [ ! -f "$CLAUDE_MD" ] && {
   echo "[audit] 글로벌 CLAUDE.md 없음. /init-ai-ready 1회 실행 권장." >&2
