@@ -332,6 +332,30 @@ else
   fail "Best-Direction Mandate 토큰 부재/부족 (GAP-001): 'Best-Direction Check' x${BD_CNT:-0}(<2) 또는 'DOWNGRADE-DECLARED' x${DG_CNT:-0}(<1) — skills/start-rpi-cycle/SKILL.md"
 fi
 
+# 37. scaffold-registry ⊇ live hook/skill parity (GAP-005 C4, 노화 방지 트리거): registry 존재 +
+#     모든 live hook(−_common) basename·모든 live skill dir 이 registry 에 등재. 신규 구성요소를
+#     registry 에 안 적으면 FAIL — 무한 누적만 하던 스캐폴드에 제거-리뷰 앵커. (#36 앞에 배치 = 총계 포함.)
+REG="$HOME/.claude/docs/ai-context/scaffold-registry.md"
+if [ ! -f "$REG" ]; then
+  fail "scaffold-registry 부재 (GAP-005): docs/ai-context/scaffold-registry.md 생성 필요"
+else
+  REG_MISS=""
+  for _hf in "$HOME/.claude/hooks"/*.sh; do
+    _hb=$(basename "$_hf"); [ "$_hb" = "_common.sh" ] && continue
+    grep -qF "$_hb" "$REG" 2>/dev/null || REG_MISS="$REG_MISS $_hb"
+  done
+  for _sk in "$HOME/.claude/skills"/*/; do
+    [ -d "$_sk" ] || continue
+    _sb=$(basename "$_sk")
+    grep -qF "$_sb" "$REG" 2>/dev/null || REG_MISS="$REG_MISS $_sb"
+  done
+  if [ -z "$REG_MISS" ]; then
+    ok "scaffold-registry ⊇ live hook/skill (노화 registry 최신)"
+  else
+    fail "scaffold-registry 미등재 (GAP-005 — registry 갱신 필요):$REG_MISS"
+  fi
+fi
+
 # 36. verify-setup 총 체크수 <-> README 선언 parity (GAP-009 M1 봉인, 런타임 자기-카운트):
 #     이 시점까지의 PASS+FAIL+1(이 체크 자신) == README "(현재 N PASS)" 선언. 체크 추가 시 README 미동기가 자동 FAIL.
 EXPECTED_TOTAL=$((PASS + FAIL + 1))

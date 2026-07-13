@@ -34,6 +34,8 @@ make_replica() {
   done
   mkdir -p "$C/docs/superpowers/plans"
   cp -a "$SRC/docs/superpowers/plans/." "$C/docs/superpowers/plans/" 2>/dev/null || true
+  mkdir -p "$C/docs/ai-context"   # seal #37 (GAP-005) inspects docs/ai-context/scaffold-registry.md
+  cp -a "$SRC/docs/ai-context/." "$C/docs/ai-context/" 2>/dev/null || true
   rm -rf "$C/hooks/.log"   # drop runtime noise the seals never read
   chmod +x "$C/hooks/"*.sh "$C/setup/"*.sh 2>/dev/null || true  # guard cp -a +x loss on win32
 }
