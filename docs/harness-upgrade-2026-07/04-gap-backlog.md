@@ -13,7 +13,7 @@
 | 2 | GAP-003 | 사이클 run-log (관측 기반) | D4(1→0) | D5 예산 측정·D7 인사이트·D12 사용통계·GAP-002/005/012를 unblock — 최대 레버리지 | **DONE(C2, 2026-07-13)** — run_log_event JSONL(gen_ai.*)+runlog_summary+doctor 20e; G6-b/G3-a 흡수(아래) |
 | 3 | GAP-002 | 자율성 예산 governor | D5(2→1) | 무인 goal-loop 전체의 안전 상한 — 이 이니셔티브 자신이 무인 | **DONE(C3, 2026-07-13)** — (a) tool-call ceiling hook; (b)(c) DEFERRED(선언). D5 2→3 |
 | 4 | GAP-005 | 스캐폴드 노화 관리 | D12(2→0) | 전 skill/hook/seal 표면에 작용; Δ2 동률 내 tie-break=긴급도(Fable 5 가이드 직접 충돌) | **DONE(C4, 2026-07-13)** — registry+seal #37+감사; D12 1→3(마지막 min 해소) |
-| 5 | GAP-004 | 메모리 수명주기 정책 | D6(2) | 포이즈닝 방어+rot 방지 — 메모리 소비 전 세션에 작용 (Δ2 — 적대 리뷰로 구 5위 GAP-006과 스왑) | PENDING |
+| 5 | GAP-004 | 메모리 수명주기 정책 | D6(2→4) | 포이즈닝 방어+rot 방지 — 메모리 소비 전 세션에 작용 (Δ2 — 적대 리뷰로 구 5위 GAP-006과 스왑) | **DONE(C5)** |
 | 6 | GAP-018 | autocompact 트리거 재캘리브레이션 | D3(2)의 주 레버 | 전 장기 세션의 rot 노출 — 550K→rot-이전(≤400K)으로; D3 L4 anchor의 직접 요건 | PENDING — **신설(적대 리뷰 발견 1)** |
 | 7 | GAP-006 | 교차모델 검증자 분리 | D2(1)+D10 L5 | 자기채점 편향의 구조 해소 — 전 [모델-판단] 게이트 신뢰도에 작용 | PENDING |
 | 8 | GAP-011 | skill/플러그인 공급망 규약 | D11(1)의 절반 | 신뢰 경계 — superpowers 등 20+ 외부 skill 전체 | PENDING |
@@ -102,7 +102,7 @@
 
 ## GAP-004 — 메모리 수명주기 정책
 
-- **차원**: D6(2→4, Δ2) · **severity**: MED · **상태**: PENDING
+- **차원**: D6(2→4, Δ2) · **severity**: MED · **상태**: **DONE(C5, 2026-07-14)** — `docs/ai-context/memory-policy.md`(통합/프루닝/검증 3규약+provenance+ASI06 포이즌 체크리스트) + session-start-audit **인덱스 예산 ALERT**(200줄/**25KB byte-바인딩**·`MEMORY_PROJECTS_DIR` hermetic·전-프로젝트 글롭) + **dangling 인덱스 참조검증**(L4 stale 자동표면화) + `improve-arch` Phase2 메모리 감사 단계(canonical 전용) + **verify-setup #38**(memory-policy 존재+3규약, RED→GREEN 74→75). run-all 164→168. **D6 2→4 = 마지막 <3 차원 해소→전 차원 진짜 ≥3.** GAP-014 병합 처분(동일 구현점). L4 전체 달성(04 floor=L3-ish 초과 — best-direction).
 - **증거**: 03 D6(축적 단방향 — 01 §6-9); 02 §5("통합 정책 침묵이 프로덕션 실패가 사는 곳"·Mem0 OSS TTL 없음=수명주기는 사용자 책임·ASI06 포이즈닝·MEMORY.md 첫 200줄/25KB만 로드).
 - **목표 상태**: (a) 명문 규약: 통합(중복 병합)·프루닝(비참조 N사이클 후 archive)·검증(참조 파일/커밋 실재 확인) 주기 = improve-codebase-architecture 5-사이클 리듬에 편승 (b) 쓰기 검증: 메모리 파일 신규/수정 시 출처(세션·사이클) 명기 규약 (c) stale 표면화: session-start-audit이 MEMORY.md 크기/줄수 예산 초과 ALERT.
 - **Best-direction 근거**: 더 쉬운 대안 = "가끔 수동 정리"(현행 암묵) — 02 §5가 실패 모드로 명명. 반대 극단(벡터DB·Letta 이식)은 개인 파일-메모리 규모에 과잉(YAGNI — 스코프 판단이지 품질 열화 아님). 파일-기반 유지 + 수명주기 규약 명문화가 Anthropic memory-tool 패턴(02 §5)과 정렬된 최선.
@@ -190,7 +190,7 @@
 
 ## GAP-014 — MEMORY.md 인덱스 예산 seal
 
-- **차원**: D3 보조 · **severity**: LOW · **상태**: PENDING (GAP-004에 병합 권장)
+- **차원**: D3 보조 · **severity**: LOW · **상태**: **DONE(C5, GAP-004 병합)** — session-start-audit 인덱스 예산 ALERT(200줄/25KB)가 이 항목의 구현. 별도 항목 미유지(SSOT — 동일 구현점 중복 규약 회피, 병합=열화 아닌 중복 제거).
 - **증거**: 02 §1(첫 200줄/25KB만 시작-로드 — 공식); 현행 MEMORY.md 줄당 길이 비대(01 §4).
 - **목표/수용**: session-start-audit 예산 체크(GAP-004 (c)와 동일 구현) — 병합 실행.
 - **Best-direction 근거**: 독립 항목 유지보다 GAP-004 병합이 SSOT — 동일 구현 지점(session-start-audit)의 중복 규약을 피한다(병합은 열화가 아니라 중복 제거).
