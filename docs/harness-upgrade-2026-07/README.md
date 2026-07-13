@@ -25,9 +25,10 @@ durable spec: [`docs/superpowers/specs/2026-07-13-harness-upgrade-2026-07-design
 | **C-final** | 핸드오프 봉인 — cold-agent fitness + 문서 결함 6건 회귀 수정 + 루브릭 before/after | **완료 (2026-07-13)** — fitness COULD_START(질문 0회) |
 | **C4** | GAP-005 스캐폴드 노화 (registry + verify-setup #37 parity seal + 프루닝 단계 + 과처방 감사) | **완료 (2026-07-13, RPI-Cycle 55)** — D12 1→3, **마지막 min=1 해소**, verify-setup 73→74 |
 | **C5** | GAP-004 메모리 수명주기 (memory-policy + 인덱스 예산/dangling ALERT + #38 seal + improve-arch 감사 단계) | **완료 (2026-07-14, RPI-Cycle 53)** — D6 2→4, **전 차원 진짜 ≥3 실현**, verify-setup 74→75, run-all 164→168. GAP-014 병합 |
-| C6.. | 04 순위순 (GAP-018 트리거 → GAP-006 교차모델 → GAP-011/013 보안 → …) | 대기 — **다음 착수 = GAP-018**(D3 autocompact 트리거 재캘리브·저비용·rot 노출) 또는 GAP-006(D2/D10 L5 교차모델) |
+| **C6** | GAP-018 autocompact 트리거 재캘리브 (settings.example 40 + doctor rot-정렬 + #39 seal + auto-compact-watch rot-timing) | **완료 (2026-07-14, RPI-Cycle 54)** — D3 3→4(L4 트리거 rot 이전), verify-setup 75→76, run-all 168→170. 라이브 PCT=per-machine 지연 |
+| C7.. | 04 순위순 (GAP-006 교차모델 → GAP-011/013 보안 → GAP-010 커버리지 → …) | 대기 — **다음 착수 = GAP-006**(D2/D10 L5 교차모델 검증자, ccs 인프라 해소 후) 또는 GAP-010/011(보안·커버리지) |
 
-**루브릭 현황 (C5 재채점)**: **min=3 — 전 12차원 진짜 ≥3** (C1 D10·C2 D4·C3 D5·C4 D12·C5 D6 개선). ★C5가 **마지막 <3 차원(D6=2) 해소**로 '전 차원 ≥3'을 실현 — C4의 동 선언은 D6=2 상태의 조기 선언이었음(정직 정정). 상세는 03 종합표. 잔여 델타(목표까지): D3(GAP-018)·D5·D7·D9·D11.
+**루브릭 현황 (C6 재채점)**: **min=3 — 전 12차원 진짜 ≥3** (C1 D10·C2 D4·C3 D5·C4 D12·C5 D6·**C6 D3** 개선). C5가 마지막 <3 차원(D6) 해소로 '전 차원 ≥3' 실현, C6가 D3 3→4(L4). 현행 min-3 차원: D5·D7·D9·D11. 상세는 03 종합표. 잔여 델타(목표까지): D5·D7·D9·D11 + D3/D9의 L5.
 **라이브 배선 주의(C3)**: `enforce-session-budget`는 `settings.example.json`에 배선됨(tracked). 각 머신의 라이브 `settings.json`은 hook 파일 도착 후 동기 필요(install.sh 병합 또는 수동) — 새 PreToolUse `*` matcher는 세션 재시작 후 발화. `SESSION_TOOL_BUDGET` 미설정 시 무영향(기본 OFF).
 
 ## 방법론 기록 (정직성)
@@ -38,6 +39,6 @@ durable spec: [`docs/superpowers/specs/2026-07-13-harness-upgrade-2026-07-design
 - 이 문서 세트의 계약 검증: review-strict가 spec §2 표 기준 항목별 PASS 판정(C0 closeout 기록).
 - **cold-agent fitness 결과(C-final, GAP-008 수용)**: 컨텍스트 0인 fresh 에이전트에 05+04만 주고 GAP-005 startup packet(사이클 규약·plan 초안·RED 커맨드·함정) 생산 지시 → **COULD_START**(두 필수 산출물을 후속질문 0회로 생산 = fitness 바 ≤2 통과). 동시에 문서 결함 6건 포착(사이클번호 규약 부재·기준선 stale·GAP-005 카운트 불일치·브랜치명 미규정·참조정책 모호·GAP-005 L4-blocker stale) → **C-final에서 전부 회귀 수정**(playbook §1/§3/§5+상단, 04 GAP-005). 이것이 fitness 루프의 설계 목적(사이트가 아닌 문서의 결함 검출).
 
-## 다음 착수 지정 (C6+)
+## 다음 착수 지정 (C7+)
 
-C0~C5 완료로 **전 차원 진짜 ≥3 실현**(C5 D6 2→4가 마지막 <3 해소). 다음 착수 = 저비용 **GAP-018 (autocompact 트리거 재캘리브)** — D3(3→5, 550K→rot-이전 ≤400K; 전 장기 세션 rot 노출) 또는 **GAP-006 (교차모델 검증자)** — D2/D10 L5(ccs 인프라 해소 후). 착수 = `05-playbook.md` §2 절차 → 브랜치 `harness-upgrade-c6` → 04 해당 GAP 블록. 이후: GAP-010/011/013(보안·커버리지)·GAP-012(회귀픽스처)·GAP-019(skill 본문 seal)·GAP-007(OS sandbox).
+C0~C6 완료로 **전 차원 진짜 ≥3**(C5 D6 2→4·C6 D3 3→4). 이제 **목표(≥4~5) 도달 사이클**로 진입. 다음 착수 = **GAP-006 (교차모델 검증자)** — D2/D10 L5(고-스테이크 판정 교차패밀리 라우팅; ccs 인프라 해소 필요 — 미해소 시 DEFERRED 처분) 또는 **GAP-011/013 (공급망·세션 분리 보안)** — D11 3→4. 착수 = `05-playbook.md` §2 절차 → 브랜치 `harness-upgrade-c7` → 04 해당 GAP 블록. 이후: GAP-010(커버리지)·GAP-012(회귀픽스처)·GAP-019(skill 본문 seal)·GAP-007(OS sandbox)·D3/D9 L5(창-매핑 auto-safe·캐시 hit-rate·핸드오프).
