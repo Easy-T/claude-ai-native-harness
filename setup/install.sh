@@ -65,6 +65,7 @@ REQUIRED=(
   "$TARGET/hooks/enforce-rpi-cycle.sh"
   "$TARGET/hooks/enforce-rpi-bash.sh"
   "$TARGET/hooks/enforce-secret-scan.sh"
+  "$TARGET/hooks/enforce-session-budget.sh"
   "$TARGET/hooks/verify-loop-watch.sh"
   "$TARGET/hooks/session-start-audit.sh"
   "$TARGET/hooks/surface-constitution.sh"

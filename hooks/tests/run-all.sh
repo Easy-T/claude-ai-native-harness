@@ -773,6 +773,31 @@ RLJT=$(mktemp "$SCRATCH/rljson-XXXXXX.jsonl")
   printf '{"verdict":"FAILOPEN","reason":"parser-exit-1"}\n'; } > "$RLJT"
 test_lib "rl-173-runlog-summary" "EVENTS=5 BLOCK=2 PASS=2 SKIP=1 FAILOPEN=1 ALERT=0" "$(bash -c 'source "$HOME/.claude/hooks/_common.sh"; runlog_summary "$1"' _ "$RLJT")"
 
+# ==================== CYCLE-53 (GAP-002): 세션 예산 governor ====================
+# 기본 OFF + 임계 차단 + 우회 + 80% 경고. BUDGET_DIR override 로 hermetic(카운터 격리).
+sb_ev() { printf '{"session_id":"%s","tool_name":"Bash","tool_input":{"command":"echo x"},"cwd":"%s"}' "$1" "$SCRATCH"; }
+SBDIR="$SCRATCH/sbudget"; mkdir -p "$SBDIR"
+# sb-180: SESSION_TOOL_BUDGET 미설정 → 무영향(exit 0), 카운터 미생성
+TOTAL=$((TOTAL+1))
+sb180=$(echo "$(sb_ev sb180)" | BUDGET_DIR="$SBDIR" "$HOOKS/enforce-session-budget.sh" >/dev/null 2>&1; echo $?)
+[ "$sb180" = 0 ] && [ ! -f "$SBDIR/sb180" ] && PASSED=$((PASSED+1)) || FAILED_LIST+=("session-budget/sb-180-off-noop (exit=$sb180)")
+# sb-181: 예산 내(budget=5, 첫 호출→1) → exit 0 + 카운터=1
+TOTAL=$((TOTAL+1))
+sb181=$(echo "$(sb_ev sb181)" | SESSION_TOOL_BUDGET=5 BUDGET_DIR="$SBDIR" "$HOOKS/enforce-session-budget.sh" >/dev/null 2>&1; echo $?)
+[ "$sb181" = 0 ] && [ "$(cat "$SBDIR/sb181" 2>/dev/null)" = 1 ] && PASSED=$((PASSED+1)) || FAILED_LIST+=("session-budget/sb-181-under (exit=$sb181 cnt=$(cat "$SBDIR/sb181" 2>/dev/null))")
+# sb-182: 예산 초과(budget=2, 카운터 프리시드 2 → 3>2) → exit 2 (차단)
+TOTAL=$((TOTAL+1)); echo 2 > "$SBDIR/sb182"
+sb182=$(echo "$(sb_ev sb182)" | SESSION_TOOL_BUDGET=2 BUDGET_DIR="$SBDIR" "$HOOKS/enforce-session-budget.sh" >/dev/null 2>&1; echo $?)
+[ "$sb182" = 2 ] && PASSED=$((PASSED+1)) || FAILED_LIST+=("session-budget/sb-182-over-block (exit=$sb182 want 2)")
+# sb-183: GOAL_BUDGET_SKIP + 초과 → exit 0 (우회)
+TOTAL=$((TOTAL+1)); echo 5 > "$SBDIR/sb183"
+sb183=$(echo "$(sb_ev sb183)" | SESSION_TOOL_BUDGET=2 GOAL_BUDGET_SKIP=extend BUDGET_DIR="$SBDIR" "$HOOKS/enforce-session-budget.sh" >/dev/null 2>&1; echo $?)
+[ "$sb183" = 0 ] && PASSED=$((PASSED+1)) || FAILED_LIST+=("session-budget/sb-183-skip-bypass (exit=$sb183 want 0)")
+# sb-184: 80% 경고 방출(budget=5, 프리시드 3 → 4≥ceil(4)) → additionalContext 출력(FLAG A: 경고 브랜치 단언)
+TOTAL=$((TOTAL+1)); echo 3 > "$SBDIR/sb184"
+sb184out=$(echo "$(sb_ev sb184)" | SESSION_TOOL_BUDGET=5 BUDGET_DIR="$SBDIR" "$HOOKS/enforce-session-budget.sh" 2>/dev/null)
+echo "$sb184out" | grep -q 'additionalContext' && echo "$sb184out" | grep -q '80%' && PASSED=$((PASSED+1)) || FAILED_LIST+=("session-budget/sb-184-warn-emit (no additionalContext)")
+
 # ==================== CYCLE-40: PRETOOLUSE 워크트리 마커 WRITE (실-입력 shape) + wt_root_from_path 단위 ====================
 # 주: test_lib(538) 정의 이후 배치 — 165/166 가 test_lib 사용. 실 $HOME/.claude/worktrees-marker 사용(고유 SID+즉시 정리).
 # 실-입력 shape: cwd=메인 레포 루트(워크트리 아님) + tool_input 에 워크트리 절대경로 → record 가 마커 기록.
