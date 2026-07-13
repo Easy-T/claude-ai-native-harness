@@ -23,6 +23,15 @@
       "NotebookRead",
       "NotebookEdit"
     ],
+    "deny": [
+      "Read(**/.credentials.json)",
+      "Read(**/.env)",
+      "Read(**/.env.*)",
+      "Read(**/id_rsa)",
+      "Read(**/id_ed25519)",
+      "Bash(rm -rf ~)",
+      "Bash(rm -rf /)"
+    ],
     "defaultMode": "default"
   },
   "statusLine": {
