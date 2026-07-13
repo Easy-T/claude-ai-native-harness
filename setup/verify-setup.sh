@@ -369,7 +369,8 @@ fi
 
 # 39. settings.example autocompact 트리거 rot-정렬 (GAP-018 D3 L4): PCT_OVERRIDE ≤40(=1M 기준 ≤400K, rot 이전).
 #     60/55 등 rot-지난 값이면 FAIL — rot 곡선(02 §5·§4 dumb-zone 40%)에 정렬된 기본값 봉인. WINDOW=1M 전제([1m] suffix).
-EX_PCT=$(node -e "try{const s=JSON.parse(require('fs').readFileSync('$HOME/.claude/settings.example.json','utf8'));console.log((s.env&&s.env.CLAUDE_AUTOCOMPACT_PCT_OVERRIDE)||'')}catch(e){}" 2>/dev/null)
+#     bash grep 추출(#37/#38 동형) — node readFileSync 는 staged $HOME(MSYS /tmp) 를 Windows node 가 못 읽어 false-부재.
+EX_PCT=$(grep -oE '"CLAUDE_AUTOCOMPACT_PCT_OVERRIDE"[[:space:]]*:[[:space:]]*"?[0-9]+"?' "$HOME/.claude/settings.example.json" 2>/dev/null | grep -oE '[0-9]+' | head -1)
 if [ -z "$EX_PCT" ]; then
   fail "settings.example CLAUDE_AUTOCOMPACT_PCT_OVERRIDE 부재 (GAP-018)"
 elif [ "$EX_PCT" -le 40 ] 2>/dev/null; then
