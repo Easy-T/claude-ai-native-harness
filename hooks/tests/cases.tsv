@@ -117,6 +117,8 @@ session-start-audit	185-mem-over-lines	alert	inline_ssa_mem
 session-start-audit	186-mem-over-bytes	alert	inline_ssa_mem
 session-start-audit	187-mem-ok-silent	silent	inline_ssa_mem
 session-start-audit	188-mem-dangling	alert	inline_ssa_mem
+session-start-audit	191-supply-match-silent	silent	inline_ssa_supply
+session-start-audit	192-supply-drift-warn	alert	inline_ssa_supply
 hooks-lib	110-dd-code	output	gen_lib_110
 hooks-lib	111-install-code	output	gen_lib_111
 hooks-lib	112-rsync-code	output	gen_lib_112

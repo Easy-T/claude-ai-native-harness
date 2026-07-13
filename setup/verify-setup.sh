@@ -379,6 +379,17 @@ else
   fail "settings.example autocompact 트리거 rot-미정렬 (GAP-018): ${EX_PCT}% >40 (rot ~300-400K 이전=≤40)"
 fi
 
+# 40. plugin-pins.md 존재 + SKILL.md cksum 핀 (GAP-011 D11 L4 절반): 공급망 핀이 사라지면 FAIL.
+#     rug-pull 방어 앵커(session-start-audit 드리프트 검사가 이 cksum 을 소비). bash grep(#38/#39 동형, staged-safe).
+PINS="$HOME/.claude/docs/ai-context/plugin-pins.md"
+if [ ! -f "$PINS" ]; then
+  fail "plugin-pins 부재 (GAP-011): docs/ai-context/plugin-pins.md 생성 필요"
+elif grep -qE 'skill-cksum:[[:space:]]*[0-9]+' "$PINS"; then
+  ok "plugin-pins SKILL.md cksum 핀 존재"
+else
+  fail "plugin-pins cksum 핀 부재 (GAP-011): skill-cksum: <N> 라인 필요"
+fi
+
 # 36. verify-setup 총 체크수 <-> README 선언 parity (GAP-009 M1 봉인, 런타임 자기-카운트):
 #     이 시점까지의 PASS+FAIL+1(이 체크 자신) == README "(현재 N PASS)" 선언. 체크 추가 시 README 미동기가 자동 FAIL.
 EXPECTED_TOTAL=$((PASS + FAIL + 1))

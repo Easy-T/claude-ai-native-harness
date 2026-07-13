@@ -65,6 +65,7 @@ bash setup/verify-all.sh          # 통합: doctor→verify-setup→seal-regress
 9. **hook은 fail-open + 표면화**: hook 자기 고장은 차단이 아니라 허용+FAILOPEN 로그가 교리(작업 중단 방지). 새 hook도 동일 — 로깅 실패가 판정을 막으면 안 된다(`|| true`). 반대로 **무로깅** fail-open은 결함(enforce-orchestrator ERR-센티넬이 유일 잔존 — GAP-010이 해소 예정).
 10. **동시-세션**: 병렬 Claude 세션이 흔하다. 다른 세션의 dev 서버·브라우저 프로세스를 kill하지 말고, 세션 상태는 `session_id`-키 파일로 격리(기존 패턴: `~/.claude/worktrees-marker/<sid>`).
 11. **Fable 5→Opus 컨텍스트**: 이 문서 세트는 Fable 5(1M 창)가 작성했다. Opus 세션이 200K~1M 어느 창이든, 01·02는 필요 섹션만 발췌해 읽어도 착수 가능하게 구조화되어 있다 — 전체 프리로드보다 GAP별 참조 섹션(04 각 항목의 "증거" 필드)만 읽는 것이 컨텍스트 경제에 맞다.
+12. **공급망(플러그인/skill) rug-pull**(C7/GAP-011; 02 §4 ToxicSkills 13.4%·approve-once): 외부 플러그인은 승인 후 조용히 바뀔 수 있다(rug-pull). `docs/ai-context/plugin-pins.md`가 캐시 SKILL.md **cksum**을 핀하고 session-start-audit이 드리프트 시 `[supply-chain]` ALERT(seal #40이 핀 존재 봉인). **ALERT 시 규약**: ① 캐시 SKILL.md diff 리뷰 — 위임 agent명·게이트 문구·권한 요구 변경을 주시 ② **정당한 업데이트**(내가 `/plugin update` 함)면 `plugin-pins.md`의 `skill-cksum`·version/sha 재실측·갱신(세션 종료 직전, 캐시 안정성) ③ **미승인 변경**이면 pin sha로 롤백/재설치, 신뢰 못 하면 제거. ★핀 갱신은 *의식적 승인*이다 — ALERT를 무심코 끄려 cksum만 맞추지 말 것(review-on-change가 규약의 전부). 재실측: `find ~/.claude/plugins/cache/claude-plugins-official -name SKILL.md | sort | xargs cat | cksum`.
 
 ## 5b. 모델 업그레이드 체크리스트 (스캐폴드 노화 — GAP-005)
 
