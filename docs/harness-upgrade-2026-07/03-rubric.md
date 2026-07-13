@@ -157,7 +157,8 @@
 | 4 | 3 + 구성요소 단위 A/B 벗겨보기 절차(Anthropic strip-and-measure) 문서화·실행 이력 |
 | 5 | 4 + 자동화된 사용/발화 통계 기반 프루닝 제안 (D4 run-log 의존) |
 
-**현행 1** — 증거: 01 §6-10 "제거 메커니즘 없음(누적 단방향)"; 6월 감사 defer 항목(goal §5 dead-scaffold pruning)이 그대로 미해소. 외부 바: 02 §1 Fable 5 공식 가이드 "과처방 skill이 출력 열화 — 리뷰·제거하라" + managed-agents "하네스 가정은 낡는다" — **현행 skill 텍스트가 현 모델 출력을 열화 중일 수 있어 긴급**. **목표 3. 델타 2.**
+**현행 3** — 증거: (C4 이전) 01 §6-10 "제거 메커니즘 없음(누적 단방향)"; 6월 defer(goal §5 dead-scaffold). 외부 바: 02 §1 Fable 5 "과처방 skill이 출력 열화 — 리뷰·제거". **목표 3. 델타 0 (C4 도달).**
+**C4 재채점(2026-07-13, 1→3)**: GAP-005 착륙 — L2=`05-playbook §5b` 모델-업그레이드 체크리스트(registry 재확인·과처방 감사·strip-and-measure 후보·모델ID 워크어라운드 재검증) · L3=`docs/ai-context/scaffold-registry.md`(hook 11·skill 8·seal 19 각 "존재 이유"+추적 커밋/cycle/spec) + `improve-codebase-architecture` Phase 2 프루닝 후보 보고 단계(canonical+opencode 미러) + **verify-setup #37**(scaffold-registry ⊇ live hook/skill parity — 신규 구성요소 미등재 시 FAIL = 노화 방지 트리거, RED→GREEN 실증) + **1차 과처방 감사**(`c4-overprescription-audit.md`, skill 8종 각 판정: 트림 후보 0·관찰 1=start-rpi-cycle Workflow 옵션). L4(자동 strip-and-measure)는 목표 밖(별 축, plan Best-Direction 선언). 실측: verify-setup 73→74·#37 RED→GREEN. **min=1이던 유일 잔여 차원 해소.**
 
 ## 6월 8차원 ↔ v2 12차원 매핑
 
@@ -191,9 +192,9 @@
 | D9 핸드오프 복원력 | 3 | 5 | 2 | 이 이니셔티브가 직접 상승 중 |
 | **D10 Best-Direction** | **4** | **4** | **0** | **C1 도달(2026-07-13)** — L5는 GAP-006 소관 |
 | D11 보안 | 3 | 4 | 1 | 기준 상승(6월 4) |
-| **D12 스캐폴드 노화** | **1** | **3** | **2** | Fable 5 가이드 직접 충돌 |
+| **D12 스캐폴드 노화** | **3** | **3** | **0** | **C4 도달** (GAP-005 registry+seal #37+감사) |
 
-**min = 1 (D12)** (C1 D10 1→4, C2 D4 3→4, C3 D5 2→3 해소). C0 시점 min=1(D10·D12)은 축 확장(신규 4축)·기준 상승(D4·D11)·오채점 교정(D3)의 결과였다. 잔여 우선 델타: D3·D6·D9·D12(2) > D1·D2·D5·D7·D11(1) > D4·D8·D10(0). 다음 착수(C4) 후보: 델타 2 중 레버리지 = **GAP-005 스캐폴드 노화**(D12, 유일 min=1 해소·Fable 5 가이드 충돌 긴급) 또는 GAP-004 메모리 수명주기(D6).
+**min = 3 (D3·D6)** — C4에서 D12 1→3으로 **마지막 min=1 해소** (C1 D10 1→4, C2 D4 3→4, C3 D5 2→3, C4 D12 1→3). C0 시점 min=1(D10·D12)은 축 확장(신규 4축)·기준 상승(D4·D11)·오채점 교정(D3)의 결과였다. **현행 전 차원 ≥3.** 잔여 델타 2(목표까지): **D3 컨텍스트 경제**(GAP-018 트리거 재캘리브) · **D6 메모리 수명주기**(GAP-004) · D9(C-final fitness로 5 도달). 다음 착수(C5) 후보: GAP-004(D6, 레버리지·포이즈닝 방어) 또는 GAP-018(D3, 저비용).
 **채점 방법론 노트**: C0 채점은 fresh-context 적대 리뷰(refute-by-default, 동일 패밀리·별도 컨텍스트)를 1회 통과 — 7건 발견 중 점수 교정 1(D3 4→3), 잔여 명시 1(D1), 반박-기각 1(D10), 순위·기준 정정은 04에 반영. 교차패밀리 리뷰는 인프라 실패로 GAP-006에 위임(README 방법론 기록).
 
 ## C0 → C3 진척 요약 (before/after, C-final 봉인 2026-07-13)

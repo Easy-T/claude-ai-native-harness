@@ -12,7 +12,7 @@
 | 1 | GAP-001 | Best-Direction Mandate | D10(3→0) | 전 후속 사이클의 plan 품질에 작용 | **DONE(C1, 2026-07-13)** — 4층 전부: CLAUDE.md 정련·Phase P 필드+Gate P·C-1 silent-downgrade·seal #35(RED→GREEN) |
 | 2 | GAP-003 | 사이클 run-log (관측 기반) | D4(1→0) | D5 예산 측정·D7 인사이트·D12 사용통계·GAP-002/005/012를 unblock — 최대 레버리지 | **DONE(C2, 2026-07-13)** — run_log_event JSONL(gen_ai.*)+runlog_summary+doctor 20e; G6-b/G3-a 흡수(아래) |
 | 3 | GAP-002 | 자율성 예산 governor | D5(2→1) | 무인 goal-loop 전체의 안전 상한 — 이 이니셔티브 자신이 무인 | **DONE(C3, 2026-07-13)** — (a) tool-call ceiling hook; (b)(c) DEFERRED(선언). D5 2→3 |
-| 4 | GAP-005 | 스캐폴드 노화 관리 | D12(2) | 전 skill/hook/seal 표면에 작용; Δ2 동률 내 tie-break=긴급도(Fable 5 가이드 직접 충돌) | PENDING |
+| 4 | GAP-005 | 스캐폴드 노화 관리 | D12(2→0) | 전 skill/hook/seal 표면에 작용; Δ2 동률 내 tie-break=긴급도(Fable 5 가이드 직접 충돌) | **DONE(C4, 2026-07-13)** — registry+seal #37+감사; D12 1→3(마지막 min 해소) |
 | 5 | GAP-004 | 메모리 수명주기 정책 | D6(2) | 포이즈닝 방어+rot 방지 — 메모리 소비 전 세션에 작용 (Δ2 — 적대 리뷰로 구 5위 GAP-006과 스왑) | PENDING |
 | 6 | GAP-018 | autocompact 트리거 재캘리브레이션 | D3(2)의 주 레버 | 전 장기 세션의 rot 노출 — 550K→rot-이전(≤400K)으로; D3 L4 anchor의 직접 요건 | PENDING — **신설(적대 리뷰 발견 1)** |
 | 7 | GAP-006 | 교차모델 검증자 분리 | D2(1)+D10 L5 | 자기채점 편향의 구조 해소 — 전 [모델-판단] 게이트 신뢰도에 작용 | PENDING |
@@ -112,7 +112,7 @@
 
 ## GAP-005 — 스캐폴드 노화 관리 (dead-scaffold pruning)
 
-- **차원**: D12(1→3, Δ2) · **severity**: HIGH(긴급 — 02 §1 Fable 5 가이드 직접 충돌) · **상태**: PENDING — **다음 착수(C4) 권장**
+- **차원**: D12(1→3, Δ2) · **severity**: HIGH(긴급 — 02 §1 Fable 5 가이드 직접 충돌) · **상태**: **DONE(C4, 2026-07-13)** — scaffold-registry(hook11·skill8·seal19)+verify-setup #37 registry⊇live parity seal+improve-arch 프루닝 단계(canonical+미러)+playbook §5b 모델업그레이드 체크리스트+1차 과처방 감사(트림0·관찰1). D12 1→3(마지막 min=1 해소). L4(자동 strip-and-measure)=목표 밖 스코프 제외 선언(별 축). verify-setup 73→74·RED(registry 부재)→GREEN.
 - **증거**: 03 D12; 01 §6-10(제거 메커니즘 없음); 02 §1(Fable 5 공식: "과처방 skill이 출력 열화 — 리뷰·제거"; managed-agents "하네스 가정은 낡는다"); 02 §3(Anthropic strip-and-measure).
 - **목표 상태**: (a) 각 hook/skill/seal에 "존재 이유" 메타(어느 실패·사이클에 추적되는가 — 대부분 이미 커밋 메시지·spec에 있음: 인덱스만) (b) 모델 업그레이드 트리거 체크리스트(신모델 도입 시 과처방 후보 리뷰 — 05-playbook에 절차) (c) improve-codebase-architecture 5-사이클 감사에 프루닝 후보 보고 단계.
 - **★착수 시점 실측 필수(카운트는 사이클마다 변함 — cold-agent fitness 지적)**: 구성요소 수는 **착수 시점에 실측**하라(05 §5-7). 참고(C3 종료 시점): **hook 11개**(`ls hooks/*.sh` − `_common.sh`), **skill 8개**(`skills/*/SKILL.md`; +정션 ccs-delegation 가시성 주의), **seal ~17개**(verify-setup #17~#34 − #26 소각; `grep -c '^# [0-9]' setup/verify-setup.sh` 아닌 실 발화 지점 계수). 04 초안의 "hook 10·skill 10·skill 7종"은 stale·내부 불일치 — **무시하고 실측치 사용**.

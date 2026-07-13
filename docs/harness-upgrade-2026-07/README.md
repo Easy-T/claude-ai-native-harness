@@ -23,9 +23,10 @@ durable spec: [`docs/superpowers/specs/2026-07-13-harness-upgrade-2026-07-design
 | **C2** | GAP-003 사이클 run-log (JSONL gen_ai.*·runlog_summary·doctor 20e; G6-b/G3-a 흡수) | **완료 (2026-07-13, RPI-Cycle 52)** — D4 3→4, run-all 156→159 |
 | **C3** | GAP-002 자율성 예산 governor (enforce-session-budget hook, tool-call ceiling) | **완료 (2026-07-13, RPI-Cycle 53)** — D5 2→3, hook 10→11, verify-setup 72→73. (b)(c) DEFERRED |
 | **C-final** | 핸드오프 봉인 — cold-agent fitness + 문서 결함 6건 회귀 수정 + 루브릭 before/after | **완료 (2026-07-13)** — fitness COULD_START(질문 0회) |
-| C4.. | 04 순위순 (GAP-005 스캐폴드 노화 → GAP-004 메모리 → GAP-018 트리거 → …) | 대기 — **Opus 첫 착수 = GAP-005**(유일 min=1·Fable 5 가이드 긴급; 04 GAP-005에 startup packet 반영됨) |
+| **C4** | GAP-005 스캐폴드 노화 (registry + verify-setup #37 parity seal + 프루닝 단계 + 과처방 감사) | **완료 (2026-07-13, RPI-Cycle 55)** — D12 1→3, **마지막 min=1 해소**, verify-setup 73→74 |
+| C5.. | 04 순위순 (GAP-004 메모리 → GAP-018 트리거 → GAP-006 교차모델 → …) | 대기 — **다음 착수 = GAP-004**(D6 메모리 수명주기·포이즈닝 방어) 또는 GAP-018(D3 저비용) |
 
-**루브릭 현황 (C3 재채점)**: min=1 (D12 스캐폴드 노화 — D10·D4·D5는 C1·C2·C3에서 개선). 상세는 03 종합표. 6월 감사 대비 축 4개 신설 + 기준 상승 2건(D4·D11)이며 6월 종결 항목의 회귀는 없음.
+**루브릭 현황 (C4 재채점)**: **min=3 — 전 12차원 ≥3** (C1 D10·C2 D4·C3 D5·C4 D12 개선으로 min=1 완전 해소). 상세는 03 종합표. 6월 감사 대비 축 4개 신설 + 기준 상승 2건(D4·D11)이며 6월 종결 항목의 회귀는 없음. 잔여 델타 2: D3(GAP-018)·D6(GAP-004).
 **라이브 배선 주의(C3)**: `enforce-session-budget`는 `settings.example.json`에 배선됨(tracked). 각 머신의 라이브 `settings.json`은 hook 파일 도착 후 동기 필요(install.sh 병합 또는 수동) — 새 PreToolUse `*` matcher는 세션 재시작 후 발화. `SESSION_TOOL_BUDGET` 미설정 시 무영향(기본 OFF).
 
 ## 방법론 기록 (정직성)
@@ -36,6 +37,6 @@ durable spec: [`docs/superpowers/specs/2026-07-13-harness-upgrade-2026-07-design
 - 이 문서 세트의 계약 검증: review-strict가 spec §2 표 기준 항목별 PASS 판정(C0 closeout 기록).
 - **cold-agent fitness 결과(C-final, GAP-008 수용)**: 컨텍스트 0인 fresh 에이전트에 05+04만 주고 GAP-005 startup packet(사이클 규약·plan 초안·RED 커맨드·함정) 생산 지시 → **COULD_START**(두 필수 산출물을 후속질문 0회로 생산 = fitness 바 ≤2 통과). 동시에 문서 결함 6건 포착(사이클번호 규약 부재·기준선 stale·GAP-005 카운트 불일치·브랜치명 미규정·참조정책 모호·GAP-005 L4-blocker stale) → **C-final에서 전부 회귀 수정**(playbook §1/§3/§5+상단, 04 GAP-005). 이것이 fitness 루프의 설계 목적(사이트가 아닌 문서의 결함 검출).
 
-## Opus 첫 착수 지정
+## 다음 착수 지정 (C5+)
 
-**GAP-005 (스캐폴드 노화 관리)** — 유일 잔여 min=1(D12), Fable 5 공식 가이드와 직접 충돌(과처방 skill이 현 모델 출력 열화)이라 긴급. 04 GAP-005에 fitness가 검증한 startup packet(실측 카운트 규약·L4-blocker 해소·opencode 미러 동기·RED 커맨드)이 반영됨. 착수 = `05-playbook.md` §2 절차 → 브랜치 `harness-upgrade-c4` → 04 GAP-005 블록대로. 그 다음 순위: GAP-004(D6 메모리)·GAP-018(D3 트리거)·GAP-006(교차모델 검증자, 인프라 해소 후).
+C0~C4 완료로 **min=1이 전부 해소(전 차원 ≥3)**. 다음 착수 = **GAP-004 (메모리 수명주기)** — D6=2(잔여 델타 최대·ASI06 포이즈닝 방어) 또는 저비용 **GAP-018 (autocompact 트리거 재캘리브)** — D3. 착수 = `05-playbook.md` §2 절차 → 브랜치 `harness-upgrade-c5` → 04 해당 GAP 블록. 이후: GAP-006(교차모델 검증자, ccs 인프라 해소 후)·GAP-010/011/013(보안·커버리지)·GAP-019(skill 본문 seal)·GAP-007(OS sandbox).
