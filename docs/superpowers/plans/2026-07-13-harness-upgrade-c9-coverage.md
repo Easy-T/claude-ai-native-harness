@@ -2,10 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: superpowers:executing-plans. Steps use `- [ ]` checkboxes.
 
-**Status:** paused
-**RPI-Cycle:** 57
+**Status:** active
+**RPI-Cycle:** 58
 **Started:** 2026-07-14
 **Paused:** 2026-07-14 — 사용자 요청으로 보류. **완료분**: Task 1(enforce-orchestrator ERR-센티넬 hook_log FAILOPEN, 커밋 `1196639`). **잔여**: Task 2(커버리지 6 케이스 — 전부 로직 실측 완료[193 model-window /1m/·194 opus[1m]·195/196/197 secret GitHub/Slack/PrivKey·198 stable-claude-md ALERT], run-all.sh 미배선), Task 3(closeout·D1 4 유지·머지). **재개**: 이 plan Status `paused`→`active` 후 Task 2부터.
+**Resumed:** 2026-07-17 (Fable 재감사 goal) — master `9acf649`(ui-design v3 머지) 위로 rebase(Task 1 커밋 `1196639`→`27fc397`). **기준선 재실측(플레이북 §5-7)**: verify-setup **81**/0(v3 +2 seal #43/#44; plan 구기준 79는 stale — Global Constraints의 79는 이력 기록으로 보존, 목표치는 81 무변[C9는 seal 무추가]), run-all **172**·README:276·514 `172`→`178` 동기 대상 무변. RPI-Cycle 57→**58**(라이브 state 57 = ui-design v3가 선점; +1-at-completion 규약, 57→58 bump 예정). Opus "6 케이스 로직 실측 완료" 주장은 재검증 완료 — 193/194(model-window 1M)·195/196/197(secret 조립 exit 2) 라이브 재현 OK, 198은 mk_event가 `cwd` 필드 포함 시에만 ALERT 발화 확인(드라이버가 mk_event 사용하므로 valid — cwd 누락 재현은 무효였음).
 
 **Best-Direction Check:** 최선안 = 회귀 감지선(커버리지)을 넓히고 **무로깅 fail-open을 0화**(D1 L5 요건: 조용한 fail-open은 회귀를 숨긴다 — cycle-37 vacuous RED 교훈). 채택안 = 동일: ①enforce-orchestrator ERR-센티넬(현재 `[ "$SKEL" = "ERR" ] && exit 0` **무로깅**)에 `hook_log FAILOPEN` 추가 ②미커버 표면 6 케이스(01 §6-2/6-3 선별): model-window `/1m/` 행·secret-scan 미테스트 4(GitHub/Slack/PrivKey/placeholder-면제)·stable-claude-md ALERT 단언. (skeleton-scan ERR은 기존 case 74 커버 — 중복 회피; ERR-센티넬 표면화는 ① Task 1 hook_log.) **더 쉬운 대안 "작동 중이니 방치" 기각**(가드 변경이 기존 차단 무효화해도 침묵 — 커버리지가 유일 감지). **DOWNGRADE-DECLARED: 없음.** opencode 미러: enforce-orchestrator hook_log은 claude-hooks 고유 — 미이식 선언.
 
@@ -28,13 +29,13 @@
 ### Task 1: enforce-orchestrator ERR-센티넬 hook_log (무로깅 fail-open 0화)
 **Files:** Modify: `hooks/enforce-orchestrator.sh`
 
-- [ ] **Step 1: ERR 경로 hook_log 추가** — `[ "$SKEL" = "ERR" ] && exit 0` → `[ "$SKEL" = "ERR" ] && { hook_log "enforce-orchestrator" "$FILE_PATH" "FAILOPEN" "skeleton-scan ERR (파서 실패 fail-open)"; exit 0; }`. (EMPTY 경로는 정상 통과라 로깅 불요 — ERR만 fail-open.)
-- [ ] **Step 2: 구문 + commit** — `bash -n`. commit: `feat(gap-010): enforce-orchestrator ERR-센티넬 hook_log FAILOPEN — 무로깅 fail-open 0화 (D1 L5)`
+- [x] **Step 1: ERR 경로 hook_log 추가** — `[ "$SKEL" = "ERR" ] && exit 0` → `[ "$SKEL" = "ERR" ] && { hook_log "enforce-orchestrator" "$FILE_PATH" "FAILOPEN" "skeleton-scan ERR (파서 실패 fail-open)"; exit 0; }`. (EMPTY 경로는 정상 통과라 로깅 불요 — ERR만 fail-open.) *(Opus, 커밋 `1196639`→rebase `27fc397`)*
+- [x] **Step 2: 구문 + commit** — `bash -n`. commit: `feat(gap-010): enforce-orchestrator ERR-센티넬 hook_log FAILOPEN — 무로깅 fail-open 0화 (D1 L5)`
 
 ### Task 2: 커버리지 6 케이스 (RED→GREEN)
 **Files:** Modify: `hooks/tests/run-all.sh`, `hooks/tests/cases.tsv`, `README.md`
 
-- [ ] **Step 1: RED 확인** — 각 표면 현행 미커버 grep(예: `grep -c '193-\|modelwin-1m' run-all.sh`=0).
+- [x] **Step 1: RED 확인** — 각 표면 현행 미커버 grep(예: `grep -c '193-\|modelwin-1m' run-all.sh`=0). *(2026-07-17 실측: 193~198 전부 run-all=0·cases.tsv=0)*
 - [ ] **Step 2: 케이스 추가**(model-window/skeleton은 test_lib, secret은 test_ess, stable은 신규 드라이버):
   - **⑤ model-window `/1m/`**: `test_lib "193-modelwin-1m" "1000000" "$(node "$LIB/model-window.js" claude-neo-1m)"` (opus/fable 미매칭·`/1m/`만).
   - **⑤ model-window `[1m]` 프로덕션 ID**(test_lib, 미커버): `test_lib "194-modelwin-opus-1m-suffix" "1000000" "$(node "$LIB/model-window.js" 'claude-opus-4-8[1m]')"` (case 78은 suffix-없는 plain opus만 — 실 프로덕션 ID `claude-opus-4-8[1m]`[autocompact 워크어라운드]가 1M 해소 미커버·load-bearing). ※placeholder 면제는 기존 case 43·skeleton ERR은 case 74가 이미 커버 → 중복 회피; ERR-센티넬 표면화는 Task 1 hook_log + Task 3 grep.
@@ -50,12 +51,12 @@
     }
     test_scm_alert "198-scm-alert-asserted"
     ```
-- [ ] **Step 3: GREEN 실행** — `bash run-all.sh` → 193-198 PASS·기존 무회귀.
-- [ ] **Step 4: cases.tsv + README** — 6행(193-198) → 172→178. README `172 case/케이스`(276·514) → `178`.
-- [ ] **Step 5: commit** — `feat(gap-010): 커버리지 6 케이스(model-window /1m/·secret GitHub/Slack/PrivKey·skeleton ERR·stable-claude-md ALERT) run-all 172→178`
+- [x] **Step 3: GREEN 실행** — `bash run-all.sh` → 193-198 PASS·기존 무회귀. *(staged HOME: 178/178, 100%)*
+- [x] **Step 4: cases.tsv + README** — 6행(193-198) → 172→178. README `172 case/케이스`(276·514) → `178`.
+- [x] **Step 5: commit** — `feat(gap-010): 커버리지 6 케이스(model-window /1m/·secret GitHub/Slack/PrivKey·skeleton ERR·stable-claude-md ALERT) run-all 172→178`
 
 ### Task 3: 검증 + Closeout
-- [ ] **Step 1: staged verify-all** — run-all 178·verify-setup 79/0(무변)·seal-regression 5/0·verify-all ALL PASS. enforce-orchestrator ERR hook_log grep 단언.
-- [ ] **Step 2: 03 D1 재채점** — **점수 4 유지**(부분 L5 진척): GAP-010 = L5 conjunct ②(모든 fail-open 로깅·표면화=ERR-센티넬 0화) 착륙 + 커버리지 breadth. **①전표면 MCP 게이트 미해결로 conjunctive L5 미완 → 4 유지**(③deny는 C8 착륙). D1 앵커에 C9 부분-진척 노트 + 종합표 비고(무bump 사유). min 무변(D1은 min-3 아님).
-- [ ] **Step 3: 04 GAP-010 DONE** — README 상태 C9 행.
-- [ ] **Step 4: PR → auto-merge → state bump(56→57) → drift review-strict → 보고+next-cycle-goal(GAP-012 D7 또는 GAP-002bc D5)**.
+- [x] **Step 1: staged verify-all** — run-all 178·verify-setup **81**/0(무변 — 기준선 81은 v3 머지 반영 재실측; plan 원안 79는 stale)·seal-regression **7**/0(v3 +2 mutator)·verify-all ALL PASS. enforce-orchestrator ERR hook_log grep 단언(=1).
+- [x] **Step 2: 03 D1 재채점** — **점수 4 유지**(부분 L5 진척): GAP-010 = L5 conjunct ②(모든 fail-open 로깅·표면화=ERR-센티넬 0화) 착륙 + 커버리지 breadth. **①전표면 MCP 게이트 미해결로 conjunctive L5 미완 → 4 유지**(③deny는 C8 착륙). D1 앵커에 C9 부분-진척 노트 + 종합표 비고(무bump 사유). min 무변(D1은 min-3 아님).
+- [x] **Step 3: 04 GAP-010 DONE** — README 상태 C9 행.
+- [ ] **Step 4: PR → auto-merge → state bump(57→58) → drift review-strict → 보고+next-cycle-goal(GAP-012 D7 또는 GAP-002bc D5)**.

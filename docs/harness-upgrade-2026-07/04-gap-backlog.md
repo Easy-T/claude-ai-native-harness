@@ -21,7 +21,7 @@
 | 10 | GAP-012 | 실패→회귀픽스처 루프 | D7(1) | eval 인프라의 마지막 층 — 발생 빈도 의존 | PENDING |
 | 11 | GAP-019 | skill/agent 본문 drift seal + ccs-delegation 계약 연결 | D1·D2 보조 | 드리프트 방어의 자기적용(하네스 정체성) — GAP-006이 의존하는 ccs-delegation의 무계약 해소 포함 | PENDING — **신설(적대 리뷰 발견 7)** |
 | 12 | GAP-009 | 문서↔실물 정합 일괄 + 카운트 seal | D2(1)의 일부 | quick-win — 어느 사이클에나 부수 가능 | **DONE(C1, 2026-07-13)** — M1-M8 정정(M4/M9/M10 의도기록 유지) + seal #36(런타임 자기-카운트 parity, RED 66≠72→GREEN 72==72) |
-| 13 | GAP-010 | 미테스트 표면 커버 | D1(1)의 일부 | 알려진 공백의 봉인(커버 목록은 항목 블록 — "전수" 주장 정정) | PENDING |
+| 13 | GAP-010 | 미테스트 표면 커버 | D1(1)의 일부 | 알려진 공백의 봉인(커버 목록은 항목 블록 — "전수" 주장 정정) | **DONE(C9, 2026-07-17)** — ERR-센티넬 hook_log FAILOPEN(무로깅 0화)+6 케이스(172→178); D1 4 유지(L5 2/3, MCP 잔여) |
 | 14 | GAP-015 | MCP 쓰기 게이트 | D1(1)의 일부 | 6월 G1-a 계승 — MCP 사용 빈도가 낮아 레버리지 중간 | PENDING |
 | 15 | GAP-014 | MEMORY.md 인덱스 예산 seal | D3(1)의 일부 | 저비용 — GAP-004에 병합 가능 | PENDING |
 | 16 | GAP-016 | 사이클 proof-artifact 규약 | D7 보조 | 6월 defer 계승 — GAP-003 run-log가 사실상 대체 가능(재평가) | PENDING |
@@ -152,7 +152,7 @@
 
 ## GAP-010 — 미테스트 표면 커버
 
-- **차원**: D1 보조 · **severity**: MED · **상태**: PENDING
+- **차원**: D1 보조 · **severity**: MED · **상태**: **DONE(C9, 2026-07-17)** — ⑥ ERR-센티넬 `hook_log FAILOPEN`(`enforce-orchestrator.sh:19`, 무로깅 fail-open 0화) + 6 케이스 배선(run-all 172→**178**: 193 model-window `/1m/`·194 프로덕션 `[1m]` suffix·195/196/197 secret GitHub/Slack/PrivKey[리터럴 0 조립]·198 stable-claude-md ALERT stderr 단언). ①은 부분(5/7→2/7 커버, 잔여 generic-assignment·GCP류) ②stable ALERT=198 ③session-start selfcheck 분기·④teardown abort 2경로·⑦비-Windows skip·⑧마커-제거 위협모델 명기=**미착륙 잔여(후속 GAP-010b 후보)** — 04 목표 "+6 이상"·"ERR-센티넬 hook_log"은 충족(수용 기준 만족으로 DONE; 잔여는 정직 명기). D1 4 유지(03 C9 노트).
 - **증거**: 01 §6-2·§6-3에서 선별한 커버 목록(적대 리뷰 정정 — "전수" 아님): ① secret-scan 5/7 패턴 ② stable-claude-md ALERT 미단언 ③ session-start selfcheck syntax:/nonexec: 분기 ④ teardown abort 2경로 ⑤ model-window `/1m/` 행 ⑥ enforce-orchestrator ERR-센티넬 무로깅(§6-3) ⑦ 비-Windows STAGE 3b skip(01 §6-2 6번째 — D8 잔여 편입) ⑧ orchestrator 마커-제거 우회 표면화(03 D1 잔여 — surface_bypass 커버 검토).
 - **목표 상태**: ①-⑥ 각각 run-all/전용 테스트 케이스 + ⑥ ERR-센티넬 hook_log 추가(무로깅 fail-open 0화 — D1 L5 요건) + ⑦ 비-Windows에서 실행 가능한 teardown 서브셋 분리 또는 명시 skip-사유 게이트 + ⑧ 마커-제거가 게이트 소멸임을 README/SECURITY 위협모델에 명기(표면화는 감시 비용 대비 판정 기록).
 - **Best-direction 근거**: 더 쉬운 대안 = "작동 중이니 방치" — cycle-37 교훈(vacuous RED: 가드 변경이 기존 차단을 무효화해도 침묵)이 기각. 커버리지가 회귀의 유일한 감지선.

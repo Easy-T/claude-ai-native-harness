@@ -143,6 +143,15 @@ test_scm "08-similar-name" 0 "$(mk_event Edit "$SCRATCH/MY_CLAUDE.md" "x" "$SCRA
 # 02-root-write: Write tool (not Edit) on root CLAUDE.md → ALERT exit 0
 test_scm "02-root-write" 0 "$(mk_event Write "$SCRATCH/CLAUDE.md" "content" "$SCRATCH")"
 
+# GAP-010 (C9): ALERT 발화 자체를 단언 (기존 test_scm 은 exit 0 만 봄 — 경고문이 조용히 사라져도 침묵).
+# 비-글로벌 루트 CLAUDE.md 는 stderr 에 [cache-stability] 를 내야 한다.
+test_scm_alert() {  # $1 name
+  TOTAL=$((TOTAL+1))
+  local err; err=$(mk_event Edit "$SCRATCH/CLAUDE.md" "x" "$SCRATCH" | "$HOOKS/stable-claude-md.sh" 2>&1 >/dev/null)
+  echo "$err" | grep -qF 'cache-stability' && PASSED=$((PASSED+1)) || FAILED_LIST+=("stable-claude-md/$1 (ALERT 미발화: $err)")
+}
+test_scm_alert "198-scm-alert-asserted"
+
 # ==================== ENFORCE-RPI-CYCLE ====================
 test_erc() {
   local name="$1"; local expected="$2"; local input="$3"
@@ -371,6 +380,13 @@ test_ess "42-bash-key-redirect"   2 "$(mk_bash_event "echo $FAKE_ANT > /tmp/leak
 test_ess "43-placeholder-pass"    0 "$(mk_event Write "$SCRATCH/x.txt" "token = $PLACEHOLDER_ANT" "$SCRATCH")"
 test_ess "44-clean-pass"          0 "$(mk_event Write "$SCRATCH/x.txt" "just normal code here, no secrets" "$SCRATCH")"
 test_ess "45-skip-override"       0 "$(mk_event Write "$SCRATCH/x.txt" "token = $FAKE_ANT" "$SCRATCH")" "SECRET_SCAN_SKIP=approved"
+# GAP-010 (C9): 미테스트 패턴 3종 — GitHub PAT·Slack 토큰·SSH PrivKey 마커 (전부 런타임 분할 조립, 리터럴 0)
+FAKE_GH="gh""p_$(printf 'a%.0s' $(seq 1 40))"
+FAKE_SLK="xox""b-$(printf '1%.0s' $(seq 1 12))"
+FAKE_PK="-----BEGIN OPENSSH ""PRIVATE KEY-----"
+test_ess "195-secret-github"      2 "$(mk_event Write "$SCRATCH/x.md" "t=$FAKE_GH" "$SCRATCH")"
+test_ess "196-secret-slack"       2 "$(mk_event Write "$SCRATCH/x.md" "s=$FAKE_SLK" "$SCRATCH")"
+test_ess "197-secret-privkey"     2 "$(mk_event Write "$SCRATCH/x.md" "$FAKE_PK" "$SCRATCH")"
 
 # ==================== PATCH-B: VERIFY-LOOP-WATCH (advisory Stop hook) ====================
 # Output-based: assert systemMessage emitted (alert) vs not (silent) — exit is always 0.
@@ -659,6 +675,9 @@ test_lib "78-modelwin-opus"     "1000000" "$(node "$LIB/model-window.js" claude-
 test_lib "79-modelwin-default"  "200000"  "$(node "$LIB/model-window.js" claude-sonnet-4-6)"
 test_lib "80-modelwin-override" "300000"  "$(CONTEXT_LIMIT=300000 node "$LIB/model-window.js" claude-sonnet-4-6)"
 test_lib "121-modelwin-fable"   "1000000" "$(node "$LIB/model-window.js" claude-fable-5)"
+# GAP-010 (C9): /1m/ 행 커버 (opus/fable 미매칭·"1m" 토큰만으로 1M 해소) + 프로덕션 [1m] suffix ID (autocompact 워크어라운드 load-bearing)
+test_lib "193-modelwin-1m"            "1000000" "$(node "$LIB/model-window.js" claude-neo-1m)"
+test_lib "194-modelwin-opus-1m-suffix" "1000000" "$(node "$LIB/model-window.js" 'claude-opus-4-8[1m]')"
 
 # ==================== SESSION-START-AUDIT ====================
 test_ssa() {
