@@ -65,7 +65,7 @@ Agent(subagent_type="review-strict",
       context_paths=["./design.md", "<생성한 코드 파일 경로 전부>", "<브리프 경로(있으면)>"],
       success_criteria="
         PASS only if ALL:
-        [floor §6 — 18항목 각각 PASS/N-A, FAIL 0]
+        [floor §6 — 18항목 각각 PASS/N-A 판정, FAIL 0]
         - indigo/보라→파랑 그라데이션·그라데이션 텍스트·아이콘 타일 헤딩 없음
         - 색 3개 이하(neutral 제외)·채도 ≤80%
         - 중앙정렬 50% 이하·'text left, image right' ≤2회
