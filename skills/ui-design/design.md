@@ -9,7 +9,7 @@
 절제는 뼈대, **화려함은 정밀도다**. 표현의 상한을 올릴 때 투자 순서는 아래 서열을 따른다 (v2 신규 규칙의 출처는 랩 FRICTION 항목 — `// evidence:` 주석):
 1. **타이포그래피** — 스케일 대비·리듬·정렬의 긴장. 한 페이지의 위계 점프는 **≥3단계**(예: 12px 라벨 ↔ 14px 본문 ↔ 24px 섹션 ↔ 88px+ display). 중간 크기의 균질한 위계가 슬롭을 만든다. // evidence: F-ALL-01
 2. **여백과 밀도의 완급** — 조밀한 섹션 뒤 숨 쉬는 섹션(§14). 균질 밀도는 리듬의 부재다.
-3. **물리 기반 절제 모션** — enter는 ease-out·<400ms·transform/opacity만(§9). 모션은 장식이 아니라 인과다.
+3. **물리 기반 절제 모션** — enter는 ease-out·transform/opacity만, 지속시간은 §9 duration 토큰 티어를 따른다. 모션은 장식이 아니라 인과다. // evidence: F-AUD-01
 4. **단일 hue의 깊이** — 새 hue를 추가하지 않고 명도축(잉크↔페이퍼)으로 드라마를 만든다(§10).
 5. **1px 디테일** — border 단차·focus ring·tabular-nums·grain. 크래프트는 보이지 않을 때 작동한다.
 
@@ -457,7 +457,7 @@ svg path[fill="black"] { fill: currentColor; }
 </div>
 ```
 
-### Mobile List Item (Montage iOS 기반)
+### Mobile List Item (Montage iOS 기반 — **인터랙티브 행 전제**: chevron은 이동 어포던스. 읽기 전용 정보 행에 복붙 시 chevron 제거 — §12 비인터랙티브 행 규칙)
 ```tsx
 <li className="flex items-center px-4 py-3 bg-neutral-0 active:bg-neutral-100 transition-colors">
   <div className="w-10 h-10 rounded-full bg-neutral-100 flex items-center justify-center text-neutral-500 mr-3">
@@ -526,13 +526,13 @@ svg path[fill="black"] { fill: currentColor; }
 | 토큰 | 값 | 용도 |
 | --- | --- | --- |
 | motion-fast | 150–200ms | hover·색 전환 (`transition-colors`) |
-| motion-base | 300–450ms | fade-up 리빌, 상태 전환 |
+| motion-base | 300–550ms | fade-up 리빌, 상태 전환 — 표준 레시피(§9 fade-up/.reveal)는 550ms // evidence: F-AUD-01 |
 | motion-hero | 550–700ms | 오프닝 안무 (페이지당 1회) |
 | ease-out-soft | `cubic-bezier(0.22, 1, 0.36, 1)` | enter/리빌 표준 곡선 (감속 — 즉답 인상) |
 
 - **enter/exit = ease-out 계열**, 화면 내 이동 = ease-in-out. `transition: all` 금지 — 애니메이트할 property를 명시.
 - **transform/opacity만** 애니메이트 (layout property(width/height/top) 금지 — CLS·jank). 진입 모션 중 layout shift 0이어야 한다 (실측: PerformanceObserver CLS < 0.02).
-- **stagger**: 순차 등장은 60–120ms 간격 (KPI 카드 60ms·hero 행 120ms 실측). **안무 예산은 2축**이다 — *개별 요소 지속* ≤700ms(motion-hero 상한)와 *마지막 요소의 시작 지연* ≤300ms(요소 ~5개 이내)는 별개 축. 체감 총 길이 = 개별 지속 + 시작 지연 spread ≤ **~1000ms**. (v2 "총 안무 <700ms"는 700ms line-rise 레시피와 모순 — 개별 지속과 시퀀스 spread를 혼동했음.) // evidence: F-FIT-02
+- **stagger**: 순차 등장은 60–120ms 간격 (KPI 카드 60ms·hero 행 120ms 실측). **안무 예산은 2축**이다 — *개별 요소 지속* ≤700ms(motion-hero 상한)와 *마지막 요소의 시작 지연* ≤300ms는 별개 축 — **지연 축이 지배**한다: 요소 수가 늘면 간격을 내려 마지막 지연 ≤300ms를 지킨다(5요소면 간격 ≤75ms — 120ms×5요소=480ms는 위반). // evidence: F-AUD-02 체감 총 길이 = 개별 지속 + 시작 지연 spread ≤ **~1000ms**. (v2 "총 안무 <700ms"는 700ms line-rise 레시피와 모순 — 개별 지속과 시퀀스 spread를 혼동했음.) // evidence: F-FIT-02
 - **반복 사용 화면은 무모션**: 대시보드·목록 등 매일 여러 번 보는 화면은 진입 스태거 1회 외 전부 `transition-colors`만. 반복 키보드 액션은 절대 애니메이트하지 않는다.
 - **연속 고novelty 금지**: 큰 모션 섹션 뒤에는 조용한 섹션 (§14 완급).
 
