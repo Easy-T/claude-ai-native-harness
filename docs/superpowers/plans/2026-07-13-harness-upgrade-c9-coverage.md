@@ -36,7 +36,7 @@
 **Files:** Modify: `hooks/tests/run-all.sh`, `hooks/tests/cases.tsv`, `README.md`
 
 - [x] **Step 1: RED 확인** — 각 표면 현행 미커버 grep(예: `grep -c '193-\|modelwin-1m' run-all.sh`=0). *(2026-07-17 실측: 193~198 전부 run-all=0·cases.tsv=0)*
-- [ ] **Step 2: 케이스 추가**(model-window/skeleton은 test_lib, secret은 test_ess, stable은 신규 드라이버):
+- [x] **Step 2: 케이스 추가**(model-window/skeleton은 test_lib, secret은 test_ess, stable은 신규 드라이버):
   - **⑤ model-window `/1m/`**: `test_lib "193-modelwin-1m" "1000000" "$(node "$LIB/model-window.js" claude-neo-1m)"` (opus/fable 미매칭·`/1m/`만).
   - **⑤ model-window `[1m]` 프로덕션 ID**(test_lib, 미커버): `test_lib "194-modelwin-opus-1m-suffix" "1000000" "$(node "$LIB/model-window.js" 'claude-opus-4-8[1m]')"` (case 78은 suffix-없는 plain opus만 — 실 프로덕션 ID `claude-opus-4-8[1m]`[autocompact 워크어라운드]가 1M 해소 미커버·load-bearing). ※placeholder 면제는 기존 case 43·skeleton ERR은 case 74가 이미 커버 → 중복 회피; ERR-센티넬 표면화는 Task 1 hook_log + Task 3 grep.
   - **① secret GitHub**: `FAKE_GH="gh""p_$(printf 'a%.0s' $(seq 1 40))"; test_ess "195-secret-github" 2 "$(mk_event Write "$SCRATCH/x.md" "t=$FAKE_GH")"`.
