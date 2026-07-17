@@ -2,9 +2,10 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: superpowers:executing-plans (inline, 단일 세션 — cold-agent 디스패치·Playwright 실측은 메인 세션 소관). Steps use checkbox (`- [ ]`) syntax.
 
-**Status:** active
+**Status:** completed
 **RPI-Cycle:** 58
 **Started:** 2026-07-17
+**Completed:** 2026-07-18
 
 **Goal:** Fable 재감사(spec §12)가 실증한 Opus-구간 미달분 5건(R1~R5)을 수정하고, 증거 사슬 기록(R6)과 fitness L6 회귀(R7)로 design.md 수정의 재현성 불변식을 재실증한다.
 
