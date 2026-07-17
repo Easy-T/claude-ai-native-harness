@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: superpowers:executing-plans. Steps use `- [ ]` checkboxes.
 
-**Status:** active
+**Status:** completed
 **RPI-Cycle:** 58
 **Started:** 2026-07-14
 **Paused:** 2026-07-14 — 사용자 요청으로 보류. **완료분**: Task 1(enforce-orchestrator ERR-센티넬 hook_log FAILOPEN, 커밋 `1196639`). **잔여**: Task 2(커버리지 6 케이스 — 전부 로직 실측 완료[193 model-window /1m/·194 opus[1m]·195/196/197 secret GitHub/Slack/PrivKey·198 stable-claude-md ALERT], run-all.sh 미배선), Task 3(closeout·D1 4 유지·머지). **재개**: 이 plan Status `paused`→`active` 후 Task 2부터.
@@ -59,4 +59,10 @@
 - [x] **Step 1: staged verify-all** — run-all 178·verify-setup **81**/0(무변 — 기준선 81은 v3 머지 반영 재실측; plan 원안 79는 stale)·seal-regression **7**/0(v3 +2 mutator)·verify-all ALL PASS. enforce-orchestrator ERR hook_log grep 단언(=1).
 - [x] **Step 2: 03 D1 재채점** — **점수 4 유지**(부분 L5 진척): GAP-010 = L5 conjunct ②(모든 fail-open 로깅·표면화=ERR-센티넬 0화) 착륙 + 커버리지 breadth. **①전표면 MCP 게이트 미해결로 conjunctive L5 미완 → 4 유지**(③deny는 C8 착륙). D1 앵커에 C9 부분-진척 노트 + 종합표 비고(무bump 사유). min 무변(D1은 min-3 아님).
 - [x] **Step 3: 04 GAP-010 DONE** — README 상태 C9 행.
-- [ ] **Step 4: PR → auto-merge → state bump(57→58) → drift review-strict → 보고+next-cycle-goal(GAP-012 D7 또는 GAP-002bc D5)**.
+- [x] **Step 4: PR → auto-merge → state bump(57→58) → drift review-strict → 보고+next-cycle-goal(GAP-012 D7 또는 GAP-002bc D5)**. *(drift 검사 5/6→체크박스 1건 정정→전건; staged verify-all ALL PASS 2회[178/178·81/0·seal-reg 9/0]; 최종 보고에 next-cycle-goal 포함)*
+
+---
+**next-cycle-goal** *(C10)*
+- **후보 1(권장): GAP-012** — D7 3→4 실패→회귀픽스처 루프 (min-3 차원 중 최저비용; non-obvious 등록 절차에 픽스처 동반 규약).
+- **후보 2: GAP-002bc** — D5 3→4 반복상한+체크포인트 슬라이싱.
+- **동반 권장**: doctor #23 bash-보간형 node readFileSync 결함 수정(재감사 C-2 발견 — 설정돼 있어도 "미설정" WARN 오보; C6 교훈의 미적용 사이트).
