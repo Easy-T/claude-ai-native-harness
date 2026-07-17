@@ -16,7 +16,7 @@ shopt -u nocasematch
 # 2~4. 골격 카운트 — 권위 정의는 hooks/lib/skeleton-scan.js (단위테스트 가능).
 #  Edit는 on-disk+old→new 재구성 파일 전체로 검증(S3), HTML 주석 제거 후 Agent() 카운트(S4).
 SKEL=$(echo "$INPUT" | FP="$FILE_PATH" node "$HOME/.claude/hooks/lib/skeleton-scan.js")
-[ "$SKEL" = "ERR" ] && exit 0      # 파싱 실패 → fail-safe 통과
+[ "$SKEL" = "ERR" ] && { hook_log "enforce-orchestrator" "$FILE_PATH" "FAILOPEN" "skeleton-scan ERR (파서 실패 fail-open)"; exit 0; }  # 파싱 실패 → fail-safe 통과 (무로깅 0화, GAP-010 D1 L5)
 [ "$SKEL" = "EMPTY" ] && exit 0    # 컨텐츠 없음 → 통과
 read -r HAS_MARKER PHASE_COUNT AGENT_CALLS HAS_CONTRACT <<< "$SKEL"
 

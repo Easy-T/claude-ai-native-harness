@@ -22,6 +22,8 @@
 
 **현행 4** — 증거: 차단 hook 4종+Bash 사이드도어(01 §1 표), RPI_SKIP/SECRET_SCAN_SKIP 표면화(`_common.sh surface_bypass`), 잔여=enforce-orchestrator ERR-센티넬 무로깅(01 §6-3, `enforce-orchestrator.sh:17-18`)·MCP 무게이트(6월 G1-a 계승)·secret-scan 패턴 5/7 미테스트(01 §6-2)·**orchestrator 마커-제거 우회(frontmatter 자가-편집, env-외·무표면 — C0 적대 리뷰 지적으로 잔여 집합에 명시 편입, GAP-010이 표면화 커버)**. **목표 5. 델타 1.**
 
+**C9 부분-진척(2026-07-17, 점수 4 유지)**: GAP-010 착륙 — L5 conjunct ②(모든 fail-open 로깅·표면화) 충족: enforce-orchestrator ERR-센티넬에 `hook_log FAILOPEN` 추가(`enforce-orchestrator.sh:19`, 무로깅 fail-open 0화) + 커버리지 6 케이스(model-window `/1m/`·프로덕션 `[1m]` suffix ID, secret-scan GitHub PAT/Slack/PrivKey 3패턴[리터럴 0 런타임 조립], stable-claude-md ALERT stderr 단언) run-all 172→178. **L5는 3 conjunct(①MCP 게이트 ②fail-open 로깅 ③deny 백스톱) 중 ②+③(C8 #42)=2/3 — ①MCP 게이트(GAP-015) 미해결로 conjunctive L5 미완 → 4 유지**(C7/C8 conjunctive 정직 선례 계승). 가치=점수 아닌 회귀 감지선 breadth+무로깅 0화. secret-scan 미테스트는 5/7→2/7(잔여: generic assignment·GCP 등 — 01 §6-2 재실측 대상).
+
 ## D2. 검증 정직성 (anti self-pass)
 
 | 레벨 | 앵커 |
@@ -189,7 +191,7 @@
 
 | 차원 | 현행 | 목표 | 델타 | 비고 |
 |---|---|---|---|---|
-| D1 강제력 | 4 | 5 | 1 | |
+| D1 강제력 | 4 | 5 | 1 | **C9 부분-진척**(L5 ② fail-open 로깅 0화+커버리지 178; ①MCP 게이트 잔여로 4 유지) |
 | D2 검증 정직성 | 4 | 5 | 1 | |
 | D3 컨텍스트 경제 | **4** | 5 | 1 | **C6** (GAP-018 트리거 rot-정렬); L5=창-매핑·캐시 hit-rate 잔여 |
 | D4 관측가능성 | 4 | 4 | 0 | **C2 도달** (GAP-003 run-log) |

@@ -7,6 +7,8 @@
 **Started:** 2026-07-17
 **Completed:** 2026-07-18
 
+> **병합 정합 노트 (2026-07-18, closeout)**: 헤더 RPI-Cycle 58은 **계획 시점 값**. 동시 harness-upgrade C9(PR#28)가 클로즈아웃 중 master에 cycle 58을 선점 → 두 사이클은 별개이므로 본 사이클 실착륙 = **state 59** (state.json 공유 싱글톤·번갈아 bump 선례 — v3 병합 정합 노트 동형).
+
 **Goal:** Fable 재감사(spec §12)가 실증한 Opus-구간 미달분 5건(R1~R5)을 수정하고, 증거 사슬 기록(R6)과 fitness L6 회귀(R7)로 design.md 수정의 재현성 불변식을 재실증한다.
 
 **Architecture:** 재진입 사이클 — durable spec `docs/superpowers/specs/2026-07-12-ui-design-craft-upgrade-design.md` §12(Fable 재감사 Delta)가 SSOT. design.md 편집(R1-R3)은 seal #43이 강제하는 양 미러 동시 갱신, R4는 seal-regression TDD(RED→GREEN), R7은 spec §7 프로토콜의 제6 장르 적용.
