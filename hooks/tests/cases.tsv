@@ -188,3 +188,10 @@ session-budget	sb-181-under	pass	gen_sb_181
 session-budget	sb-182-over-block	block	gen_sb_182
 session-budget	sb-183-skip-bypass	pass	gen_sb_183
 session-budget	sb-184-warn-emit	alert	gen_sb_184
+# cycle-58 (2026-07-17) — GAP-010 미테스트 표면 커버 (C9: model-window /1m/·[1m] suffix, secret 3패턴, stable-claude-md ALERT 단언)
+hooks-lib	193-modelwin-1m	output	gen_lib_193
+hooks-lib	194-modelwin-opus-1m-suffix	output	gen_lib_194
+enforce-secret-scan	195-secret-github	2	gen_ess_gh
+enforce-secret-scan	196-secret-slack	2	gen_ess_slk
+enforce-secret-scan	197-secret-privkey	2	gen_ess_pk
+stable-claude-md	198-scm-alert-asserted	alert	gen_scm_alert

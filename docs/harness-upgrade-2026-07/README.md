@@ -28,9 +28,10 @@ durable spec: [`docs/superpowers/specs/2026-07-13-harness-upgrade-2026-07-design
 | **C6** | GAP-018 autocompact 트리거 재캘리브 (settings.example 40 + doctor rot-정렬 + #39 seal + auto-compact-watch rot-timing) | **완료 (2026-07-14, RPI-Cycle 54)** — D3 3→4(L4 트리거 rot 이전), verify-setup 75→76, run-all 168→170. 라이브 PCT=per-machine 지연 |
 | **C7** | GAP-011 공급망 규약 (plugin-pins cksum 핀 + session-start-audit 드리프트 ALERT + #40 seal + 리뷰 절차) | **완료 (2026-07-14, RPI-Cycle 55)** — **D11 L4 절반**(핀/diff-review conjunct) 착륙·점수 3 유지(rug-pull 방어), verify-setup 76→77, run-all 170→172 |
 | **C8** | GAP-013 Rule-of-Two + GAP-007a deny (SECURITY.md §·explore-strict no-write·settings.example deny·#41·#42 seal) | **완료 (2026-07-14, RPI-Cycle 56)** — **D11 3→4, L4 완주**(핀[C7]+Rule-of-Two+deny 3 conjunct), verify-setup 77→79. srt OS-sandbox(GAP-007b)=L5 잔여 |
-| C9.. | 04 순위순 (GAP-010 커버리지 → GAP-012 회귀픽스처 → GAP-002bc 슬라이싱 → …) | 대기 — **다음 착수 = GAP-010**(D1 4→5·미테스트 표면 6+ 케이스+ERR-센티넬) 또는 GAP-012(D7 3→4 회귀픽스처)·GAP-002bc(D5 3→4) |
+| **C9** | GAP-010 미테스트 표면 커버 (ERR-센티넬 hook_log FAILOPEN + 6 케이스: model-window /1m/·[1m]·secret 3패턴·stable ALERT 단언) | **완료 (2026-07-17, RPI-Cycle 58 — Opus Task 1 + Fable 재감사 세션 완주)** — D1 4 유지(L5 2/3 정직), run-all 172→178 |
+| C10.. | 04 순위순 (GAP-012 회귀픽스처 → GAP-002bc 슬라이싱 → GAP-019 skill 본문 seal → …) | 대기 — **다음 착수 = GAP-012**(D7 3→4 회귀픽스처) 또는 GAP-002bc(D5 3→4) |
 
-**루브릭 현황 (C8)**: **min=3 — 전 12차원 진짜 ≥3** (C1 D10·C2 D4·C3 D5·C4 D12·C5 D6·C6 D3·**C8 D11** 개선). 현행 min-3 차원: **D5·D7·D9**(C8이 D11 3→4로 min-3서 제거). **C8=D11 L4 완주**(핀[C7]+Rule-of-Two[#41]+deny[#42]=3 conjunct — C7 부분-진척을 정직 완성). 상세는 03 종합표. 잔여 델타(목표까지): D5·D7·D9 + D1/D2 L5·D3/D9/D11의 L5.
+**루브릭 현황 (C9)**: **min=3 — 전 12차원 진짜 ≥3** (C1 D10·C2 D4·C3 D5·C4 D12·C5 D6·C6 D3·**C8 D11** 개선; **C9=D1 L5 부분-진척**[② fail-open 로깅 0화, 2/3 — 점수 4 유지 정직]). 현행 min-3 차원: **D5·D7·D9**. 상세는 03 종합표. 잔여 델타(목표까지): D5·D7·D9 + D1(MCP 게이트=L5 마지막 conjunct)/D2 L5·D3/D9/D11의 L5.
 **라이브 배선 주의(C3)**: `enforce-session-budget`는 `settings.example.json`에 배선됨(tracked). 각 머신의 라이브 `settings.json`은 hook 파일 도착 후 동기 필요(install.sh 병합 또는 수동) — 새 PreToolUse `*` matcher는 세션 재시작 후 발화. `SESSION_TOOL_BUDGET` 미설정 시 무영향(기본 OFF).
 
 ## 방법론 기록 (정직성)
@@ -41,6 +42,6 @@ durable spec: [`docs/superpowers/specs/2026-07-13-harness-upgrade-2026-07-design
 - 이 문서 세트의 계약 검증: review-strict가 spec §2 표 기준 항목별 PASS 판정(C0 closeout 기록).
 - **cold-agent fitness 결과(C-final, GAP-008 수용)**: 컨텍스트 0인 fresh 에이전트에 05+04만 주고 GAP-005 startup packet(사이클 규약·plan 초안·RED 커맨드·함정) 생산 지시 → **COULD_START**(두 필수 산출물을 후속질문 0회로 생산 = fitness 바 ≤2 통과). 동시에 문서 결함 6건 포착(사이클번호 규약 부재·기준선 stale·GAP-005 카운트 불일치·브랜치명 미규정·참조정책 모호·GAP-005 L4-blocker stale) → **C-final에서 전부 회귀 수정**(playbook §1/§3/§5+상단, 04 GAP-005). 이것이 fitness 루프의 설계 목적(사이트가 아닌 문서의 결함 검출).
 
-## 다음 착수 지정 (C9+)
+## 다음 착수 지정 (C10+)
 
-C0~C8 완료. **목표(≥4~5) 도달 사이클** 진행 중. C8이 D11 L4를 완주(핀[C7]+Rule-of-Two[C8]+deny[C8]) → **D3·D6·D11=4, min-3=D5·D7·D9**. **다음 착수 = GAP-010 (미테스트 표면 커버)** = D1 4→5(secret-scan 5/7 패턴·session-start selfcheck 분기·teardown abort·ERR-센티넬 무로깅 등 6+ 케이스 + hook_log 단언; run-all +6). 대안: **GAP-012**(D7 3→4 회귀픽스처·non-obvious 등록에 픽스처 동반)·**GAP-002bc**(D5 3→4 반복상한+체크포인트 슬라이싱)·**GAP-019**(skill 본문 seal, D1/D2). GAP-006(교차모델)은 ccs 무인 인프라 미해소로 DEFERRED. GAP-007b(srt OS-sandbox·D3/D9 L5 창-매핑/캐시)=L5 별 사이클. 착수 = `05-playbook.md` §2 → 브랜치 `harness-upgrade-c9`.
+C0~C9 완료(+2026-07-17 Fable 재감사: Opus 구간 C2~C8·cfinal 3축 재감사 — 코드 사이클 결함 0·기록 공백 2건[cfinal plan 부재·fitness 재시도 이력 명시 부재]·라이브 배선 완료[PCT 40·deny·plugin-pins 핀 갱신]). **다음 착수 = GAP-012 (실패→회귀픽스처 루프)** = D7 3→4(non-obvious 등록에 재현 픽스처 동반 규약 — min-3 차원 중 최저비용). 대안: **GAP-002bc**(D5 3→4 반복상한+체크포인트 슬라이싱)·**GAP-019**(skill 본문 seal, D1/D2; doctor #23 node 보간형 readFileSync 결함 수정 동반 권장 — 재감사 발견 C-2). GAP-006(교차모델)은 ccs 무인 인프라 미해소로 DEFERRED. GAP-007b(srt OS-sandbox)·GAP-015(MCP 게이트=D1 L5 마지막 conjunct)=별 사이클. 착수 = `05-playbook.md` §2 → 브랜치 `harness-upgrade-c10`.

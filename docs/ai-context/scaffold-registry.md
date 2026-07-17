@@ -38,7 +38,7 @@
 | (grill-with-docs) | 도메인 어휘 stress-test — doctor.sh 자동설치(gitignored), 벤더링 | 미추적(설치 산물) |
 | (ccs-delegation) | CCS CLI 위임(로컬 정션, 비추적) — 하네스 게이트 무관 | 미추적 |
 
-## Drift Seals (verify-setup.sh #17~#36, −#26 소각 = 19)
+## Drift Seals (verify-setup.sh #17~#44, −#26 소각 = 27)
 
 거버넌스 사실의 재드리프트를 막는 특정-인스턴스 봉인(안정 앵커 있는 것만; generalized 프레임워크 아님).
 
@@ -64,8 +64,22 @@
 | #35 | Best-Direction Mandate 토큰(start-rpi-cycle) parity | **C1 (GAP-001)** |
 | #36 | verify-setup 총수 ↔ README `현재 N PASS` 런타임 자기-카운트 | **C1 (GAP-009)** |
 | #37 | (C4 신설) scaffold-registry ⊇ live hook/skill parity | **C4 (GAP-005)** |
+| #38 | memory-policy.md 존재 + 통합/프루닝/검증 3규약 | **C5 (GAP-004)** |
+| #39 | settings.example autocompact PCT ≤40 (rot-정렬) | **C6 (GAP-018)** |
+| #40 | plugin-pins.md 존재 + SKILL.md cksum 핀 (공급망) | **C7 (GAP-011)** |
+| #41 | explore-strict reader 쓰기도구 미부여 (Rule-of-Two) | **C8 (GAP-013)** |
+| #42 | settings.example deny 최후방어선 (자격증명·파괴명령) | **C8 (GAP-007a)** |
+| #43 | opencode 미러 design.md byte-sync | ui-design v3 |
+| #44 | design.md §6 anti-slop floor = 18 항목 | ui-design v3 |
 
-※ 검사 항목 1~16(파일/구조/템플릿/hook 실행권한 등)은 seal이 아닌 기본 구조 검증. verify-setup 총 ok/fail 수(74, C4 시점)는 #8 hook 루프 등이 항목당 다중 발화하므로 검사 번호 수(37)와 다르다.
+### 거버넌스 문서 (seal이 지키는 대상 — hook/skill 아님)
+
+| 문서 | 존재 이유 | 추적 |
+|---|---|---|
+| `docs/ai-context/memory-policy.md` | 메모리 수명주기(통합/프루닝/검증) 규약 — 축적 단방향 방지 | **C5 (GAP-004)**; seal #38 |
+| `docs/ai-context/plugin-pins.md` | 플러그인 공급망 핀(cksum) — rug-pull 표면화 | **C7 (GAP-011)**; seal #40·D-SUPPLY-CHAIN |
+
+※ 검사 항목 1~16(파일/구조/템플릿/hook 실행권한 등)은 seal이 아닌 기본 구조 검증. verify-setup 총 ok/fail 수(81, C9/재감사 시점)는 #8 hook 루프 등이 항목당 다중 발화하므로 검사 번호 수와 다르다. **#38~#44 등재는 2026-07-17 Fable 재감사 C-3 백필** — #37 seal은 hook/skill만 검사하므로 seal/문서 신설은 registry에 수동 등재해야 한다(자동 봉인 확장은 후속 검토).
 
 ## 메타검증·오라클 (seal 아님, 별도 스테이지)
 
