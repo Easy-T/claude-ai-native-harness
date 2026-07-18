@@ -78,6 +78,7 @@
 |---|---|---|
 | `docs/ai-context/memory-policy.md` | 메모리 수명주기(통합/프루닝/검증) 규약 — 축적 단방향 방지 | **C5 (GAP-004)**; seal #38 |
 | `docs/ai-context/plugin-pins.md` | 플러그인 공급망 핀(cksum) — rug-pull 표면화 | **C7 (GAP-011)**; seal #40·D-SUPPLY-CHAIN |
+| `docs/ai-context/cross-family-review.md` | 교차패밀리 검증 규약(2경로 탐지·트리아지·quota·plugin-cc 기각) — agreement bias 중화 | **C10 (GAP-006)**; seal은 GAP-019 편승 예정 |
 
 ※ 검사 항목 1~16(파일/구조/템플릿/hook 실행권한 등)은 seal이 아닌 기본 구조 검증. verify-setup 총 ok/fail 수(81, C9/재감사 시점)는 #8 hook 루프 등이 항목당 다중 발화하므로 검사 번호 수와 다르다. **#38~#44 등재는 2026-07-17 Fable 재감사 C-3 백필** — #37 seal은 hook/skill만 검사하므로 seal/문서 신설은 registry에 수동 등재해야 한다(자동 봉인 확장은 후속 검토).
 
