@@ -15,7 +15,7 @@
 | 4 | GAP-005 | 스캐폴드 노화 관리 | D12(2→0) | 전 skill/hook/seal 표면에 작용; Δ2 동률 내 tie-break=긴급도(Fable 5 가이드 직접 충돌) | **DONE(C4, 2026-07-13)** — registry+seal #37+감사; D12 1→3(마지막 min 해소) |
 | 5 | GAP-004 | 메모리 수명주기 정책 | D6(2→4) | 포이즈닝 방어+rot 방지 — 메모리 소비 전 세션에 작용 (Δ2 — 적대 리뷰로 구 5위 GAP-006과 스왑) | **DONE(C5)** |
 | 6 | GAP-018 | autocompact 트리거 재캘리브레이션 | D3(3→4) | 전 장기 세션의 rot 노출 — 550K→rot-이전(≤400K)으로; D3 L4 anchor의 직접 요건 | **DONE(C6)** |
-| 7 | GAP-006 | 교차모델 검증자 분리 | D2(1)+D10 L5 | 자기채점 편향의 구조 해소 — 전 [모델-판단] 게이트 신뢰도에 작용 | PENDING |
+| 7 | GAP-006 | 교차모델 검증자 분리 | D2(1)+D10 L5 | 자기채점 편향의 구조 해소 — 전 [모델-판단] 게이트 신뢰도에 작용 | **DONE(C10, 2026-07-18)** — 2경로 탐지 규약(runbook)+closeout/start-rpi 분기; 실행 증빙=modelUsage gpt-5.6-sol(결함 10건); D2/D10 무bump |
 | 8 | GAP-011 | skill/플러그인 공급망 규약 | D11 L4 절반 | 신뢰 경계 — superpowers 등 20+ 외부 skill 전체 | **DONE(C7)** |
 | 9 | GAP-013 | Rule-of-Two 세션 분리 | D11 L4 절반+D5 | 인젝션 표면 구조 분리; GAP-012와 레버리지 동률로 판정, tie-break=severity(심도) | **DONE(C8)** |
 | 10 | GAP-012 | 실패→회귀픽스처 루프 | D7(1) | eval 인프라의 마지막 층 — 발생 빈도 의존 | PENDING |
@@ -123,7 +123,7 @@
 
 ## GAP-006 — 교차모델 검증자 분리
 
-- **차원**: D2(4→5 일부)+D10 L5 · **severity**: MED · **상태**: PENDING
+- **차원**: D2(4→5 일부)+D10 L5 · **severity**: MED · **상태**: **DONE(C10, 2026-07-18)** — PENDING 사유("ccs 인프라 실패", C0 3프로필 전패)가 소멸: GPT 경로 2개 라이브 검증(A codex CLI 0.144.1 `exec --sandbox read-only` stdin·B CCS 현 핀 7.2.62-5 `modelUsage` 판별). **산출물**: `docs/ai-context/cross-family-review.md`(규약 SSOT: 2경로 탐지→SKIP+사유·stdin/read-only·refute+원문 인용 강제·메인 트리아지·사이클당 1회·검증자 모델 정책·codex-plugin-cc 기각 판정) + closeout-pr-cycle Phase 4 분기 + start-rpi-cycle Step C-1 앵커(canonical+opencode 미러 4파일) + spec §5·05 §5-6·README 방법론 앵커 교체. **수용 기준 충족**: SKILL.md 분기 grep GREEN && 교차패밀리 실행 1회 성공 증빙 = design.md v4 리뷰 `modelUsage: gpt-5.6-sol`(2026-07-18, 진짜 결함 10건 적발·오독 4건 트리아지 기각) + C10 probe A/B 실측(plan 기록). DEFERRED 전건(1회도 불가) 비성립. **D2·D10 무bump**(03 노트 — conjunctive 정직): 실전 정기 사용 누적은 차기 사이클부터(closeout 분기가 트리거).
 - **증거**: 03 D2 잔여(wrapper 전원 동일 패밀리 — 01 §2); 02 §3(Factory 교차-프로바이더 검증 "자기 학습편향 회피"); 02 §1(fresh-context 검증자 교리); ccs 멀티모델 라우팅 실재(01 §2 ccs-delegation).
 - **목표 상태**: 고-스테이크 판정(senior review·적대 리뷰·루브릭 재채점)에 교차패밀리(gpt 프로필) 라우팅 옵션을 closeout-pr-cycle Phase 4·start-rpi-cycle에 명문 옵션으로 + 실패 시(프록시 다운) 동일-패밀리 fallback 기록 규약.
 - **Best-direction 근거**: 더 쉬운 대안 = "review-strict 프롬프트에 '비판적으로' 추가" — agreement bias는 지시로 안 풀림(6월 감사 §③ 기각 근거 계승). 교차모델이 구조 해소이며 인프라(ccs)가 이미 있어 순수 규약 작업.

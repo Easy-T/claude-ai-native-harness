@@ -36,6 +36,8 @@
 
 **현행 4** — 증거: seal-regression.test.sh(변이 주입 메타검증)+failopen-surface+rpi-prereq(01 §3), cases.tsv 양방향 정합+95% 플로어, #25 부정 단언 — 02 §6이 "이 패턴 공개한 개인 하네스 미발견"으로 업계-희귀 확인. 잔여: review-strict=실행자 동일 패밀리(01 §6-6), README "66 PASS" 무봉인 드리프트(01 M1), CI 부재(6월 G2-a 계승). **목표 5. 델타 1.**
 
+**C10 부분-진척(2026-07-18, 점수 4 유지)**: GAP-006 착륙 — L5 conjunct "교차모델 검증자 분리" 충족: `docs/ai-context/cross-family-review.md`(2경로 탐지 규약)+closeout Phase 4 분기, 실행 증빙 modelUsage gpt-5.6-sol(결함 10건 — "review-strict 동일 패밀리" 잔여의 구조 해소 경로 확보). **L5 3 conjunct(교차검증자·CI 등가 스케줄 실행·신규 거버넌스 카운트 자동 봉인) 중 1착륙 → 4 유지**(C7/C8/C9 conjunctive 정직 선례). 탐지-기반이라 GPT 경로 없는 머신은 SKIP+사유(가용 머신에서만 conjunct 발효 — 정직 명기).
+
 ## D3. 컨텍스트 경제
 
 | 레벨 | 앵커 |
@@ -140,6 +142,7 @@
 **현행 4** — 증거: 01 §4 매핑표 — Simplicity First·Think Before Coding 완전 미강제, plan 템플릿·closeout 기준 어디에도 최선안 대조 없음. 사용자 관찰(goal §4 canonical)이 실증 사례. **목표 4. 델타 0 (C1 도달).**
 **C0 적대 리뷰 반박 검토**: "Think Before Coding의 'If a simpler approach exists, say so / Surface tradeoffs'가 L1의 '어떤 장치도 없음'을 반증한다"는 공격 — **기각**: 해당 문구는 열화-회피 장치가 아니라 단순-방향 압력이며 스코프/품질을 구분하지 않아 오히려 관찰된 실패의 일부다. L1 유지. 단 GAP-001의 1순위 **1차 근거는 산식이 아닌 spec §4 사용자 고정**임을 명시(델타 3은 부차 근거).
 **C1 재채점(2026-07-13, 1→4)**: L2=CLAUDE.md Simplicity First에 "Scope minimalism ≠ architecture downgrade" 구분 명문화 · L3=start-rpi-cycle Phase P 필수 필드 Best-Direction Check(+DOWNGRADE-DECLARED 규약, canonical+opencode 미러) + Gate P "필드 부재=FAIL" · L4=Step C-1 silent-downgrade 실물 대조 기준 + seal #35(토큰 parity, staged-HOME RED x0→GREEN x5/x4 실증). L5(교차모델 정기 반증)는 GAP-006 소관 — 목표 4 충족.
+**C10 노트(2026-07-18, 점수 4 유지)**: GAP-006 착륙으로 L5의 *능력*(교차모델 반증 경로: cross-family-review.md 규약+closeout 분기)은 확보 — 단 L5 앵커는 "**정기** 반증"이라 규약 신설≠정기 실사용. closeout 분기가 고-스테이크 사이클마다 probe를 트리거하므로 실사용이 누적되면(가용 머신 기준 N사이클) 재채점 — 지금은 4 유지(무bump 정직).
 
 ## D11. 보안 (인젝션·공급망·시크릿) — ⚠️ 기준 상승 차원
 
@@ -192,7 +195,7 @@
 | 차원 | 현행 | 목표 | 델타 | 비고 |
 |---|---|---|---|---|
 | D1 강제력 | 4 | 5 | 1 | **C9 부분-진척**(L5 ② fail-open 로깅 0화+커버리지 178; ①MCP 게이트 잔여로 4 유지) |
-| D2 검증 정직성 | 4 | 5 | 1 | |
+| D2 검증 정직성 | 4 | 5 | 1 | **C10 부분-진척**(L5 교차검증자 1/3 착륙 — runbook+closeout 분기; CI·자동봉인 잔여로 4 유지) |
 | D3 컨텍스트 경제 | **4** | 5 | 1 | **C6** (GAP-018 트리거 rot-정렬); L5=창-매핑·캐시 hit-rate 잔여 |
 | D4 관측가능성 | 4 | 4 | 0 | **C2 도달** (GAP-003 run-log) |
 | D5 자율성 안전 | 3 | 4 | 1 | **C3** (GAP-002 예산 governor); L4=체크포인트 슬라이싱 잔여 |
@@ -200,7 +203,7 @@
 | D7 eval/fitness | 3 | 4 | 1 | |
 | D8 이식성 | 4 | 4 | 0 | 목표-충족(스코프 판단) |
 | D9 핸드오프 복원력 | 3 | 5 | 2 | 이 이니셔티브가 직접 상승 중 |
-| **D10 Best-Direction** | **4** | **4** | **0** | **C1 도달(2026-07-13)** — L5는 GAP-006 소관 |
+| **D10 Best-Direction** | **4** | **4** | **0** | **C1 도달(2026-07-13)** — L5 능력은 C10 확보(정기 실사용 누적 후 재채점) |
 | D11 보안 | **4** | 4 | 0 | **C8 L4 완주** (핀[C7 #40]+Rule-of-Two[#41]+deny[#42]=3 conjunct); srt OS-sandbox=L5 잔여 |
 | **D12 스캐폴드 노화** | **3** | **3** | **0** | **C4 도달** (GAP-005 registry+seal #37+감사) |
 

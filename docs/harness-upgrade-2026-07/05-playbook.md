@@ -59,7 +59,7 @@ bash setup/verify-all.sh          # 통합: doctor→verify-setup→seal-regress
    - **★WINDOW=1M 가드(중요)**: 40%는 **창=1M 전제**. 창이 200K로 붕괴한 상태에서 40%면 트리거=80K로 과빈발(무인 루프 죽음의 나선 재현). 그래서 `[1m]` suffix로 `/context`=1M 확인이 rot-정렬의 선결. 창 붕괴 의심 시 트리거 하향 금지.
    - **라이브 배선(per-machine)**: 라이브 `settings.json`은 gitignored → settings.example(40)은 template. 각 머신은 수동으로 라이브 PCT를 40으로 (기존 55/60에서) 하향 + **재시작 후 `/context`로 창 1M·트리거 ~400K 확인**. doctor #23이 set>40이면 WARN으로 표면화.
    - **1세션 관찰(런타임 지연)**: 하향의 compact-빈도·연속성 영향은 실세션 관찰 사항 — RPI 하네스의 post-compact 연속성(durable spec·plan·CONTEXT.md 재주입+SessionStart 재실행)이 compact 비용을 이미 흡수하므로 하향이 무인 루프를 깨지 않는다(auto-memory `autocompact_proxy_display` 이력의 나선 원인은 트리거 %가 아니라 창 오인식이었음).
-6. **`ccs` 교차모델 CLI**: gpt 프로필로 교차패밀리 리뷰 가능하나, **비대화형 `-p` 모드에서 파일 컨텍스트 전달이 불안정** — 파일 내용을 프롬프트 문자열에 인라인해 전달하라. 실패 시 사유 기록 후 동일-패밀리 리뷰로 fallback(기록 필수).
+6. **`ccs` 교차모델 CLI**: gpt 프로필로 교차패밀리 리뷰 가능하나, **비대화형 `-p` 모드에서 파일 컨텍스트 전달이 불안정** — 파일 내용을 프롬프트 문자열에 인라인해 전달하라. 실패 시 사유 기록 후 동일-패밀리 리뷰로 fallback(기록 필수). **(C10 갱신 — 이 노트의 실패 모드는 부분 stale)**: stdin 파이프가 라이브 검증됐고(E2BIG 해소), canonical 규약은 `docs/ai-context/cross-family-review.md`(2경로 탐지: codex CLI 우선→CCS 폴백→SKIP+사유·사이클당 1회·메인 트리아지)다 — 교차 리뷰가 걸린 사이클은 그 runbook을 따르라.
 7. **vacuous RED 함정**: 과거 사이클에서, 기억된 "차단되는 명령"으로 RED를 유도했더니 가드 리팩터링 탓에 이미 차단되지 않는 상태였다(테스트가 헛돌음). RED는 반드시 현 코드에서 실측 재현 후 TDD를 시작한다.
 8. **테스트 격리**: run-all·seal-regression·failopen-surface는 임시 $HOME 복제본 패턴을 쓴다(실 하네스 무변이). 새 테스트도 같은 패턴 — 실 `~/.claude`를 변이하는 테스트 금지(단 run-all의 worktrees-marker는 고유 SID로 안전하게 실경로 사용 중 — 전례로만 허용).
 9. **hook은 fail-open + 표면화**: hook 자기 고장은 차단이 아니라 허용+FAILOPEN 로그가 교리(작업 중단 방지). 새 hook도 동일 — 로깅 실패가 판정을 막으면 안 된다(`|| true`). 반대로 **무로깅** fail-open은 결함(enforce-orchestrator ERR-센티넬이 유일 잔존 — GAP-010이 해소 예정).

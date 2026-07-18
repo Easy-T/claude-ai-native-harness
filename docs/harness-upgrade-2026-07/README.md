@@ -29,7 +29,8 @@ durable spec: [`docs/superpowers/specs/2026-07-13-harness-upgrade-2026-07-design
 | **C7** | GAP-011 공급망 규약 (plugin-pins cksum 핀 + session-start-audit 드리프트 ALERT + #40 seal + 리뷰 절차) | **완료 (2026-07-14, RPI-Cycle 55)** — **D11 L4 절반**(핀/diff-review conjunct) 착륙·점수 3 유지(rug-pull 방어), verify-setup 76→77, run-all 170→172 |
 | **C8** | GAP-013 Rule-of-Two + GAP-007a deny (SECURITY.md §·explore-strict no-write·settings.example deny·#41·#42 seal) | **완료 (2026-07-14, RPI-Cycle 56)** — **D11 3→4, L4 완주**(핀[C7]+Rule-of-Two+deny 3 conjunct), verify-setup 77→79. srt OS-sandbox(GAP-007b)=L5 잔여 |
 | **C9** | GAP-010 미테스트 표면 커버 (ERR-센티넬 hook_log FAILOPEN + 6 케이스: model-window /1m/·[1m]·secret 3패턴·stable ALERT 단언) | **완료 (2026-07-17, RPI-Cycle 58 — Opus Task 1 + Fable 재감사 세션 완주)** — D1 4 유지(L5 2/3 정직), run-all 172→178 |
-| C10.. | 04 순위순 (GAP-012 회귀픽스처 → GAP-002bc 슬라이싱 → GAP-019 skill 본문 seal → …) | 대기 — **다음 착수 = GAP-012**(D7 3→4 회귀픽스처) 또는 GAP-002bc(D5 3→4) |
+| **C10** | GAP-006 교차패밀리 검증자 분리 (cross-family-review.md 2경로 탐지 규약 + closeout/start-rpi 분기 + plugin-cc 기각 봉인) | **완료 (2026-07-18, RPI-Cycle 60)** — D2/D10 무bump 정직(L5 부분), 카운트 불변(문서+SKILL만) |
+| C11.. | 04 순위순 (GAP-012 회귀픽스처 → GAP-002bc 슬라이싱 → GAP-019 skill 본문 seal → …) | 대기 — **다음 착수 = GAP-012**(D7 3→4 회귀픽스처) 또는 GAP-002bc(D5 3→4) |
 
 **루브릭 현황 (C9)**: **min=3 — 전 12차원 진짜 ≥3** (C1 D10·C2 D4·C3 D5·C4 D12·C5 D6·C6 D3·**C8 D11** 개선; **C9=D1 L5 부분-진척**[② fail-open 로깅 0화, 2/3 — 점수 4 유지 정직]). 현행 min-3 차원: **D5·D7·D9**. 상세는 03 종합표. 잔여 델타(목표까지): D5·D7·D9 + D1(MCP 게이트=L5 마지막 conjunct)/D2 L5·D3/D9/D11의 L5.
 **라이브 배선 주의(C3)**: `enforce-session-budget`는 `settings.example.json`에 배선됨(tracked). 각 머신의 라이브 `settings.json`은 hook 파일 도착 후 동기 필요(install.sh 병합 또는 수동) — 새 PreToolUse `*` matcher는 세션 재시작 후 발화. `SESSION_TOOL_BUDGET` 미설정 시 무영향(기본 OFF).
@@ -37,11 +38,11 @@ durable spec: [`docs/superpowers/specs/2026-07-13-harness-upgrade-2026-07-design
 ## 방법론 기록 (정직성)
 
 - 리서치 6축·인벤토리 4축은 2026-07-13 fresh 실측(README·기억 불신뢰 원칙). 상충·검증 실패는 02 §9에 전수 기록.
-- **교차패밀리 적대 리뷰**: C0에서 3프로필 시도·전부 실패 — `ccs glm`(프로필 부재), `ccs codex`(400 "reasoning: Extra inputs are not permitted" — 프록시↔gpt-5.6 파라미터 비호환), `ccs kimi`(대화형 디바이스-코드 인증 필요, 무인 모드 불가). spec §5 규약대로 사유 기록 후 **fresh-context 적대 리뷰(동일 패밀리·별도 컨텍스트·refute-by-default)로 대체** — 02 §1의 "fresh-context 외부 평가가 자기리뷰를 이김" 근거로 부분 완화이지 동등물 아님(agreement bias 잔존을 인정). 교차패밀리 재시도는 GAP-006에 위임(프록시 파라미터 이슈 해소 후).
+- **교차패밀리 적대 리뷰**: C0에서 3프로필 시도·전부 실패 — `ccs glm`(프로필 부재), `ccs codex`(400 "reasoning: Extra inputs are not permitted" — 프록시↔gpt-5.6 파라미터 비호환), `ccs kimi`(대화형 디바이스-코드 인증 필요, 무인 모드 불가). spec §5 규약대로 사유 기록 후 **fresh-context 적대 리뷰(동일 패밀리·별도 컨텍스트·refute-by-default)로 대체** — 02 §1의 "fresh-context 외부 평가가 자기리뷰를 이김" 근거로 부분 완화이지 동등물 아님(agreement bias 잔존을 인정). ~~교차패밀리 재시도는 GAP-006에 위임(프록시 파라미터 이슈 해소 후)~~ → **C10에서 GAP-006 착륙(2026-07-18)**: GPT 경로 2개 라이브 검증(codex CLI·CCS 현 핀)으로 C0의 실패 사유 3개 전부 소멸 — canonical 규약 = `docs/ai-context/cross-family-review.md`(탐지 기반·사이클당 1회·메인 트리아지).
 - **fresh-context 적대 리뷰 결과(C0)**: 7건 발견·전부 반영 — 점수 교정 1(D3 4→3: 트리거 550K↔rot 300-400K 산술 모순), 잔여 명시 1(D1 마커-제거 우회), 반박-기각 1(D10=1 유지), 순위 정정(산식 tie-break 재선언+스왑), 수용 기준 강화 4건(GAP-005/006/008/010), 신규 갭 2(GAP-018 트리거 재캘리브레이션·GAP-019 skill 본문 seal). 상세는 03 방법론 노트·04 각 블록.
 - 이 문서 세트의 계약 검증: review-strict가 spec §2 표 기준 항목별 PASS 판정(C0 closeout 기록).
 - **cold-agent fitness 결과(C-final, GAP-008 수용)**: 컨텍스트 0인 fresh 에이전트에 05+04만 주고 GAP-005 startup packet(사이클 규약·plan 초안·RED 커맨드·함정) 생산 지시 → **COULD_START**(두 필수 산출물을 후속질문 0회로 생산 = fitness 바 ≤2 통과). 동시에 문서 결함 6건 포착(사이클번호 규약 부재·기준선 stale·GAP-005 카운트 불일치·브랜치명 미규정·참조정책 모호·GAP-005 L4-blocker stale) → **C-final에서 전부 회귀 수정**(playbook §1/§3/§5+상단, 04 GAP-005). 이것이 fitness 루프의 설계 목적(사이트가 아닌 문서의 결함 검출).
 
-## 다음 착수 지정 (C10+)
+## 다음 착수 지정 (C11+)
 
-C0~C9 완료(+2026-07-17 Fable 재감사: Opus 구간 C2~C8·cfinal 3축 재감사 — 코드 사이클 결함 0·기록 공백 2건[cfinal plan 부재·fitness 재시도 이력 명시 부재]·라이브 배선 완료[PCT 40·deny·plugin-pins 핀 갱신]). **다음 착수 = GAP-012 (실패→회귀픽스처 루프)** = D7 3→4(non-obvious 등록에 재현 픽스처 동반 규약 — min-3 차원 중 최저비용). 대안: **GAP-002bc**(D5 3→4 반복상한+체크포인트 슬라이싱)·**GAP-019**(skill 본문 seal, D1/D2; doctor #23 node 보간형 readFileSync 결함 수정 동반 권장 — 재감사 발견 C-2). GAP-006(교차모델)은 ccs 무인 인프라 미해소로 DEFERRED. GAP-007b(srt OS-sandbox)·GAP-015(MCP 게이트=D1 L5 마지막 conjunct)=별 사이클. 착수 = `05-playbook.md` §2 → 브랜치 `harness-upgrade-c10`.
+C0~C10 완료(재감사 2026-07-17 + **C10 2026-07-18: GAP-006 착륙** — C0의 "ccs 인프라 실패" 소멸 실증으로 앞당겨 소화, 원 지정이던 GAP-012는 C11로 이월). **다음 착수 = GAP-012 (실패→회귀픽스처 루프)** = D7 3→4(non-obvious 등록에 재현 픽스처 동반 규약 — min-3 차원 중 최저비용). 대안: **GAP-002bc**(D5 3→4 반복상한+체크포인트 슬라이싱)·**GAP-019**(skill 본문 seal, D1/D2; cross-family-review.md 규약 토큰 seal 편승 + doctor #23 node 보간형 readFileSync 결함 수정 동반 권장 — 재감사 발견 C-2). GAP-007b(srt OS-sandbox)·GAP-015(MCP 게이트=D1 L5 마지막 conjunct)=별 사이클. 착수 = `05-playbook.md` §2 → 브랜치 `harness-upgrade-c11`.
