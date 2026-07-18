@@ -2,9 +2,10 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: superpowers:executing-plans. Steps use `- [ ]` checkboxes.
 
-**Status:** active
+**Status:** completed
 **RPI-Cycle:** 60
 **Started:** 2026-07-18
+> RPI-Cycle 조정 노트: 머지 직전 동시세션(ui-design v5, PR#30)이 state 60 선점 → +1-at-completion 규약으로 state는 61로 bump(헤더 60은 advisory — 라이브 state가 authoritative).
 
 **Best-Direction Check:** 최선안 = **탐지(capability probe) 기반 2경로 규약**(A codex CLI 직접 호출 우선·B CCS 라우팅 폴백·둘 다 불가 시 SKIP+사유) + 고-스테이크 지점 한정·사이클당 1회·메인 세션 트리아지. 채택안 = 동일. **대안 비교(spec §10-2 — goal §2 판정 봉인)**: ①"codex-plugin-cc 플러그인 도입" 기각 — 컨텍스트 공유=fresh-context 독립성 오염(교차 검증의 존재 이유 훼손), 자율 발동=사이클당 1회 상한 우회+쓰기 전제(Rule-of-Two 충돌), 표면 3배(C7 공급망 핀 대상 확장), 스레드 기능은 raw CLI 동등(`codex exec resume --last` 실측) ②"교차 검증 필수 게이트화" 기각 — GPT 경로 없는 PC에서 하네스 정지(이식성 위반; advisory fail-open 교리) ③"오케스트레이터 동적 모델 선택" 기각 — 가장 신뢰하지 않는 계층(모델 판단)에 재량 부여+검증자 self-pass 우회로(2026-07-18 사용자 대화 확정). **DOWNGRADE-DECLARED: 없음.** 스코프 제외 선언(열화 아닌 분할): runbook 토큰 seal(#45+)=GAP-019 편승 · 본 리뷰 실전 실행=차기 사이클(quota 규율 — 이 사이클은 규약 등재+probe 스모크만). opencode 미러: closeout/start-rpi SKILL.md 미러 실재 → 대응 부분 동기(05 §5-4).
 
