@@ -2,7 +2,8 @@
 # Meta-test (cycle-31, G4-a): prove verify-setup.sh drift seals actually FAIL + non-zero exit
 # when drift is injected. Acceptance-tier (peer of doctor.test.sh / verify-integration.sh),
 # wired into verify-all.sh STAGE 2b — NOT a hooks/tests/cases.tsv unit case
-# (so run-all stays 129 and verify-setup stays 65; this runner lives OUTSIDE verify-setup).
+# (so this runner adds nothing to run-all's count and lives OUTSIDE verify-setup's own count —
+#  those counts' SSOTs are cases.tsv and README "현재 N PASS" respectively; no numbers here).
 #
 # Isolation (cycle-18 / #25 blueprint): replicate the live ~/.claude subset that verify-setup
 # inspects into a fresh temp $HOME, mutate ONLY the replica, then run the replica's own
@@ -15,7 +16,7 @@ ok()  { echo "✓ $1"; PASS=$((PASS+1)); }
 bad() { echo "✗ $1"; FAIL=$((FAIL+1)); }
 
 # --- live immutability witnesses: cksum files any mutator could touch, before & after ---
-witness() { local f; for f in state.json README.md settings.json CLAUDE.md hooks/tests/cases.tsv skills/ui-design/design.md opencode-harness/skill/ui-design/design.md; do
+witness() { local f; for f in state.json README.md settings.json CLAUDE.md hooks/tests/cases.tsv skills/ui-design/design.md opencode-harness/skill/ui-design/design.md agents/explore-strict.md settings.example.json; do
               cksum "$SRC/$f" 2>/dev/null; done; }
 LIVE_BEFORE="$(witness)"
 

@@ -199,5 +199,34 @@ goal: `~/.claude/_goal/ui-design-v3-fable-reaudit-goal.md` (MERGE_POLICY: **wait
 ### 판정의 한계 (정직 공개)
 독립 스윕 explore-strict는 Bash 부재로 d372b2c diff 본문 미열람(9acf649=HEAD 워킹트리로 대체) — 그 몫은 메인 세션이 `git show d372b2c` 전수로 보완. B축 재채점의 ceiling 9항목은 코드 채점이 아닌 실측+스크린샷 시각 확인으로 재검증(별도 review-strict 재채점 생략 — FITNESS 기록과 실측 일치가 근거).
 
-### 실행 결과 (2026-07-17~18, 재작업 사이클 완료)
+### 실행 결과 (2026-07-17~18, 재작업 사이클 완료 — §12)
 R1-R5 수행: `2a167eb`(R1-R3 §0/§9/§8 정련 F-AUD-01/02 + R5 미러 SKILL.md 복원 + byte-sync) · witness 커밋(R4 seal-regression 미러 추가, RED grep-부재→GREEN 9/0). **R7 fitness L6(온보딩/가입, 제6 장르) iter1 ALL PASS** — floor 16P/2N-A/0F·ceiling 9/9·오버플로우 6조합 0·CLS 0·reduced-motion 동등·focus-visible 전수(sr-only 체크박스 위임 링 포함)·**R2 재현(마지막 지연 260ms≤300 지배 축 준수)·R1(b) 정합(550=motion-base 티어 내)·R6 자족 격리 달성(l6-* 14종 파일 내 <style>, index.css 상속 0)**. L4(iter2)→L5(iter1, 격리 약점)→L6(iter1, 자족 격리) 단조 상승. 최종 검증: verify-setup 81/0·seal-regression 9/0·run-all 172/172·verify-integration 8/0·doctor+doctor.test+failopen 5/0+rpi-prereq 3/0+worktree-teardown 25/0·opencode 오라클 21/0 (verify-all 단일 실행은 10분 타임아웃 — 구성 스테이지 개별 실행 전부 PASS로 대체, v3 선례). evidence 26→29.
+
+## §13. v5 Delta — 교차패밀리 발견 정정 + 테스트 위생 (2026-07-18, 재진입 사이클)
+
+goal: `~/.claude/_goal/ui-design-v5-crossfix-goal.md` (MERGE_POLICY: **wait**). 단일 사이클. 동시 세션 규약: 다른 글로벌 세션이 교차 리뷰 capability 등재(별도 goal)를 병행 중 — 이 사이클은 design.md v5 + 랩 + seal-regression 위생만 접촉, 클로즈아웃 직전 origin/master 재확인(v3·v4 연속 실현 교훈).
+
+**원천 — 첫 교차패밀리 적대 리뷰 (spec §7 "가능 시"의 첫 성공 실행, 2026-07-18)**: `cat design.md | claude --model gpt-5.6-sol -p "<refute-by-default 프롬프트>"` (stdin 파이프=E2BIG 회피·CLIProxy 핀 7.2.62-5에서 v2의 400 비호환 소멸·판별=modelUsage 키). GPT-5.6 Sol이 design.md v4에서 **Claude 검증 패스 4회(v2 Distill·v3 Gate R/P·v4 Fable 재감사)가 전부 놓친 진짜 결함 10건** 적발 + 오독 4건(메인 Fable 트리아지로 기각 — §1 `#176BFF` 자인 legacy·§9↔§12 transition-colors 스코프 오독·결정론 부족 5건은 fitness 3회가 경험적 반증·-0.02em/lg 경계 현학). 상세 판정표: `_design-lab/CROSS-REVIEW-GPT56-SOL-2026-07-18.md`(gitignored) — 이 §13이 리포 영구 앵커. **교차 리뷰 가치 실증**: 동일-패밀리 반복 검증의 사각(자기 어휘로 쓴 규칙은 자기 눈에 정합해 보임)을 타 패밀리 1회가 뚫음; 발견 중 2건(X7·X8)은 v4 Fable 자신의 수정분 문구 결함.
+
+**정정 명세 (X1~X10 — FRICTION `## XR` F-XR-01~10로 채록 후 `// evidence:` 인용)**:
+- **X1 [MED] §0 GS-3 ↔ §5 Coolicons 충돌**: GS-3 "Coolicons CSS import (§5의 CDN URL)"이 §5 P6 정정("CDN 미제공·@import 미작동·아이콘 미렌더")과 정면 모순(v1-era stale) → GS-3을 §5 실물 방식으로 교체(React=react-coolicons npm / 비-React=자가호스팅) + §5가 "Global Setup 4번째 항목으로 취급"이라 자기 선언한 currentColor 보정 CSS를 **GS-4로 실체화**(F-L1-11 연동).
+- **X2 [MED] 폰트 family명 오기**: §0 GS-2·§2 소개문 "Pretendard Variable" ↔ §2 CDN(static dynamic-subset)이 선언하는 실물 family `'Pretendard'`(§2 body CSS·랩 config 실물 동일 — 'Pretendard Variable' family는 미선언이라 silent 폴백) → 표기 정합. variable CDN 전환은 스코프 밖(소비 프로젝트 실물 기준).
+- **X3 [LOW] scrim 토큰 미실체화 + 예제 자기위반**: §1 scrim 규칙("`--color-scrim` 분리→`bg-scrim/40`")이 서술만 존재(:root/다크/config 미등록) + §4 Modal 예제가 금지 패턴 `bg-neutral-900/40` 사용 → 토큰 3곳 실체화(라이트 `hsl(220,10%,10%)`·다크 `hsl(220,14%,4%)`·config `scrim` 키) + 예제 `bg-scrim/40`. F-L1-01 "주석→실코드" 선례 — additive.
+- **X4 [LOW] §4 Button Pair 규칙 ↔ Modal 예제 불일치**: "(Modal·Form footer) 동일 너비" 규칙인데 Modal 푸터가 `justify-end` 비대칭 → flex-1 페어로 정합.
+- **X5 [LOW] §4 Input 14px ↔ §13 모바일 ≥16px**: `text-body-md` 인풋이 iOS 자동 줌 유발 → `text-body-lg md:text-body-md` + §13 상호참조(§4 Input·§8 Form View 동형 2곳).
+- **X6 [LOW] 버튼 41px ↔ §13 44px 타깃**: py-2.5 실높이 41px — "모바일 주 액션은 py-3(§13 hit target)" 스코프 주석(기본 클래스 불변·하위호환).
+- **X7 [TRIV] §9 산식 오독 유발**: v4-R2 "120ms×5요소=480ms"(480=간격4×120이지 5×120 아님) → "마지막 지연=간격×(N−1)" 산식 명시 재서술.
+- **X8 [TRIV] §9 60ms 하한 ↔ ≤300ms 지배 축 충돌(7+요소)**: 6간격×60=360>300 → "≤300ms 축이 60ms 하한보다 우선(요소 많으면 60ms 미만 허용)" 1구.
+- **X9 [TRIV] §2 measure 근거문 ch 오독**: "66ch"를 자수로 서술(ch='0' 글리프 폭) → 근거만 재서술("라틴 조판 관용 60–70자/행…"), 결론 32–38em은 랩 실증 불변.
+- **X10 [TRIV] §8 Mobile List Item 시맨틱**: v4-R3 주석("인터랙티브 행 전제")과 달리 마크업이 plain `<li>` → 행 콘텐츠를 button으로 감싼 시맨틱 정합(클래스명 불변·§12 focus-visible 연동).
+
+**테스트 위생 (이월분)**:
+- **H1**: seal-regression.test.sh :4-5 화석 주석("run-all stays 129·verify-setup stays 65"=cycle-31 값) → 카운트 숫자 제거+SSOT 위임 서술(수치 재기술 금지 계급 — v4 R1(a) 동일 해법: 숫자가 없으면 화석화 불가).
+- **H2**: witness 목록에 `agents/explore-strict.md`·`settings.example.json` 추가(mut_explore_write·mut_strip_deny 접촉인데 부재 — C8 귀책 잔여; v4 R4는 미러만 처리) → ":9-10 'every file' 주장 완결". RED(부재 grep)→GREEN(seal-regression 전수+live witness stable).
+
+**회귀 게이트**: fitness **L7 = 알림 인박스 화면(모바일 우선) + 항목 삭제 확인 모달** — X3(scrim 모달)·X4(모달 버튼 페어)·X5(인풋)·X10(행 시맨틱)·§12 3-way를 직접 자극하는 제7 장르. cold agent ≤2 iter·자족 격리(L6 프로토콜)·디자인 힌트 0.
+
+**불변**: §6 floor 18·§15 ceiling 9·기존 토큰명·§4 클래스명 불변(X3 scrim은 §1 기존 규정의 실체화=additive·X10은 클래스 비접촉). 기각 4건 재소송 금지.
+
+### 실행 결과 (2026-07-18, v5 사이클 완료 — §13)
+X1~X10 정정 + H1/H2 위생 수행. **fitness L7(알림 인박스+삭제 모달, 제7 장르·모바일 우선) iter1 ALL PASS** — 오버플로우 6조합 0(truncate 11건은 의도적 클리핑 제외)·CLS 0·reduced-motion 동등·focus-visible 전수·**X3 재현(모달 scrim=토큰 rgb(23,25,28)·opacity 0.4)·X4 재현(취소/삭제 143px==143px flex-1)·X10 재현(9행 전부 button, plain li 0)·§9 산식 재현(90×2=180≤300)**·자족 격리(index.css 상속 0)·모달 aria-modal+포커스 트랩+Escape. **부수익 — fitness가 F-XR-11 신규 적발**: X3가 도입한 `bg-scrim/40`이 §1 var()-config에서 알파 수정자 조용한 컴파일 탈락(cold agent+채점자 双프로브 확정) → §1/§4를 별도 백드롭 레이어(`bg-scrim opacity-40`)로 즉시 회귀(cold agent의 통과 경로 성문화, evidence 40). "FAIL은 문서 결함으로 회귀"의 5번째 실증. 최종 검증: verify-setup 81/0·seal-regression 9/0(H2 witness 9파일)·run-all 178/178·opencode 오라클 21/0. 차기 관찰 2건(비채점): 모달 등장 duration 티어 미명명·모달 닫힘 후 포커스 복귀 규정 부재(FITNESS-L7). **senior review 1패스 Critical 1건 해소**: X5가 §4 Input만 수정하고 §8 Form View 인풋 2곳(:491/:495)을 누락 — 리뷰가 포착, 동형 적용+§4 주석에 §8 상호참조 명기+미러 re-sync 후 2패스 PASS.
