@@ -23,21 +23,25 @@
 ### Task 1: runbook `docs/ai-context/cross-family-review.md` 신설
 **Files:** Create: `docs/ai-context/cross-family-review.md` / Modify: `docs/ai-context/scaffold-registry.md`(거버넌스 문서 표에 1행)
 
-- [ ] **Step 1: runbook 작성** — 4블록: ①탐지(A: `command -v codex`+`codex login status`+스모크 → B: `claude --model gpt-5.6-sol -p "Reply: OK" --output-format json`의 `modelUsage`에 `gpt-*`[모델명 머신별 상이 주의·자가보고 불인정] → SKIP+사유 1줄; **설치/로그인 금지** 명문) ②실행 프로토콜(stdin 파이프 필수[E2BIG]·A는 `--sandbox read-only`+`--skip-git-repo-check` 필수·refute-by-default 프롬프트[결함만·범주 명시·원문 인용 강제·none found 명시·제안 금지]·**메인 세션 트리아지 필수**[14건 중 4건 오독 실증]·**사이클당 1회**·호출 지점=고-스테이크만[senior review·재채점·적대 리뷰]·GPT=추가 발견자≠판정자) ③검증자 모델 정책(서브에이전트 model 미지정=세션 상속 기본=검증자 티어≥작업자 티어 공짜 보장·하향 오버라이드=사유 선언 필수[DOWNGRADE-DECLARED 동형]) ④codex-plugin-cc 기각 판정(spec §10-2 압축)+재검토 트리거(구현-위임 용도 GAP 신설 시). 실증 사실(2026-07-18 2경로 검증+결함 10건)은 §1에 인라인 재서술(goal은 gitignored — 영구화).
-- [ ] **Step 2: scaffold-registry 등재** — 거버넌스 문서 표에 `cross-family-review.md — 교차패밀리 검증 규약(탐지·트리아지·quota) — C10 (GAP-006)` 1행.
+- [x] **Step 1: runbook 작성** — 4블록: ①탐지(A: `command -v codex`+`codex login status`+스모크 → B: `claude --model gpt-5.6-sol -p "Reply: OK" --output-format json`의 `modelUsage`에 `gpt-*`[모델명 머신별 상이 주의·자가보고 불인정] → SKIP+사유 1줄; **설치/로그인 금지** 명문) ②실행 프로토콜(stdin 파이프 필수[E2BIG]·A는 `--sandbox read-only`+`--skip-git-repo-check` 필수·refute-by-default 프롬프트[결함만·범주 명시·원문 인용 강제·none found 명시·제안 금지]·**메인 세션 트리아지 필수**[14건 중 4건 오독 실증]·**사이클당 1회**·호출 지점=고-스테이크만[senior review·재채점·적대 리뷰]·GPT=추가 발견자≠판정자) ③검증자 모델 정책(서브에이전트 model 미지정=세션 상속 기본=검증자 티어≥작업자 티어 공짜 보장·하향 오버라이드=사유 선언 필수[DOWNGRADE-DECLARED 동형]) ④codex-plugin-cc 기각 판정(spec §10-2 압축)+재검토 트리거(구현-위임 용도 GAP 신설 시). 실증 사실(2026-07-18 2경로 검증+결함 10건)은 §1에 인라인 재서술(goal은 gitignored — 영구화).
+- [x] **Step 2: scaffold-registry 등재** — 거버넌스 문서 표에 `cross-family-review.md — 교차패밀리 검증 규약(탐지·트리아지·quota) — C10 (GAP-006)` 1행.
 
 ### Task 2: 소비처 배선 (closeout Phase 4 분기 + start-rpi 앵커 + 기존 문구 교체)
 **Files:** Modify: `skills/closeout-pr-cycle/SKILL.md`(+`opencode-harness/skill/closeout-pr-cycle/SKILL.md`), `skills/start-rpi-cycle/SKILL.md`(+미러), `docs/superpowers/specs/2026-07-13-harness-upgrade-2026-07-design.md` §5, `docs/harness-upgrade-2026-07/05-playbook.md` §5-6, `docs/harness-upgrade-2026-07/README.md` 방법론
 
-- [ ] **Step 1: closeout Phase 4 분기** — senior review Agent() 블록 뒤에 "교차패밀리 probe(runbook 앵커)→가용 시 사이클당 1회 실행+트리아지→불가 시 SKIP+사유 기록" 소절 추가(골격 불변: Phase 수·Agent() 호출·Communication Protocol 유지). 미러 SKILL.md 대응 부분 동기.
-- [ ] **Step 2: start-rpi 앵커 1줄** — 적대 리뷰 언급 지점에 "교차패밀리 리뷰 가용 시 옵션 — `docs/ai-context/cross-family-review.md` 탐지 절차" 1줄(골격 불변). 미러 동기.
-- [ ] **Step 3: 기존 문구 앵커 교체** — spec §5 "(ccs gpt) 적대 리뷰 1회 시도"→runbook 참조로 갱신 주석 · 05 §5-6 ccs 함정 노트에 "stdin 파이프 검증됨·2경로 규약=runbook" 앵커 append(원문 이력 보존) · README 방법론 "GAP-006에 위임" 문장에 "→ C10 착륙(runbook)" 갱신.
+- [x] **Step 1: closeout Phase 4 분기** — senior review Agent() 블록 뒤에 "교차패밀리 probe(runbook 앵커)→가용 시 사이클당 1회 실행+트리아지→불가 시 SKIP+사유 기록" 소절 추가(골격 불변: Phase 수·Agent() 호출·Communication Protocol 유지). 미러 SKILL.md 대응 부분 동기.
+- [x] **Step 2: start-rpi 앵커 1줄** — 적대 리뷰 언급 지점에 "교차패밀리 리뷰 가용 시 옵션 — `docs/ai-context/cross-family-review.md` 탐지 절차" 1줄(골격 불변). 미러 동기.
+- [x] **Step 3: 기존 문구 앵커 교체** — spec §5 "(ccs gpt) 적대 리뷰 1회 시도"→runbook 참조로 갱신 주석 · 05 §5-6 ccs 함정 노트에 "stdin 파이프 검증됨·2경로 규약=runbook" 앵커 append(원문 이력 보존) · README 방법론 "GAP-006에 위임" 문장에 "→ C10 착륙(runbook)" 갱신.
 
 ### Task 3: 04/03 갱신 + probe 실측 + Closeout
 **Files:** Modify: `docs/harness-upgrade-2026-07/04-gap-backlog.md`, `03-rubric.md`, `README.md`(상태 행), `state.json`, 메모리
 
-- [ ] **Step 1: 04 GAP-006 DONE** — 요약표+본문 블록: 수용 기준 충족 증빙(SKILL.md 분기 grep + 교차패밀리 실행 1회 성공=design.md v4 리뷰 `modelUsage: gpt-5.6-sol` 실측[2026-07-18] + probe A/B 로그). DEFERRED 규정("인프라 사유로 1회도 불가 시") 비적용 명기.
-- [ ] **Step 2: 03 재채점 무bump** — D2 블록에 C10 부분-진척 노트(L5 3 conjunct 중 교차검증자 1착륙·CI/자동봉인 잔여→4 유지), D10 블록에 노트(L5 "정기 반증"=실사용 누적 후→4 유지), 종합표 비고 2행 갱신.
-- [ ] **Step 3: probe A·B 실측** — A: `command -v codex && codex login status` + 스모크 1회 · B: `claude --model gpt-5.6-sol -p "Reply: OK" --output-format json | grep -o 'gpt-[^"]*'` 1회. 로그를 이 plan 하단+PR 본문에 기록(이 머신 둘 다 가용이어야 정상 — 아니면 탐지 로직 결함으로 회귀 수정).
-- [ ] **Step 4: 검증 전건** — verify-setup 81/0(불변)·run-all 178(불변)·verify-all ALL PASS(포그라운드) + README 상태 행(C10)+다음 착수 갱신(GAP-012+doctor #23 유지·C10이 GAP-006 선소화 명기).
+- [x] **Step 1: 04 GAP-006 DONE** — 요약표+본문 블록: 수용 기준 충족 증빙(SKILL.md 분기 grep + 교차패밀리 실행 1회 성공=design.md v4 리뷰 `modelUsage: gpt-5.6-sol` 실측[2026-07-18] + probe A/B 로그). DEFERRED 규정("인프라 사유로 1회도 불가 시") 비적용 명기.
+- [x] **Step 2: 03 재채점 무bump** — D2 블록에 C10 부분-진척 노트(L5 3 conjunct 중 교차검증자 1착륙·CI/자동봉인 잔여→4 유지), D10 블록에 노트(L5 "정기 반증"=실사용 누적 후→4 유지), 종합표 비고 2행 갱신.
+- [x] **Step 3: probe A·B 실측** — A: `command -v codex && codex login status` + 스모크 1회 · B: `claude --model gpt-5.6-sol -p "Reply: OK" --output-format json | grep -o 'gpt-[^"]*'` 1회. 로그를 이 plan 하단+PR 본문에 기록(이 머신 둘 다 가용이어야 정상 — 아니면 탐지 로직 결함으로 회귀 수정).
+
+**probe 실측 로그 (2026-07-18, 이 머신)**:
+- **A 가용**: `command -v codex`=`/c/Users/12132/AppData/Roaming/npm/codex` · `codex login status`="Logged in using ChatGPT" · 스모크 `echo probe | codex exec --sandbox read-only --skip-git-repo-check "Reply with exactly: OK"` → 응답 "OK"(3,450 tokens).
+- **B 가용**: `claude --model gpt-5.6-sol -p --output-format json` → `"modelUsage":{"gpt-5.6-sol"...` — `gpt-*` 키 실재. ★운용 노트: `2>&1` 병합 시 JSON 파싱 실패 가능(stderr 노이즈) — 판별은 stdout만으로 `grep -oE '"gpt-[a-z0-9.-]+"'`가 견고(runbook §1의 "modelUsage만 인정"과 정합).
+- [x] **Step 4: 검증 전건** — verify-setup 81/0(불변)·run-all 178/178(불변)·verify-all ALL PASS(staged HOME: seal-reg 9/0·failopen 5/0·prereq 3/0·teardown 25/0·integration 8/0) + README 상태 행(C10)+다음 착수 갱신 완료. drift review-strict 6/7→체크박스 7건 정정→정합.
 - [ ] **Step 5: drift review-strict + PR + merge 대기** — drift 검사(체크박스·미신고 열화·갱신 계약·미러 동기) → state bump(59→60, 라이브 재확인) → 메모리 append+MEMORY.md 동기(예산 주의) → PR 생성(검증 로그 본문) → **merge 승인 요청 후 대기**(auto 금지) → 승인 시 머지·plan completed → 한국어 최종 보고.
