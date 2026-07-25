@@ -329,6 +329,7 @@ REQUIRED_HOOKS=(
   "verify-loop-watch.sh"
   "session-start-audit.sh"
   "surface-constitution.sh"
+  "surface-model-policy.sh"
   "worktree-teardown.sh"
   "_common.sh"
 )
