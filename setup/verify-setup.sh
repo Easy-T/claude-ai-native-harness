@@ -23,8 +23,9 @@ for a in explore-strict review-strict execute-strict; do
   grep -q 'common-agent-contract' "$HOME/.claude/agents/$a.md" 2>/dev/null && ok "$a has contract" || fail "$a missing contract"
 done
 
-# 5. agents model:inherit
-for a in explore-strict review-strict execute-strict; do
+# 5. agents model:inherit — 실행자·검증자만 (explore-strict 는 C11부터 frontmatter sonnet+medium 기본값,
+#    #45 가 별도 봉인 — docs/ai-context/model-policy.md)
+for a in review-strict execute-strict; do
   grep -q '^model: inherit$' "$HOME/.claude/agents/$a.md" 2>/dev/null && ok "$a model:inherit" || fail "$a model"
 done
 
@@ -367,16 +368,17 @@ else
   fail "memory-policy 3규약 불완전 (GAP-004): 통합/프루닝/검증 중 누락"
 fi
 
-# 39. settings.example autocompact 트리거 rot-정렬 (GAP-018 D3 L4): PCT_OVERRIDE ≤40(=1M 기준 ≤400K, rot 이전).
-#     60/55 등 rot-지난 값이면 FAIL — rot 곡선(02 §5·§4 dumb-zone 40%)에 정렬된 기본값 봉인. WINDOW=1M 전제([1m] suffix).
-#     bash grep 추출(#37/#38 동형) — node readFileSync 는 staged $HOME(MSYS /tmp) 를 Windows node 가 못 읽어 false-부재.
+# 39. settings.example autocompact 트리거 rot-정렬 (GAP-018 D3 L4 + C11 세트 확장): PCT_OVERRIDE ≤40 **AND**
+#     CLAUDE_CODE_AUTO_COMPACT_WINDOW=1000000 세트. 2026-07-25 회귀 근본원인=WIN 라인 소실 시 PCT 단독 완전 inert
+#     (한쪽만은 침묵 무효 — memory project_autocompact_proxy_display). WINDOW=1M 전제([1m] suffix).
 EX_PCT=$(grep -oE '"CLAUDE_AUTOCOMPACT_PCT_OVERRIDE"[[:space:]]*:[[:space:]]*"?[0-9]+"?' "$HOME/.claude/settings.example.json" 2>/dev/null | grep -oE '[0-9]+' | head -1)
+EX_WIN=$(grep -cE '"CLAUDE_CODE_AUTO_COMPACT_WINDOW"[[:space:]]*:[[:space:]]*"1000000"' "$HOME/.claude/settings.example.json" 2>/dev/null)
 if [ -z "$EX_PCT" ]; then
   fail "settings.example CLAUDE_AUTOCOMPACT_PCT_OVERRIDE 부재 (GAP-018)"
-elif [ "$EX_PCT" -le 40 ] 2>/dev/null; then
-  ok "settings.example autocompact 트리거 rot-정렬 (${EX_PCT}% ≤40)"
+elif [ "$EX_PCT" -le 40 ] 2>/dev/null && [ "$EX_WIN" -ge 1 ]; then
+  ok "settings.example autocompact PCT(${EX_PCT})≤40 + WINDOW=1000000 세트 (GAP-018+C11)"
 else
-  fail "settings.example autocompact 트리거 rot-미정렬 (GAP-018): ${EX_PCT}% >40 (rot ~300-400K 이전=≤40)"
+  fail "settings.example autocompact 세트 붕괴 (GAP-018+C11): PCT≤40 AND WINDOW=1000000 필요 (PCT=${EX_PCT:-부재} WIN라인=${EX_WIN:-0}) — 한쪽만은 완전 inert"
 fi
 
 # 40. plugin-pins.md 존재 + SKILL.md cksum 핀 (GAP-011 D11 L4 절반): 공급망 핀이 사라지면 FAIL.
@@ -436,6 +438,28 @@ if [ "$FLOOR44" -eq 18 ]; then
   ok "design.md §6 anti-slop floor = 18 항목"
 else
   fail "design.md §6 floor 카운트 drift: $FLOOR44 (기대 18 — §6.2 '삭제 절대 금지' 위반?)"
+fi
+
+# 45. 역할×모델 매트릭스 물화 봉인 (tri-model C11, spec 2026-07-25 §6): conjunctive —
+#     ① model-policy.md 존재+행 앵커(execute→opus·explore→sonnet) ② explore-strict frontmatter sonnet+medium
+#     ③ execute/review `model: inherit` 유지 + review-strict effort 키 부재(검증자 상속 물리 앵커)
+#     ④ settings.example 에 Agent 매처+hook 배선(#23 이 live 와 parity) ⑤ start-rpi-cycle 토큰(재생성 소실 표면화).
+#     bash grep only (staged-safe).
+MP_DOC="$HOME/.claude/docs/ai-context/model-policy.md"
+MP_OK=1
+{ [ -f "$MP_DOC" ] && grep -qE 'execute-strict.*opus' "$MP_DOC" && grep -qE 'explore-strict.*sonnet' "$MP_DOC"; } || MP_OK=0
+grep -qE '^model:[[:space:]]*sonnet' "$HOME/.claude/agents/explore-strict.md" 2>/dev/null || MP_OK=0
+grep -qE '^effort:[[:space:]]*medium' "$HOME/.claude/agents/explore-strict.md" 2>/dev/null || MP_OK=0
+grep -qE '^model:[[:space:]]*inherit' "$HOME/.claude/agents/execute-strict.md" 2>/dev/null || MP_OK=0
+grep -qE '^model:[[:space:]]*inherit' "$HOME/.claude/agents/review-strict.md" 2>/dev/null || MP_OK=0
+if grep -qE '^effort:' "$HOME/.claude/agents/review-strict.md" 2>/dev/null; then MP_OK=0; fi
+grep -q 'surface-model-policy' "$HOME/.claude/settings.example.json" 2>/dev/null || MP_OK=0
+grep -qE '"matcher":[[:space:]]*"Agent"' "$HOME/.claude/settings.example.json" 2>/dev/null || MP_OK=0
+grep -q 'model-policy' "$HOME/.claude/skills/start-rpi-cycle/SKILL.md" 2>/dev/null || MP_OK=0
+if [ "$MP_OK" -eq 1 ]; then
+  ok "역할×모델 매트릭스 물화 (model-policy.md·frontmatter·Agent 매처·skill 토큰)"
+else
+  fail "역할×모델 매트릭스 봉인 붕괴 (C11): model-policy.md 앵커/explore frontmatter/inherit 유지/review effort 부재/Agent 매처/skill 토큰 중 결손 — spec §6"
 fi
 
 # 36. verify-setup 총 체크수 <-> README 선언 parity (GAP-009 M1 봉인, 런타임 자기-카운트):

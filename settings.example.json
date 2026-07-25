@@ -88,6 +88,15 @@
             "command": "$HOME/.claude/hooks/enforce-secret-scan.sh"
           }
         ]
+      },
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/surface-model-policy.sh"
+          }
+        ]
       }
     ],
     "PostToolUse": [
