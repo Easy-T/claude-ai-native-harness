@@ -23,7 +23,7 @@
 | `worktree-teardown.sh` | 종료 세션의 링크 워크트리 잔존 — 정션-안전 삭제(데이터손실0) | cycle-38~41 |
 | (`_common.sh`) | 위 전 hook의 공유 함수(json 파서·hook_log·plan_status·resolve_project_root·run_log_event·surface_bypass 등) | 지속 진화; **C2 run_log_event 추가** |
 
-## Skills (8 — `ls skills/*/SKILL.md`)
+## Skills (10 — `ls skills/*/SKILL.md`; grill-with-docs·ccs-delegation은 비추적 설치 산물)
 
 | Skill | 존재 이유 | 추적 |
 |---|---|---|
@@ -35,6 +35,8 @@
 | `ui-design` | 웹/앱 UI 결정을 design.md 토큰에 정렬 + Anti-Slop floor + Craft ceiling | ui-design v2 이니셔티브(cycle 49-51) |
 | `common-agent-contract` | wrapper agent 3종(explore/execute/review-strict)에 Input/Output 계약 자동 주입 | 초기 |
 | `statusline` | 커스텀 상태줄 유지보수(비강제 on-demand) | statusline v2 |
+| `disk-cleanup` | Windows C: 디스크 정리 orchestrator(진단→Tier 안전삭제→구조화; 위험 삭제는 AskUserQuestion) — 비강제 on-demand | 2026-07 신설(등재 2026-07-25, seal #37 발화 백필) |
+| `system-optimize` | Windows 실행상태(메모리·시작프로그램·전원·발열) 최적화 orchestrator — 되돌리기 쉬운 변경만, 비강제 on-demand | 2026-07 신설(등재 2026-07-25, seal #37 발화 백필) |
 | (grill-with-docs) | 도메인 어휘 stress-test — doctor.sh 자동설치(gitignored), 벤더링 | 미추적(설치 산물) |
 | (ccs-delegation) | CCS CLI 위임(로컬 정션, 비추적) — 하네스 게이트 무관 | 미추적 |
 
