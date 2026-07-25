@@ -29,6 +29,7 @@
 **[구현 중 정정 — Task 2 executor 발견 2건]**
 - 기존 #5(`agents model:inherit` 3종 루프)가 explore-strict 변경과 충돌 → Task 5에서 #5 루프를 `review-strict execute-strict` 2종으로 축소(주석 갱신 포함). 카운트 산술: #5 −1, 신규 seal +1 → **총 81 유지, README "현재 81 PASS" 무변경**. Task 5 Step 6 Expected = `PASS=81 FAIL=0`.
 - scaffold-registry.md L9 `## Hooks (11 …)` 헤더 → hook 실물이 생기는 **Task 4에서 12로 bump** (Task 4 파일 스코프에 추가).
+- (3, Task 5 후 발견) `setup/doctor.sh` REQUIRED_HOOKS에 `surface-model-policy.sh` 1줄 추가(6115661) — seal #24(doctor ⊇ disk hooks)가 기계적으로 강제하는 동반 편집. plan 파일 목록에 없던 것은 plan 갭(Task 4가 hook 신설 시 doctor 동반 갱신 미명시).
 
 ---
 
@@ -347,7 +348,7 @@ git add hooks/surface-model-policy.sh && git commit -m "feat(model-policy): surf
 **Files:**
 - Modify: `settings.json` + `settings.example.json` (PreToolUse에 Agent 매처 블록 — 동형)
 - Modify: `setup/verify-setup.sh` (#39 블록 확장 + 신규 seal #NN)
-- Modify: `README.md` (verify-setup "현재 81 PASS"→+1 · run-all "178"→"186" 2곳)
+- Modify: `README.md` (run-all "178"→"186" 2곳 — verify-setup "현재 81 PASS"는 정정 1로 무변경)
 
 **Interfaces:**
 - Consumes: Task 1 앵커 토큰, Task 2 frontmatter, Task 4 hook 파일명.
@@ -427,12 +428,12 @@ else
 fi
 ```
 
-- [x] **Step 5: README 카운트 동기** — `현재 81 PASS` → `현재 82 PASS`(1곳), run-all `178` 케이스 선언 → `186`(2곳: 약 L276·L514).
+- [x] **Step 5: README 카운트 동기** — verify-setup "현재 81 PASS" 무변경(정정 1: −1+1=0), run-all `178` 케이스 선언 → `186`(2곳: L276·L514 실측).
 
 - [x] **Step 6: 검증 (포그라운드) + Commit**
 
 Run: `bash setup/verify-setup.sh 2>&1 | tail -3`
-Expected: `verify-setup: PASS=82 FAIL=0`
+Expected: `verify-setup: PASS=81 FAIL=0` (구현-중-정정 1: #5 −1+#45 +1=0)
 
 ```bash
 git add settings.json settings.example.json setup/verify-setup.sh README.md && git commit -m "feat(model-policy): Agent 매처 배선 + seal #NN + #39 PCT+WIN 세트 확장 (C11 L3)"
@@ -459,7 +460,7 @@ bash setup/tests/seal-regression.test.sh 2>&1 | tail -2
 bash hooks/tests/run-all.sh 2>&1 | tail -4
 ```
 
-Expected: PASS=82 FAIL=0 / seal-regression PASS / 186/186·정합 OK·rate 100%.
+Expected: PASS=81 FAIL=0 (정정 1 반영) / seal-regression PASS / 186/186·정합 OK·rate 100%.
 
 - [x] **Step 3: 교차패밀리 GPT 리뷰 1회** (고-스테이크 거버넌스 — cross-family-review.md 규약): probe A(codex CLI)→B(CCS) 순서, 가용 시 spec+model-policy.md를 stdin 파이프로 refute-by-default 리뷰 → 메인 트리아지(REAL만 반영), 불가 시 SKIP+사유 1줄. 설치/로그인 시도 절대 금지.
 
@@ -472,4 +473,4 @@ Expected: PASS=82 FAIL=0 / seal-regression PASS / 186/186·정합 OK·rate 100%.
 - [ ] 브랜치 `tri-model-policy` → PR 생성 (closeout-pr-cycle; **MERGE_POLICY: wait — 머지는 사용자 승인 필수, 유일 정지점**)
 - [ ] Step C-1 drift review-strict (model 무지정 상속) + plan Status→completed + state.json 62/today
 - [ ] 메모리 `project_tri_model_policy` 신설(goal 파일은 gitignored — 실측·정책 요약 영구화) + MEMORY.md 인덱스
-- [ ] 보고: harness-verify(`PASS=82 FAIL=0`)·phase-skills·next-cycle-goal 3라벨
+- [ ] 보고: harness-verify(`PASS=81 FAIL=0`)·phase-skills·next-cycle-goal 3라벨

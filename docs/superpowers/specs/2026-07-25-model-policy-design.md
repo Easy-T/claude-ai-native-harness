@@ -132,8 +132,10 @@ hook_log ALERT 빈도 소멸(runlog_summary, closeout GAP-003 소비)이며 완�
 
 **로직** (advisory 전용, 항상 exit 0, `_common.sh` 소비):
 - 입력: stdin JSON에서 `tool_input.subagent_type`·`tool_input.model`·`transcript_path` 파싱.
-- 세션 모델: `tail -c 100000 "$transcript" | grep -oE '"model":"claude-[a-z0-9.-]+"' | tail -1`
-  (실측 §1.2 shape). 판별 불가/파일 부재 → 조용히 exit 0 (fail-open).
+- 세션 모델: `tail -c 200000 "$transcript"` 후 awk로 `"type":"assistant"` 라인의 **라인-내 첫**
+  `"model":"claude-…"` 매치, 마지막 assistant 라인 값 채택 (구현 동기 2026-07-26 — assistant JSON은
+  model이 content 앞이라 첫-매치가 본문 내 모델 id 인용에 면역; 픽스처 08이 봉인). 판별 불가/파일
+  부재 → 조용히 exit 0 (fail-open).
 - **Rule A (fable 실행자 하향 미적용)**: 세션=claude-fable-5* AND subagent_type==execute-strict AND
   (model 부재 OR model==fable) → `hook_log ALERT` + additionalContext:
   "정책: fable 세션의 실행자는 model:'opus' 명시 — docs/ai-context/model-policy.md" (1세션 1회 dedup,
