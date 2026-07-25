@@ -1,6 +1,6 @@
 # Tri-Model Policy (역할×모델 매트릭스 물화) Implementation Plan
 
-**Status:** active
+**Status:** completed
 **RPI-Cycle:** 62
 **Started:** 2026-07-25
 
@@ -470,7 +470,7 @@ Expected: PASS=81 FAIL=0 (정정 1 반영) / seal-regression PASS / 186/186·정
 
 ## Closeout 체크리스트 (start-rpi-cycle Phase Closeout 준수)
 
-- [ ] 브랜치 `tri-model-policy` → PR 생성 (closeout-pr-cycle; **MERGE_POLICY: wait — 머지는 사용자 승인 필수, 유일 정지점**)
-- [ ] Step C-1 drift review-strict (model 무지정 상속) + plan Status→completed + state.json 62/today
-- [ ] 메모리 `project_tri_model_policy` 신설(goal 파일은 gitignored — 실측·정책 요약 영구화) + MEMORY.md 인덱스
-- [ ] 보고: harness-verify(`PASS=81 FAIL=0`)·phase-skills·next-cycle-goal 3라벨
+- [x] 브랜치 `tri-model-policy` → PR 생성 (PR #32, senior review Critical 0 — 머지만 사용자 승인 대기) (closeout-pr-cycle; **MERGE_POLICY: wait — 머지는 사용자 승인 필수, 유일 정지점**)
+- [x] Step C-1 drift review-strict (model 무지정 상속) + plan Status→completed + state.json 62/today
+- [x] 메모리 `project_tri_model_policy` 신설(goal 파일은 gitignored — 실측·정책 요약 영구화) + MEMORY.md 인덱스
+- [x] 보고: harness-verify(`PASS=81 FAIL=0`)·phase-skills·next-cycle-goal 3라벨
