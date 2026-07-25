@@ -22,11 +22,14 @@ LLM은 학습 데이터의 통계적 중앙(indigo 그라데이션, 중앙정렬
 - §6 Anti-Slop floor / §7 Gradients / §8 Snippets
 - §9 Motion / §10 Expressive(잉크·페이퍼·fluid) / §11 Depth / §12 States / §13 A11y / §14 Rhythm / §15 Craft Ceiling
 
+> ⚠️ **design.md는 ~25.7k 토큰으로 Read 도구의 25k 상한을 초과한다** → 단일 Read는 **§10~§15 꼬리(Expressive·Depth·States·A11y·Rhythm·Ceiling)가 잘린다**. 하필 Phase 4 ceiling 판정 근거(§11/§12/§15)가 그 꼬리다. 반드시 **2페이지로 완독**: 첫 Read 후 도구가 출력하는 페이지네이션 리마인더의 offset으로 나머지를 재-Read. **1페이지만으로 판정·적용 금지.**
+
 ```
-Read("./design.md")  # SKILL.md 옆 파일 — relative path
+Read("./design.md")               # 1페이지 (§0~§9 근방까지)
+Read("./design.md", offset=591)   # 2페이지 (§10 Expressive ~ §15 Ceiling) — 리마인더 offset이 다르면 그 값 사용
 ```
 
-이미 호출 세션에서 읽었다면 재호출 생략. 단, 결정마다 토큰을 직접 참조해야 함 (기억에 의존 X).
+이미 호출 세션에서 (2페이지 모두) 읽었다면 재호출 생략. 단, 결정마다 토큰을 직접 참조해야 함 (기억에 의존 X).
 장르 힌트: UI 셸/대시보드 → §3·§4·§11·§12 중심. 브랜드/에디토리얼 표면 → §10·§14 추가 로드. 모션 결정 → §9.
 
 # Phase 2 — Concept (브리프 강제)
@@ -56,6 +59,8 @@ UI 코드/결정 생성 시:
 # Phase 4 — Verify (floor + ceiling)
 
 UI 코드 생성 직후, 자가 검증 (컴포넌트/페이지 단위 생성·수정에서 강제 — 색 1개·패딩 조정은 생략 가능):
+
+> ⚠️ design.md는 25k 토큰 초과 → review-strict가 context_paths로 읽을 때 **§10~§15 꼬리가 잘린다**. task에 **"design.md를 2페이지 완독(첫 Read 후 offset 591 재-Read), 1페이지만으로 ceiling 판정 금지 — §11 Depth·§12 States·§15 Craft Ceiling은 2페이지"**를 반드시 명시(누락 시 ceiling 판정이 꼬리 누락으로 vacuous PASS).
 
 ```
 Agent(subagent_type="review-strict",

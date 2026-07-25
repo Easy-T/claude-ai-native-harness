@@ -5,7 +5,8 @@
     "DISABLE_BUG_COMMAND": "1",
     "DISABLE_ERROR_REPORTING": "1",
     "DISABLE_TELEMETRY": "1",
-    "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "40"
+    "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "40",
+    "CLAUDE_CODE_AUTO_COMPACT_WINDOW": "1000000"
   },
   "permissions": {
     "allow": [
@@ -85,6 +86,15 @@
           {
             "type": "command",
             "command": "$HOME/.claude/hooks/enforce-secret-scan.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/surface-model-policy.sh"
           }
         ]
       }

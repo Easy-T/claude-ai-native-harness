@@ -922,6 +922,51 @@ test_lib "168-sweep-orphan-deleted" ""                 "$(git -C "$SWREPO" branc
 test_lib "169-sweep-active-kept"    "worktree-cycle-b" "$(git -C "$SWREPO" branch --list worktree-cycle-b | tr -d ' +*')"
 test_lib "170-sweep-nonconv-kept"   "keepme"           "$(git -C "$SWREPO" branch --list keepme | tr -d ' ')"
 
+# ==================== SURFACE-MODEL-POLICY (tri-model C11) ====================
+# stdin 은 2026-07-25 실측 캡처 shape verbatim (spec §1.2) — 합성 shape 금지 (cycle-40 교훈).
+mk_agent_event() {
+  local sub="$1"; local model="$2"; local transcript="$3"; local sid="$4"
+  SUB="$sub" MODEL="$model" TP="$transcript" SID="$sid" node -e '
+    const ti = {description:"x", prompt:"x", subagent_type:process.env.SUB, run_in_background:false};
+    if (process.env.MODEL) ti.model = process.env.MODEL;
+    const o = {session_id:process.env.SID, transcript_path:process.env.TP, cwd:"", permission_mode:"bypassPermissions",
+               effort:{level:"xhigh"}, hook_event_name:"PreToolUse", tool_name:"Agent", tool_input:ti, tool_use_id:"toolu_x"};
+    console.log(JSON.stringify(o));
+  '
+}
+test_smp() {
+  local name="$1"; local expected_exit="$2"; local expect_ctx="$3"; local input="$4"
+  TOTAL=$((TOTAL+1))
+  local out actual ctx=0
+  out=$(printf '%s' "$input" | "$HOOKS/surface-model-policy.sh" 2>/dev/null); actual=$?
+  printf '%s' "$out" | grep -q 'additionalContext' && ctx=1
+  if [ "$actual" = "$expected_exit" ] && [ "$ctx" = "$expect_ctx" ]; then PASSED=$((PASSED+1))
+  else FAILED_LIST+=("surface-model-policy/$name (exit=$actual ctx=$ctx)"); fi
+}
+SMP_FABLE_T=$(mktemp "$SCRATCH/smp-fable-XXXXXX.jsonl")
+printf '{"type":"assistant","message":{"model":"claude-fable-5","content":[]}}\n' > "$SMP_FABLE_T"
+SMP_SONNET_T=$(mktemp "$SCRATCH/smp-sonnet-XXXXXX.jsonl")
+printf '{"type":"assistant","message":{"model":"claude-sonnet-5","content":[]}}\n' > "$SMP_SONNET_T"
+SMP_QUOTE_T=$(mktemp "$SCRATCH/smp-quote-XXXXXX.jsonl")
+printf '{"type":"assistant","message":{"model":"claude-fable-5","content":[{"type":"text","text":"claude-opus-5[1m] 언급 텍스트"}]}}\n' > "$SMP_QUOTE_T"
+
+# 01: fable 세션 + execute-strict + model 부재 → Rule A ALERT (ctx=1)
+test_smp "01-rule-a-fable-nomodel" 0 1 "$(mk_agent_event execute-strict "" "$SMP_FABLE_T" "smp01-$$")"
+# 02: fable 세션 + execute-strict + model:'opus' → 정책 준수 (ctx=0)
+test_smp "02-rule-a-opus-ok" 0 0 "$(mk_agent_event execute-strict opus "$SMP_FABLE_T" "smp02-$$")"
+# 03: fable 세션 + review-strict + model:'sonnet' → Rule B 하향 ALERT (ctx=1)
+test_smp "03-rule-b-verifier-downshift" 0 1 "$(mk_agent_event review-strict sonnet "$SMP_FABLE_T" "smp03-$$")"
+# 04: review-strict + model 무지정(상속) → 무출력 (ctx=0)
+test_smp "04-rule-b-inherit-ok" 0 0 "$(mk_agent_event review-strict "" "$SMP_FABLE_T" "smp04-$$")"
+# 05: sonnet 세션 + execute-strict + model 부재 → Rule A 비대상 (ctx=0)
+test_smp "05-nonfable-execute-ok" 0 0 "$(mk_agent_event execute-strict "" "$SMP_SONNET_T" "smp05-$$")"
+# 06: 깨진 stdin → fail-open exit 0 무출력
+test_smp "06-broken-stdin" 0 0 "not-json"
+# 07: transcript 부재 → fail-open exit 0 무출력
+test_smp "07-no-transcript" 0 0 "$(mk_agent_event execute-strict "" "$SCRATCH/smp-none.jsonl" "smp07-$$")"
+# 08: assistant 라인 content 가 타 모델 id 를 인용해도 message.model(첫 매치)로 판정 → Rule A ALERT
+test_smp "08-quoted-id-immune" 0 1 "$(mk_agent_event execute-strict "" "$SMP_QUOTE_T" "smp08-$$")"
+
 # ==================== Summary ====================
 echo
 echo "Hook tests: $PASSED / $TOTAL passed"

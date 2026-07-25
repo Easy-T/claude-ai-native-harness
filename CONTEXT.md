@@ -81,6 +81,14 @@ _Avoid_: "단순화 금지"(스코프 최소주의까지 부정하는 오독), "
 알려진 최선 설계 대신 더 쉬운 대안을 **선언 없이** 채택하는 행위. 탈출구는 `DOWNGRADE-DECLARED(사유)` 표면화 + 사용자 승인 — RPI_SKIP과 동형의 의식적 우회 패턴. 열화 자체가 아니라 *무선언*이 결함이다.
 _Avoid_: "타협"(정당한 트레이드오프 선언까지 포함하는 중립어), "간소화"(스코프 축소와 혼동).
 
+### 실행자 하향 위임 (executor downshift)
+fable 세션이 실행자(execute-strict)·탐색자(explore-strict) 위임을 역할×모델 매트릭스의 하위 모델+effort로 디스패치하는 **정적·문서화** 정책(SSOT=docs/ai-context/model-policy.md). 검증자(review-strict)는 대상 아님 — 상속 유지+하향 금지(cross-family §3). 오케스트레이터의 동적 모델 재량이 아니다.
+_Avoid_: "동적 모델 선택"(기각된 재량 — self-pass 우회로), "모델 다운그레이드"(품질 열화 함의 — 이것은 역할 적합 배치).
+
+### 역할×모델 매트릭스 (role-model matrix)
+(세션 모델, ultracode 여부) 2키로 역할(오케스트레이션/구현/탐색/검증)별 모델·effort를 정하는 정적 표. 상향은 항상 허용, 하향은 검증자 금지·실행자는 표 자체가 선언. SSOT=docs/ai-context/model-policy.md.
+_Avoid_: "모델 정책"(범위 불명 — ANTHROPIC_* 라우팅 env 설정과 혼동), "모델 라우팅"(CLIProxy 티어 매핑과 혼동).
+
 ### 핸드오프 복원력 (handoff resilience)
 임의 시점 중단 후 다른 모델·세션이 **머지된 문서만으로**(이 머신의 auto-memory 없이) 작업을 재개할 수 있는 성질. 산출 문서의 self-containment(필요 사실 인라인 재서술)가 성립 조건이며, cold-agent fitness가 검증 수단.
 _Avoid_: "인수인계 문서"(문서 존재만으로 충족되는 듯한 함의 — 재개 *가능성*이 기준), "백업"(상태 보존과 혼동).

@@ -195,3 +195,11 @@ enforce-secret-scan	195-secret-github	2	gen_ess_gh
 enforce-secret-scan	196-secret-slack	2	gen_ess_slk
 enforce-secret-scan	197-secret-privkey	2	gen_ess_pk
 stable-claude-md	198-scm-alert-asserted	alert	gen_scm_alert
+surface-model-policy	01-rule-a-fable-nomodel	0	mk_agent_event
+surface-model-policy	02-rule-a-opus-ok	0	mk_agent_event
+surface-model-policy	03-rule-b-verifier-downshift	0	mk_agent_event
+surface-model-policy	04-rule-b-inherit-ok	0	mk_agent_event
+surface-model-policy	05-nonfable-execute-ok	0	mk_agent_event
+surface-model-policy	06-broken-stdin	0	mk_agent_event
+surface-model-policy	07-no-transcript	0	mk_agent_event
+surface-model-policy	08-quoted-id-immune	0	mk_agent_event
