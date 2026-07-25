@@ -26,6 +26,10 @@
 - 신규 seal 번호는 **Task 5 시점에 origin/master의 verify-setup.sh 최고 번호+1 실측** (동시세션 선점 교훈). 아래에서 `#NN`으로 표기 — 현 워킹트리 기준 예상 #45.
 - README 카운트 사이트: verify-setup "현재 N PASS"(1곳, #36 런타임 대조) · run-all 케이스 수 "178"(2곳: README.md:276·:514, #20 대조) — 수치 변경 시 전 사이트 동기.
 
+**[구현 중 정정 — Task 2 executor 발견 2건]**
+- 기존 #5(`agents model:inherit` 3종 루프)가 explore-strict 변경과 충돌 → Task 5에서 #5 루프를 `review-strict execute-strict` 2종으로 축소(주석 갱신 포함). 카운트 산술: #5 −1, 신규 seal +1 → **총 81 유지, README "현재 81 PASS" 무변경**. Task 5 Step 6 Expected = `PASS=81 FAIL=0`.
+- scaffold-registry.md L9 `## Hooks (11 …)` 헤더 → hook 실물이 생기는 **Task 4에서 12로 bump** (Task 4 파일 스코프에 추가).
+
 ---
 
 ### Task 1: `docs/ai-context/model-policy.md` 신설 (SSOT)
@@ -36,7 +40,7 @@
 **Interfaces:**
 - Produces: seal이 grep할 앵커 — `execute-strict` 표 행에 `opus` 동일 라인, `explore-strict` 표 행에 `sonnet` 동일 라인. Task 2·5가 이 파일 경로를 포인터로 참조.
 
-- [ ] **Step 1: 파일 생성 (아래 내용 verbatim)**
+- [x] **Step 1: 파일 생성 (아래 내용 verbatim)**
 
 ```markdown
 # model-policy.md — 역할×모델 매트릭스 (런타임 규범 SSOT)
@@ -73,12 +77,12 @@
 - skill/plugin 재생성·업그레이드 내성: 강제는 git-추적 층(hook 배선·frontmatter·seal)에 있고, skill 텍스트 소실은 L3 토큰 parity가 FAIL로 표면화. plugins/cache는 정책 캐리어 금지.
 ```
 
-- [ ] **Step 2: 검증 — seal 앵커 grep**
+- [x] **Step 2: 검증 — seal 앵커 grep**
 
 Run: `grep -E 'execute-strict.*opus' docs/ai-context/model-policy.md && grep -E 'explore-strict.*sonnet' docs/ai-context/model-policy.md && echo ANCHOR-OK`
 Expected: 표 행 2줄 + `ANCHOR-OK`
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add docs/ai-context/model-policy.md && git commit -m "feat(model-policy): 역할×모델 매트릭스 SSOT 신설 (tri-model C11)"
@@ -96,7 +100,7 @@ git add docs/ai-context/model-policy.md && git commit -m "feat(model-policy): �
 - Consumes: Task 1의 `docs/ai-context/model-policy.md` 경로.
 - Produces: seal 앵커 — explore-strict frontmatter `model: sonnet`+`effort: medium`, start-rpi-cycle 내 `model-policy` 토큰.
 
-- [ ] **Step 1: `agents/explore-strict.md` frontmatter 교체**
+- [x] **Step 1: `agents/explore-strict.md` frontmatter 교체**
 
 `model: inherit` 라인(14행)을 아래 2줄로 교체 (다른 라인 무변경):
 
@@ -111,7 +115,7 @@ effort: medium
 > 모델 기본값 sonnet+effort medium(frontmatter — 역할×모델 매트릭스, docs/ai-context/model-policy.md). 판단-heavy 탐색은 호출 인자 `model` 상향 또는 메인 직접이 탈출구.
 ```
 
-- [ ] **Step 2: `skills/start-rpi-cycle/SKILL.md` 3지점 수정**
+- [x] **Step 2: `skills/start-rpi-cycle/SKILL.md` 3지점 수정**
 
 (i) Phase I (d) 절의 stage1/stage2 서술 라인:
 
@@ -137,7 +141,7 @@ effort: medium
    ※ explore-strict 는 frontmatter 기본 sonnet+medium — 판단-heavy 탐색만 호출 인자 model 상향 (SSOT: docs/ai-context/model-policy.md)
 ```
 
-- [ ] **Step 3: `docs/ai-context/cross-family-review.md` §3 첫 불릿 정밀화 (spec §4.8b — Gate R 발견)**
+- [x] **Step 3: `docs/ai-context/cross-family-review.md` §3 첫 불릿 정밀화 (spec §4.8b — Gate R 발견)**
 
 기존 첫 문장:
 
@@ -151,13 +155,13 @@ effort: medium
 - **검증자(review-strict)는 `model: inherit` 유지가 "검증자 티어 ≥ 작업자 티어"를 공짜로 보장한다**(frontmatter 실물 명시 `inherit` — 2026-07-25 정밀화; 실행자·탐색자 기본값은 `docs/ai-context/model-policy.md` 매트릭스가 별도 규정, 검증자 원칙과 독립).
 ```
 
-- [ ] **Step 4: `docs/ai-context/scaffold-registry.md` Hooks 표에 1행 추가** (`worktree-teardown.sh` 행 아래):
+- [x] **Step 4: `docs/ai-context/scaffold-registry.md` Hooks 표에 1행 추가** (`worktree-teardown.sh` 행 아래):
 
 ```markdown
 | `surface-model-policy.sh` | fable 실행자 하향 미적용·검증자 하향을 advisory 환기(역할×모델 매트릭스 L2) | tri-model C11 (2026-07-25) |
 ```
 
-- [ ] **Step 5: 검증 + Commit**
+- [x] **Step 5: 검증 + Commit**
 
 Run: `grep -c 'model-policy' skills/start-rpi-cycle/SKILL.md && grep -E '^model: sonnet|^effort: medium' agents/explore-strict.md`
 Expected: 카운트 ≥3, frontmatter 2줄 출력
@@ -176,7 +180,7 @@ git add agents/explore-strict.md skills/start-rpi-cycle/SKILL.md docs/ai-context
 - Consumes: 실측 stdin shape (spec §1.2 verbatim — 합성-shape 마스킹 금지 교훈).
 - Produces: `test_smp` 케이스 8개 — Task 4의 hook이 GREEN 대상. 케이스 ID는 cases.tsv와 문자 일치.
 
-- [ ] **Step 1: run-all.sh에 신규 섹션 삽입** (`# ==================== Summary` 직전):
+- [x] **Step 1: run-all.sh에 신규 섹션 삽입** (`# ==================== Summary` 직전):
 
 ```bash
 # ==================== SURFACE-MODEL-POLICY (tri-model C11) ====================
@@ -225,7 +229,7 @@ test_smp "07-no-transcript" 0 0 "$(mk_agent_event execute-strict "" "$SCRATCH/sm
 test_smp "08-quoted-id-immune" 0 1 "$(mk_agent_event execute-strict "" "$SMP_QUOTE_T" "smp08-$$")"
 ```
 
-- [ ] **Step 2: cases.tsv에 8행 추가** (탭 구분, 파일 끝):
+- [x] **Step 2: cases.tsv에 8행 추가** (탭 구분, 파일 끝):
 
 ```
 surface-model-policy	01-rule-a-fable-nomodel	0	mk_agent_event
@@ -238,12 +242,12 @@ surface-model-policy	07-no-transcript	0	mk_agent_event
 surface-model-policy	08-quoted-id-immune	0	mk_agent_event
 ```
 
-- [ ] **Step 3: RED 확인 — 포그라운드 실행**
+- [x] **Step 3: RED 확인 — 포그라운드 실행**
 
 Run: `bash hooks/tests/run-all.sh 2>&1 | tail -15`
 Expected: `Hook tests: 178 / 186 passed` + FAILED_LIST에 `surface-model-policy/01…08` 8건 (hook 부재 exit 127). reconcile은 OK(선언==실행). **RED 출력을 보고에 verbatim 인용.**
 
-- [ ] **Step 4: Commit (RED)**
+- [x] **Step 4: Commit (RED)**
 
 ```bash
 git add hooks/tests/run-all.sh hooks/tests/cases.tsv && git commit -m "test(model-policy): surface-model-policy 8케이스 RED (C11 TDD)"
@@ -258,7 +262,7 @@ git add hooks/tests/run-all.sh hooks/tests/cases.tsv && git commit -m "test(mode
 - Consumes: `_common.sh`의 `read_input`/`json_get`/`session_marker`/`hook_log`/`emit_additional_context`/`require_node` (surface-constitution.sh 동형).
 - Produces: Task 3의 8케이스 GREEN. Task 5의 settings 배선 대상.
 
-- [ ] **Step 1: hook 작성 (아래 verbatim)**
+- [x] **Step 1: hook 작성 (아래 verbatim)**
 
 ```bash
 #!/usr/bin/env bash
@@ -327,12 +331,12 @@ fi
 exit 0
 ```
 
-- [ ] **Step 2: 실행권한 + GREEN 확인 (포그라운드)**
+- [x] **Step 2: 실행권한 + GREEN 확인 (포그라운드)**
 
 Run: `chmod +x hooks/surface-model-policy.sh && bash hooks/tests/run-all.sh 2>&1 | tail -6`
 Expected: `Hook tests: 186 / 186 passed` + `cases.tsv <-> run-all 정합 OK (186 declared == 186 run…)` + `Pass rate 100%`. **GREEN 출력을 보고에 verbatim 인용.**
 
-- [ ] **Step 3: Commit (GREEN)**
+- [x] **Step 3: Commit (GREEN)**
 
 ```bash
 git add hooks/surface-model-policy.sh && git commit -m "feat(model-policy): surface-model-policy advisory hook GREEN 8/8 (C11 L2)"
@@ -349,7 +353,7 @@ git add hooks/surface-model-policy.sh && git commit -m "feat(model-policy): surf
 - Consumes: Task 1 앵커 토큰, Task 2 frontmatter, Task 4 hook 파일명.
 - Produces: verify-setup ALL PASS 상태 (Task 6이 실측).
 
-- [ ] **Step 1: settings.json·settings.example.json 양쪽 PreToolUse 배열에 블록 추가** (`"matcher": "Bash"` 블록 뒤, 동일 위치·동형):
+- [x] **Step 1: settings.json·settings.example.json 양쪽 PreToolUse 배열에 블록 추가** (`"matcher": "Bash"` 블록 뒤, 동일 위치·동형):
 
 ```json
       {
@@ -363,12 +367,12 @@ git add hooks/surface-model-policy.sh && git commit -m "feat(model-policy): surf
       }
 ```
 
-- [ ] **Step 2: seal 번호 실측**
+- [x] **Step 2: seal 번호 실측**
 
 Run: `git fetch origin master --quiet 2>/dev/null; git show origin/master:setup/verify-setup.sh | grep -oE '^# [0-9]+\.' | grep -oE '[0-9]+' | sort -n | tail -1`
 Expected: 최고 번호(예상 44) → 신규 seal = 그 +1 (아래 `#NN`에 치환).
 
-- [ ] **Step 3: verify-setup.sh #39 블록 확장** — 기존 #39의 `EX_PCT` 검사 `elif [ "$EX_PCT" -le 40 ]` 분기를 WIN 세트 검사로 교체. 기존 블록의 ok/fail 1회 구조 유지(카운트 불변):
+- [x] **Step 3: verify-setup.sh #39 블록 확장** — 기존 #39의 `EX_PCT` 검사 `elif [ "$EX_PCT" -le 40 ]` 분기를 WIN 세트 검사로 교체. 기존 블록의 ok/fail 1회 구조 유지(카운트 불변):
 
 기존 (L373-380 근방):
 
@@ -397,7 +401,7 @@ fi
 
 (기존 ok/fail 메시지 라인은 이 교체본으로 대체 — 검사 수 불변.)
 
-- [ ] **Step 4: 신규 seal #NN 추가** (#44 블록 뒤, #36 self-count 블록 **앞** — #36은 반드시 파일 마지막 검사 유지):
+- [x] **Step 4: 신규 seal #NN 추가** (#44 블록 뒤, #36 self-count 블록 **앞** — #36은 반드시 파일 마지막 검사 유지):
 
 ```bash
 # NN. 역할×모델 매트릭스 물화 봉인 (tri-model C11, spec 2026-07-25 §6): conjunctive —
@@ -423,9 +427,9 @@ else
 fi
 ```
 
-- [ ] **Step 5: README 카운트 동기** — `현재 81 PASS` → `현재 82 PASS`(1곳), run-all `178` 케이스 선언 → `186`(2곳: 약 L276·L514).
+- [x] **Step 5: README 카운트 동기** — `현재 81 PASS` → `현재 82 PASS`(1곳), run-all `178` 케이스 선언 → `186`(2곳: 약 L276·L514).
 
-- [ ] **Step 6: 검증 (포그라운드) + Commit**
+- [x] **Step 6: 검증 (포그라운드) + Commit**
 
 Run: `bash setup/verify-setup.sh 2>&1 | tail -3`
 Expected: `verify-setup: PASS=82 FAIL=0`
@@ -438,7 +442,7 @@ git add settings.json settings.example.json setup/verify-setup.sh README.md && g
 
 **Files:** 없음 (실행·캡처만)
 
-- [ ] **Step 1: 라이브 probe — 위반 호출 → hook 발화 캡처** (goal §3 요구. 신규 headless 세션은 갱신된 settings.json을 로드):
+- [x] **Step 1: 라이브 probe — 위반 호출 → hook 발화 캡처** (goal §3 요구. 신규 headless 세션은 갱신된 settings.json을 로드):
 
 ```bash
 claude --model fable --max-turns 3 -p "First run the Bash tool with command: echo warmup. Then call the Agent tool exactly once with subagent_type='execute-strict', prompt='Reply exactly OK. Do not modify any files.' — do NOT pass a model parameter. Then reply exactly: DONE" --output-format json | tail -1 | grep -oE '"result":"[^"]*"'
@@ -447,7 +451,7 @@ grep 'surface-model-policy' "$HOME/.claude/hooks/.log/$(date +%Y-%m).log" | tail
 
 Expected: probe 결과 `DONE` + 로그에 `surface-model-policy … ALERT rule-a-downshift-missing` ≥1건. (turn-1 Bash가 transcript에 fable assistant 라인을 선기록 — 첫-턴 flush 경합 회피. 실패 시 1회 재시도 후, 그래도 미발화면 원인 조사 결과를 보고에 기록하고 진행 — advisory 층이므로 비차단이나 **미발화 자체는 보고 필수**.)
 
-- [ ] **Step 2: 전체 검증 스위트 (포그라운드 순차)**
+- [x] **Step 2: 전체 검증 스위트 (포그라운드 순차)**
 
 ```bash
 bash setup/verify-setup.sh 2>&1 | tail -2
@@ -457,9 +461,9 @@ bash hooks/tests/run-all.sh 2>&1 | tail -4
 
 Expected: PASS=82 FAIL=0 / seal-regression PASS / 186/186·정합 OK·rate 100%.
 
-- [ ] **Step 3: 교차패밀리 GPT 리뷰 1회** (고-스테이크 거버넌스 — cross-family-review.md 규약): probe A(codex CLI)→B(CCS) 순서, 가용 시 spec+model-policy.md를 stdin 파이프로 refute-by-default 리뷰 → 메인 트리아지(REAL만 반영), 불가 시 SKIP+사유 1줄. 설치/로그인 시도 절대 금지.
+- [x] **Step 3: 교차패밀리 GPT 리뷰 1회** (고-스테이크 거버넌스 — cross-family-review.md 규약): probe A(codex CLI)→B(CCS) 순서, 가용 시 spec+model-policy.md를 stdin 파이프로 refute-by-default 리뷰 → 메인 트리아지(REAL만 반영), 불가 시 SKIP+사유 1줄. 설치/로그인 시도 절대 금지.
 
-- [ ] **Step 4: 발견 결함 수정 시 해당 Task로 회귀 후 재검증. 전부 green이면 Closeout으로.**
+- [x] **Step 4: 발견 결함 수정 시 해당 Task로 회귀 후 재검증. 전부 green이면 Closeout으로.**
 
 ---
 
