@@ -58,8 +58,10 @@ CC 2.1.220, Windows/MSYS, CLIProxy 라우팅(haiku 티어=gpt-5.6-luna) 환경 �
   frontmatter로 표현 불가하므로 L1 규칙+L2 hook이 올바른 자리.
 - 기각 3 — 오케스트레이터 동적 모델 재량: cross-family-review.md §3 기각 사유 유지(self-pass 우회).
   이 spec의 하향은 전부 **정적 표** — 판단 지점이 없다.
-- 기각 4 — PreToolUse에서 tool_input 변조(자동 모델 주입): CC hook은 permissionDecision/
-  additionalContext만 신뢰 가능 — 입력 변조는 미지원 표면. advisory가 상한.
+- 기각 4 — PreToolUse에서 tool_input 변조(자동 모델 주입): CC는 `hookSpecificOutput.updatedInput`으로
+  입력 치환을 **지원**하나(2026-07-26 GPT 리뷰 정정 — 바이너리 실측 확인) 기각 유지. 사유 교체: 자동
+  주입은 ①정당한 선언적 override(per-task sonnet 등)를 hook이 식별 못 해 덮어씀 ②조용한 행동 변경 =
+  silent-mutation 표면(자가-표면화 교리 위반). advisory 환기가 올바른 상한.
 
 ## §3. 정책 매트릭스 (SSOT — `docs/ai-context/model-policy.md`로 증류)
 
@@ -68,20 +70,24 @@ CC 2.1.220, Windows/MSYS, CLIProxy 라우팅(haiku 티어=gpt-5.6-luna) 환경 �
 | 역할 | 담당 agent | 모델 | effort | 근거 |
 |---|---|---|---|---|
 | 오케스트레이션·판단·종합·게이트 해석 | 메인 세션 | 세션 모델 | 세션 effort | Fable의 존재 이유 — 위임 금지 |
-| 구현 (heavy: 코드/TDD/다파일) | execute-strict | **opus** (호출 인자 명시) | ultracode: **high** / 비-ultracode: 상속 | 사용자 확정 "구현은 opus" |
+| 구현 (heavy: 코드/TDD/다파일) | execute-strict | **opus** (fable 세션 한정 호출 인자 명시 — 비-fable 세션은 모드 C 상속) | ultracode: **high** / 비-ultracode: 상속 | 사용자 확정 "구현은 opus" |
 | 구현 (light: 기계적 편집/문서 생성) | execute-strict | **opus** (동일 — sonnet 구현은 선언적 override만) | ultracode: **medium** / 비-ultracode: 상속 | 동상 |
-| 탐색 (읽기 전용 발견·전수조사) | explore-strict | **sonnet** (frontmatter 기본) | **medium** (frontmatter 기본) | 기계적 스코프 탐색 — model 상향은 호출 인자로 허용. effort는 frontmatter 고정(§1.5 제약)이므로 **판단-heavy 탐색은 explore-strict가 아니라 builtin Explore(전부 상속) 또는 메인 직접**이 탈출구 |
-| 검증 (게이트/드리프트/적대) | review-strict | **상속** (변경 금지) | **상속** (하향 금지) | 검증자 티어 ≥ 작업자 (cross-family §3) |
+| 탐색 (읽기 전용 발견·전수조사) | explore-strict | **sonnet** (frontmatter 기본) | **medium** (frontmatter 기본) | 기계적 스코프 탐색 — model 상향은 호출 인자로 허용. effort는 frontmatter 고정(§1.5 제약)이므로 **판단-heavy 탐색은 explore-strict가 아니라 builtin Explore(상속 — 단 CC가 Opus 상한을 걸 수 있어 fable 세션은 fable 미보장, GPT 리뷰 지적) 또는 메인 직접**이 탈출구 |
+| 검증 (게이트/드리프트/적대) | review-strict | **상속** (하향 금지 — 상향 명시는 허용) | **상속** (하향 금지) | 검증자 티어 ≥ **세션**(오케스트레이터) 보장. 실행자를 세션 위로 상향한 경우(예: sonnet 세션+opus 실행)는 검증자<실행자 잔여 — 그때는 검증자도 동반 상향 권고(L1, hook 미검출 수용) |
 | 교차 검증 (고-스테이크 closeout) | GPT (codex CLI/CCS) | 기존 규약 | — | cross-family-review.md 소비, 신설 금지 |
 
 - **상향은 항상 허용**(사유 불요), **하향은 검증자에 한해 금지**·실행자는 이 표 자체가 선언이다.
-  표 밖 하향(예: 구현을 haiku로)은 DOWNGRADE-DECLARED 동형 선언 필요.
+  표 밖 하향(예: 구현을 haiku로)은 DOWNGRADE-DECLARED 동형 선언 필요 — hook Rule A는 부재/fable만
+  감지하므로 haiku 명시 등은 L2 미검출(수용 잔여, L1이 담당; "검증자 금지"와 hook 메시지의
+  DOWNGRADE-DECLARED 언급은 모순 아님 — 금지의 유일 탈출구가 그 선언+사용자 승인이다).
 - 모드 분기: **(A) fable+ultracode** → start-rpi-cycle Phase I (d) Workflow stage1
   `agentType:'execute-strict', model:'opus', effort:'high'|'medium'`(heavy|light — plan task가 코드
   변경/TDD 포함이면 heavy, 순수 문서·기계 편집이면 light), stage2 `agentType:'review-strict'`
   **model/effort 무지정**(상속). goal 원문의 "stage2 GPT 규약 분기" 대안은 **기각(grill 확정)**:
   GPT quota는 사이클당 1회 상한(cross-family §2)인데 stage2는 task마다 발화 — 양립 불가. GPT 검증은
-  closeout 지점 1회 유지. **(B) fable 비-ultracode** → (a)/(b)/(c) 경로에서 execute-strict
+  closeout 지점 1회 유지. **(B) fable 비-ultracode** → (a)/(b)/(c) 세 경로 공통 규칙이되, skill 문구는
+  execute-strict 위임이 실제 발생하는 (a)/(c)에 배치 — (b) executing-plans는 메인 직접 실행이라
+  execute-strict 위임 자체가 없음(경로 명시 차이는 모순 아님, 2026-07-26 리뷰 정정) — execute-strict
   위임 시 `model:'opus'` 명시(effort는 플랫폼 제약으로 상속 — §1.5). **(C) 비-fable 세션** → 현행
   상속 유지. 단 explorer frontmatter 기본값(sonnet+medium)은 전 세션 공유(opus 세션도 이득 — 사용자
   승인 취지). haiku/custom(GPT) 세션에서의 RPIC 사이클은 비권장(검증자 상속이 GPT가 되어 교차패밀리
@@ -114,12 +120,15 @@ CC 2.1.220, Windows/MSYS, CLIProxy 라우팅(haiku 티어=gpt-5.6-luna) 환경 �
 ## §5. L2 hook 설계 — `surface-model-policy.sh` + 배치 원칙 (reload/upgrade 내성)
 
 **배치 원칙 (사용자 지시의 물화)**: 정책의 *강제*는 skill/plugin 재생성·업그레이드에 살아남는 층에만
-둔다 — ① L2 hook은 settings.json(git-추적) 배선 + **라이브 tool_input 관측**이라 skill 텍스트와 무관,
+둔다 — ① L2 hook은 settings 배선(live는 gitignored — **추적본은 settings.example.json**이고 seal #23이
+live↔example hook parity를 별도 강제하므로 live 소실도 표면화) + **라이브 tool_input 관측**이라 skill
+텍스트와 무관,
 ② agents frontmatter는 git-추적이고 plugin 업그레이드가 건드리지 않음, ③ L1 skill 텍스트는 가장 약한
 층이므로 L3 seal의 **토큰 parity가 소실을 표면화**(skill이 재생성되어 정책 문구가 사라지면 seal FAIL),
 ④ plugins/cache는 정책 캐리어로 절대 사용 금지(재생성 가능물 — C7 cksum이 변조만 감시), ⑤ CC 업그레이드로
-hook stdin shape가 변하면: hook은 fail-open(워크플로 무파괴)이고 run-all 픽스처(§7 — 실측 캡처 shape
-기반)가 다음 검증에서 가시적으로 FAIL — 침묵 사멸 없음.
+hook stdin shape가 변하면: hook은 fail-open(워크플로 무파괴). 픽스처는 구-shape 고정이라 shape 변경
+자체는 미검출(GPT 리뷰 정정 — 픽스처가 잡는 건 hook 로직 회귀뿐) → 라이브 shape 드리프트의 관측 지점은
+hook_log ALERT 빈도 소멸(runlog_summary, closeout GAP-003 소비)이며 완전 자동 검출은 수락된 잔여.
 
 **로직** (advisory 전용, 항상 exit 0, `_common.sh` 소비):
 - 입력: stdin JSON에서 `tool_input.subagent_type`·`tool_input.model`·`transcript_path` 파싱.
@@ -131,8 +140,11 @@ hook stdin shape가 변하면: hook은 fail-open(워크플로 무파괴)이고 r
   surface-constitution 패턴).
 - **Rule B (검증자 하향)**: subagent_type==review-strict AND model 인자 존재 AND tier(model) <
   tier(세션) → ALERT + additionalContext "검증자 하향 감지 — DOWNGRADE-DECLARED 필요 (cross-family §3)"
-  (1세션 1회 dedup, 세션 모델 무관 전 세션 적용 — 시나리오 ③도 혜택).
-  tier: fable=4, opus=3, sonnet=2, haiku=1 (custom 미대상).
+  (1세션 1회 dedup, claude-* 세션 전체 적용 — 시나리오 ③도 혜택. haiku/custom 티어의 GPT wire 세션은
+  transcript model이 claude-* 패턴 밖이라 판별 불가 → fail-open 종료 = §3 "GPT 세션 RPIC 비권장"과
+  정합하는 수용 잔여).
+  tier: fable=4, opus=3, sonnet=2, haiku=1 (custom 미대상). 1세션 1회 dedup은 의도 트레이드오프
+  (surface-constitution 동형 — 환기 목적엔 1회로 충분, 위반별 전수 관측은 hook_log가 아닌 회고 몫).
 - 비매칭/비대상 subagent_type → 무출력 no-op. 차단 없음 — goal 지시 "오탐 0 우선, advisory 후퇴".
   차단 승격은 **오탐 0 실증 후 별도 사이클** (이번 사이클 비범위).
 - **커버리지 한계 (정직 공개)**: Workflow `agent()` 내부 스폰은 Agent *도구* 호출이 아니므로 이 hook에
@@ -146,7 +158,9 @@ hook stdin shape가 변하면: hook은 fail-open(워크플로 무파괴)이고 r
 `model: sonnet`+`effort: medium` ③ `agents/execute-strict.md`+`agents/review-strict.md` frontmatter
 `model: inherit` 유지 + **review-strict에 `effort:` 키 부재**(검증자 상속의 물리 앵커) ④
 settings.example.json에 Agent 매처+surface-model-policy.sh 배선 ⑤ start-rpi-cycle SKILL.md에
-model-policy 토큰 존재(skill 재생성 소실 표면화 — §5 원칙 ③). **#39 확장**: 기존 PCT≤40 판정에
+model-policy 토큰 존재(skill 재생성 소실 표면화 — §5 원칙 ③; 토큰은 *존재* 감지이지 규칙 문면 무결성
+검증이 아님 — 문면 훼손·model:'opus' 삭제 등 세부 drift는 미검출 수용 잔여, 전체-재생성=토큰 소실이
+주 위협 모델). **#39 확장**: 기존 PCT≤40 판정에
 `CLAUDE_CODE_AUTO_COMPACT_WINDOW`==1000000 존재를 AND 결합(세트 봉인 — 단독 PCT는 침묵 무효).
 bash grep/파일옵스만(staged-safe — seal 검사는 bash 파일옵스만 교훈).
 

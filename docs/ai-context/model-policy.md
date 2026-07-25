@@ -8,13 +8,13 @@
 | 역할 | agent | 모델 | effort | 비고 |
 |---|---|---|---|---|
 | 오케스트레이션·판단·종합·게이트 해석 | 메인 세션 | 세션 모델 | 세션 effort | 위임 금지 — 플래그십의 존재 이유 |
-| 구현 heavy (코드/TDD/다파일) | execute-strict | **opus** (호출 인자 명시) | ultracode: **high** / 그 외: 상속 | 사용자 확정: 구현은 opus (sonnet/GPT 대비) |
+| 구현 heavy (코드/TDD/다파일) | execute-strict | **opus** (fable 세션 한정 호출 인자 명시 — 비-fable 세션은 §2 모드 C 상속) | ultracode: **high** / 그 외: 상속 | 사용자 확정: 구현은 opus (sonnet/GPT 대비) |
 | 구현 light (기계적 편집·문서 생성) | execute-strict | **opus** (동일) | ultracode: **medium** / 그 외: 상속 | sonnet 구현은 per-task 선언적 override만 |
-| 탐색 (읽기 전용 발견·전수조사) | explore-strict | **sonnet** (frontmatter 기본) | **medium** (frontmatter 기본) | model 상향은 호출 인자로 자유. 판단-heavy 탐색은 builtin Explore(상속) 또는 메인 직접 |
-| 검증 (게이트·드리프트·적대) | review-strict | **상속 — 변경 금지** | **상속 — 하향 금지** | 검증자 티어 ≥ 작업자 (cross-family-review.md §3) |
+| 탐색 (읽기 전용 발견·전수조사) | explore-strict | **sonnet** (frontmatter 기본) | **medium** (frontmatter 기본) | model 상향은 호출 인자로 자유. 판단-heavy 탐색은 builtin Explore(상속 — CC의 Opus 상한 가능성 있음) 또는 메인 직접 |
+| 검증 (게이트·드리프트·적대) | review-strict | **상속 — 하향 금지** (상향 명시는 허용) | **상속 — 하향 금지** | 검증자 티어 ≥ **세션** 보장 (cross-family-review.md §3). 실행자를 세션 위로 상향했다면 검증자도 동반 상향 권고 |
 | 교차 검증 (고-스테이크 closeout) | GPT | cross-family-review.md 규약 그대로 | — | 사이클당 1회 quota — stage별 GPT 검증 기각 |
 
-- **상향은 항상 허용**(사유 불요). **하향**: 검증자 금지 / 실행자·탐색자는 이 표 자체가 선언 — 표 밖 하향(예: 구현을 haiku로)은 DOWNGRADE-DECLARED(사유) 필요.
+- **상향은 항상 허용**(사유 불요). **하향**: 검증자 금지(유일 탈출구 = DOWNGRADE-DECLARED(사유)+사용자 승인) / 실행자·탐색자는 이 표 자체가 선언 — 표 밖 하향(예: 구현을 haiku로, `model:'inherit'`/풀 ID 문자열로 Rule A 우회)은 DOWNGRADE-DECLARED(사유) 필요. hook(L2)은 부재/`fable` 표기만 감지 — 그 외 표기·builtin 에이전트·Workflow 내부 스폰은 L1/L3 몫(수용 잔여).
 - GPT quota 주의: 일상 경량 Claude 작업에 luna 남발 금지 — 경량은 sonnet 우선.
 
 ## 2. 모드 분기
