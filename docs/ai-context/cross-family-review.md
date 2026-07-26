@@ -16,7 +16,8 @@
 
 ## 2. 실행 프로토콜 (가용 시 — 두 경로 공통)
 
-- **stdin 파이프 필수**(인자로 대형 문서 전달 금지 — E2BIG 실사고): `cat <대상문서> | codex exec --sandbox read-only --skip-git-repo-check "<프롬프트>"` 또는 `cat <대상문서> | claude --model <gpt-모델> -p "<프롬프트>"`.
+- **stdin 파이프 필수**(인자로 대형 문서 전달 금지 — E2BIG 실사고): `cat <대상문서> | codex exec -c model_reasoning_effort=xhigh --sandbox read-only --skip-git-repo-check "<프롬프트>"` 또는 `cat <대상문서> | claude --model <gpt-모델> -p "<프롬프트>"`.
+- **리뷰 본호출은 reasoning effort 최대(xhigh)** (2026-07-26 사용자 확정 — 사이클당 1회의 마지막 관문이라 quota 대비 품질 우선): 경로 A는 `-c model_reasoning_effort=xhigh`(실측: 플래그 파싱 확인 — 무효값 400 거부·xhigh 정상). §1 탐지 스모크는 기본 effort 유지(저비용 — 가용 확인만). 경로 B는 별도 제어 지점 없음 — 세션 effortLevel(xhigh) 상속 수용.
 - 경로 A는 반드시 **`--sandbox read-only`**(리뷰어에게 쓰기 권한 불필요 — 최소 권한, Rule-of-Two reader 원칙 동형) + 신뢰 디렉터리 밖은 `--skip-git-repo-check`.
 - **프롬프트 형태**: refute-by-default(칭찬 금지·결함만) · 검사 범주 명시 · **원문 인용 강제**("§번호+정확한 인용 없으면 무효") · 범주에 결함 없으면 "none found" 명시 요구 · 신규 기능/스타일 제안 금지.
 - **★메인 세션 트리아지 필수**: 타 패밀리 발견은 그대로 편입 금지 — 발견마다 원문 실측 대조 후 REAL/기각 판정(첫 실행 14건 중 4건이 스코프 오독). 편입 기준은 Claude 발견과 동일(인용+실측). **GPT는 추가 발견자이지 판정자가 아니다.**

@@ -30,7 +30,7 @@ make_replica() {
   for f in CLAUDE.md README.md SECURITY.md settings.json settings.example.json state.json state.schema.json; do
     [ -f "$SRC/$f" ] && cp -p "$SRC/$f" "$C/$f"
   done
-  for d in hooks setup skills agents commands; do
+  for d in hooks setup skills agents commands workflows; do   # workflows: seal #45 C12 conjunct가 rpi-implement.js 검사
     [ -d "$SRC/$d" ] && cp -a "$SRC/$d" "$C/$d"
   done
   mkdir -p "$C/docs/superpowers/plans"

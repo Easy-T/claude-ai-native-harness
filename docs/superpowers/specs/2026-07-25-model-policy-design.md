@@ -27,6 +27,8 @@ effort), 검증=상속(하향 금지)+GPT 교차패밀리(기존 규약)** 를 �
   이유: 순수 문서·기계 편집(verbatim 쓰기)은 추론 깊이가 품질 상한이 아니라 xhigh 이득 없음 — 사용자
   인용 표의 "일반 코딩=medium"보다도 한 단계 위인 high가 no-regrets 기본. canonical args에 per-task
   `effort` 명시 필드 허용 = 선언적 override(양방향 — max 상향 포함; 명시=선언이므로 DOWNGRADE 규율 정합).
+  **GPT 교차리뷰도 동일 확정(같은 날)**: 리뷰 본호출 `-c model_reasoning_effort=xhigh`(codex 실측 —
+  무효값 400·xhigh OK; 탐지 스모크는 기본 유지) — cross-family-review.md §2에 반영.
 
 ## §1. 실측 사실 (2026-07-25 probe — goal 파일은 gitignored이므로 여기 영구화)
 
