@@ -41,6 +41,12 @@
 | (grill-with-docs) | 도메인 어휘 stress-test — doctor.sh 자동설치(gitignored), 벤더링 | 미추적(설치 산물) |
 | (ccs-delegation) | CCS CLI 위임(로컬 정션, 비추적) — 하네스 게이트 무관 | 미추적 |
 
+## Workflows (1 — `ls workflows/*.js`)
+
+| Workflow | 존재 이유 | 추적 |
+|---|---|---|
+| `rpi-implement.js` | RPIC Phase I (d) canonical 2-stage 파이프라인 — stage1 execute(opus·heavy분기) → stage2 review(상속); 역할×모델 매트릭스의 코드 캐리어 | tri-model C12 (2026-07-26) |
+
 ## Drift Seals (verify-setup.sh #17~#44, −#26 소각 = 27)
 
 거버넌스 사실의 재드리프트를 막는 특정-인스턴스 봉인(안정 앵커 있는 것만; generalized 프레임워크 아님).

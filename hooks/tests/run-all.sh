@@ -967,6 +967,34 @@ test_smp "07-no-transcript" 0 0 "$(mk_agent_event execute-strict "" "$SCRATCH/sm
 # 08: assistant 라인 content 가 타 모델 id 를 인용해도 message.model(첫 매치)로 판정 → Rule A ALERT
 test_smp "08-quoted-id-immune" 0 1 "$(mk_agent_event execute-strict "" "$SMP_QUOTE_T" "smp08-$$")"
 
+# --- Rule C (Workflow 매처, C12 spec §10): 실측 shape verbatim ---
+mk_wf_event() {
+  local body_kind="$1"; local body_val="$2"; local transcript="$3"; local sid="$4"
+  KIND="$body_kind" VAL="$body_val" TP="$transcript" SID="$sid" node -e '
+    const ti = {};
+    ti[process.env.KIND] = process.env.VAL;
+    const o = {session_id:process.env.SID, transcript_path:process.env.TP, cwd:"", permission_mode:"bypassPermissions",
+               effort:{level:"xhigh"}, hook_event_name:"PreToolUse", tool_name:"Workflow", tool_input:ti, tool_use_id:"toolu_x"};
+    console.log(JSON.stringify(o));
+  '
+}
+WF_BAD_SCRIPT="export const meta = {name: 'x', description: 'x'}
+await agent('do it', {agentType: 'execute-strict'})"
+WF_OK_SCRIPT="export const meta = {name: 'x', description: 'x'}
+await agent('do it', {agentType: 'execute-strict', model: 'opus'})"
+WF_SP_BAD=$(mktemp "$SCRATCH/wf-sp-bad-XXXXXX.js"); printf '%s\n' "$WF_BAD_SCRIPT" > "$WF_SP_BAD"
+
+# 09: fable + 인라인 script + execute-strict + model 부재 → Rule C ALERT
+test_smp "09-rule-c-inline-nomodel" 0 1 "$(mk_wf_event script "$WF_BAD_SCRIPT" "$SMP_FABLE_T" "smp09-$$")"
+# 10: fable + 인라인 + model:'opus' 존재 → 무출력
+test_smp "10-rule-c-inline-opus-ok" 0 0 "$(mk_wf_event script "$WF_OK_SCRIPT" "$SMP_FABLE_T" "smp10-$$")"
+# 11: fable + scriptPath 파일에 execute-strict+무model → ALERT
+test_smp "11-rule-c-scriptpath-nomodel" 0 1 "$(mk_wf_event scriptPath "$WF_SP_BAD" "$SMP_FABLE_T" "smp11-$$")"
+# 12: sonnet 세션 → Rule C 비대상 (무출력)
+test_smp "12-rule-c-nonfable-ok" 0 0 "$(mk_wf_event script "$WF_BAD_SCRIPT" "$SMP_SONNET_T" "smp12-$$")"
+# 13: scriptPath 파일 부재 → fail-open 무출력
+test_smp "13-rule-c-scriptpath-missing" 0 0 "$(mk_wf_event scriptPath "$SCRATCH/wf-none.js" "$SMP_FABLE_T" "smp13-$$")"
+
 # ==================== Summary ====================
 echo
 echo "Hook tests: $PASSED / $TOTAL passed"

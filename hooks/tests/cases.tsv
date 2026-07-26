@@ -203,3 +203,8 @@ surface-model-policy	05-nonfable-execute-ok	0	mk_agent_event
 surface-model-policy	06-broken-stdin	0	mk_agent_event
 surface-model-policy	07-no-transcript	0	mk_agent_event
 surface-model-policy	08-quoted-id-immune	0	mk_agent_event
+surface-model-policy	09-rule-c-inline-nomodel	0	mk_wf_event
+surface-model-policy	10-rule-c-inline-opus-ok	0	mk_wf_event
+surface-model-policy	11-rule-c-scriptpath-nomodel	0	mk_wf_event
+surface-model-policy	12-rule-c-nonfable-ok	0	mk_wf_event
+surface-model-policy	13-rule-c-scriptpath-missing	0	mk_wf_event

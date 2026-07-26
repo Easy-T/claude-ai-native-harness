@@ -10,7 +10,34 @@ require_node
 
 INPUT=$(read_input)
 TOOL=$(echo "$INPUT" | json_get 'tool_name')
-[ "$TOOL" = "Agent" ] || exit 0
+case "$TOOL" in Agent|Workflow) ;; *) exit 0 ;; esac
+
+# Rule C — Workflow 경로 (C12 spec §10): fable 세션의 인라인/scriptPath 스크립트가
+# execute-strict 스테이지를 model 토큰 없이 스폰하려는 순간 환기. 텍스트 휴리스틱(정직 공개:
+# 변수 조립·주석 회피는 미검출 — 망각이 위협 모델). execute-strict 부재 스크립트는 무발화(오탐 0).
+if [ "$TOOL" = "Workflow" ]; then
+  WF_TEXT=$(echo "$INPUT" | json_get 'tool_input.script')
+  if [ -z "$WF_TEXT" ]; then
+    WF_SP=$(echo "$INPUT" | json_get 'tool_input.scriptPath')
+    { [ -n "$WF_SP" ] && [ -f "$WF_SP" ]; } && WF_TEXT=$(head -c 262144 "$WF_SP" 2>/dev/null) || WF_TEXT=""
+  fi
+  [ -n "$WF_TEXT" ] || exit 0
+  printf '%s' "$WF_TEXT" | grep -q "execute-strict" || exit 0
+  printf '%s' "$WF_TEXT" | grep -qE "model[[:space:]]*:" && exit 0
+  TRANSCRIPT=$(echo "$INPUT" | json_get 'transcript_path')
+  SESSION_ID=$(echo "$INPUT" | json_get 'session_id'); [ -z "$SESSION_ID" ] && SESSION_ID="unknown"
+  { [ -n "$TRANSCRIPT" ] && [ -f "$TRANSCRIPT" ]; } || exit 0
+  WF_SESSION_MODEL=$(tail -c 200000 "$TRANSCRIPT" 2>/dev/null | awk '
+    /"type":"assistant"/ && match($0, /"model":"claude-[a-z0-9.-]+"/) { m = substr($0, RSTART+9, RLENGTH-10) }
+    END { if (m != "") print m }')
+  case "$WF_SESSION_MODEL" in claude-fable-*) ;; *) exit 0 ;; esac
+  MARKER="$(session_marker model-policy-c "$SESSION_ID")"
+  [ -f "$MARKER" ] && exit 0
+  touch "$MARKER" 2>/dev/null || true
+  hook_log "surface-model-policy" "workflow:execute-strict-nomodel" "ALERT" "rule-c-workflow-downshift-missing"
+  emit_additional_context "[model-policy] Workflow 스크립트가 execute-strict 스테이지를 model 지정 없이 스폰합니다 — fable 세션의 구현 스테이지는 model:'opus' 고정이 정책(canonical: workflows/rpi-implement.js를 scriptPath로 사용 권장). SSOT: docs/ai-context/model-policy.md §10 (advisory · 1세션 1회 · 차단 아님)"
+  exit 0
+fi
 
 SUB=$(echo "$INPUT" | json_get 'tool_input.subagent_type')
 case "$SUB" in execute-strict|review-strict) ;; *) exit 0 ;; esac

@@ -119,7 +119,8 @@ plan 상단 헤더 주입 (writing-plans 표준 헤더 위에):
 - (c) execute-strict 직접 위임 — 단순 task에 한해
 - (d) **ultracode Workflow 구동** (ultracode ON일 때만 표면 — OFF면 이 옵션 비활성, 항상-on 권유 없음) —
       Phase I 한정(R/Closeout 병렬화는 ceremony라 제외). plan task를 canonical 2-stage 파이프라인으로:
-      stage1 `agentType='execute-strict', model:'opus', effort:'high'`(heavy: 코드/TDD) 또는 `effort:'medium'`(light: 순수 문서·기계 편집) → stage2 `agentType='review-strict'` **model/effort 무지정**(상속 — 검증자 하향 금지). (역할×모델 매트릭스 SSOT: docs/ai-context/model-policy.md)
+      stage1 `agentType='execute-strict', model:'opus', effort:'xhigh'`(heavy: 코드/TDD) 또는 `effort:'high'`(light: 순수 문서·기계 편집 — Opus 5 기본값 밑으로 불가; per-task `effort` 필드로 max 포함 선언적 override) → stage2 `agentType='review-strict'` **model/effort 무지정**(상속 — 검증자 하향 금지). (역할×모델 매트릭스 SSOT: docs/ai-context/model-policy.md)
+      ※ canonical 캐리어: Workflow({scriptPath: '~/.claude/workflows/rpi-implement.js', args: [task 배열]}) 사용 권장 — 인라인 스크립트 작성 시에도 동일 규약(stage1 opus·stage2 무지정) 준수 (spec §10).
       ※ 두 스테이지 모두 **schema 금지** — 제약된 wrapper agentType은 StructuredOutput 부재로 schema와 함께 실패 ([[feedback_workflow_agenttype_schema]] 교훈; schema 복원 유혹 금지).
       ※ wrapper는 self-spawn 불가 → execute→verify는 반드시 별도 2 스테이지(한 에이전트가 둘 다 못 함).
       ※ **데이터 의존(load-bearing):** stage2(review-strict는 읽기전용)는 stage1이 산출한 변경(diff/수정 파일)을 context_paths로 **반드시 받아** 검증. 순서만 맞고 stage1 산출을 안 먹이면 stale·빈 상태를 검증해 false PASS — pipeline의 prevResult + 수정 파일 경로를 stage2 context_paths에 명시 전달.

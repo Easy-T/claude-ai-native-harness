@@ -242,6 +242,9 @@ grep -qE '"matcher":[[:space:]]*"Agent\|Workflow"' "$HOME/.claude/settings.examp
 
 **수용 잔여 (Gate P unknowns 판단)**: seal #45 conjunct 확장에 seal-regression 변이 케이스 미추가 — C11의 #45 신설 때와 동일 판단(대표-변이 3종 체제 유지, #45는 conjunctive grep이라 vacuous-PASS 위험이 낮음). 필요 시 후속 사이클.
 
+**[구현 중 정정 — 사용자 지시 2026-07-26 (T4 실행 중 수신): effort 품질-우선 상향]**
+- 구현 stage effort: heavy `high`→**`xhigh`**, light `medium`→**`high`** + canonical args에 per-task `effort` 선언 필드(max 포함 양방향 override). 근거=spec §0 신규 항목(Opus 5 공식 docs: 에이전트 코딩 xhigh 권장·기본 high; 종전 값은 비-ultracode 상속(xhigh/max)보다 낮아지는 역전 결함). 적용 지점: rpi-implement.js(effort 분기+주석) · model-policy.md 매트릭스 2행+§2(A) · SKILL.md (d) 절 · **seal #45 앵커 `effort: t\.heavy` 정규식은 형태 불변**(분기 표현식만 교체라 `effort: t.heavy ?` 유지 — conjunct 무변경) · 픽스처 무변경(Rule C는 model 토큰만 검사 — effort 비검사라 5케이스 그대로). T5 검증 전 delta 커밋으로 적용(워크플로 T4 완주 후 — stage2 read 경합 회피).
+
 ## Closeout 체크리스트
 
 - [ ] 브랜치 `workflow-model-governance` → PR (MERGE_POLICY: wait — 머지는 사용자 승인)

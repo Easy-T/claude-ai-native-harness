@@ -19,6 +19,14 @@ effort), 검증=상속(하향 금지)+GPT 교차패밀리(기존 규약)** 를 �
   ③에도 이득이면 적용 허용(예: explorer 하향, GPT closeout 리뷰 — 후자는 기존 규약이 이미 세션-모델 무관).
 - **reload/upgrade 내성** (사용자 지시 2026-07-25): skill/plugin은 재생성·업그레이드될 수 있다 —
   강제는 skill 텍스트에만 의존하면 안 된다. §5 배치 원칙 참조.
+- **effort 품질-우선 상향** (사용자 지시 2026-07-26, C12 T4 실행 중 — 비용 감수·"결과물이 완벽해야"):
+  ultracode 구현 stage effort를 heavy `high`→**`xhigh`** / light `medium`→**`high`**(Opus 5 기본값)로
+  상향. 근거(공식 docs): Opus 5 기본 high·에이전트 코딩/멀티파일 대공사 xhigh·비용 무관 작업 max,
+  xhigh까지 effort 증가가 결과 향상으로 이어짐. 종전 high/medium 하드코딩은 비-ultracode 경로(세션
+  effort xhigh/max 상속)보다 낮아지는 **역전 결함**이었음(발견 공로: 사용자). light를 xhigh로 안 올리는
+  이유: 순수 문서·기계 편집(verbatim 쓰기)은 추론 깊이가 품질 상한이 아니라 xhigh 이득 없음 — 사용자
+  인용 표의 "일반 코딩=medium"보다도 한 단계 위인 high가 no-regrets 기본. canonical args에 per-task
+  `effort` 명시 필드 허용 = 선언적 override(양방향 — max 상향 포함; 명시=선언이므로 DOWNGRADE 규율 정합).
 
 ## §1. 실측 사실 (2026-07-25 probe — goal 파일은 gitignored이므로 여기 영구화)
 
@@ -70,8 +78,8 @@ CC 2.1.220, Windows/MSYS, CLIProxy 라우팅(haiku 티어=gpt-5.6-luna) 환경 �
 | 역할 | 담당 agent | 모델 | effort | 근거 |
 |---|---|---|---|---|
 | 오케스트레이션·판단·종합·게이트 해석 | 메인 세션 | 세션 모델 | 세션 effort | Fable의 존재 이유 — 위임 금지 |
-| 구현 (heavy: 코드/TDD/다파일) | execute-strict | **opus** (fable 세션 한정 호출 인자 명시 — 비-fable 세션은 모드 C 상속) | ultracode: **high** / 비-ultracode: 상속 | 사용자 확정 "구현은 opus" |
-| 구현 (light: 기계적 편집/문서 생성) | execute-strict | **opus** (동일 — sonnet 구현은 선언적 override만) | ultracode: **medium** / 비-ultracode: 상속 | 동상 |
+| 구현 (heavy: 코드/TDD/다파일) | execute-strict | **opus** (fable 세션 한정 호출 인자 명시 — 비-fable 세션은 모드 C 상속) | ultracode: **xhigh** / 비-ultracode: 상속 | 사용자 확정 "구현은 opus"+effort 품질-우선(§0) |
+| 구현 (light: 기계적 편집/문서 생성) | execute-strict | **opus** (동일 — sonnet 구현은 선언적 override만) | ultracode: **high** / 비-ultracode: 상속 | 동상. per-task `effort` 명시(max 포함)=선언적 override |
 | 탐색 (읽기 전용 발견·전수조사) | explore-strict | **sonnet** (frontmatter 기본) | **medium** (frontmatter 기본) | 기계적 스코프 탐색 — model 상향은 호출 인자로 허용. effort는 frontmatter 고정(§1.5 제약)이므로 **판단-heavy 탐색은 explore-strict가 아니라 builtin Explore(상속 — 단 CC가 Opus 상한을 걸 수 있어 fable 세션은 fable 미보장, GPT 리뷰 지적) 또는 메인 직접**이 탈출구 |
 | 검증 (게이트/드리프트/적대) | review-strict | **상속** (하향 금지 — 상향 명시는 허용) | **상속** (하향 금지) | 검증자 티어 ≥ **세션**(오케스트레이터) 보장. 실행자를 세션 위로 상향한 경우(예: sonnet 세션+opus 실행)는 검증자<실행자 잔여 — 그때는 검증자도 동반 상향 권고(L1, hook 미검출 수용) |
 | 교차 검증 (고-스테이크 closeout) | GPT (codex CLI/CCS) | 기존 규약 | — | cross-family-review.md 소비, 신설 금지 |
@@ -214,8 +222,9 @@ ad-hoc 워크플로 스크립트가 `agent()`를 model 없이 부르면 메인�
 **해소 3층 (정책 자체는 §3 불변 — 캐리어 확장)**:
 1. **canonical 구현 워크플로** `workflows/rpi-implement.js` (git-추적, 신규 디렉터리): (d) 경로의
    2-stage 파이프라인을 **코드로 고정** — stage1 `agentType:'execute-strict', model:'opus',
-   effort: task.heavy?'high':'medium'` / stage2 `agentType:'review-strict'` model·effort 무지정.
-   `args` = task 배열 `[{title, promptVerbatim, files[], successCriteria, heavy, worktree?}]`.
+   effort: task.effort ?? (task.heavy?'xhigh':'high')` (§0 품질-우선 상향; per-task effort=선언적
+   override, max 포함) / stage2 `agentType:'review-strict'` model·effort 무지정.
+   `args` = task 배열 `[{title, promptVerbatim, files[], successCriteria, heavy, effort?, worktree?}]`.
    TDD-verbatim(stage1=promptVerbatim 원문)·stage2 데이터 의존(stage1 diff+files 주입)·RED/GREEN 증거
    요구·schema 금지·같은-파일 task는 worktree 플래그 — start-rpi-cycle (d)의 5개 ※규칙을 코드에 물화.
    (d)는 이 파일을 `scriptPath`로 호출 — **재생성·기억 의존 제거**. 스크립트 자체가 오염되면 L3가 잡는다.
