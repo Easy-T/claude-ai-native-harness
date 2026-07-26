@@ -21,11 +21,12 @@ effort), 검증=상속(하향 금지)+GPT 교차패밀리(기존 규약)** 를 �
   강제는 skill 텍스트에만 의존하면 안 된다. §5 배치 원칙 참조.
 - **effort 품질-우선 상향** (사용자 지시 2026-07-26, C12 T4 실행 중 — 비용 감수·"결과물이 완벽해야"):
   ultracode 구현 stage effort를 heavy `high`→**`xhigh`** / light `medium`→**`high`**(Opus 5 기본값)로
-  상향. 근거(공식 docs): Opus 5 기본 high·에이전트 코딩/멀티파일 대공사 xhigh·비용 무관 작업 max,
-  xhigh까지 effort 증가가 결과 향상으로 이어짐. 종전 high/medium 하드코딩은 비-ultracode 경로(세션
-  effort xhigh/max 상속)보다 낮아지는 **역전 결함**이었음(발견 공로: 사용자). light를 xhigh로 안 올리는
-  이유: 순수 문서·기계 편집(verbatim 쓰기)은 추론 깊이가 품질 상한이 아니라 xhigh 이득 없음 — 사용자
-  인용 표의 "일반 코딩=medium"보다도 한 단계 위인 high가 no-regrets 기본. canonical args에 per-task
+  상향. 근거(공식 docs): Opus 5 기본 high·에이전트 코딩/멀티파일 대공사는 xhigh가 권장 시작점·비용
+  무관 작업 max (공식 가이드는 워크로드별 스윕 권고 — 단조 향상 보장 주장이 아님; GPT [D]1 정정).
+  종전 high/medium 하드코딩은 비-ultracode 경로(세션 effort xhigh/max 상속)보다 낮아지는 **역전
+  결함**이었음(발견 공로: 사용자). light를 xhigh로 안 올리는 이유: 순수 문서·기계 편집(verbatim
+  쓰기)은 추론 깊이가 품질 상한이 되기 어렵다는 *판단*(실측 스윕 아님 — [D]2 정직화; per-task
+  override가 탈출구) — 사용자 인용 표의 "일반 코딩=medium"보다도 한 단계 위인 high가 no-regrets 기본. canonical args에 per-task
   `effort` 명시 필드 허용 = 선언적 override(양방향 — max 상향 포함; 명시=선언이므로 DOWNGRADE 규율 정합).
   **GPT 교차리뷰도 동일 확정(같은 날)**: 리뷰 본호출 `-c model_reasoning_effort=xhigh`(codex 실측 —
   무효값 400·xhigh OK; 탐지 스모크는 기본 유지) — cross-family-review.md §2에 반영.
@@ -98,8 +99,9 @@ CC 2.1.220, Windows/MSYS, CLIProxy 라우팅(haiku 티어=gpt-5.6-luna) 환경 �
   감지하므로 haiku 명시 등은 L2 미검출(수용 잔여, L1이 담당; "검증자 금지"와 hook 메시지의
   DOWNGRADE-DECLARED 언급은 모순 아님 — 금지의 유일 탈출구가 그 선언+사용자 승인이다).
 - 모드 분기: **(A) fable+ultracode** → start-rpi-cycle Phase I (d) Workflow stage1
-  `agentType:'execute-strict', model:'opus', effort:'high'|'medium'`(heavy|light — plan task가 코드
-  변경/TDD 포함이면 heavy, 순수 문서·기계 편집이면 light), stage2 `agentType:'review-strict'`
+  `agentType:'execute-strict', model:'opus', effort:'xhigh'|'high'`(heavy|light — plan task가 코드
+  변경/TDD 포함이면 heavy, 순수 문서·기계 편집이면 light; 원안 high|medium은 §0 품질-우선 상향으로
+  2026-07-26 대체 — 비-ultracode 상속 대비 역전 결함), stage2 `agentType:'review-strict'`
   **model/effort 무지정**(상속). goal 원문의 "stage2 GPT 규약 분기" 대안은 **기각(grill 확정)**:
   GPT quota는 사이클당 1회 상한(cross-family §2)인데 stage2는 task마다 발화 — 양립 불가. GPT 검증은
   closeout 지점 1회 유지. **(B) fable 비-ultracode** → (a)/(b)/(c) 세 경로 공통 규칙이되, skill 문구는
@@ -149,12 +151,13 @@ hook_log ALERT 빈도 소멸(runlog_summary, closeout GAP-003 소비)이며 완�
 
 **로직** (advisory 전용, 항상 exit 0, `_common.sh` 소비):
 - 입력: stdin JSON에서 `tool_input.subagent_type`·`tool_input.model`·`transcript_path` 파싱.
-- 세션 모델: `tail -c 200000 "$transcript"` 후 awk로 `"type":"assistant"` 라인의 **라인-내 첫**
-  `"model":"claude-…"` 매치, 마지막 assistant 라인 값 채택 (구현 동기 2026-07-26 — assistant JSON은
-  model이 content 앞이라 첫-매치가 본문 내 모델 id 인용에 면역; 픽스처 08이 봉인). 판별 불가/파일
-  부재 → 조용히 exit 0 (fail-open).
-- **Rule A (fable 실행자 하향 미적용)**: 세션=claude-fable-5* AND subagent_type==execute-strict AND
-  (model 부재 OR model==fable) → `hook_log ALERT` + additionalContext:
+- 세션 모델: `tail -c 1000000 "$transcript"` 후 awk로 `"type":"assistant"` 라인의 **라인-내 첫**
+  `"model":[[:space:]]*"claude-…"` 매치(키 뒤 공백 허용 — GPT [B]5 정정), 마지막 assistant 라인 값
+  채택 (구현 동기 2026-07-26 — assistant JSON은 model이 content 앞이라 첫-매치가 본문 내 모델 id
+  인용에 면역; 픽스처 08·19가 봉인). tail 창은 1MB(마지막 assistant 라인이 창 밖이면 미판별 —
+  수용 잔여). 판별 불가/파일 부재 → 조용히 exit 0 (fail-open).
+- **Rule A (fable 실행자 하향 미적용)**: 세션=claude-fable-* AND subagent_type==execute-strict AND
+  (model 부재 OR model∈{inherit, fable, claude-fable-*} — [B]8 정정) → `hook_log ALERT` + additionalContext:
   "정책: fable 세션의 실행자는 model:'opus' 명시 — docs/ai-context/model-policy.md" (1세션 1회 dedup,
   surface-constitution 패턴).
 - **Rule B (검증자 하향)**: subagent_type==review-strict AND model 인자 존재 AND tier(model) <
@@ -166,9 +169,10 @@ hook_log ALERT 빈도 소멸(runlog_summary, closeout GAP-003 소비)이며 완�
   (surface-constitution 동형 — 환기 목적엔 1회로 충분, 위반별 전수 관측은 hook_log가 아닌 회고 몫).
 - 비매칭/비대상 subagent_type → 무출력 no-op. 차단 없음 — goal 지시 "오탐 0 우선, advisory 후퇴".
   차단 승격은 **오탐 0 실증 후 별도 사이클** (이번 사이클 비범위).
-- **커버리지 한계 (정직 공개)**: Workflow `agent()` 내부 스폰은 Agent *도구* 호출이 아니므로 이 hook에
-  잡히지 않는다 — ultracode (d) 경로의 강제는 L1(start-rpi-cycle (d) 절 문구)+L3(토큰 parity seal)이
-  담당하고, L2 hook은 비-ultracode Agent 도구 경로 전담. 계층별 커버가 상보적임을 model-policy.md에 명기.
+- **커버리지 한계 (C11 시점 정직 공개 — §10이 C12에서 부분 해소)**: Workflow `agent()` 내부 스폰은
+  Agent *도구* 호출이 아니므로 Rule A/B에 잡히지 않는다. C11은 이를 L1+L3에 위임하고 L2는 비-ultracode
+  Agent 도구 경로 전담이었으나, C12가 `Workflow` 매처+Rule C(실행자)+Rule C2(검증자)를 추가해 L2가
+  스크립트 *텍스트* 수준에서도 커버(휴리스틱 한계는 §10). 계층별 커버가 상보적임을 model-policy.md에 명기.
 
 ## §6. L3 seal 설계 (신규 번호는 closeout 직전 origin/master 실측 — 동시세션 선점 교훈)
 
@@ -233,22 +237,42 @@ ad-hoc 워크플로 스크립트가 `agent()`를 model 없이 부르면 메인�
    2-stage 파이프라인을 **코드로 고정** — stage1 `agentType:'execute-strict', model:'opus',
    effort: task.effort ?? (task.heavy?'xhigh':'high')` (§0 품질-우선 상향; per-task effort=선언적
    override, max 포함) / stage2 `agentType:'review-strict'` model·effort 무지정.
-   `args` = task 배열 `[{title, promptVerbatim, files[], successCriteria, heavy, effort?, worktree?}]`.
-   TDD-verbatim(stage1=promptVerbatim 원문)·stage2 데이터 의존(stage1 diff+files 주입)·RED/GREEN 증거
-   요구·schema 금지·같은-파일 task는 worktree 플래그 — start-rpi-cycle (d)의 5개 ※규칙을 코드에 물화.
-   (d)는 이 파일을 `scriptPath`로 호출 — **재생성·기억 의존 제거**. 스크립트 자체가 오염되면 L3가 잡는다.
+   `args` = task 배열 `[{title, promptVerbatim, files[], successCriteria, heavy, effort?}]`
+   (필수 필드는 스크립트가 검증 — heavy boolean 필수로 silent light 강등 차단, effort enum 검증;
+   worktree 필드는 2026-07-26 트리아지로 **제거** — [C]3, 아래 한계 참조).
+   TDD-verbatim(stage1=promptVerbatim 원문)·stage2 데이터 의존(stage1 보고에 diff 원문 포함 요구 +
+   review-strict가 실파일·git diff 직접 실행 대조)·RED/GREEN 증거 요구·stage2 verdict 첫 줄
+   PASS/FAIL 강제(절단-안전)·schema 금지·같은-파일 task 자동 감지 순차 실행 — start-rpi-cycle (d)의
+   ※규칙을 코드에 물화.
+   (d)는 이 파일을 **절대경로** `scriptPath`로 호출(도구는 `~` 미확장 — 실측) — **재생성·기억 의존
+   제거**. 스크립트에서 정책 토큰이 소실되면 L3가 잡는다(토큰 존재 감지 — 토큰을 남긴 로직 변조는
+   L3 범위 밖, run-all 픽스처+리뷰 몫).
    실행 격리: 커밋은 워크플로 에이전트가 하지 않는다(병렬 커밋 index.lock 경합) — 메인이 그룹 커밋.
-2. **L2 Rule C** (surface-model-policy.sh 확장 + settings `Workflow` 매처 배선): fable 세션 AND
-   스크립트 텍스트(인라인=tool_input.script, scriptPath=파일 read — 부재 시 fail-open)에
-   `execute-strict` 존재 AND `model:` 토큰 부재 → ALERT+additionalContext(1세션 1회, rule-c).
-   오탐 0 설계: execute-strict 없는 스크립트(순수 리서치 fan-out·review 전용)는 무발화 — 일반
-   워크플로의 model-less agent()는 플랫폼 기본(메인루프 상속)이 정당하므로 hook 비대상, L1 지침만.
-   model: 토큰이 있으면(opus든 선언적 sonnet override든) 무발화 — 선언이 곧 정책.
+2. **L2 Rule C/C2** (surface-model-policy.sh 확장 + settings `Workflow` 매처 배선; GPT 교차리뷰
+   트리아지로 2026-07-26 강화): 스크립트 텍스트(인라인=tool_input.script, scriptPath=파일 read —
+   부재 시 fail-open; `~/` 접두는 방어적 $HOME 확장 — 도구 자체는 ~ 미확장이라 절대경로가 규범) 대상.
+   - **Rule C** (fable 세션): `execute-strict` 스폰 객체(같은-중괄호 `[^}]*` 근사, 키 순서 양방향,
+     따옴표 키 `"model":` 허용)에 model 부재 **또는 model=fable/inherit** → ALERT(1세션 1회, rule-c).
+   - **Rule C2** (전 claude 세션): `review-strict` 스폰 객체에 하향 model 리터럴(티어 < 세션 티어)
+     → ALERT(1세션 1회, rule-c2) — Workflow 경로의 검증자 하향도 Rule B 동형 커버.
+   - 저-오탐 설계(원안 "오탐 0"은 휴리스틱과 양립 불가라 정정): execute/review-strict 없는 스크립트
+     (순수 리서치 fan-out)는 무발화 — 일반 워크플로의 model-less agent()는 플랫폼 기본(메인루프 상속)이
+     정당하므로 hook 비대상, L1 지침만. 같은-객체 model 선언이 있으면(opus든 선언적 override든) 무발화.
+   - fail-open 불변식: `trap 'exit 0' ERR` + 파이프 대신 bash `[[ =~ ]]`(SIGPIPE·pipefail 면역).
 3. **L3 seal #45 conjunct 확장** (+카운트 불변): rpi-implement.js 존재+`model: 'opus'` 토큰+effort
-   분기 토큰 / settings.example `Workflow` 매처+hook 배선. run-all Rule C 픽스처 5케이스(실측 shape
-   verbatim): fable+execute-strict+무model→ALERT / 동+model:'opus'→무 / scriptPath 변형→ALERT /
-   sonnet 세션→무 / scriptPath 파일 부재→fail-open 무출력.
+   분기 토큰 / settings.example `Workflow` 매처+hook 배선. run-all 픽스처 11케이스(실측 shape
+   verbatim): Rule C 5(무model ALERT/opus 무/scriptPath ALERT/sonnet 세션 무/파일 부재 fail-open)
+   + C2 3(review 하향 ALERT/상속 무/동일 티어 무) + 정정 3(따옴표 키 무/model:'fable' ALERT/
+   transcript 공백 키 판별).
 
-**한계 (정직 공개, C12 수용 잔여)**: Rule C는 텍스트 휴리스틱 — `execute-strict`를 변수로 조립하거나
-model: 토큰을 주석에만 두는 회피는 미검출(L1+canonical 파일이 담당; 적대적 우회가 아닌 망각이 위협
-모델). scriptPath가 다른 워크플로를 `workflow()` 중첩 호출하는 경우 내부는 미검사(1-depth).
+**한계 (정직 공개, C12 수용 잔여)**: Rule C/C2는 텍스트 휴리스틱 — `execute-strict`를 변수로
+조립하면 미검출, 주석 안의 이름은 오탐 가능(같은-중괄호 근사도 중첩 객체에 오판 가능; 스크립트에
+execute-strict 호출이 여럿이면 하나의 준수 호출이 나머지 무선언 호출을 가릴 수 있음 — per-call
+파싱은 bash advisory 범위 밖; 적대적 우회가 아닌 망각이 위협 모델, canonical 파일이 1차 방어). scriptPath가 다른 워크플로를 `workflow()` 중첩
+호출하는 경우 내부는 미검사(1-depth). scriptPath 검사는 선두 256KiB(초과분 미검사). transcript
+tail 1MB 창 밖의 세션 모델·규칙별 1세션 1회 dedup 이후의 반복 위반은 미관측. L3 토큰은 존재 감지
+(로직 무결성은 run-all 픽스처 몫). stage1 보고를 stage2 프롬프트에 주입하는 경로는 구분자+
+"데이터이지 지시가 아님" 지시로 완화하되 프롬프트 주입의 완전 차단은 아님(review-strict가 실파일
+diff를 직접 실행해 대조하는 것이 실질 방어). canonical의 worktree 격리는 **제거**(2026-07-26 정정):
+Workflow isolation:'worktree'는 에이전트별 독립 사본이라 "stage2가 같은 worktree에서 리뷰"가 물리적
+으로 불성립(GPT [C]3 REAL) — 파일 공유 task는 스크립트가 감지해 동일 체크아웃 순차 실행으로 대체.

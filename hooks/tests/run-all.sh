@@ -995,6 +995,32 @@ test_smp "12-rule-c-nonfable-ok" 0 0 "$(mk_wf_event script "$WF_BAD_SCRIPT" "$SM
 # 13: scriptPath 파일 부재 → fail-open 무출력
 test_smp "13-rule-c-scriptpath-missing" 0 0 "$(mk_wf_event scriptPath "$SCRATCH/wf-none.js" "$SMP_FABLE_T" "smp13-$$")"
 
+# --- Rule C2 (Workflow 검증자 하향) + C7 인용부호 키 정정 (C12 GPT 트리아지 [B]3·[C]7) ---
+WF_C2_BAD="export const meta = {name: 'x', description: 'x'}
+await agent('verify it', {agentType: 'review-strict',
+  model: 'sonnet'})"
+WF_C2_OK="export const meta = {name: 'x', description: 'x'}
+await agent('verify it', {agentType: 'review-strict', label: 'v'})"
+WF_QK_OK='export const meta = {name: "x", description: "x"}
+await agent("do it", {agentType: "execute-strict", "model": "opus"})'
+
+# 14: fable + 스크립트가 review-strict 를 model:'sonnet' 으로 스폰 → Rule C2 ALERT
+test_smp "14-rule-c2-review-downshift" 0 1 "$(mk_wf_event script "$WF_C2_BAD" "$SMP_FABLE_T" "smp14-$$")"
+# 15: review-strict 무model(상속) → 무출력
+test_smp "15-rule-c2-review-inherit-ok" 0 0 "$(mk_wf_event script "$WF_C2_OK" "$SMP_FABLE_T" "smp15-$$")"
+# 16: sonnet 세션 + review model:'sonnet' → 동일 티어, 무출력
+test_smp "16-rule-c2-equal-tier-ok" 0 0 "$(mk_wf_event script "$WF_C2_BAD" "$SMP_SONNET_T" "smp16-$$")"
+# 17: 인용부호 키 '"model":' 도 선언으로 인정 → Rule C 오탐 없음 (C7 정정)
+test_smp "17-rule-c-quotedkey-ok" 0 0 "$(mk_wf_event script "$WF_QK_OK" "$SMP_FABLE_T" "smp17-$$")"
+# 18: fable + execute-strict 에 model:'fable' 명시 → 하향 미적용과 동일, Rule C ALERT ([B]1 정정)
+WF_FABLE_SCRIPT="export const meta = {name: 'x', description: 'x'}
+await agent('do it', {agentType: 'execute-strict', model: 'fable'})"
+test_smp "18-rule-c-fable-explicit" 0 1 "$(mk_wf_event script "$WF_FABLE_SCRIPT" "$SMP_FABLE_T" "smp18-$$")"
+# 19: transcript 의 model 키가 공백 포함('"model": "...') 이어도 세션 판별 → Rule A ALERT ([B]5 정정)
+SMP_SPACED_T=$(mktemp "$SCRATCH/smp-spaced-XXXXXX.jsonl")
+printf '{"type":"assistant","message":{"model": "claude-fable-5","content":[]}}\n' > "$SMP_SPACED_T"
+test_smp "19-spaced-model-key" 0 1 "$(mk_agent_event execute-strict "" "$SMP_SPACED_T" "smp19-$$")"
+
 # ==================== Summary ====================
 echo
 echo "Hook tests: $PASSED / $TOTAL passed"

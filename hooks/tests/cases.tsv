@@ -208,3 +208,9 @@ surface-model-policy	10-rule-c-inline-opus-ok	0	mk_wf_event
 surface-model-policy	11-rule-c-scriptpath-nomodel	0	mk_wf_event
 surface-model-policy	12-rule-c-nonfable-ok	0	mk_wf_event
 surface-model-policy	13-rule-c-scriptpath-missing	0	mk_wf_event
+surface-model-policy	14-rule-c2-review-downshift	0	mk_wf_event
+surface-model-policy	15-rule-c2-review-inherit-ok	0	mk_wf_event
+surface-model-policy	16-rule-c2-equal-tier-ok	0	mk_wf_event
+surface-model-policy	17-rule-c-quotedkey-ok	0	mk_wf_event
+surface-model-policy	18-rule-c-fable-explicit	0	mk_wf_event
+surface-model-policy	19-spaced-model-key	0	mk_agent_event

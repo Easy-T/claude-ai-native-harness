@@ -32,7 +32,7 @@
 - Produces: (d) 경로가 `Workflow({scriptPath: '~/.claude/workflows/rpi-implement.js', args: [...]})`로 호출할 파일. seal 앵커 토큰 `model: 'opus'`·`effort: t.heavy ? 'high' : 'medium'`.
 - args 계약: `[{title, promptVerbatim, files, successCriteria, heavy, worktree}]` (spec §10.1).
 
-- [ ] **Step 1: 파일 생성 (아래 내용 verbatim)**
+- [x] **Step 1: 파일 생성 (아래 내용 verbatim)**
 
 ```javascript
 export const meta = {
@@ -86,7 +86,7 @@ log(`rpi-implement: ${flat.length}/${args.length} task 파이프라인 완료`)
 return { tasks: args.map((t, i) => ({ title: t.title, verdict: results[i] ? String(results[i]).slice(0, 2000) : 'DROPPED(stage 오류)' })) }
 ```
 
-- [ ] **Step 2: 검증 — seal 앵커 grep + meta 리터럴 파스**
+- [x] **Step 2: 검증 — seal 앵커 grep + meta 리터럴 파스**
 
 Run: `grep -E "model: 'opus'" workflows/rpi-implement.js && grep -E "effort: t.heavy" workflows/rpi-implement.js && node --input-type=module -e "$(sed -n '1,8p' workflows/rpi-implement.js); console.log('META-OK', meta.name)"`
 Expected: 앵커 2줄 + `META-OK rpi-implement` (Gate P 정정: sed 1,10p는 주석 라인이 console.log를 흡수 — 1,8p(meta 블록만)로 실측 재현 확인됨)
@@ -101,7 +101,7 @@ Expected: 앵커 2줄 + `META-OK rpi-implement` (Gate P 정정: sed 1,10p는 주
 - Consumes: spec §10 실측 Workflow stdin shape verbatim.
 - Produces: 케이스 09~13 — Task 3의 Rule C가 GREEN 대상.
 
-- [ ] **Step 1: run-all.sh SMP 섹션 끝(`test_smp "08-…"` 라인 뒤)에 추가**
+- [x] **Step 1: run-all.sh SMP 섹션 끝(`test_smp "08-…"` 라인 뒤)에 추가**
 
 ```bash
 # --- Rule C (Workflow 매처, C12 spec §10): 실측 shape verbatim ---
@@ -133,7 +133,7 @@ test_smp "12-rule-c-nonfable-ok" 0 0 "$(mk_wf_event script "$WF_BAD_SCRIPT" "$SM
 test_smp "13-rule-c-scriptpath-missing" 0 0 "$(mk_wf_event scriptPath "$SCRATCH/wf-none.js" "$SMP_FABLE_T" "smp13-$$")"
 ```
 
-- [ ] **Step 2: cases.tsv 5행 추가 (탭 구분)**
+- [x] **Step 2: cases.tsv 5행 추가 (탭 구분)**
 
 ```
 surface-model-policy	09-rule-c-inline-nomodel	0	mk_wf_event
@@ -143,7 +143,7 @@ surface-model-policy	12-rule-c-nonfable-ok	0	mk_wf_event
 surface-model-policy	13-rule-c-scriptpath-missing	0	mk_wf_event
 ```
 
-- [ ] **Step 3: RED 확인 — SMP 섹션 단독 추출 실행** (전체 스위트는 Task 5에서 1회)
+- [x] **Step 3: RED 확인 — SMP 섹션 단독 추출 실행** (전체 스위트는 Task 5에서 1회)
 
 Run: run-all.sh에서 SMP 섹션만 추출한 임시 러너(mktemp)로 13케이스 실행
 Expected: 01~08 PASS 유지, 09·11이 FAIL(현 hook은 tool_name Agent 게이트라 Workflow 입력에 exit 0·무출력 — ctx=1 기대가 깨져 RED), 10·12·13은 통과(기대가 무출력이라 vacuous — 09/11이 RED의 본체). **RED 출력 verbatim 인용.**
@@ -157,7 +157,7 @@ Expected: 01~08 PASS 유지, 09·11이 FAIL(현 hook은 tool_name Agent 게이�
 - Consumes: Task 2 픽스처. 기존 Rule A/B 무변경(01~08 무회귀).
 - Produces: 09~13 GREEN.
 
-- [ ] **Step 1: hook 수정** — `[ "$TOOL" = "Agent" ] || exit 0` 게이트를 Agent|Workflow 분기로 교체:
+- [x] **Step 1: hook 수정** — `[ "$TOOL" = "Agent" ] || exit 0` 게이트를 Agent|Workflow 분기로 교체:
 
 기존:
 
@@ -204,7 +204,7 @@ fi
 SUB=$(echo "$INPUT" | json_get 'tool_input.subagent_type')
 ```
 
-- [ ] **Step 2: GREEN 확인 — SMP 단독 추출 13케이스** → 13/13 PASS verbatim 인용.
+- [x] **Step 2: GREEN 확인 — SMP 단독 추출 13케이스** → 13/13 PASS verbatim 인용.
 
 ### Task 4: 배선(#23 parity) + seal #45 conjunct 확장 + README + model-policy.md/skill 동기
 
@@ -217,8 +217,8 @@ SUB=$(echo "$INPUT" | json_get 'tool_input.subagent_type')
 - Modify: `docs/ai-context/scaffold-registry.md` (workflows/rpi-implement.js 등재 — Hooks 아닌 신규 Workflows 소절 1행)
 
 **Steps:**
-- [ ] settings 양쪽: `"matcher": "Agent"` → `"matcher": "Agent|Workflow"` (동형).
-- [ ] verify-setup #45 블록에 conjunct 추가 (MP_OK 체인 — 검사 수 불변):
+- [x] settings 양쪽: `"matcher": "Agent"` → `"matcher": "Agent|Workflow"` (동형).
+- [x] verify-setup #45 블록에 conjunct 추가 (MP_OK 체인 — 검사 수 불변):
 
 ```bash
 grep -qE "model: 'opus'" "$HOME/.claude/workflows/rpi-implement.js" 2>/dev/null || MP_OK=0
@@ -227,26 +227,46 @@ grep -qE '"matcher":[[:space:]]*"Agent\|Workflow"' "$HOME/.claude/settings.examp
 ```
 
 (주석에 "C12: canonical workflow+Workflow 매처 conjunct 확장" 1줄 추가. 기존 `"matcher": "Agent"` 단독 grep 라인은 `Agent|Workflow` grep으로 교체.)
-- [ ] README run-all `186` → `191` (2곳). verify-setup "현재 81 PASS" 무변경.
-- [ ] model-policy.md §3 L2 행: "Rule A/B" → "Rule A/B/C(Workflow 스크립트 — execute-strict 무model 감지)"로 갱신, "Workflow 미커버" 정직 공개 문구를 "Rule C가 텍스트-휴리스틱 커버(변수 조립 회피는 미검출 — canonical 파일이 1차 방어)"로 교체. §2 (A) 행에 canonical scriptPath 언급 1줄.
-- [ ] start-rpi-cycle (d) 절 첫 줄에: canonical `Workflow({scriptPath: '~/.claude/workflows/rpi-implement.js', args: [...]})` 사용 권장 + 인라인 시 동일 규약 문구.
-- [ ] scaffold-registry에 `## Workflows (1 — ls workflows/*.js)` 소절 신설 + rpi-implement.js 1행.
-- [ ] 검증: `bash setup/verify-setup.sh` → `PASS=81 FAIL=0`.
+- [x] README run-all `186` → `191` (2곳). verify-setup "현재 81 PASS" 무변경.
+- [x] model-policy.md §3 L2 행: "Rule A/B" → "Rule A/B/C(Workflow 스크립트 — execute-strict 무model 감지)"로 갱신, "Workflow 미커버" 정직 공개 문구를 "Rule C가 텍스트-휴리스틱 커버(변수 조립 회피는 미검출 — canonical 파일이 1차 방어)"로 교체. §2 (A) 행에 canonical scriptPath 언급 1줄.
+- [x] start-rpi-cycle (d) 절 첫 줄에: canonical `Workflow({scriptPath: '~/.claude/workflows/rpi-implement.js', args: [...]})` 사용 권장 + 인라인 시 동일 규약 문구.
+- [x] scaffold-registry에 `## Workflows (1 — ls workflows/*.js)` 소절 신설 + rpi-implement.js 1행.
+- [x] 검증: `bash setup/verify-setup.sh` → `PASS=81 FAIL=0`.
 
 ### Task 5: 전체 검증 + 라이브 실증 (메인 직접)
 
-- [ ] run-all **전체 포그라운드** 1회 → 191/191·reconcile OK·100% verbatim 인용.
-- [ ] seal-regression → 9/0.
-- [ ] 라이브 probe: 신규 headless fable 세션에서 Workflow 도구를 execute-strict+무model 인라인 스크립트로 호출 → hook 로그 `rule-c-workflow-downshift-missing` ALERT 캡처.
-- [ ] canonical 파일 스모크: `Workflow({scriptPath, args:[문서 1줄 수정 task]})` 실행이 아니라 — YAGNI: meta 파스+앵커 grep(Task 1 Step 2)으로 갈음(실전 첫 사용이 (d) 다음 사이클). 사유 기록.
+- [x] run-all **전체 포그라운드** 1회 (191/191·정합 OK·100% 실측) → 191/191·reconcile OK·100% verbatim 인용.
+- [x] seal-regression → 9/0 (replica에 workflows/ 복제 — 구현-중-정정 4).
+- [x] 라이브 probe: 신규 headless fable 세션에서 Workflow 도구를 execute-strict+무model 인라인 스크립트로 호출 → hook 로그 `rule-c-workflow-downshift-missing` ALERT 캡처.
+- [x] canonical 파일 스모크: `Workflow({scriptPath, args:[문서 1줄 수정 task]})` 실행이 아니라 — YAGNI: meta 파스+앵커 grep(Task 1 Step 2)으로 갈음(실전 첫 사용이 (d) 다음 사이클). 사유 기록.
 
 **수용 잔여 (Gate P unknowns 판단)**: seal #45 conjunct 확장에 seal-regression 변이 케이스 미추가 — C11의 #45 신설 때와 동일 판단(대표-변이 3종 체제 유지, #45는 conjunctive grep이라 vacuous-PASS 위험이 낮음). 필요 시 후속 사이클.
 
 **[구현 중 정정 — 사용자 지시 2026-07-26 (T4 실행 중 수신): effort 품질-우선 상향]**
 - 구현 stage effort: heavy `high`→**`xhigh`**, light `medium`→**`high`** + canonical args에 per-task `effort` 선언 필드(max 포함 양방향 override). 근거=spec §0 신규 항목(Opus 5 공식 docs: 에이전트 코딩 xhigh 권장·기본 high; 종전 값은 비-ultracode 상속(xhigh/max)보다 낮아지는 역전 결함). 적용 지점: rpi-implement.js(effort 분기+주석) · model-policy.md 매트릭스 2행+§2(A) · SKILL.md (d) 절 · **seal #45 앵커 `effort: t\.heavy` 정규식은 형태 불변**(분기 표현식만 교체라 `effort: t.heavy ?` 유지 — conjunct 무변경) · 픽스처 무변경(Rule C는 model 토큰만 검사 — effort 비검사라 5케이스 그대로). T5 검증 전 delta 커밋으로 적용(워크플로 T4 완주 후 — stage2 read 경합 회피).
 
+**[구현 중 정정 — GPT 교차리뷰(xhigh) 트리아지 반영, 2026-07-26]**
+GPT 발견 28건 트리아지: **REAL 반영 25 · 설계-의도 기각 3**([B]4·[B]6·[B]9 — 기각도 한계 절
+문서화는 보강) (발견별 표는 PR #33 코멘트). 반영 delta:
+- hook: `~` 방어 확장([C]1) · Rule C2 신설=Workflow 검증자 하향([B]3) · 따옴표 model 키 인정([C]7) ·
+  model:'fable'/'inherit'도 ALERT([B]1/[B]8) · transcript 공백 키 허용+tail 1MB([B]5/부분) ·
+  ERR+EXIT trap fail-open 불변식([C]6) · [[ =~ ]]로 파이프 제거 · 같은-중괄호 근사 스코프.
+- rpi-implement.js: worktree 옵션 제거→파일 겹침 자동 순차([C]3 — Workflow worktree는 에이전트별
+  독립 사본이라 "같은 worktree 리뷰" 불성립) · args 필드 검증(heavy boolean 필수 — [C]2) ·
+  stage2 첫 줄 PASS/FAIL 강제([C]5) · stage1 보고 구분자+데이터-비지시 지시+diff 직접 실행 대조
+  ([B]10/[C]4) · null 전파 가드.
+- 문서: spec §3/§5/§10 실물 동기([A]1/[A]2/[A]4) · "오탐 0"→저-오탐 정정([B]2) · L3 존재-감지
+  한정 명시([B]7) · [D]1/[D]2 과주장 정직화 · 버전-무관 문구 2건(Opus 5→실행 모델 기본; [A]8) ·
+  Rule C 메시지 SSOT 포인터 실존 §로 정정([A]5) · Rule B 문구 "티어≥세션"([A]7) · SKILL.md (d)
+  worktree 절 교체.
+- 테스트: SMP 13→19케이스(+C2 3·따옴표 키·fable 명시·공백 키), cases.tsv 197, README 동기.
+- 기각 3 요지(전부 문서화는 보강): [B]4 scriptPath 256KiB 상한 — 실사용 스크립트 대비 3자릿수 여유,
+  한계 절 명문화로 충분 / [B]6 규칙별 1세션 1회 dedup — C11 spec §5의 선언된 트레이드오프(환기 목적,
+  전수 관측은 runlog 몫) / [B]9 t.effort 하향에 사유 필드 없음 — 명시=선언 원칙(하향 선언의 승인
+  규율은 plan Best-Direction Check 계층 몫, args 스키마 아님).
+
 ## Closeout 체크리스트
 
-- [ ] 브랜치 `workflow-model-governance` → PR (MERGE_POLICY: wait — 머지는 사용자 승인)
-- [ ] GPT 교차리뷰 1회(spec §10+hook diff+rpi-implement.js) → 트리아지
+- [x] 브랜치 `workflow-model-governance` → PR #33 (MERGE_POLICY: wait — 머지는 사용자 승인)
+- [x] GPT 교차리뷰 1회(spec §10+hook diff+rpi-implement.js, effort xhigh) → 28건 트리아지 반영(위 delta) — 재검증 verify-setup 81/0 · run-all 197/197 · seal-regression 9/0
 - [ ] drift review + plan completed + state 63 + 메모리 project_tri_model_policy 갱신

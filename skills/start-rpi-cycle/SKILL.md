@@ -119,8 +119,8 @@ plan 상단 헤더 주입 (writing-plans 표준 헤더 위에):
 - (c) execute-strict 직접 위임 — 단순 task에 한해
 - (d) **ultracode Workflow 구동** (ultracode ON일 때만 표면 — OFF면 이 옵션 비활성, 항상-on 권유 없음) —
       Phase I 한정(R/Closeout 병렬화는 ceremony라 제외). plan task를 canonical 2-stage 파이프라인으로:
-      stage1 `agentType='execute-strict', model:'opus', effort:'xhigh'`(heavy: 코드/TDD) 또는 `effort:'high'`(light: 순수 문서·기계 편집 — Opus 5 기본값 밑으로 불가; per-task `effort` 필드로 max 포함 선언적 override) → stage2 `agentType='review-strict'` **model/effort 무지정**(상속 — 검증자 하향 금지). (역할×모델 매트릭스 SSOT: docs/ai-context/model-policy.md)
-      ※ canonical 캐리어: Workflow({scriptPath: '~/.claude/workflows/rpi-implement.js', args: [task 배열]}) 사용 권장 — 인라인 스크립트 작성 시에도 동일 규약(stage1 opus·stage2 무지정) 준수 (spec §10).
+      stage1 `agentType='execute-strict', model:'opus', effort:'xhigh'`(heavy: 코드/TDD) 또는 `effort:'high'`(light: 순수 문서·기계 편집 — 기본 분기는 실행 모델 기본 effort 밑으로 불가; per-task `effort` 필드로 max 포함 선언적 override) → stage2 `agentType='review-strict'` **model/effort 무지정**(상속 — 검증자 하향 금지). (역할×모델 매트릭스 SSOT: docs/ai-context/model-policy.md)
+      ※ canonical 캐리어: Workflow({scriptPath: "<홈 디렉터리 절대경로>/.claude/workflows/rpi-implement.js", args: [task 배열]}) 사용 권장 — **도구는 `~` 미확장, 절대경로 필수**. 인라인 스크립트 작성 시에도 동일 규약(stage1 opus·stage2 무지정) 준수 (spec §10).
       ※ 두 스테이지 모두 **schema 금지** — 제약된 wrapper agentType은 StructuredOutput 부재로 schema와 함께 실패 ([[feedback_workflow_agenttype_schema]] 교훈; schema 복원 유혹 금지).
       ※ wrapper는 self-spawn 불가 → execute→verify는 반드시 별도 2 스테이지(한 에이전트가 둘 다 못 함).
       ※ **데이터 의존(load-bearing):** stage2(review-strict는 읽기전용)는 stage1이 산출한 변경(diff/수정 파일)을 context_paths로 **반드시 받아** 검증. 순서만 맞고 stage1 산출을 안 먹이면 stale·빈 상태를 검증해 false PASS — pipeline의 prevResult + 수정 파일 경로를 stage2 context_paths에 명시 전달.
@@ -128,7 +128,7 @@ plan 상단 헤더 주입 (writing-plans 표준 헤더 위에):
       ※ **TDD-verbatim (cycle-23):** stage1 프롬프트에는 plan task 본문(TDD 5-step 체크박스·코드블록 포함)을
         **verbatim 전달** — 요약·재서술 금지(요약은 RED→GREEN 단계를 증발시킴; plan이 유일한 TDD carrier).
         stage2 success_criteria에 "stage1 보고에 RED 증거(실패 출력)와 GREEN 증거(통과 출력)가 모두 없으면 FAIL" 명시.
-      ※ 같은 파일을 동시 수정하는 task ≥2면 각 스테이지에 `isolation:'worktree'`. 이 경우 stage2는 **짝지은 stage1과 같은 worktree에서** 리뷰해야 함(base/다른 컨텍스트에서 읽으면 미변경 파일을 봐 false PASS/FAIL).
+      ※ 같은 파일을 동시 수정하는 task ≥2면 **worktree가 아니라 순차 실행** — Workflow의 `isolation:'worktree'`는 에이전트마다 독립 사본을 주므로 stage2가 stage1의 변경을 못 보고 메인도 편집을 못 받는다(같은-worktree 공유 API 부재; canonical 스크립트가 파일 겹침을 감지해 자동 순차 처리). worktree는 (a)/(c)의 Agent 도구 경로에서만 유효.
       ※ 우회 불가: plan-존재·spec-before-plan 게이트(enforce-rpi-cycle = PreToolUse `Write|Edit|NotebookEdit` 매처)는 **Workflow 서브에이전트의 execute-strict 쓰기에도 동일 발화**하고, 메인 세션이 R→P를 통과해 plan·spec이 디스크에 존재하는 상태로만 디스패치되므로 (d)가 게이트를 건너뛸 수 없음.
 
 권장:
