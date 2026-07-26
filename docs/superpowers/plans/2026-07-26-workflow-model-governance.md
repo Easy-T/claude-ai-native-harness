@@ -1,6 +1,6 @@
 # Workflow Model Governance (ultracode 경로 opus 고정) Implementation Plan
 
-**Status:** active
+**Status:** completed
 **RPI-Cycle:** 63
 **Started:** 2026-07-26
 
@@ -243,7 +243,12 @@ grep -qE '"matcher":[[:space:]]*"Agent\|Workflow"' "$HOME/.claude/settings.examp
 **수용 잔여 (Gate P unknowns 판단)**: seal #45 conjunct 확장에 seal-regression 변이 케이스 미추가 — C11의 #45 신설 때와 동일 판단(대표-변이 3종 체제 유지, #45는 conjunctive grep이라 vacuous-PASS 위험이 낮음). 필요 시 후속 사이클.
 
 **[구현 중 정정 — 사용자 지시 2026-07-26 (T4 실행 중 수신): effort 품질-우선 상향]**
-- 구현 stage effort: heavy `high`→**`xhigh`**, light `medium`→**`high`** + canonical args에 per-task `effort` 선언 필드(max 포함 양방향 override). 근거=spec §0 신규 항목(Opus 5 공식 docs: 에이전트 코딩 xhigh 권장·기본 high; 종전 값은 비-ultracode 상속(xhigh/max)보다 낮아지는 역전 결함). 적용 지점: rpi-implement.js(effort 분기+주석) · model-policy.md 매트릭스 2행+§2(A) · SKILL.md (d) 절 · **seal #45 앵커 `effort: t\.heavy` 정규식은 형태 불변**(분기 표현식만 교체라 `effort: t.heavy ?` 유지 — conjunct 무변경) · 픽스처 무변경(Rule C는 model 토큰만 검사 — effort 비검사라 5케이스 그대로). T5 검증 전 delta 커밋으로 적용(워크플로 T4 완주 후 — stage2 read 경합 회피).
+- 구현 stage effort: heavy `high`→**`xhigh`**, light `medium`→**`high`** + canonical args에 per-task `effort` 선언 필드(max 포함 양방향 override). 근거=spec §0 신규 항목(Opus 5 공식 docs: 에이전트 코딩 xhigh 권장·기본 high; 종전 값은 비-ultracode 상속(xhigh/max)보다 낮아지는 역전 결함). 적용 지점: rpi-implement.js(effort 분기+주석) · model-policy.md 매트릭스 2행+§2(A) · SKILL.md (d) 절 · seal #45 앵커는 per-task override 도입에 맞춰 전체 분기 표현식 grep(`effort: t\.effort \?\? \(t\.heavy \? 'xhigh' : 'high'\)`)으로 갱신(원안 "형태 불변" 예상은 override 필드 추가로 무효 — senior review Minor 2 정정) · 픽스처 무변경(Rule C는 model 토큰만 검사 — effort 비검사라 5케이스 그대로). T5 검증 전 delta 커밋으로 적용(워크플로 T4 완주 후 — stage2 read 경합 회피).
+
+**[구현 중 정정 3 — 버전-무관 alias (사용자 3차 지시, 154f9cc)]**: 디스패치 계층 bare alias+glob만,
+버전 바인딩=settings.json env 단일점 — 상세는 spec §0 항목·model-policy.md 헤더 불변식·cross-family
+§1 env 간접화. **[구현 중 정정 4 — seal-regression replica 스테이징]**: #45가 grep하는 workflows/를
+replica 복제 목록에 추가(control FAIL 정정 — 검사 표면 확장 시 seal-regression 동기 교훈 재발화).
 
 **[구현 중 정정 — GPT 교차리뷰(xhigh) 트리아지 반영, 2026-07-26]**
 GPT 발견 28건 트리아지: **REAL 반영 25 · 설계-의도 기각 3**([B]4·[B]6·[B]9 — 기각도 한계 절
@@ -269,4 +274,4 @@ GPT 발견 28건 트리아지: **REAL 반영 25 · 설계-의도 기각 3**([B]4
 
 - [x] 브랜치 `workflow-model-governance` → PR #33 (MERGE_POLICY: wait — 머지는 사용자 승인)
 - [x] GPT 교차리뷰 1회(spec §10+hook diff+rpi-implement.js, effort xhigh) → 28건 트리아지 반영(위 delta) — 재검증 verify-setup 81/0 · run-all 197/197 · seal-regression 9/0
-- [ ] drift review + plan completed + state 63 + 메모리 project_tri_model_policy 갱신
+- [x] drift review + plan completed + state 63 + 메모리 project_tri_model_policy 갱신 — drift review-strict PASS(silent-downgrade 0·worktree 제거=[C]3 정정 판정) + senior review PASS(Critical 0·Important 1=SMP stale-marker 정리 반영·Minor 3 중 2 반영[plan 서사 정정·genesis 예외 목록에 실증-기록 절 명시], Minor 4 추적성은 정정 3/4 라벨 블록 추가로 해소)

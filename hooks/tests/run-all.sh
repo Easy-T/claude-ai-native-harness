@@ -943,6 +943,7 @@ test_smp() {
   if [ "$actual" = "$expected_exit" ] && [ "$ctx" = "$expect_ctx" ]; then PASSED=$((PASSED+1))
   else FAILED_LIST+=("surface-model-policy/$name (exit=$actual ctx=$ctx)"); fi
 }
+rm -f /tmp/model-policy-a-smp* /tmp/model-policy-b-smp* /tmp/model-policy-c-smp* /tmp/model-policy-c2-smp* 2>/dev/null   # stale-marker 플레이크 방지 (MSYS PID 재활용 — senior review C12)
 SMP_FABLE_T=$(mktemp "$SCRATCH/smp-fable-XXXXXX.jsonl")
 printf '{"type":"assistant","message":{"model":"claude-fable-5","content":[]}}\n' > "$SMP_FABLE_T"
 SMP_SONNET_T=$(mktemp "$SCRATCH/smp-sonnet-XXXXXX.jsonl")

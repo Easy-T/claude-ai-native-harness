@@ -5,7 +5,8 @@
 > **버전-무관 불변식 (2026-07-26)**: 정책·디스패치 계층(이 문서·skill·frontmatter·hook·seal·workflow)은
 > bare alias(fable/opus/sonnet/haiku)와 와일드카드(`claude-opus-*`)만 사용 — 구체 버전 ID(claude-opus-5 등)
 > 바인딩은 **settings.json env(`ANTHROPIC_DEFAULT_*_MODEL`) 단일 지점**. 모델 세대 교체(5.1→6…) 시 그
-> 파일만 갱신하면 전 계층이 따라온다. spec·memory의 버전 표기는 실측 역사 기록(genesis-record)이라 예외.
+> 파일만 갱신하면 전 계층이 따라온다. spec·memory·실증-기록 절(cross-family-review §4 등)의 버전
+> 표기는 실측 역사 기록(genesis-record)이라 예외.
 
 ## 1. 역할×모델×effort 매트릭스
 
