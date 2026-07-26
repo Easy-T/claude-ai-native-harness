@@ -191,10 +191,46 @@ bash grep/파일옵스만(staged-safe — seal 검사는 bash 파일옵스만 �
   정하는 정적 표. SSOT=model-policy.md.
   _Avoid_: "모델 정책"(범위 불명 — 라우팅 env 설정과 혼동).
 
-## §9. 비범위 (이번 사이클)
+## §9. 비범위 (C11 사이클 시점)
 
 - opencode-harness 미러 skill 동기화: 회사 opencode 환경은 CCS/모델 라우팅 부재 — 정책 이식 무의미.
   SKIP 사유 여기 기록.
 - 차단 hook 승격(advisory→block): 오탐 0 실증 후 별도 사이클.
 - builtin 에이전트(Explore 등) hook 커버: L1 준용만.
-- Workflow 일반(비-RPIC) 경로의 model/effort 정책: ultracode (d) 경로만 이번 범위.
+- ~~Workflow 일반(비-RPIC) 경로의 model/effort 정책: ultracode (d) 경로만 이번 범위~~ → **§10이 C12에서
+  해소** (사용자 직접 지시 2026-07-26: "동적 생성 서브에이전트도 opus 고정 — 굉장히 중요").
+
+## §10. Workflow 경로 거버넌스 (C12 in-place 개정, 2026-07-26 — L2 커버리지 한계 §5의 해소)
+
+**문제**: C11의 정직 공개 잔여 — Workflow `agent()` 내부 스폰은 Agent 도구 호출이 아니라 L2 hook 미커버.
+ad-hoc 워크플로 스크립트가 `agent()`를 model 없이 부르면 메인루프 모델(fable)을 상속해 stage 전체가
+플래그십 비용으로 역류. L1 문구+L3 토큰만으로는 "감독이 매번 스크립트를 옳게 쓴다"에 의존.
+
+**실측 (2026-07-26 probe — 픽스처 전제)**: PreToolUse `Workflow` 매처 stdin shape =
+`{"session_id":…,"transcript_path":…,"effort":{"level":…},"hook_event_name":"PreToolUse",
+"tool_name":"Workflow","tool_input":{"script":"<전체 스크립트 텍스트>"},…}` — scriptPath 변형은
+`tool_input.scriptPath` (파일 경로만, 내용 없음). 세션 모델 미포함 → 기존 transcript awk 판별 재사용.
+
+**해소 3층 (정책 자체는 §3 불변 — 캐리어 확장)**:
+1. **canonical 구현 워크플로** `workflows/rpi-implement.js` (git-추적, 신규 디렉터리): (d) 경로의
+   2-stage 파이프라인을 **코드로 고정** — stage1 `agentType:'execute-strict', model:'opus',
+   effort: task.heavy?'high':'medium'` / stage2 `agentType:'review-strict'` model·effort 무지정.
+   `args` = task 배열 `[{title, promptVerbatim, files[], successCriteria, heavy, worktree?}]`.
+   TDD-verbatim(stage1=promptVerbatim 원문)·stage2 데이터 의존(stage1 diff+files 주입)·RED/GREEN 증거
+   요구·schema 금지·같은-파일 task는 worktree 플래그 — start-rpi-cycle (d)의 5개 ※규칙을 코드에 물화.
+   (d)는 이 파일을 `scriptPath`로 호출 — **재생성·기억 의존 제거**. 스크립트 자체가 오염되면 L3가 잡는다.
+   실행 격리: 커밋은 워크플로 에이전트가 하지 않는다(병렬 커밋 index.lock 경합) — 메인이 그룹 커밋.
+2. **L2 Rule C** (surface-model-policy.sh 확장 + settings `Workflow` 매처 배선): fable 세션 AND
+   스크립트 텍스트(인라인=tool_input.script, scriptPath=파일 read — 부재 시 fail-open)에
+   `execute-strict` 존재 AND `model:` 토큰 부재 → ALERT+additionalContext(1세션 1회, rule-c).
+   오탐 0 설계: execute-strict 없는 스크립트(순수 리서치 fan-out·review 전용)는 무발화 — 일반
+   워크플로의 model-less agent()는 플랫폼 기본(메인루프 상속)이 정당하므로 hook 비대상, L1 지침만.
+   model: 토큰이 있으면(opus든 선언적 sonnet override든) 무발화 — 선언이 곧 정책.
+3. **L3 seal #45 conjunct 확장** (+카운트 불변): rpi-implement.js 존재+`model: 'opus'` 토큰+effort
+   분기 토큰 / settings.example `Workflow` 매처+hook 배선. run-all Rule C 픽스처 5케이스(실측 shape
+   verbatim): fable+execute-strict+무model→ALERT / 동+model:'opus'→무 / scriptPath 변형→ALERT /
+   sonnet 세션→무 / scriptPath 파일 부재→fail-open 무출력.
+
+**한계 (정직 공개, C12 수용 잔여)**: Rule C는 텍스트 휴리스틱 — `execute-strict`를 변수로 조립하거나
+model: 토큰을 주석에만 두는 회피는 미검출(L1+canonical 파일이 담당; 적대적 우회가 아닌 망각이 위협
+모델). scriptPath가 다른 워크플로를 `workflow()` 중첩 호출하는 경우 내부는 미검사(1-depth).
