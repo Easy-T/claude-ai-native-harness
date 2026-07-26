@@ -943,6 +943,7 @@ test_smp() {
   if [ "$actual" = "$expected_exit" ] && [ "$ctx" = "$expect_ctx" ]; then PASSED=$((PASSED+1))
   else FAILED_LIST+=("surface-model-policy/$name (exit=$actual ctx=$ctx)"); fi
 }
+rm -f /tmp/model-policy-a-smp* /tmp/model-policy-b-smp* /tmp/model-policy-c-smp* /tmp/model-policy-c2-smp* 2>/dev/null   # stale-marker 플레이크 방지 (MSYS PID 재활용 — senior review C12)
 SMP_FABLE_T=$(mktemp "$SCRATCH/smp-fable-XXXXXX.jsonl")
 printf '{"type":"assistant","message":{"model":"claude-fable-5","content":[]}}\n' > "$SMP_FABLE_T"
 SMP_SONNET_T=$(mktemp "$SCRATCH/smp-sonnet-XXXXXX.jsonl")
@@ -966,6 +967,60 @@ test_smp "06-broken-stdin" 0 0 "not-json"
 test_smp "07-no-transcript" 0 0 "$(mk_agent_event execute-strict "" "$SCRATCH/smp-none.jsonl" "smp07-$$")"
 # 08: assistant 라인 content 가 타 모델 id 를 인용해도 message.model(첫 매치)로 판정 → Rule A ALERT
 test_smp "08-quoted-id-immune" 0 1 "$(mk_agent_event execute-strict "" "$SMP_QUOTE_T" "smp08-$$")"
+
+# --- Rule C (Workflow 매처, C12 spec §10): 실측 shape verbatim ---
+mk_wf_event() {
+  local body_kind="$1"; local body_val="$2"; local transcript="$3"; local sid="$4"
+  KIND="$body_kind" VAL="$body_val" TP="$transcript" SID="$sid" node -e '
+    const ti = {};
+    ti[process.env.KIND] = process.env.VAL;
+    const o = {session_id:process.env.SID, transcript_path:process.env.TP, cwd:"", permission_mode:"bypassPermissions",
+               effort:{level:"xhigh"}, hook_event_name:"PreToolUse", tool_name:"Workflow", tool_input:ti, tool_use_id:"toolu_x"};
+    console.log(JSON.stringify(o));
+  '
+}
+WF_BAD_SCRIPT="export const meta = {name: 'x', description: 'x'}
+await agent('do it', {agentType: 'execute-strict'})"
+WF_OK_SCRIPT="export const meta = {name: 'x', description: 'x'}
+await agent('do it', {agentType: 'execute-strict', model: 'opus'})"
+WF_SP_BAD=$(mktemp "$SCRATCH/wf-sp-bad-XXXXXX.js"); printf '%s\n' "$WF_BAD_SCRIPT" > "$WF_SP_BAD"
+
+# 09: fable + 인라인 script + execute-strict + model 부재 → Rule C ALERT
+test_smp "09-rule-c-inline-nomodel" 0 1 "$(mk_wf_event script "$WF_BAD_SCRIPT" "$SMP_FABLE_T" "smp09-$$")"
+# 10: fable + 인라인 + model:'opus' 존재 → 무출력
+test_smp "10-rule-c-inline-opus-ok" 0 0 "$(mk_wf_event script "$WF_OK_SCRIPT" "$SMP_FABLE_T" "smp10-$$")"
+# 11: fable + scriptPath 파일에 execute-strict+무model → ALERT
+test_smp "11-rule-c-scriptpath-nomodel" 0 1 "$(mk_wf_event scriptPath "$WF_SP_BAD" "$SMP_FABLE_T" "smp11-$$")"
+# 12: sonnet 세션 → Rule C 비대상 (무출력)
+test_smp "12-rule-c-nonfable-ok" 0 0 "$(mk_wf_event script "$WF_BAD_SCRIPT" "$SMP_SONNET_T" "smp12-$$")"
+# 13: scriptPath 파일 부재 → fail-open 무출력
+test_smp "13-rule-c-scriptpath-missing" 0 0 "$(mk_wf_event scriptPath "$SCRATCH/wf-none.js" "$SMP_FABLE_T" "smp13-$$")"
+
+# --- Rule C2 (Workflow 검증자 하향) + C7 인용부호 키 정정 (C12 GPT 트리아지 [B]3·[C]7) ---
+WF_C2_BAD="export const meta = {name: 'x', description: 'x'}
+await agent('verify it', {agentType: 'review-strict',
+  model: 'sonnet'})"
+WF_C2_OK="export const meta = {name: 'x', description: 'x'}
+await agent('verify it', {agentType: 'review-strict', label: 'v'})"
+WF_QK_OK='export const meta = {name: "x", description: "x"}
+await agent("do it", {agentType: "execute-strict", "model": "opus"})'
+
+# 14: fable + 스크립트가 review-strict 를 model:'sonnet' 으로 스폰 → Rule C2 ALERT
+test_smp "14-rule-c2-review-downshift" 0 1 "$(mk_wf_event script "$WF_C2_BAD" "$SMP_FABLE_T" "smp14-$$")"
+# 15: review-strict 무model(상속) → 무출력
+test_smp "15-rule-c2-review-inherit-ok" 0 0 "$(mk_wf_event script "$WF_C2_OK" "$SMP_FABLE_T" "smp15-$$")"
+# 16: sonnet 세션 + review model:'sonnet' → 동일 티어, 무출력
+test_smp "16-rule-c2-equal-tier-ok" 0 0 "$(mk_wf_event script "$WF_C2_BAD" "$SMP_SONNET_T" "smp16-$$")"
+# 17: 인용부호 키 '"model":' 도 선언으로 인정 → Rule C 오탐 없음 (C7 정정)
+test_smp "17-rule-c-quotedkey-ok" 0 0 "$(mk_wf_event script "$WF_QK_OK" "$SMP_FABLE_T" "smp17-$$")"
+# 18: fable + execute-strict 에 model:'fable' 명시 → 하향 미적용과 동일, Rule C ALERT ([B]1 정정)
+WF_FABLE_SCRIPT="export const meta = {name: 'x', description: 'x'}
+await agent('do it', {agentType: 'execute-strict', model: 'fable'})"
+test_smp "18-rule-c-fable-explicit" 0 1 "$(mk_wf_event script "$WF_FABLE_SCRIPT" "$SMP_FABLE_T" "smp18-$$")"
+# 19: transcript 의 model 키가 공백 포함('"model": "...') 이어도 세션 판별 → Rule A ALERT ([B]5 정정)
+SMP_SPACED_T=$(mktemp "$SCRATCH/smp-spaced-XXXXXX.jsonl")
+printf '{"type":"assistant","message":{"model": "claude-fable-5","content":[]}}\n' > "$SMP_SPACED_T"
+test_smp "19-spaced-model-key" 0 1 "$(mk_agent_event execute-strict "" "$SMP_SPACED_T" "smp19-$$")"
 
 # ==================== Summary ====================
 echo
