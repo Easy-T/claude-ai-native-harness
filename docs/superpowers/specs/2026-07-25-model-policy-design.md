@@ -29,6 +29,13 @@ effort), 검증=상속(하향 금지)+GPT 교차패밀리(기존 규약)** 를 �
   `effort` 명시 필드 허용 = 선언적 override(양방향 — max 상향 포함; 명시=선언이므로 DOWNGRADE 규율 정합).
   **GPT 교차리뷰도 동일 확정(같은 날)**: 리뷰 본호출 `-c model_reasoning_effort=xhigh`(codex 실측 —
   무효값 400·xhigh OK; 탐지 스모크는 기본 유지) — cross-family-review.md §2에 반영.
+- **버전-무관 alias 원칙** (사용자 지시 2026-07-26, 3번째): 정책·디스패치 계층은 bare alias
+  (fable/opus/sonnet/haiku)·와일드카드(`claude-opus-*`)만 — 구체 버전 바인딩은 settings.json env
+  단일 지점(모델 세대 교체 시 1파일 갱신). 감사 결과 디스패치 계층은 이미 준수(agents frontmatter
+  `sonnet`·hook `claude-*-*` glob+bare·workflow `'opus'`·seal grep 전부 무버전); 위반 2건 정정 =
+  cross-family §1 경로 B probe의 `gpt-5.6-sol` 리터럴(→`${ANTHROPIC_CUSTOM_MODEL_OPTION:-…}` env
+  간접화)+model-policy.md 헤더에 불변식 명문화. spec·memory의 버전 표기는 실측 역사 기록이라 예외
+  (genesis-record 모델 동형). CLAUDE.md·통계 로그는 비대상.
 
 ## §1. 실측 사실 (2026-07-25 probe — goal 파일은 gitignored이므로 여기 영구화)
 

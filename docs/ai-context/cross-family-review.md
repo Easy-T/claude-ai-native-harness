@@ -9,7 +9,7 @@
 교차 리뷰가 걸린 사이클의 Verify 단계에서:
 
 1. **경로 A — Codex CLI (우선; CCS 불필요·이식성 높음)**: `command -v codex` 존재 **+** `codex login status`가 로그인 표시 → 가용. 스모크 1회(저비용): `echo probe | codex exec --sandbox read-only --skip-git-repo-check "Reply: OK"`.
-2. **경로 B — CCS/CLIProxy 라우팅 (폴백; CCS 있는 PC만)**: A 불가 시 `claude --model gpt-5.6-sol -p "Reply: OK" --output-format json` 1회 → **`modelUsage`에 `gpt-*` 키 존재 = 가용**. 모델명은 머신마다 다를 수 있다(`claude-*`만 있으면 라우팅 부재). ★판별은 modelUsage만 — 응답 텍스트의 자가보고("나는 GPT다")는 불인정.
+2. **경로 B — CCS/CLIProxy 라우팅 (폴백; CCS 있는 PC만)**: A 불가 시 `claude --model "${ANTHROPIC_CUSTOM_MODEL_OPTION:-gpt-5.6-sol}" -p "Reply: OK" --output-format json` 1회 → **`modelUsage`에 `gpt-*` 키 존재 = 가용**. 모델명은 custom 슬롯 env가 SSOT(버전-무관 — GPT 세대 교체 시 settings.json env만 갱신; 폴백 리터럴은 env 부재 머신용). ★판별은 modelUsage만 — 응답 텍스트의 자가보고("나는 GPT다")는 불인정.
 3. **둘 다 불가 → SKIP + 사유 1줄** 기록("이 머신 GPT 경로 부재(codex CLI 미설치/미로그인·CCS 라우팅 없음)") — 기존 자가-표면화 관행.
 
 **★설치·로그인·인증·업데이트 시도 절대 금지** — 탐지는 read-only 확인만. 근거: ChatGPT OAuth 공유 시 reuse-detection 토큰 패밀리 전체 revoke 사고 이력·블라인드 `--update`/`--latest` 금지(바이너리 삭제 위험). codex-plugin-cc류의 자동 설치 제안(`/codex:setup`)도 이 금지에 걸린다.
