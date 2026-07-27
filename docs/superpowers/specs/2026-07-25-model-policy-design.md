@@ -545,8 +545,19 @@ RED 픽스처 추가가 Phase P task 후보.
 1. **`setup/install.sh` REQUIRED에 hook 2개 누락**: `surface-model-policy.sh`·`worktree-teardown.sh`
    (grep 0건 실측). 신규 PC 설치 시 **정책 hook이 없어도 침묵 통과** — L2 강제층이 통째로 증발하는 경로.
 2. **`docs/ai-context/scaffold-registry.md` seal #45 미등재**: 제목이 "#17~#44 … = 27"에서 멈추고 표도 #44까지.
-3. **`skills/ccs-delegation/SKILL.md:5,24,52`가 `~/.ccs/config.json` 지시** — 실재는 `config.yaml`
-   (Glob 실측). 고장난 비-Claude 호출 경로가 라이브 상주.
+3. **`skills/ccs-delegation/SKILL.md`가 `~/.ccs/config.json` 지시** — 실재는 `config.yaml`.
+   **★C14 정정(2026-07-28)**: C13 이 "정정 착륙"이라 기록한 것은 **거짓**이다 — `skills/ccs-delegation`
+   은 심링크(`git ls-tree HEAD` 모드 **120000**, blob 내용 = 링크 포인터 한 줄)이고
+   `git log --all -- skills/ccs-delegation/SKILL.md` 는 빈 출력(리포 역사상 추적된 적 없음)이다.
+   C13 의 근거 grep 은 **심링크 대상(리포 밖 비-git 디렉터리)** 을 읽은 것이라 이 정정은 리포에
+   존재할 수 없었다(plan 의 `git add …/SKILL.md` 도 `beyond a symbolic link` 로 구조적 실행 불가).
+   현 상태(C14 읽기 전용 재확인): 링크 대상 실파일은 `config.json` 0건 / `config.yaml` 4건 —
+   **로컬 정정은 유효하나 배포 경로(`install.sh` `git clone`)로는 따라오지 않는다.**
+   → 판정: **리포 관점에서는 "갱신 대상 아님"**(비추적 로컬 정션 — `scaffold-registry.md` 가 이미
+   `(로컬 정션, 비추적)` 으로 정직 기술). 하네스 문서는 알고 있었는데 spec/plan 이 그것을 무시하고
+   리포 파일처럼 행번호까지 지정해 정정을 지시한 것이 설계 결함이었다.
+   **클래스 교훈**: 리포 내 경로처럼 보이는 심링크가 검증을 오도한다 → grep 증거는 `git ls-files`
+   교차 확인이 필수 동반자(§13.9 · non-obvious 등록 대상 — C14-H).
 4. `docs/superpowers/specs/2026-07-13-harness-upgrade-2026-07-design.md:89-97` cross-family 프로토콜 중복
    기술 + 버전 리터럴(§10 중복 SSOT 소지 — durable spec은 genesis-record라 **본문 편집 대신 포인터 주석**).
 5. `settings.example.json`에 `ANTHROPIC_*_MODEL` env 전무 → "버전 바인딩 SSOT=settings.json env"가
