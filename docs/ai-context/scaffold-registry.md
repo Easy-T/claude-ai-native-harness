@@ -21,7 +21,7 @@
 | `session-start-audit.sh` | 30일 audit 마커 stale + 스테일 워크트리 마커/고아 브랜치 잔여 + 손상 파서 침묵 — 알림·sweep·fail-open 표면화 | cycle-32(lib 스모크)·cycle-41(self-healing sweep)·**C3(.budget prune)** |
 | `surface-constitution.sh` | 의존성 매니페스트(§5)·UI 확장자(§8) 수정 시 헌법 조항 미인지 — additionalContext 환기 | cycle-16 |
 | `worktree-teardown.sh` | 종료 세션의 링크 워크트리 잔존 — 정션-안전 삭제(데이터손실0) | cycle-38~41 |
-| `surface-model-policy.sh` | fable 실행자 하향 미적용·검증자 하향을 advisory 환기(역할×모델 매트릭스 L2) | tri-model C11 (2026-07-25) |
+| `surface-model-policy.sh` | fable 실행자 하향 미적용·검증자 기준선 max(세션,작업자) 미달을 advisory 환기(역할×모델 매트릭스 L2) | tri-model C11 (2026-07-25), C12/C13 확장 |
 | (`_common.sh`) | 위 전 hook의 공유 함수(json 파서·hook_log·plan_status·resolve_project_root·run_log_event·surface_bypass 등) | 지속 진화; **C2 run_log_event 추가** |
 
 ## Skills (10 — `ls skills/*/SKILL.md`; grill-with-docs·ccs-delegation은 비추적 설치 산물)

@@ -3,7 +3,7 @@ export const meta = {
   description: 'RPIC Phase I (d) canonical 2-stage pipeline — execute(opus) → review(inherit)',
   phases: [
     { title: 'Implement', detail: 'plan task별 execute-strict (opus, heavy→xhigh/light→high, per-task effort override 허용)' },
-    { title: 'Verify', detail: 'task별 review-strict (모델 무지정=세션 상속 — 검증자 하향 금지)' },
+    { title: 'Verify', detail: 'task별 review-strict (모델 무지정=세션 상속 — 검증자 기준선 max(세션,작업자) 유지)' },
   ],
 }
 // 역할×모델 매트릭스 canonical 캐리어 (spec 2026-07-25 §10, SSOT: docs/ai-context/model-policy.md).

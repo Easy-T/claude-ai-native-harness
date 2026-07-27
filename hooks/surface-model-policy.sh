@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # surface-model-policy.sh — advisory PreToolUse hook (Agent|Workflow 매처; tri-model C11+C12, spec 2026-07-25 §5·§10).
 # 역할×모델 매트릭스(docs/ai-context/model-policy.md)의 L2: Rule A(fable 세션 실행자 하향 미적용)·
-# Rule B(검증자 하향, 전 세션)·Rule C/C2(Workflow 스크립트 경로 — C12)를 additionalContext 로 환기.
+# Rule B(검증자가 기준선 max(세션,작업자) 미만, 전 세션)·Rule C/C2/C3(Workflow 스크립트 경로 — C12·C13)를 additionalContext 로 환기.
 # 차단하지 않는다(항상 exit 0, fail-open — ERR trap 이 내부 실패도 exit 0 으로 흡수).
 # 세션 모델은 hook stdin 에 없어 transcript 의 assistant 라인 message.model 로 판별(실측 shape).
 # 라인 내 첫 매치만 취해 content 의 모델 id 인용에 면역(assistant JSON 은 model 이 content 앞).
@@ -156,7 +156,7 @@ if [ "$SUB" = "review-strict" ] && [ -n "$REQ_MODEL" ] && [ "$SESSION_TIER" != "
     [ -f "$MARKER" ] && exit 0
     touch "$MARKER" 2>/dev/null || true
     hook_log "surface-model-policy" "review-strict:$REQ_MODEL" "ALERT" "rule-b-verifier-downshift"
-    emit_additional_context "[model-policy] 검증자(review-strict) 하향 감지(세션=$SESSION_MODEL > 요청=$REQ_MODEL) — 검증자 티어 ≥ 세션 티어(작업자 기준선)가 원칙(cross-family-review.md §3). 의도된 하향이면 DOWNGRADE-DECLARED(사유) 선언 필요. (advisory · 1세션 1회 · 차단 아님)"
+    emit_additional_context "[model-policy] 검증자(review-strict) 하향 감지(세션=$SESSION_MODEL > 요청=$REQ_MODEL) — 검증자 기준선은 max(세션 티어, 작업자 티어)입니다(spec §12.1, SSOT: docs/ai-context/model-policy.md). 의도된 하향이면 DOWNGRADE-DECLARED(사유) 선언 필요. (advisory · 1세션 1회 · 차단 아님)"
     exit 0
   fi
 fi

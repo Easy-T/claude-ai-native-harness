@@ -25,7 +25,7 @@
 | **create-orchestrator-skill 자동 트리거** | "이거 자주 쓸 것 같아 skill로 만들어줘" | skill-creator + orchestrator 골격 자동 주입 |
 | **doctor.sh** | `bash ~/.claude/setup/doctor.sh` | 24개 환경 진단·치료 (jq 자동 설치, 자격증명 권한 점검 등) |
 
-### 11개 hook (활성)
+### 12개 hook (활성)
 
 | Hook | 모드 | 발동 시점 | 효과 |
 |---|---|---|---|
@@ -36,12 +36,27 @@
 | `enforce-secret-scan` | 차단 | Write/Edit/NotebookEdit + Bash | 고-특이도 시크릿(API 키/토큰/PEM private key) 감지 시 차단(종류만 보고). `SECRET_SCAN_SKIP` 우회 |
 | `stable-claude-md` | 알림 | 프로젝트 루트 CLAUDE.md 수정 | "캐시 비용 ≈20배" 환기 (작업은 허용). 글로벌 `~/.claude/CLAUDE.md`는 제외 — §1 모델-레벨 환기로 위임 |
 | `surface-constitution` | 알림 | Write/Edit/NotebookEdit on 의존성 매니페스트(§5)·UI 확장자(§8) | 해당 헌법 조항을 `additionalContext`(모델 컨텍스트)로 환기 — ADR 작성(§5)/ui-design 사용(§8). 1세션 §별 1회, 차단 아님 |
+| `surface-model-policy` | 알림 | PreToolUse `Agent`\|`Workflow` | 역할×모델 매트릭스(구현=opus·탐색=sonnet·검증=기준선 `max(세션,작업자)`)를 `additionalContext`로 환기. Rule A(fable 실행자 하향 미적용)·B(검증자 기준선 미달)·C/C2/C3(Workflow 스크립트 per-spawn 판정 — `hooks/lib/workflow-spawns.js` 파서). 규칙별 1세션 1회, 차단 아님. SSOT: `docs/ai-context/model-policy.md` |
 | `auto-compact-watch` | 알림 | Read/Bash/Agent 후 | **모델-인지** 컨텍스트 창(opus-4-7/4-8·fable·`[1m]` suffix→1M, 그 외 200K; `CONTEXT_LIMIT` override) 기준 임계 도달 시 `/compact` 권장. 경고 %는 `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE`에서 도출 (1세션 1회) |
 | `verify-loop-watch` | 알림 | Stop (턴 종료) | active plan + 미검증 코드 변경 시 `scripts/check.sh`+closeout 권장 (1세션 1회, advisory) |
 | `session-start-audit` | 알림 | 세션 시작 | CLAUDE.md audit 마커 30일 초과 시 알림 + **보조** `session_id`-키 마커(`~/.claude/worktrees-marker/<sid>`=WT_ROOT) 기록(드물게 cwd가 워크트리일 때만 — 주 기록은 PreToolUse 게이트, spec §10)·스테일 마커 prune (빈 SID skip) + **self-healing sweep**(harness-worktree 프로젝트면: prunable 워크트리 등록 `prune` + 고아 `worktree-*` 브랜치 `-D`, 활성/비-컨벤션 보호; spec §11) |
 | `worktree-teardown` | 정리 | SessionEnd (`prompt_input_exit`/`logout`/`other`) | 종료 세션의 *링크된* 워크트리를 정션-안전 삭제(reparse 링크-only 선제거→잔존0 확인→POSIX `rm -rf`) + dev서버 kill + `worktree prune`/`branch -D`. 가드(마커·sanity·linked-worktree 증명)로 **메인 repo 도달 불가**. `clear`/`resume` 제외(세션 지속 보호). `git worktree remove --force` 미사용(정션 추종 사고 봉인). SessionStart/End cwd는 항상 CLI 실행디렉터리(메인루트)지 워크트리가 아니므로(cycle-40 정정), 워크트리 절대경로가 도달하는 **PreToolUse**(enforce-rpi-cycle/bash)가 `session_id` 마커를 기록하고 SessionEnd가 자기 SID 마커로 정리(마커 경로도 가드 통과 후에만 삭제·빈 SID skip·다른 SID 마커가 같은 WT_ROOT면 정리 보류=C5 동시성 가드). ※ 워크트리 *디렉터리*가 harness/외부에 의해 제거돼 SessionEnd가 식별 못 하면 git 등록(prunable)+`worktree-*` 브랜치가 남음 → `session-start-audit`의 **self-healing sweep**가 식별-무관하게 청소(spec §11) |
 
 크로스 플랫폼 path 정규화(Windows backslash → forward slash) 내장 — Linux/WSL/Windows 모두 동일하게 작동.
+
+### 모델 디스패치 거버넌스 (역할×모델 매트릭스)
+
+역할별로 다른 모델을 쓴다 — SSOT는 `docs/ai-context/model-policy.md`.
+
+| 역할 | 모델 | effort |
+|---|---|---|
+| 오케스트레이션·판단·게이트 해석 | 세션 모델 (위임 금지) | 세션 effort |
+| 구현 (execute-strict) | **opus** | ultracode: heavy `xhigh` / light `high` |
+| 탐색 (explore-strict) | **sonnet** (frontmatter 기본) | **xhigh** + WebSearch/WebFetch |
+| 검증 (review-strict) | **상속** — 기준선 `max(세션 티어, 작업자 티어)` 미만 금지 | 상속 |
+| 교차 검증 (고-스테이크 closeout) | GPT (`cross-family-review.md` 규약) | 사이클당 1회 |
+
+강제는 3층: **L1** 문서(이 표 + `start-rpi-cycle` skill) · **L2** hook `surface-model-policy`(advisory 환기, 차단 아님) · **L3** verify-setup seal #45(토큰 존재 봉인). 상향은 항상 허용, 하향은 검증자에 한해 `DOWNGRADE-DECLARED(사유)`가 유일 탈출구.
 
 > ⚠️ **멀티 HOME 주의**: `settings.json`(env knobs 포함)은 **HOME별로 독립**입니다. Windows `~/.claude`와 WSL `/home/<user>/.claude`는 각각 따로 설정해야 합니다 — path 정규화는 *경로만* 통일할 뿐 설정은 상속되지 않습니다 (WSL의 bare config가 autocompact 폭주 원인이었음). 또한 **새 hook/matcher 추가 시 세션 재시작 필요**, 이미 등록된 hook 본문 수정은 즉시 반영.
 
@@ -63,7 +78,7 @@
 
 | Sub-agent | 권한 | 역할 |
 |---|---|---|
-| `explore-strict` | 읽기 전용 (Read/Grep/Glob/WebFetch) | 코드베이스 탐색 + 발견 사항 요약 |
+| `explore-strict` | 읽기 전용 (Read/Grep/Glob/WebFetch/WebSearch) | 코드베이스 탐색 + 발견 사항 요약 + 웹 근거 조달 |
 | `review-strict` | 읽기 전용 + read-only Bash | 명시 기준 PASS/FAIL 검증 |
 | `execute-strict` | 쓰기 가능 (Read/Write/Edit/Bash) | scope 외 변경 거부, 명시 task만 수행 |
 
