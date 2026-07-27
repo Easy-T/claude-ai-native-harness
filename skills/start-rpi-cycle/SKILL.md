@@ -45,7 +45,11 @@ C. Agent(subagent_type="explore-strict",
         success_criteria="발견사항·영향 모듈·신규 도메인 용어·deny pattern 충돌 식별")
    ※ CLAUDE.md는 메인이 자동 로드하므로 context_paths에 미포함 (중복 회피)
    ※ C는 B와 병렬·교차 가능 (A 완료 후)
-   ※ explore-strict 는 frontmatter 기본 sonnet+medium — 판단-heavy 탐색만 호출 인자 model 상향 (SSOT: docs/ai-context/model-policy.md)
+   ※ explore-strict 는 frontmatter 기본 sonnet+xhigh+WebSearch — 판단-heavy 탐색만 호출 인자 model 상향 (SSOT: docs/ai-context/model-policy.md)
+   ※ **웹 근거 조달**: 외부 공식 문서·벤치·릴리스노트가 필요한 R 은 explore-strict 에 WebSearch/WebFetch 를 명시 위임한다
+     (builtin claude-code-guide 등 규약 밖 경로로 새지 않게 — 그 경로는 티어 무관리, spec §11.7).
+     프롬프트에 "URL + verbatim 인용 필수, 없으면 '공식 근거 없음' 명시"를 넣을 것(무근거 단언 차단).
+     ※WebSearch 는 세션당 200회를 메인·전 서브에이전트가 공유한다(공식) — fan-out 폭 설계 시 고려.
 
 ## Gate R (차단형 — review-strict)
 1. Agent(subagent_type="review-strict",
@@ -119,7 +123,7 @@ plan 상단 헤더 주입 (writing-plans 표준 헤더 위에):
 - (c) execute-strict 직접 위임 — 단순 task에 한해
 - (d) **ultracode Workflow 구동** (ultracode ON일 때만 표면 — OFF면 이 옵션 비활성, 항상-on 권유 없음) —
       Phase I 한정(R/Closeout 병렬화는 ceremony라 제외). plan task를 canonical 2-stage 파이프라인으로:
-      stage1 `agentType='execute-strict', model:'opus', effort:'xhigh'`(heavy: 코드/TDD) 또는 `effort:'high'`(light: 순수 문서·기계 편집 — 기본 분기는 실행 모델 기본 effort 밑으로 불가; per-task `effort` 필드로 max 포함 선언적 override) → stage2 `agentType='review-strict'` **model/effort 무지정**(상속 — 검증자 하향 금지). (역할×모델 매트릭스 SSOT: docs/ai-context/model-policy.md)
+      stage1 `agentType='execute-strict', model:'opus', effort:'xhigh'`(heavy: 코드/TDD) 또는 `effort:'high'`(light: 순수 문서·기계 편집 — 기본 분기는 실행 모델 기본 effort 밑으로 불가; per-task `effort` 필드로 max 포함 선언적 override) → stage2 `agentType='review-strict'` **model/effort 무지정**(상속 — 검증자 기준선 `max(세션, 작업자)` 유지). (역할×모델 매트릭스 SSOT: docs/ai-context/model-policy.md)
       ※ canonical 캐리어: Workflow({scriptPath: "<홈 디렉터리 절대경로>/.claude/workflows/rpi-implement.js", args: [task 배열]}) 사용 권장 — **도구는 `~` 미확장, 절대경로 필수**. 인라인 스크립트 작성 시에도 동일 규약(stage1 opus·stage2 무지정) 준수 (spec §10).
       ※ 두 스테이지 모두 **schema 금지** — 제약된 wrapper agentType은 StructuredOutput 부재로 schema와 함께 실패 ([[feedback_workflow_agenttype_schema]] 교훈; schema 복원 유혹 금지).
       ※ wrapper는 self-spawn 불가 → execute→verify는 반드시 별도 2 스테이지(한 에이전트가 둘 다 못 함).
@@ -136,7 +140,7 @@ plan 상단 헤더 주입 (writing-plans 표준 헤더 위에):
 - 중간 사이클 (2~5 task) → (b)
 - 작은 사이클 (≤2 task) → (c)
 
-※ **fable 세션의 execute-strict 위임은 (a)/(c) 어느 경로든 `model:'opus'` 명시** — 역할×모델 매트릭스(docs/ai-context/model-policy.md). 검증자(review-strict)는 항상 model 무지정(상속).
+※ **fable 세션의 execute-strict 위임은 (a)/(c) 어느 경로든 `model:'opus'` 명시** — 역할×모델 매트릭스(docs/ai-context/model-policy.md). 검증자(review-strict)는 model 무지정(상속)이 기본 — 기준선은 `max(세션, 작업자)`이며 실행자를 세션 위로 상향했으면 검증자도 동반 상향.
 
 worktree 사용:
 - 같은 파일을 동시 수정 / 격리된 검증 필요 시 → 호출 시 isolation: worktree 명시

@@ -23,7 +23,7 @@ for a in explore-strict review-strict execute-strict; do
   grep -q 'common-agent-contract' "$HOME/.claude/agents/$a.md" 2>/dev/null && ok "$a has contract" || fail "$a missing contract"
 done
 
-# 5. agents model:inherit — 실행자·검증자만 (explore-strict 는 C11부터 frontmatter sonnet+medium 기본값,
+# 5. agents model:inherit — 실행자·검증자만 (explore-strict 는 C11부터 frontmatter sonnet 기본값·C13부터 effort xhigh,
 #    #45 가 별도 봉인 — docs/ai-context/model-policy.md)
 for a in review-strict execute-strict; do
   grep -q '^model: inherit$' "$HOME/.claude/agents/$a.md" 2>/dev/null && ok "$a model:inherit" || fail "$a model"
@@ -441,8 +441,9 @@ else
 fi
 
 # 45. 역할×모델 매트릭스 물화 봉인 (tri-model C11, spec 2026-07-25 §6): conjunctive —
-#     ① model-policy.md 존재+행 앵커(execute→opus·explore→sonnet) ② explore-strict frontmatter sonnet+medium
-#     ③ execute/review `model: inherit` 유지 + review-strict effort 키 부재(검증자 상속 물리 앵커)
+#     ① model-policy.md 존재+행 앵커(execute→opus·explore→sonnet) ② explore-strict frontmatter sonnet+xhigh+WebSearch (C13)
+#     ③ execute/review `model: inherit` 유지 + review-strict effort 키 부재(무지정=세션 상속의 물리 앵커
+#        — 기준선 자체는 max(세션, 작업자)이며 inherit 은 그중 세션 축만 보장, spec §12.1)
 #     ④ settings.example 에 Agent 매처+hook 배선(#23 이 live 와 parity) ⑤ start-rpi-cycle 토큰(재생성 소실 표면화).
 #     C12: canonical workflow(rpi-implement.js 앵커)+Workflow 매처 conjunct 확장 (spec §10).
 #     bash grep only (staged-safe).
@@ -450,7 +451,8 @@ MP_DOC="$HOME/.claude/docs/ai-context/model-policy.md"
 MP_OK=1
 { [ -f "$MP_DOC" ] && grep -qE 'execute-strict.*opus' "$MP_DOC" && grep -qE 'explore-strict.*sonnet' "$MP_DOC"; } || MP_OK=0
 grep -qE '^model:[[:space:]]*sonnet' "$HOME/.claude/agents/explore-strict.md" 2>/dev/null || MP_OK=0
-grep -qE '^effort:[[:space:]]*medium' "$HOME/.claude/agents/explore-strict.md" 2>/dev/null || MP_OK=0
+grep -qE '^effort:[[:space:]]*xhigh' "$HOME/.claude/agents/explore-strict.md" 2>/dev/null || MP_OK=0
+grep -qE '^tools:.*WebSearch' "$HOME/.claude/agents/explore-strict.md" 2>/dev/null || MP_OK=0
 grep -qE '^model:[[:space:]]*inherit' "$HOME/.claude/agents/execute-strict.md" 2>/dev/null || MP_OK=0
 grep -qE '^model:[[:space:]]*inherit' "$HOME/.claude/agents/review-strict.md" 2>/dev/null || MP_OK=0
 if grep -qE '^effort:' "$HOME/.claude/agents/review-strict.md" 2>/dev/null; then MP_OK=0; fi

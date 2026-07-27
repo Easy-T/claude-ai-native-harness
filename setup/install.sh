@@ -69,6 +69,8 @@ REQUIRED=(
   "$TARGET/hooks/verify-loop-watch.sh"
   "$TARGET/hooks/session-start-audit.sh"
   "$TARGET/hooks/surface-constitution.sh"
+  "$TARGET/hooks/surface-model-policy.sh"
+  "$TARGET/hooks/worktree-teardown.sh"
   "$TARGET/hooks/lib/redirect-targets.js"
   "$TARGET/hooks/lib/skeleton-scan.js"
   "$TARGET/hooks/lib/transcript-usage.js"

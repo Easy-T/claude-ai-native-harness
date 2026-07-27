@@ -36,6 +36,11 @@ session_model_of() {  # $1=transcript path — 마지막 assistant 라인의 mes
 # 변수 조립·주석 내 언급은 오판 가능(주석의 execute-strict 는 오탐, 조립은 미검출) — 위협 모델은
 # 적대 우회가 아닌 망각이고, canonical workflows/rpi-implement.js 가 1차 방어. model 키는 따옴표
 # 유무 무관("model": 포함). scriptPath 는 선두 256KiB 만 검사(초과분 미검사 — 수용 잔여).
+# Rule C/C2/C3 — Workflow 경로 (C12 spec §10, C13 spec §12.3 per-spawn 전환). 정직 공개:
+# 스폰 추출은 hooks/lib/workflow-spawns.js (node) — 스크립트 전역 boolean OR 로 인한 마스킹을
+# 해소하고 프롬프트 문자열 내부를 마스킹해 오탐/미탐을 함께 줄인다. 동적 조립('execute'+'-strict')은
+# 여전히 미검출(텍스트 휴리스틱 상한 — canonical workflows/rpi-implement.js 가 1차 방어).
+# scriptPath 는 선두 256KiB 만 검사(초과분 미검사 — 수용 잔여).
 if [ "$TOOL" = "Workflow" ]; then
   WF_TEXT=$(echo "$INPUT" | json_get 'tool_input.script')
   if [ -z "$WF_TEXT" ]; then
@@ -44,57 +49,75 @@ if [ "$TOOL" = "Workflow" ]; then
     { [ -n "$WF_SP" ] && [ -f "$WF_SP" ]; } && WF_TEXT=$(head -c 262144 "$WF_SP" 2>/dev/null) || WF_TEXT=""
   fi
   [ -n "$WF_TEXT" ] || exit 0
-  WF_NORM=$(printf '%s' "$WF_TEXT" | tr '\n\t' '  ')
-  case "$WF_NORM" in *execute-strict*|*review-strict*) ;; *) exit 0 ;; esac
   TRANSCRIPT=$(echo "$INPUT" | json_get 'transcript_path')
   SESSION_ID=$(echo "$INPUT" | json_get 'session_id'); [ -z "$SESSION_ID" ] && SESSION_ID="unknown"
   { [ -n "$TRANSCRIPT" ] && [ -f "$TRANSCRIPT" ]; } || exit 0
   WF_SESSION_MODEL=$(session_model_of "$TRANSCRIPT")
   [ -n "$WF_SESSION_MODEL" ] || exit 0
   WF_TIER=$(tier_of "$WF_SESSION_MODEL")
-  MPQ="['\"]"
-  RE_EX_MODEL_AFTER="execute-strict${MPQ}[^}]*${MPQ}?model${MPQ}?[[:space:]]*:"
-  RE_EX_MODEL_BEFORE="${MPQ}?model${MPQ}?[[:space:]]*:[[:space:]]*${MPQ}[a-zA-Z0-9.-]+${MPQ}[^}]*execute-strict"
-  RE_EX_FABLE_AFTER="execute-strict${MPQ}[^}]*${MPQ}?model${MPQ}?[[:space:]]*:[[:space:]]*${MPQ}((claude-)?fable|inherit)"
-  RE_EX_FABLE_BEFORE="${MPQ}?model${MPQ}?[[:space:]]*:[[:space:]]*${MPQ}((claude-)?fable[a-z0-9.-]*|inherit)${MPQ}[^}]*execute-strict"
-  RE_REV_MODEL_AFTER="review-strict${MPQ}[^}]*${MPQ}?model${MPQ}?[[:space:]]*:[[:space:]]*${MPQ}([a-zA-Z0-9.-]+)${MPQ}"
-  RE_REV_MODEL_BEFORE="${MPQ}?model${MPQ}?[[:space:]]*:[[:space:]]*${MPQ}([a-zA-Z0-9.-]+)${MPQ}[^}]*review-strict"
+  [ "$WF_TIER" = "0" ] && exit 0
 
-  # Rule C — fable 세션: execute-strict 스폰 객체에 model 키 부재(상속=fable 역류) 또는 fable 명시
-  if [ "$WF_TIER" = "4" ] && [[ "$WF_NORM" == *execute-strict* ]]; then
-    EX_HAS_MODEL=0; EX_FABLE=0
-    [[ "$WF_NORM" =~ $RE_EX_MODEL_AFTER ]] && EX_HAS_MODEL=1
-    [[ "$WF_NORM" =~ $RE_EX_MODEL_BEFORE ]] && EX_HAS_MODEL=1
-    [[ "$WF_NORM" =~ $RE_EX_FABLE_AFTER ]] && EX_FABLE=1
-    [[ "$WF_NORM" =~ $RE_EX_FABLE_BEFORE ]] && EX_FABLE=1
-    if [ "$EX_HAS_MODEL" = "0" ] || [ "$EX_FABLE" = "1" ]; then
-      MARKER="$(session_marker model-policy-c "$SESSION_ID")"
-      if [ ! -f "$MARKER" ]; then
-        touch "$MARKER" 2>/dev/null || true
-        hook_log "surface-model-policy" "workflow:execute-strict-nomodel" "ALERT" "rule-c-workflow-downshift-missing"
-        emit_additional_context "[model-policy] Workflow 스크립트가 execute-strict 스테이지를 model 지정 없이(또는 fable 로) 스폰합니다 — fable 세션의 구현 스테이지는 model:'opus' 고정이 정책. canonical: \$HOME/.claude/workflows/rpi-implement.js 를 절대경로 scriptPath 로 사용 권장(도구는 ~ 미확장). SSOT: docs/ai-context/model-policy.md §2 모드(A)·spec §10 (advisory · 1세션 1회 · 차단 아님)"
-        exit 0
+  SPAWNS=$(printf '%s' "$WF_TEXT" | node "$HOME/.claude/hooks/lib/workflow-spawns.js" 2>/dev/null)
+  [ -n "$SPAWNS" ] || exit 0
+
+  # 1패스: 위반 수집. WORKER_TIER = 실행자 최고 티어(검증자 floor 산정용 — spec §12.1).
+  C_HIT=0; C3_HIT=0; C2_HIT=""; WORKER_TIER="$WF_TIER"
+  while IFS="$(printf '\t')" read -r SP_TYPE SP_MODEL; do
+    [ -n "$SP_TYPE" ] || continue
+    if [ "$SP_TYPE" = "execute-strict" ]; then
+      SP_T=$(tier_of "$SP_MODEL")
+      [ "$SP_T" -gt "$WORKER_TIER" ] 2>/dev/null && WORKER_TIER="$SP_T"
+      # Rule C: fable 세션의 실행자가 무선언(-) 또는 inherit/fable 명시 = 하향 미적용
+      if [ "$WF_TIER" = "4" ]; then
+        case "$SP_MODEL" in
+          -|inherit) C_HIT=1 ;;
+          *) [ "$SP_T" = "4" ] && C_HIT=1 ;;
+        esac
       fi
+    elif [ "$SP_TYPE" = "?" ]; then
+      # Rule C3: agentType-less 스폰은 세션 모델을 상속한다(spec §11.3) — fable 세션이면 역류
+      [ "$WF_TIER" = "4" ] && [ "$SP_MODEL" = "-" ] && C3_HIT=1
+    fi
+  done <<EOF
+$SPAWNS
+EOF
+
+  # 2패스: 검증자 floor = max(세션, 작업자) — spec §12.1
+  while IFS="$(printf '\t')" read -r SP_TYPE SP_MODEL; do
+    [ "$SP_TYPE" = "review-strict" ] || continue
+    [ "$SP_MODEL" = "-" ] && continue          # 무지정 = 상속 = 세션 티어 (frontmatter model: inherit)
+    SP_T=$(tier_of "$SP_MODEL")
+    [ "$SP_T" = "0" ] && continue
+    [ "$SP_T" -lt "$WORKER_TIER" ] 2>/dev/null && C2_HIT="$SP_MODEL"
+  done <<EOF
+$SPAWNS
+EOF
+
+  if [ "$C_HIT" = "1" ]; then
+    MARKER="$(session_marker model-policy-c "$SESSION_ID")"
+    if [ ! -f "$MARKER" ]; then
+      touch "$MARKER" 2>/dev/null || true
+      hook_log "surface-model-policy" "workflow:execute-strict-nomodel" "ALERT" "rule-c-workflow-downshift-missing"
+      emit_additional_context "[model-policy] Workflow 스크립트가 execute-strict 스테이지를 model 지정 없이(또는 fable 로) 스폰합니다 — fable 세션의 구현 스테이지는 model:'opus' 고정이 정책. canonical: \$HOME/.claude/workflows/rpi-implement.js 를 절대경로 scriptPath 로 사용 권장(도구는 ~ 미확장). SSOT: docs/ai-context/model-policy.md §2 모드(A)·spec §10 (advisory · 1세션 1회 · 차단 아님)"
+      exit 0
     fi
   fi
-
-  # Rule C2 — 전 claude 세션: review-strict 스폰 객체의 model 리터럴 티어 < 세션 티어 (검증자 하향)
-  if [ "$WF_TIER" != "0" ]; then
-    REV_MODEL=""
-    if [[ "$WF_NORM" =~ $RE_REV_MODEL_AFTER ]]; then REV_MODEL="${BASH_REMATCH[1]}"
-    elif [[ "$WF_NORM" =~ $RE_REV_MODEL_BEFORE ]]; then REV_MODEL="${BASH_REMATCH[1]}"
+  if [ "$C3_HIT" = "1" ]; then
+    MARKER="$(session_marker model-policy-c3 "$SESSION_ID")"
+    if [ ! -f "$MARKER" ]; then
+      touch "$MARKER" 2>/dev/null || true
+      hook_log "surface-model-policy" "workflow:agentless-inherit" "ALERT" "rule-c3-workflow-fanout-inherit"
+      emit_additional_context "[model-policy] Workflow 스크립트가 agentType 없는 서브에이전트를 model 지정 없이 스폰합니다 — 이 경로는 **세션 모델을 상속**하므로(spec §11.3) fable 세션에선 리서치 fan-out 전체가 플래그십으로 역류합니다. 역할에 맞는 하위 모델을 opts.model 로 명시하십시오(탐색=sonnet). SSOT: docs/ai-context/model-policy.md (advisory · 1세션 1회 · 차단 아님)"
+      exit 0
     fi
-    if [ -n "$REV_MODEL" ]; then
-      REV_TIER=$(tier_of "$REV_MODEL")
-      if [ "$REV_TIER" != "0" ] && [ "$REV_TIER" -lt "$WF_TIER" ]; then
-        MARKER="$(session_marker model-policy-c2 "$SESSION_ID")"
-        if [ ! -f "$MARKER" ]; then
-          touch "$MARKER" 2>/dev/null || true
-          hook_log "surface-model-policy" "workflow:review-strict:$REV_MODEL" "ALERT" "rule-c2-workflow-verifier-downshift"
-          emit_additional_context "[model-policy] Workflow 스크립트가 검증자(review-strict)를 하향 model('$REV_MODEL' < 세션 $WF_SESSION_MODEL)로 스폰합니다 — 검증자는 model 무지정(상속)이 정책, 하향 금지(cross-family-review.md §3). 의도 하향이면 DOWNGRADE-DECLARED(사유) 선언 필요. (advisory · 1세션 1회 · 차단 아님)"
-          exit 0
-        fi
-      fi
+  fi
+  if [ -n "$C2_HIT" ]; then
+    MARKER="$(session_marker model-policy-c2 "$SESSION_ID")"
+    if [ ! -f "$MARKER" ]; then
+      touch "$MARKER" 2>/dev/null || true
+      hook_log "surface-model-policy" "workflow:review-strict:$C2_HIT" "ALERT" "rule-c2-workflow-verifier-downshift"
+      emit_additional_context "[model-policy] Workflow 스크립트가 검증자(review-strict)를 하향 model('$C2_HIT')로 스폰합니다 — 검증자 기준선은 max(세션 티어, 작업자 티어)이며 그 아래로 내려갈 수 없습니다(spec §12.1). 무지정(상속)이 기본이고, 의도 하향이면 DOWNGRADE-DECLARED(사유) 선언이 필요합니다. (advisory · 1세션 1회 · 차단 아님)"
+      exit 0
     fi
   fi
   exit 0

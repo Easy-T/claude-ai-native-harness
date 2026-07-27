@@ -660,6 +660,23 @@ test_lib "129-ruby-eval-code"      "z.rb"    "$(CMD=$'ruby -e \'File.write("z.rb
 test_lib "140-redir-fdamp-code"     "evil.py" "$(CMD='echo x >& evil.py' CODE_EXT_REGEX="$LIBREGEX" node "$LIB/redirect-targets.js")"
 test_lib "141-redir-fdamp-num-pass" ""        "$(CMD='ls foo >&2' CODE_EXT_REGEX="$LIBREGEX" node "$LIB/redirect-targets.js")"
 test_lib "142-redir-2to1-pass"      ""        "$(CMD='ls 2>&1' CODE_EXT_REGEX="$LIBREGEX" node "$LIB/redirect-targets.js")"
+# workflow-spawns.js: agent() 스폰당 "<agentType>\t<model>" (미선언 model = '-', 미상 agentType = '?')
+WS="$LIB/workflow-spawns.js"
+test_lib "171-ws-single-bare"   "$(printf 'execute-strict\t-')" \
+  "$(printf "await agent('a', {agentType: 'execute-strict'})" | node "$WS")"
+test_lib "172-ws-single-model"  "$(printf 'execute-strict\topus')" \
+  "$(printf "await agent('a', {agentType: 'execute-strict', model: 'opus'})" | node "$WS")"
+test_lib "173-ws-masking"       "$(printf 'execute-strict\topus\nexecute-strict\t-')" \
+  "$(printf "await agent('a', {agentType: 'execute-strict', model: 'opus'})\nawait agent('b', {agentType: 'execute-strict'})" | node "$WS")"
+test_lib "174-ws-model-first"   "$(printf 'review-strict\tsonnet')" \
+  "$(printf "await agent('v', {model: 'sonnet', agentType: 'review-strict'})" | node "$WS")"
+test_lib "175-ws-quoted-keys"   "$(printf 'execute-strict\topus')" \
+  "$(printf 'await agent("a", {"agentType": "execute-strict", "model": "opus"})' | node "$WS")"
+test_lib "176-ws-agentless"     "$(printf '?\t-')" \
+  "$(printf "await agent('research', {label: 'r'})" | node "$WS")"
+test_lib "177-ws-prompt-noise"  "$(printf 'execute-strict\t-')" \
+  "$(printf "const P = \`policy: model: 'opus' required\`\nawait agent(P, {agentType: 'execute-strict'})" | node "$WS")"
+test_lib "178-ws-empty"         "" "$(printf '' | node "$WS")"
 # cycle-26 rank3: plan_status bold-only + 펜스 스킵 (prose 'Status: active' 게이트 오개방 봉인)
 PS_PROSE=$(mktemp "$SCRATCH/ps-XXXXXX.md"); printf '# Plan\nStatus: active\n\n**Status:** completed\n' > "$PS_PROSE"
 test_lib "136-planstatus-prose-skip" "completed" "$(bash -c 'source "$HOME/.claude/hooks/_common.sh"; plan_status "$1"' _ "$PS_PROSE")"
@@ -943,7 +960,7 @@ test_smp() {
   if [ "$actual" = "$expected_exit" ] && [ "$ctx" = "$expect_ctx" ]; then PASSED=$((PASSED+1))
   else FAILED_LIST+=("surface-model-policy/$name (exit=$actual ctx=$ctx)"); fi
 }
-rm -f /tmp/model-policy-a-smp* /tmp/model-policy-b-smp* /tmp/model-policy-c-smp* /tmp/model-policy-c2-smp* 2>/dev/null   # stale-marker 플레이크 방지 (MSYS PID 재활용 — senior review C12)
+rm -f /tmp/model-policy-a-smp* /tmp/model-policy-b-smp* /tmp/model-policy-c-smp* /tmp/model-policy-c2-smp* /tmp/model-policy-c3-smp* 2>/dev/null   # stale-marker 플레이크 방지 (MSYS PID 재활용 — senior review C12)
 SMP_FABLE_T=$(mktemp "$SCRATCH/smp-fable-XXXXXX.jsonl")
 printf '{"type":"assistant","message":{"model":"claude-fable-5","content":[]}}\n' > "$SMP_FABLE_T"
 SMP_SONNET_T=$(mktemp "$SCRATCH/smp-sonnet-XXXXXX.jsonl")
@@ -1021,6 +1038,39 @@ test_smp "18-rule-c-fable-explicit" 0 1 "$(mk_wf_event script "$WF_FABLE_SCRIPT"
 SMP_SPACED_T=$(mktemp "$SCRATCH/smp-spaced-XXXXXX.jsonl")
 printf '{"type":"assistant","message":{"model": "claude-fable-5","content":[]}}\n' > "$SMP_SPACED_T"
 test_smp "19-spaced-model-key" 0 1 "$(mk_agent_event execute-strict "" "$SMP_SPACED_T" "smp19-$$")"
+
+# --- C13: per-spawn 판정 + Rule C3 (spec §12.3) ---
+WF_MASK="export const meta = {name: 'x', description: 'x'}
+await agent('a', {agentType: 'execute-strict', model: 'opus'})
+await agent('b', {agentType: 'execute-strict'})"
+WF_PROMPT_NOISE="export const meta = {name: 'x', description: 'x'}
+const P = \`policy: model: 'opus' required\`
+await agent(P, {agentType: 'execute-strict'})"
+WF_COMMENT_ONLY="export const meta = {name: 'x', description: 'x'}
+// 배경: execute-strict 는 구현용이다
+await agent('research', {label: 'r', model: 'sonnet'})"
+WF_FANOUT="export const meta = {name: 'x', description: 'x'}
+await agent('research this', {label: 'r'})"
+WF_FANOUT_OK="export const meta = {name: 'x', description: 'x'}
+await agent('research this', {label: 'r', model: 'sonnet'})"
+WF_EX_UP="export const meta = {name: 'x', description: 'x'}
+await agent('a', {agentType: 'execute-strict', model: 'opus'})
+await agent('v', {agentType: 'review-strict', model: 'sonnet'})"
+
+# 20: 마스킹 — 준수 스폰이 무선언 스폰을 가리지 못함 (per-spawn 판정)
+test_smp "20-rule-c-masking-detected" 0 1 "$(mk_wf_event script "$WF_MASK" "$SMP_FABLE_T" "smp20-$$")"
+# 21: 프롬프트 문자열의 model: 리터럴은 선언으로 오인되지 않음 (미탐 해소)
+test_smp "21-rule-c-prompt-noise" 0 1 "$(mk_wf_event script "$WF_PROMPT_NOISE" "$SMP_FABLE_T" "smp21-$$")"
+# 22: 주석에만 execute-strict 언급 + 실제 스폰은 model 선언 → 무발화 (오탐 해소)
+test_smp "22-rule-c-comment-no-fp" 0 0 "$(mk_wf_event script "$WF_COMMENT_ONLY" "$SMP_FABLE_T" "smp22-$$")"
+# 23: Rule C3 — fable 세션 + agentType-less 무선언 스폰 → ALERT (사각 해소, U1 표적)
+test_smp "23-rule-c3-fanout-inherit" 0 1 "$(mk_wf_event script "$WF_FANOUT" "$SMP_FABLE_T" "smp23-$$")"
+# 24: 같은 fan-out 이 model 선언 → 무발화
+test_smp "24-rule-c3-fanout-declared" 0 0 "$(mk_wf_event script "$WF_FANOUT_OK" "$SMP_FABLE_T" "smp24-$$")"
+# 25: 비-fable 세션의 fan-out → Rule C3 비대상
+test_smp "25-rule-c3-nonfable-ok" 0 0 "$(mk_wf_event script "$WF_FANOUT" "$SMP_SONNET_T" "smp25-$$")"
+# 26: floor — sonnet 세션 + 실행자 opus 상향 + 검증자 sonnet → max(2,3)=3 > 2 위반 ALERT
+test_smp "26-rule-c2-floor-worker" 0 1 "$(mk_wf_event script "$WF_EX_UP" "$SMP_SONNET_T" "smp26-$$")"
 
 # ==================== Summary ====================
 echo

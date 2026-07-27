@@ -17,6 +17,10 @@ export const meta = {
 // / isolation:'worktree' 미사용 — Workflow의 worktree는 에이전트별 독립 사본이라 stage2가 stage1의
 //   변경을 볼 수 없음(같은-worktree 공유 API 부재, GPT 교차리뷰 [C]3 REAL). 같은 파일을 공유하는
 //   task가 있으면 전체를 순차 실행해 동일 체크아웃에서 충돌 없이 진행.
+// 적용 범위: **모드 (A) fable + ultracode 전용**(docs/ai-context/model-policy.md §2). stage1 은 opus 고정이고
+//   stage2 는 무지정(상속)이라, fable/opus 세션에선 검증자 기준선 max(세션, 작업자)를 충족한다.
+//   ※sonnet/haiku 세션에서 쓰면 검증자(=세션 티어) < 실행자(opus) 로 기준선 미달이며 **탈출구가 없다**
+//     (stage2 model 을 넘길 args 필드 부재) — 수용 잔여, spec §12.1. 그 세션에선 이 캐리어를 쓰지 말 것.
 const EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max']
 if (!Array.isArray(args) || args.length === 0) {
   throw new Error('rpi-implement: args must be a non-empty task array — [{title, promptVerbatim, files, successCriteria, heavy, effort?}]')
