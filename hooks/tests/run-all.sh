@@ -660,7 +660,8 @@ test_lib "129-ruby-eval-code"      "z.rb"    "$(CMD=$'ruby -e \'File.write("z.rb
 test_lib "140-redir-fdamp-code"     "evil.py" "$(CMD='echo x >& evil.py' CODE_EXT_REGEX="$LIBREGEX" node "$LIB/redirect-targets.js")"
 test_lib "141-redir-fdamp-num-pass" ""        "$(CMD='ls foo >&2' CODE_EXT_REGEX="$LIBREGEX" node "$LIB/redirect-targets.js")"
 test_lib "142-redir-2to1-pass"      ""        "$(CMD='ls 2>&1' CODE_EXT_REGEX="$LIBREGEX" node "$LIB/redirect-targets.js")"
-# workflow-spawns.js: agent() 스폰당 "<agentType>\t<model>" (미선언 model = '-', 미상 agentType = '?')
+# workflow-spawns.js: agent() 스폰당 "<agentType>\t<model>"
+#   model: 리터럴 / 부재·동적 = '-'   ·   agentType: 리터럴 / 키 부재 = '?' / 키 존재·동적 = '*'  (C13 3값 계약)
 WS="$LIB/workflow-spawns.js"
 test_lib "171-ws-single-bare"   "$(printf 'execute-strict\t-')" \
   "$(printf "await agent('a', {agentType: 'execute-strict'})" | node "$WS")"
@@ -1135,8 +1136,7 @@ test_smp "29-rule-c2-inherit-above-floor" 0 0 "$(mk_wf_event script "$WF_EX_UP_I
 test_smp_multi() {
   TOTAL=$((TOTAL+1))
   local out; out=$(printf '%s' "$1" | "$HOOKS/surface-model-policy.sh" 2>/dev/null)
-  local n; n=$(printf '%s' "$out" | grep -o 'rule-c[23]\?-\|model-policy\] Workflow' | wc -l)
-  # 3개 규칙 메시지가 한 additionalContext 에 모두 들어갔는지 (each starts with "[model-policy] Workflow")
+  # 3개 규칙 메시지가 **한** additionalContext 에 모두 들어갔는지 (각 메시지가 "[model-policy] Workflow" 로 시작)
   local c; c=$(printf '%s' "$out" | grep -o '\[model-policy\] Workflow' | wc -l)
   if [ "$c" -ge 3 ]; then PASSED=$((PASSED+1))
   else FAILED_LIST+=("surface-model-policy/30-rule-priority-no-loss (msgs=$c)"); fi
