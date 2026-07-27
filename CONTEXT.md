@@ -82,12 +82,16 @@ _Avoid_: "단순화 금지"(스코프 최소주의까지 부정하는 오독), "
 _Avoid_: "타협"(정당한 트레이드오프 선언까지 포함하는 중립어), "간소화"(스코프 축소와 혼동).
 
 ### 실행자 하향 위임 (executor downshift)
-fable 세션이 실행자(execute-strict)·탐색자(explore-strict) 위임을 역할×모델 매트릭스의 하위 모델+effort로 디스패치하는 **정적·문서화** 정책(SSOT=docs/ai-context/model-policy.md). 검증자(review-strict)는 대상 아님 — 상속 유지+하향 금지(cross-family §3). 오케스트레이터의 동적 모델 재량이 아니다.
+fable 세션이 실행자(execute-strict)·탐색자(explore-strict) 위임을 역할×모델 매트릭스의 하위 모델+effort로 디스패치하는 **정적·문서화** 정책(SSOT=docs/ai-context/model-policy.md). 검증자(review-strict)는 대상 아님 — [[검증자 기준선]] `max(세션, 작업자)`가 별도 규율(상속 유지가 기본). 오케스트레이터의 동적 모델 재량이 아니다.
 _Avoid_: "동적 모델 선택"(기각된 재량 — self-pass 우회로), "모델 다운그레이드"(품질 열화 함의 — 이것은 역할 적합 배치).
 
 ### 역할×모델 매트릭스 (role-model matrix)
-(세션 모델, ultracode 여부) 2키로 역할(오케스트레이션/구현/탐색/검증)별 모델·effort를 정하는 정적 표. 상향은 항상 허용, 하향은 검증자 금지·실행자는 표 자체가 선언. SSOT=docs/ai-context/model-policy.md.
+(세션 모델, ultracode 여부) 2키로 역할(오케스트레이션/구현/탐색/검증)별 모델·effort를 정하는 정적 표. 상향은 항상 허용, 하향은 검증자가 [[검증자 기준선]](max(세션,작업자)) 미만 금지·실행자는 표 자체가 선언. SSOT=docs/ai-context/model-policy.md.
 _Avoid_: "모델 정책"(범위 불명 — ANTHROPIC_* 라우팅 env 설정과 혼동), "모델 라우팅"(CLIProxy 티어 매핑과 혼동).
+
+### 검증자 기준선 (verifier floor)
+검증자(review-strict)의 모델 티어가 넘어야 하는 하한 = **`max(세션 티어, 작업자 티어)`** (C13, 2026-07-27 확정). 선행 두 독법 — 세션-기준(model-policy.md)·작업자-기준(cross-family §3) — 의 **합집합**이라 어느 쪽보다 엄격하며, 그래서 완화가 아니라 강화다(DOWNGRADE-DECLARED 대상 아님). 실행자를 하위 모델로 내려도(→[[실행자 하향 위임]]) 검증자는 세션 티어 아래로 못 내려간다. hook 탐지는 Workflow 경로만 가능(스크립트 전문이 한 문자열) — Agent 도구 경로는 호출 간 상태 부재로 구조적 불가(L1 몫, 수용 잔여). **무지정(상속)은 면제가 아니라 "세션 티어로 평가"**다(C13 Closeout, spec §12.6): 실행자를 세션 위로 상향한 스크립트에서 검증자 model을 지우는 것은 위반을 남긴 채 경고만 없애는 거짓 복구다.
+_Avoid_: "검증자 하향 금지"(무엇 대비 하향인지 불명 — 이 모호성이 C13 이전 SSOT 드리프트의 원인), "검증자 상속"(inherit는 구현 수단이지 기준이 아님).
 
 ### 핸드오프 복원력 (handoff resilience)
 임의 시점 중단 후 다른 모델·세션이 **머지된 문서만으로**(이 머신의 auto-memory 없이) 작업을 재개할 수 있는 성질. 산출 문서의 self-containment(필요 사실 인라인 재서술)가 성립 조건이며, cold-agent fitness가 검증 수단.

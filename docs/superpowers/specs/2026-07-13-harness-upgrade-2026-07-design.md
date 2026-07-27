@@ -86,6 +86,8 @@ Fable 잔여 가용·수확 체감 시 어느 사이클 경계에서든 C-final�
 ### 재작업 백로그 판정
 실증 결함 중 **재작업 필요 = 0건** (C-1/C-3는 이 세션 내 해소, C-2 doctor 결함은 차기 사이클 명기, 기록 공백 2건은 증거 소실로 보강 불가·명기로 종결). "Opus라서 미숙" 가설은 **기각** — 오히려 Gate P가 over-claim을 잡은 기록(C8)과 conjunctive 정직 선례(C7·C9)가 실재한다.
 
+> ※ (C13, 2026-07-27) 아래 cross-family 프로토콜 기술은 **작성 시점 기록**이다. 현행 SSOT는 `docs/ai-context/cross-family-review.md` §2 — 버전 리터럴 포함 실행 규약은 그쪽을 따를 것.
+
 ## 10. Spec Delta — C10: GAP-006 교차패밀리 검증자 분리 착륙 (2026-07-18)
 
 **착륙 조건 성립**: GAP-006의 PENDING 사유("ccs 인프라 실패" — C0 3프로필 전패)가 2026-07-18 소멸: GPT 경로 2개 라이브 검증 — **A. codex CLI**(`codex` 0.144.1 전역+ChatGPT 로그인; `codex exec --sandbox read-only --skip-git-repo-check` stdin 파이프 정상, CCS 불필요) · **B. CCS/CLIProxy**(`claude --model gpt-5.6-sol -p` + `--output-format json`의 `modelUsage`에 `gpt-*` 존재로 판별; E2BIG→stdin·400 reasoning→핀 7.2.62-5에서 소멸). 가치 실증: design.md v4 GPT 1회 리뷰가 Claude 4패스가 놓친 진짜 결함 10건 적발(14건 중 오독 4건 트리아지 기각).
