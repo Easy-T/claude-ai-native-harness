@@ -99,6 +99,11 @@ mut_floor_shrink() {
 # Mutator 8 — seal #46 (hooks/lib 매니페스트 디스크=SSOT): doctor 21b 목록에서 파서 하나를 빼면
 #   디스크 대조가 발화해야 한다. C13 의 M1/M7(신규 파서가 매니페스트 3곳 중 2곳에서 누락) 재발 방지.
 mut_doctor_lib_drop() { sed -i -E 's/(for lf in [a-z-]+ [a-z-]+ [a-z-]+ [a-z-]+) workflow-spawns;/\1;/' "$1/setup/doctor.sh"; }
+# Mutator 9/10 — seal #45 conjunct ②(explore-strict frontmatter) 커버 (C14-F):
+#   C13 이 세운 effort/WebSearch 앵커가 **실제로 발화하는가**를 증명한다. 종전엔 explore 대상 뮤테이터가
+#   mut_explore_write(seal #41) 뿐이라 "9/0 통과"가 #45 의 발화를 증언하지 못했다.
+mut_explore_effort()    { sed -i -E 's/^effort:[[:space:]]*xhigh/effort: medium/' "$1/agents/explore-strict.md"; }
+mut_explore_websearch() { sed -i -E 's/^(tools:.*), WebSearch/\1/' "$1/agents/explore-strict.md"; }
 
 assert_seal_fires "state_schema"    mut_state_count_string "state.json schema 위반"
 assert_seal_fires "settings_parity" mut_settings_matcher   "settings/example harness-hook drift"
@@ -108,6 +113,8 @@ assert_seal_fires "deny_last_line"      mut_strip_deny      "deny 최후방어�
 assert_seal_fires "mirror_sync"     mut_mirror_drift       "opencode 미러 design.md drift"
 assert_seal_fires "floor_18"        mut_floor_shrink       "§6 floor 카운트 drift"
 assert_seal_fires "lib_manifest"    mut_doctor_lib_drop    "hooks/lib 매니페스트 drift"
+assert_seal_fires "explore_effort"    mut_explore_effort     "역할×모델 매트릭스 봉인 붕괴"
+assert_seal_fires "explore_websearch" mut_explore_websearch  "역할×모델 매트릭스 봉인 붕괴"
 
 # === Live immutability: witnessed files byte-identical (all mutation stayed in replicas) ===
 LIVE_AFTER="$(witness)"
