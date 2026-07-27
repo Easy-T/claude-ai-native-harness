@@ -96,7 +96,7 @@ COUNT=$(node -e '
 [ -f "$HOME/.claude/SECURITY.md" ] && ok "SECURITY.md" || fail "SECURITY.md missing"
 
 # 16. hooks/lib extracted parsers (load-bearing — hooks fail-open silently if missing)
-for j in redirect-targets skeleton-scan transcript-usage model-window; do
+for j in redirect-targets skeleton-scan transcript-usage model-window workflow-spawns; do
   [ -f "$HOME/.claude/hooks/lib/$j.js" ] && ok "lib: $j" || fail "hooks/lib/$j.js missing"
 done
 

@@ -1,10 +1,10 @@
 # C13 역할별 모델 디스패치 거버넌스 Implementation Plan
 
-**Status:** active
+**Status:** completed
 **RPI-Cycle:** 64
 **Started:** 2026-07-27
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Workflow 스크립트의 서브에이전트 스폰을 **스폰 단위로** 평가해 fable 세션의 모델 역류를 관측하고, 탐색자에 WebSearch·xhigh를 부여하며, 검증자 기준선을 `max(세션, 작업자)`로 문서 정합화한다.
 
@@ -57,7 +57,7 @@
   `agentType` 미상 = `?`, `model` 미선언 = `-`. 파싱 실패/빈 입력 = 빈 출력 + exit 0(fail-open).
   Task 2가 이 출력을 읽는다.
 
-- [ ] **Step 1: 실패하는 테스트 작성**
+- [x] **Step 1: 실패하는 테스트 작성**
 
 `hooks/tests/run-all.sh`의 `# redirect-targets.js:` 케이스 블록 **뒤**(SURFACE-MODEL-POLICY 섹션 시작 전)에 추가:
 
@@ -94,12 +94,12 @@ hooks-lib	177-ws-prompt-noise	0	test_lib
 hooks-lib	178-ws-empty	0	test_lib
 ```
 
-- [ ] **Step 2: 테스트 실패 확인 (RED)**
+- [x] **Step 2: 테스트 실패 확인 (RED)**
 
 Run: `cd ~/.claude && bash hooks/tests/run-all.sh 2>&1 | grep -E "171-ws|172-ws|173-ws|Hook tests:"`
 Expected: FAIL — `hooks-lib/171-ws-single-bare (exp=[execute-strict	-] got=[])` 등 8건 실패(파일 부재로 node가 stderr 후 빈 출력).
 
-- [ ] **Step 3: 최소 구현**
+- [x] **Step 3: 최소 구현**
 
 Create `hooks/lib/workflow-spawns.js`:
 
@@ -193,14 +193,14 @@ function maskStrings(s) {
 }
 ```
 
-- [ ] **Step 4: 테스트 통과 확인 (GREEN)**
+- [x] **Step 4: 테스트 통과 확인 (GREEN)**
 
 Run: `cd ~/.claude && bash hooks/tests/run-all.sh 2>&1 | tail -6`
 Expected: `Hook tests: 205 / 205 passed` + `cases.tsv <-> run-all 정합 OK (205 declared == 205 run, 비주석 실재)`
 
 ※ 197 + 8 = 205. 이 수는 Task 2가 다시 늘린다.
 
-- [ ] **Step 5: 커밋**
+- [x] **Step 5: 커밋**
 
 ```bash
 cd ~/.claude
@@ -220,7 +220,7 @@ git commit -m "feat(c13): per-spawn Workflow 파서 — bash 전역 OR 마스킹
 - Consumes: Task 1의 `hooks/lib/workflow-spawns.js` — stdout `<agentType>\t<model>` 행들.
 - Produces: hook 규칙 3종. **Rule C**(fable 세션 execute-strict 무선언/fable) · **Rule C2**(검증자 하향, floor=`max(세션,작업자)`) · **Rule C3**(fable 세션에서 agentType-less 스폰 = 세션 모델 상속 역류 — 신규, U1 표적).
 
-- [ ] **Step 1: 실패하는 테스트 작성**
+- [x] **Step 1: 실패하는 테스트 작성**
 
 `hooks/tests/run-all.sh`의 `test_smp "19-spaced-model-key"` 행 **뒤**에 추가:
 
@@ -277,12 +277,12 @@ surface-model-policy	26-rule-c2-floor-worker	0	mk_wf_event
 rm -f /tmp/model-policy-a-smp* /tmp/model-policy-b-smp* /tmp/model-policy-c-smp* /tmp/model-policy-c2-smp* /tmp/model-policy-c3-smp* 2>/dev/null
 ```
 
-- [ ] **Step 2: 테스트 실패 확인 (RED)**
+- [x] **Step 2: 테스트 실패 확인 (RED)**
 
 Run: `cd ~/.claude && bash hooks/tests/run-all.sh 2>&1 | grep -E "2[0-6]-rule|Hook tests:"`
 Expected: FAIL — 최소 `20-rule-c-masking-detected (exit=0 ctx=0)`(마스킹 미탐)·`22-rule-c-comment-no-fp (exit=0 ctx=1)`(오탐)·`23-rule-c3-fanout-inherit (exit=0 ctx=0)`(사각)·`26-rule-c2-floor-worker (exit=0 ctx=0)`(floor 미구현) 4건.
 
-- [ ] **Step 3: 최소 구현**
+- [x] **Step 3: 최소 구현**
 
 `hooks/surface-model-policy.sh`의 39-101행(`if [ "$TOOL" = "Workflow" ]; then` ~ 대응 `fi`)을 **통째로** 아래로 교체:
 
@@ -375,12 +375,12 @@ EOF
 fi
 ```
 
-- [ ] **Step 4: 테스트 통과 확인 (GREEN)**
+- [x] **Step 4: 테스트 통과 확인 (GREEN)**
 
 Run: `cd ~/.claude && bash hooks/tests/run-all.sh 2>&1 | tail -6`
 Expected: `Hook tests: 212 / 212 passed` + 정합 OK (205 + 7 = 212). 기존 09~19 케이스 **무회귀** 필수.
 
-- [ ] **Step 5: 커밋**
+- [x] **Step 5: 커밋**
 
 ```bash
 cd ~/.claude
@@ -401,12 +401,12 @@ git commit -m "feat(c13): Rule C/C2/C3 per-spawn 판정 + 검증자 floor max(�
 - Consumes: 없음.
 - Produces: explore-strict = `model: sonnet` + `effort: xhigh` + `tools: Read, Grep, Glob, WebFetch, WebSearch`.
 
-- [ ] **Step 1: seal 이 현재 값을 잠그고 있음을 확인 (RED 유도)**
+- [x] **Step 1: seal 이 현재 값을 잠그고 있음을 확인 (RED 유도)**
 
 Run: `cd ~/.claude && grep -n "effort:" agents/explore-strict.md && grep -n "effort:\[\[:space:\]\]\*medium" setup/verify-setup.sh`
 Expected: `15:effort: medium` + `453:grep -qE '^effort:[[:space:]]*medium' …` — 둘이 쌍이므로 한쪽만 고치면 seal FAIL.
 
-- [ ] **Step 2: frontmatter 3줄 수정**
+- [x] **Step 2: frontmatter 3줄 수정**
 
 `agents/explore-strict.md:15`:
 ```
@@ -428,7 +428,7 @@ tools: Read, Grep, Glob, WebFetch, WebSearch
 > 모델 기본값 sonnet+effort xhigh(frontmatter — 역할×모델 매트릭스, docs/ai-context/model-policy.md). xhigh 근거: 공식 effort 가이드가 "extended exploration, such as repeated tool calling and detailed search"에 xhigh를 권고하고, Sonnet 5 기본값이 high이므로 종전 medium은 기본값 아래 하향이었다(spec §11.6). 판단-heavy 탐색은 호출 인자 `model` 상향 또는 메인 직접이 탈출구. ※WebSearch 는 세션당 200회 상한을 메인·전 서브에이전트가 공유한다(공식) — fan-out 설계 시 고려.
 ```
 
-- [ ] **Step 3: seal #45 앵커를 새 값으로 갱신**
+- [x] **Step 3: seal #45 앵커를 새 값으로 갱신**
 
 `setup/verify-setup.sh:453`:
 ```bash
@@ -443,16 +443,16 @@ grep -qE '^effort:[[:space:]]*xhigh' "$HOME/.claude/agents/explore-strict.md" 2>
 #        — 기준선 자체는 max(세션, 작업자)이며 inherit 은 그중 세션 축만 보장, spec §12.1)
 ```
 
-- [ ] **Step 4: SECURITY.md reader 서술 갱신**
+- [x] **Step 4: SECURITY.md reader 서술 갱신**
 
 `SECURITY.md:71,73`의 explore-strict 도구 목록에 `WebSearch`를 추가(문장 구조는 유지, 목록만 갱신).
 
-- [ ] **Step 5: 검증**
+- [x] **Step 5: 검증**
 
 Run: `cd ~/.claude && bash setup/verify-setup.sh 2>&1 | tail -3 && bash setup/tests/seal-regression.test.sh 2>&1 | tail -3`
 Expected: `PASS=81 FAIL=0` (카운트 불변 — 값 교체이므로) + seal-regression 전건 통과.
 
-- [ ] **Step 6: 커밋**
+- [x] **Step 6: 커밋**
 
 ```bash
 cd ~/.claude
@@ -472,23 +472,23 @@ git commit -m "feat(c13): explore-strict = sonnet+xhigh+WebSearch (spec §12.2, 
 - Consumes: Task 2의 floor 정의, Task 3의 frontmatter 값.
 - Produces: 문서 전 계층이 `max(세션, 작업자)` 단일 표현으로 수렴.
 
-- [ ] **Step 1: model-policy.md 매트릭스 갱신**
+- [x] **Step 1: model-policy.md 매트릭스 갱신**
 
 `:18` 탐색 행의 effort 셀 `**medium** (frontmatter 기본)` → `**xhigh** (frontmatter 기본)`, 비고에 WebSearch 보유 추가.
 `:19` 검증 행 비고: `검증자 티어 ≥ **세션** 보장 (cross-family-review.md §3)` → `검증자 티어 ≥ **max(세션, 작업자)** = 검증자 기준선(spec §12.1). 실행자를 세션 위로 상향하면 검증자도 그 티어 이상이어야 한다`.
 `:22` 하향 규칙: `**하향**: 검증자 금지` → `**하향**: 검증자는 기준선 max(세션, 작업자) 미만 금지`.
 `:29` 모드 (C)의 `(sonnet+medium)` → `(sonnet+xhigh+WebSearch)`.
 
-- [ ] **Step 2: cross-family-review.md §3 갱신**
+- [x] **Step 2: cross-family-review.md §3 갱신**
 
 `:51` 첫 문장: `"검증자 티어 ≥ 작업자 티어"를 공짜로 보장한다` → `"검증자 티어 ≥ **max(세션, 작업자)**"(= 검증자 기준선, spec §12.1)를 공짜로 보장한다 — 무지정 상속이 세션 티어를 주고, 작업자가 세션 위로 상향된 경우엔 검증자도 동반 상향이 필요하다`.
 
-- [ ] **Step 3: CONTEXT.md 2곳 갱신**
+- [x] **Step 3: CONTEXT.md 2곳 갱신**
 
 `:85` 말미 `검증자(review-strict)는 대상 아님 — 상속 유지+하향 금지(cross-family §3)` → `검증자(review-strict)는 대상 아님 — [[검증자 기준선]] max(세션, 작업자)가 별도 규율`.
 `:89` `하향은 검증자 금지` → `하향은 검증자 기준선(max(세션,작업자)) 미만 금지`.
 
-- [ ] **Step 4: start-rpi-cycle SKILL.md 갱신**
+- [x] **Step 4: start-rpi-cycle SKILL.md 갱신**
 
 `:48` `sonnet+medium` → `sonnet+xhigh+WebSearch`.
 `:122` `**model/effort 무지정**(상속 — 검증자 하향 금지)` → `**model/effort 무지정**(상속 — 검증자 기준선 max(세션,작업자) 유지)`.
@@ -504,7 +504,7 @@ Phase R step C 블록(`※ explore-strict 는 frontmatter 기본 sonnet+medium �
      ※WebSearch 는 세션당 200회를 메인·전 서브에이전트가 공유한다(공식) — fan-out 폭 설계 시 고려.
 ```
 
-- [ ] **Step 5: canonical 캐리어에 모드-A 전용 + floor 잔여 명시 (spec §12.1 "채택 해소" ①②)**
+- [x] **Step 5: canonical 캐리어에 모드-A 전용 + floor 잔여 명시 (spec §12.1 "채택 해소" ①②)**
 
 `workflows/rpi-implement.js` 헤더 주석부(파일 선두 `//` 블록의 마지막 줄 뒤)에 아래 4줄 추가:
 
@@ -515,12 +515,12 @@ Phase R step C 블록(`※ explore-strict 는 frontmatter 기본 sonnet+medium �
 //     (stage2 model 을 넘길 args 필드 부재) — 수용 잔여, spec §12.1. 그 세션에선 이 캐리어를 쓰지 말 것.
 ```
 
-- [ ] **Step 6: 검증**
+- [x] **Step 6: 검증**
 
 Run: `cd ~/.claude && bash setup/verify-setup.sh 2>&1 | tail -3`
 Expected: `PASS=81 FAIL=0` (#17 cross-doc drift·#22 phase-skills parity 포함 green). seal #45가 `rpi-implement.js`의 `model: 'opus'`·effort 분기 토큰을 검사하므로 주석 추가는 무영향.
 
-- [ ] **Step 7: 커밋**
+- [x] **Step 7: 커밋**
 
 ```bash
 cd ~/.claude
@@ -540,7 +540,7 @@ git commit -m "docs(c13): 검증자 기준선 max(세션,작업자) 전 계층 �
 - Consumes: 없음(독립).
 - Produces: 없음(정정만).
 
-- [ ] **Step 1: install.sh 누락 hook 2건 추가**
+- [x] **Step 1: install.sh 누락 hook 2건 추가**
 
 `setup/install.sh`의 REQUIRED 배열에서 `"$TARGET/hooks/surface-constitution.sh"` 행 **뒤**에 2줄 추가:
 
@@ -549,7 +549,7 @@ git commit -m "docs(c13): 검증자 기준선 max(세션,작업자) 전 계층 �
   "$TARGET/hooks/worktree-teardown.sh"
 ```
 
-- [ ] **Step 2: scaffold-registry seal #45 등재**
+- [x] **Step 2: scaffold-registry seal #45 등재**
 
 `docs/ai-context/scaffold-registry.md:50` 제목: `## Drift Seals (verify-setup.sh #17~#44, −#26 소각 = 27)` → `## Drift Seals (verify-setup.sh #17~#45, −#26 소각 = 28)`
 Seals 표 말미(#44 행 뒤)에 1행 추가. **표는 3열**(`| Seal | 봉인 대상 | 추적 |`)이므로 그대로 맞춘다:
@@ -560,13 +560,13 @@ Seals 표 말미(#44 행 뒤)에 1행 추가. **표는 3열**(`| Seal | 봉인 �
 
 ※ 셀 안의 `|`는 `\|`로 이스케이프해야 표가 깨지지 않는다(매처 문자열 `Agent|Workflow`).
 
-- [ ] **Step 3: ccs-delegation 경로 정정**
+- [x] **Step 3: ccs-delegation 경로 정정**
 
 `skills/ccs-delegation/SKILL.md`의 `~/.ccs/config.json` → `~/.ccs/config.yaml` 치환.
 **실측 4곳**: `:5`, `:24`, `:52`, 그리고 `:55`(`"No profiles in config.json"` — 에러 문구 안).
 Run으로 잔여 확인: `grep -c "config\.json" skills/ccs-delegation/SKILL.md` → `0`이어야 한다.
 
-- [ ] **Step 4: settings.example.json 에 모델 바인딩 env 주석 추가**
+- [x] **Step 4: settings.example.json 에 모델 바인딩 env 주석 추가**
 
 `settings.example.json`의 `env` 블록에 3키 추가(값은 alias 자리표시 — 실제 바인딩은 각 머신 settings.json):
 
@@ -579,7 +579,7 @@ Run으로 잔여 확인: `grep -c "config\.json" skills/ccs-delegation/SKILL.md`
 ※ `settings.example.json`은 **추적본**이므로 커밋 대상. `settings.json`(live)은 **절대 add 금지**.
 ※ 이 값들은 "버전 바인딩 SSOT = settings.json env"(model-policy.md 헤더)의 신규-PC 폴백을 실재화한다.
 
-- [ ] **Step 5: 구 spec 중복 기술에 포인터 주석**
+- [x] **Step 5: 구 spec 중복 기술에 포인터 주석**
 
 `docs/superpowers/specs/2026-07-13-harness-upgrade-2026-07-design.md:89` 행 **앞**에 1줄 삽입(본문 편집 금지 — genesis-record):
 
@@ -587,7 +587,7 @@ Run으로 잔여 확인: `grep -c "config\.json" skills/ccs-delegation/SKILL.md`
 > ※ (C13, 2026-07-27) 아래 cross-family 프로토콜 기술은 **작성 시점 기록**이다. 현행 SSOT는 `docs/ai-context/cross-family-review.md` §2 — 버전 리터럴 포함 실행 규약은 그쪽을 따를 것.
 ```
 
-- [ ] **Step 6: 검증 + 커밋**
+- [x] **Step 6: 검증 + 커밋**
 
 Run: `cd ~/.claude && bash setup/verify-setup.sh 2>&1 | tail -3 && node -e "JSON.parse(require('fs').readFileSync('settings.example.json','utf8')); console.log('settings.example.json JSON OK')"`
 Expected: `PASS=81 FAIL=0` + `settings.example.json JSON OK`
@@ -609,17 +609,17 @@ git commit -m "fix(c13): 선재 결함 6건 — install REQUIRED·seal #45 등�
 - Consumes: Task 1·2의 최종 케이스 수.
 - Produces: 없음(최종 게이트).
 
-- [ ] **Step 1: 실제 케이스 수 확인**
+- [x] **Step 1: 실제 케이스 수 확인**
 
 Run: `cd ~/.claude && grep -cvE '^[[:space:]]*(#|$)' hooks/tests/cases.tsv`
 Expected: `212`
 
-- [ ] **Step 2: README 2곳 동기**
+- [x] **Step 2: README 2곳 동기**
 
 `README.md:276`: `197 case (run-all과 1:1 정합, 100% 구현)` → `212 case (run-all과 1:1 정합, 100% 구현)`
 `README.md:514`: `(197 케이스, run-all과 1:1 정합, 100% 통과)` → `(212 케이스, run-all과 1:1 정합, 100% 통과)`
 
-- [ ] **Step 3: 3대 검증 포그라운드 실행**
+- [x] **Step 3: 3대 검증 포그라운드 실행**
 
 ```bash
 cd ~/.claude
@@ -629,7 +629,7 @@ bash setup/tests/seal-regression.test.sh 2>&1 | tail -4
 ```
 Expected: `212 / 212 passed` + 정합 OK · `PASS=81 FAIL=0` · seal-regression 전건 통과.
 
-- [ ] **Step 4: 라이브 실증 (Rule C3 발화 확인)**
+- [x] **Step 4: 라이브 실증 (Rule C3 발화 확인)**
 
 fable transcript 픽스처 + 순수 fan-out 스크립트를 실물 hook에 파이프해 ALERT를 캡처한다:
 
@@ -648,7 +648,7 @@ rm -f "$T"
 ```
 Expected: `additionalContext`에 `rule-c3` 취지 메시지(agentType 없는 스폰 = 세션 모델 상속) 출력.
 
-- [ ] **Step 5: 커밋**
+- [x] **Step 5: 커밋**
 
 ```bash
 cd ~/.claude
@@ -665,3 +665,51 @@ git commit -m "chore(c13): README 케이스 카운트 197→212 동기"
 **2. Placeholder scan** — TBD/TODO/"적절히" 0건. 모든 코드 스텝에 실제 코드 블록 포함.
 
 **3. Type consistency** — 파서 계약 `<agentType>\t<model>`(미선언 `-`, 미상 `?`)이 Task 1 정의 → Task 2 소비에서 동일. 마커 이름 `model-policy-c3`가 hook·run-all 청소 행에서 일치. 케이스 수 197→205(Task 1)→212(Task 2)→README(Task 6) 연쇄 일치.
+
+---
+
+### Task 7: GPT 교차패밀리 리뷰 REAL 결함 정정 (파서 렉서 전환)
+
+**Files:**
+- Modify: `hooks/lib/workflow-spawns.js` (전면 재작성 — 정규식 휴리스틱 → 렉서 + 프로퍼티 워크)
+- Modify: `hooks/surface-model-policy.sh:47-124` (2패스 floor 판정 + 규칙 우선순위 유실 + `*` agentType)
+- Modify: `hooks/tests/run-all.sh`, `hooks/tests/cases.tsv` (회귀 픽스처)
+- Modify: `docs/superpowers/specs/2026-07-25-model-policy-design.md` (§12.6 신설 — 트리아지 기록)
+
+**근거:** Closeout Step C-1 교차패밀리(GPT-5.6 Sol) 적대 리뷰가 19건 제기 → 메인 트리아지에서 REAL 판정분.
+`cross-family-review.md` §2 "GPT는 추가 발견자이지 판정자가 아니다" 규약대로 발견마다 원문 실측 대조 후 편입.
+
+**Interfaces:**
+- Produces: 파서 출력 계약 확장 — agentType 3-값(`<리터럴>` / `?`=키 부재 / `*`=키 존재·비리터럴).
+  model 은 2-값 유지(`<리터럴>` / `-`=부재 또는 비리터럴).
+
+- [x] **Step 1: RED — GPT 재현 케이스가 현 파서에서 실패함을 확인**
+
+```bash
+cd ~/.claude && P=hooks/lib/workflow-spawns.js
+printf 'const s = "agent('p', {agentType:'execute-strict', model:'opus'})";' | node $P   # A1 기대 "" 실제 execute-strict/opus
+printf "agent('p', {agentType:'review-strict', meta:{model:'haiku'}, model:'opus'})" | node $P                    # A6 기대 review-strict/opus
+printf "agent('p', {myagentType:'execute-strict', fallback_model:'opus'})" | node $P                              # A7 기대 ""
+```
+
+- [x] **Step 2: 파서를 렉서 기반으로 재작성**
+
+주석·문자열·템플릿(`${}` 중첩)·정규식 본문을 인덱스 보존 마스킹 → `(?<![\w$.])agent\s*\(` 로 스폰 탐색 →
+호출 인자 깊이 0 의 첫 `{` 를 opts 로 확정 → 깊이 0 프로퍼티 워크(last-write-wins) → 값은 단일 리터럴만 채택 + escape 디코드.
+정지성: 입력 512KiB · 스폰 200개 상한.
+
+- [x] **Step 3: hook 판정 3건 정정**
+
+(a) 2패스 floor: `SP_MODEL = "-"`(상속=세션 티어)를 폐기하지 않고 `WF_TIER` 로 평가 — GPT [C]1/[C]3/[D]1/[D]2.
+(b) tier 0(기타 모델) 검증자를 면제하지 않음 — GPT [C]2.
+(c) 규칙 우선순위 유실 제거: C/C3/C2 를 각각 독립 마커로 발화(첫 규칙이 나머지를 삼키지 않음) — GPT [C]5.
+(d) `*`(동적 agentType)는 Rule C3 상속 단언에서 제외 — GPT [C]4.
+
+- [x] **Step 4: 회귀 픽스처 추가 후 GREEN 확인**
+
+```bash
+cd ~/.claude && bash hooks/tests/run-all.sh 2>&1 | tail -3
+```
+
+- [x] **Step 5: spec §12.6 트리아지 기록 + 커밋**
+

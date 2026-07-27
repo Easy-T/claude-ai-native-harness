@@ -677,6 +677,44 @@ test_lib "176-ws-agentless"     "$(printf '?\t-')" \
 test_lib "177-ws-prompt-noise"  "$(printf 'execute-strict\t-')" \
   "$(printf "const P = \`policy: model: 'opus' required\`\nawait agent(P, {agentType: 'execute-strict'})" | node "$WS")"
 test_lib "178-ws-empty"         "" "$(printf '' | node "$WS")"
+# C13 closeout — GPT 교차패밀리 리뷰 [A] REAL 정정 회귀 (렉서 전환; spec §12.6)
+test_lib "179-ws-string-noise"  "" \
+  "$(printf 'const s = "agent(\x27p\x27, {agentType:\x27execute-strict\x27, model:\x27opus\x27})";' | node "$WS")"
+test_lib "180-ws-decl-not-call" "" "$(printf 'function agent(prompt, opts) {}' | node "$WS")"
+test_lib "181-ws-member-call"   "" "$(printf "obj.agent('p', {agentType:'execute-strict'})" | node "$WS")"
+test_lib "182-ws-dollar-ident"  "" "$(printf "my\$agent('p', {agentType:'execute-strict'})" | node "$WS")"
+test_lib "183-ws-comment-field" "$(printf 'execute-strict\t-')" \
+  "$(printf "agent('p', {\n agentType:'execute-strict'\n /* model:'opus' */\n})" | node "$WS")"
+test_lib "184-ws-regex-paren"   "$(printf 'execute-strict\topus')" \
+  "$(printf "agent(\n String(/[)]/),\n {agentType:'execute-strict', model:'opus'}\n)" | node "$WS")"
+test_lib "185-ws-nested-tmpl"   "$(printf 'execute-strict\t-')" \
+  "$(printf "agent(\n \`outer \${\`model: 'opus'\`}\`,\n {agentType:'execute-strict'}\n)" | node "$WS")"
+test_lib "186-ws-dynamic-model" "$(printf 'execute-strict\t-')" \
+  "$(printf "agent('p', {agentType:'execute-strict', model:\`\${MODE}\`})" | node "$WS")"
+test_lib "187-ws-firstarg-obj"  "$(printf 'execute-strict\t-')" \
+  "$(printf "agent(\n makePrompt({model:'opus'}),\n {agentType:'execute-strict'}\n)" | node "$WS")"
+test_lib "188-ws-nested-prop"   "$(printf 'review-strict\topus')" \
+  "$(printf "agent('p', {agentType:'review-strict', meta:{model:'haiku'}, model:'opus'})" | node "$WS")"
+test_lib "189-ws-dup-lastwins"  "$(printf 'execute-strict\tfable')" \
+  "$(printf "agent('p', {agentType:'execute-strict', model:'opus', model:'fable'})" | node "$WS")"
+test_lib "190-ws-suffix-key"    "$(printf '?\t-')" \
+  "$(printf "agent('p', {myagentType:'execute-strict', fallback_model:'opus'})" | node "$WS")"
+test_lib "191-ws-ternary-key"   "$(printf 'execute-strict\t-')" \
+  "$(printf "agent('p', {agentType:'execute-strict', x: cond ? \"model\" : \"opus\"})" | node "$WS")"
+test_lib "192-ws-computed-key"  "$(printf 'execute-strict\tfable')" \
+  "$(printf "agent('p', {['agentType']:'execute-strict', ['model']:'fable'})" | node "$WS")"
+test_lib "195-ws-escape-decode" "$(printf 'execute-strict\tfable')" \
+  "$(printf "agent('p', {agentType:'execute\\\\u002dstrict', model:'\\\\x66able'})" | node "$WS")"
+# 값이 여러 물리 행이 되면 "스폰당 1행" 계약이 깨져 bash read 가 필드를 분해한다 (line continuation)
+WS_CONT=$(mktemp "$SCRATCH/ws-cont-XXXXXX.js")
+printf 'agent(%s, {agentType:%s, model:`fa\\\nble`})\n' "'p'" "'execute-strict'" > "$WS_CONT"
+test_lib "196-ws-line-continuation" "$(printf 'execute-strict\tfable')" "$(node "$WS" < "$WS_CONT")"
+test_lib "198-ws-dynamic-type"  "$(printf '*\t-')" \
+  "$(printf "agent('p', {agentType: TYPE})" | node "$WS")"
+# 닫히지 않는 후보 반복이 O(N²) 로 정지 불능이 되지 않음 (시도 상한) — 10s 안에 반환
+WS_BOMB=$(node -e 'process.stdout.write("agent(".repeat(20000))')
+test_lib "199-ws-halting-bound" "ok" \
+  "$(printf '%s' "$WS_BOMB" | timeout 10 node "$WS" >/dev/null 2>&1 && echo ok || echo timeout)"
 # cycle-26 rank3: plan_status bold-only + 펜스 스킵 (prose 'Status: active' 게이트 오개방 봉인)
 PS_PROSE=$(mktemp "$SCRATCH/ps-XXXXXX.md"); printf '# Plan\nStatus: active\n\n**Status:** completed\n' > "$PS_PROSE"
 test_lib "136-planstatus-prose-skip" "completed" "$(bash -c 'source "$HOME/.claude/hooks/_common.sh"; plan_status "$1"' _ "$PS_PROSE")"
@@ -1071,6 +1109,41 @@ test_smp "24-rule-c3-fanout-declared" 0 0 "$(mk_wf_event script "$WF_FANOUT_OK" 
 test_smp "25-rule-c3-nonfable-ok" 0 0 "$(mk_wf_event script "$WF_FANOUT" "$SMP_SONNET_T" "smp25-$$")"
 # 26: floor — sonnet 세션 + 실행자 opus 상향 + 검증자 sonnet → max(2,3)=3 > 2 위반 ALERT
 test_smp "26-rule-c2-floor-worker" 0 1 "$(mk_wf_event script "$WF_EX_UP" "$SMP_SONNET_T" "smp26-$$")"
+
+# --- C13 closeout: GPT 교차패밀리 리뷰 [C] REAL 정정 (spec §12.6) ---
+WF_EX_UP_INHERIT="export const meta = {name: 'x', description: 'x'}
+await agent('a', {agentType: 'execute-strict', model: 'opus'})
+await agent('v', {agentType: 'review-strict'})"
+WF_EX_UP_OTHER="export const meta = {name: 'x', description: 'x'}
+await agent('a', {agentType: 'execute-strict', model: 'opus'})
+await agent('v', {agentType: 'review-strict', model: 'gpt-custom'})"
+WF_MULTI="export const meta = {name: 'x', description: 'x'}
+await agent('implement', {agentType: 'execute-strict'})
+await agent('research', {})
+await agent('review', {agentType: 'review-strict', model: 'haiku'})"
+WF_DYN_TYPE="export const meta = {name: 'x', description: 'x'}
+await agent('p', {agentType: TYPE})"
+
+# 27: [C]1/[C]3 — sonnet 세션 + 실행자 opus + 검증자 **무지정(상속=sonnet 2 < floor 3)** → 위반 ALERT
+#     (종전엔 '-' 를 폐기해 침묵 → "model 을 지우면 경고만 사라지는" 거짓 복구 경로였다)
+test_smp "27-rule-c2-inherit-below-floor" 0 1 "$(mk_wf_event script "$WF_EX_UP_INHERIT" "$SMP_SONNET_T" "smp27-$$")"
+# 28: [C]2 — 기타 모델(tier 0) 검증자도 면제되지 않음
+test_smp "28-rule-c2-tier0-not-exempt" 0 1 "$(mk_wf_event script "$WF_EX_UP_OTHER" "$SMP_SONNET_T" "smp28-$$")"
+# 29: [C]1 반대 방향 — fable 세션 + 실행자 opus + 검증자 상속(fable 4 ≥ 3) → 무발화(정상 경로)
+test_smp "29-rule-c2-inherit-above-floor" 0 0 "$(mk_wf_event script "$WF_EX_UP_INHERIT" "$SMP_FABLE_T" "smp29-$$")"
+# 30: [C]5 — C·C3·C2 동시 성립 시 첫 규칙이 나머지를 삼키지 않음(3 규칙 모두 1회 emit)
+test_smp_multi() {
+  TOTAL=$((TOTAL+1))
+  local out; out=$(printf '%s' "$1" | "$HOOKS/surface-model-policy.sh" 2>/dev/null)
+  local n; n=$(printf '%s' "$out" | grep -o 'rule-c[23]\?-\|model-policy\] Workflow' | wc -l)
+  # 3개 규칙 메시지가 한 additionalContext 에 모두 들어갔는지 (each starts with "[model-policy] Workflow")
+  local c; c=$(printf '%s' "$out" | grep -o '\[model-policy\] Workflow' | wc -l)
+  if [ "$c" -ge 3 ]; then PASSED=$((PASSED+1))
+  else FAILED_LIST+=("surface-model-policy/30-rule-priority-no-loss (msgs=$c)"); fi
+}
+test_smp_multi "$(mk_wf_event script "$WF_MULTI" "$SMP_FABLE_T" "smp30-$$")"
+# 31: [C]4 — 동적 agentType('*')은 상속을 단언할 수 없으므로 Rule C3 대상 아님
+test_smp "31-rule-c3-dynamic-type-exempt" 0 0 "$(mk_wf_event script "$WF_DYN_TYPE" "$SMP_FABLE_T" "smp31-$$")"
 
 # ==================== Summary ====================
 echo

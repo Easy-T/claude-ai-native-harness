@@ -75,6 +75,7 @@ REQUIRED=(
   "$TARGET/hooks/lib/skeleton-scan.js"
   "$TARGET/hooks/lib/transcript-usage.js"
   "$TARGET/hooks/lib/model-window.js"
+  "$TARGET/hooks/lib/workflow-spawns.js"
   "$TARGET/setup/doctor.sh"
   "$TARGET/commands/init-ai-ready.md"
   "$TARGET/CLAUDE.md"
