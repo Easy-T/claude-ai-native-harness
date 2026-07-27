@@ -276,10 +276,16 @@ ad-hoc 워크플로 스크립트가 `agent()`를 model 없이 부르면 메인�
    + C2 3(review 하향 ALERT/상속 무/동일 티어 무) + 정정 3(따옴표 키 무/model:'fable' ALERT/
    transcript 공백 키 판별).
 
-**한계 (정직 공개, C12 수용 잔여)**: Rule C/C2는 텍스트 휴리스틱 — `execute-strict`를 변수로
-조립하면 미검출, 주석 안의 이름은 오탐 가능(같은-중괄호 근사도 중첩 객체에 오판 가능; 스크립트에
-execute-strict 호출이 여럿이면 하나의 준수 호출이 나머지 무선언 호출을 가릴 수 있음 — per-call
-파싱은 bash advisory 범위 밖; 적대적 우회가 아닌 망각이 위협 모델, canonical 파일이 1차 방어). scriptPath가 다른 워크플로를 `workflow()` 중첩
+**한계 (정직 공개, C12 수용 잔여 — ⚠일부는 C13이 해소, 아래 각주 참조)**: Rule C/C2는 텍스트 휴리스틱 —
+`execute-strict`를 변수로 조립하면 미검출, 주석 안의 이름은 오탐 가능(같은-중괄호 근사도 중첩 객체에
+오판 가능; 스크립트에 execute-strict 호출이 여럿이면 하나의 준수 호출이 나머지 무선언 호출을 가릴 수
+있음 — per-call 파싱은 bash advisory 범위 밖; 적대적 우회가 아닌 망각이 위협 모델, canonical 파일이
+1차 방어).
+> **C13 갱신(2026-07-27)**: 위 괄호 안 3개 — ①주석 오탐 ②중첩 객체 오판 ③형제 스폰 마스킹 — 은
+> `hooks/lib/workflow-spawns.js`(렉서 + opts 프로퍼티 워크) 도입으로 **해소**되었다(§12.3·§12.6).
+> "per-call 파싱은 bash advisory 범위 밖"이라는 판단도 소멸 — bash 밖 node 파서로 분리해 달성했다.
+> **잔존**하는 것은 변수 조립 미검출뿐이며, 이제 `-`(model 미선언)·`*`(agentType 동적)으로 **안전 방향
+> 보고**된다. 아래 나머지 한계(1-depth·256KiB·transcript 창·dedup·L3 토큰·프롬프트 주입)는 유효. scriptPath가 다른 워크플로를 `workflow()` 중첩
 호출하는 경우 내부는 미검사(1-depth). scriptPath 검사는 선두 256KiB(초과분 미검사). transcript
 tail 1MB 창 밖의 세션 모델·규칙별 1세션 1회 dedup 이후의 반복 위반은 미관측. L3 토큰은 존재 감지
 (로직 무결성은 run-all 픽스처 몫). stage1 보고를 stage2 프롬프트에 주입하는 경로는 구분자+
@@ -620,3 +626,18 @@ A6(중첩 객체·중복 키 오귀속)이 모두 같은 뿌리에서 나왔다.
    입력 크기 상한이 아니라 **작업량 상한**(시도 횟수)이 필요하다.
 ③ **advisory 경고문은 "이렇게 고치면 된다"를 말하는 순간 그 복구 경로가 실제로 해소하는지 검증 대상이 된다** —
    C3는 경고문이 위반을 남긴 채 경고만 지우도록 안내하고 있었다(문서가 아니라 **코드의 일부**로 취급할 것).
+
+**정정 착륙 E2E 검산 (Closeout, 실물 hook 실행 — 합성 재현 금지 원칙 준수)**:
+
+| 검산 | 입력 | 결과 |
+|---|---|---|
+| 자기고발 무회귀 | canonical `rpi-implement.js` × 4 세션 티어 | fable·opus **무발화** / sonnet·haiku **ALERT** — §12.1 표와 완전 일치 |
+| C1/C3 | sonnet 세션 + opus 실행자 + **상속** 검증자(2 < floor 3) | **ALERT** (정정 전 SILENT) |
+| C1 역방향 | fable 세션 + opus 실행자 + 상속 검증자(4 ≥ 3) | **무발화** (정상 경로 무회귀) |
+| C2 | sonnet 세션 + opus 실행자 + `model:'gpt-custom'`(tier 0) | **ALERT** (정정 전 면제) |
+| C4 | fable 세션 + `agentType: TYPE`(동적='*') | **무발화** (거짓 상속 단언 제거) |
+| C5 | fable 세션 + C·C3·C2 동시 성립 스크립트 | 한 additionalContext 에 **3 규칙 전부** (정정 전 1건만) |
+| 파서 계약 | `node hooks/lib/workflow-spawns.js < workflows/rpi-implement.js` | `execute-strict\topus` + `review-strict\t-` (2행, 무회귀) |
+
+**항목 수 정합**: A 10 + C 5(C1/C3 동일 뿌리라 4행 표기) + D 4(D1/D2 동일 뿌리라 3행 표기) = **19**.
+REAL 17 = 19 − 부분수용 2(D3·D4). 기각 0.
