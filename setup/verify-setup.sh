@@ -487,6 +487,24 @@ else
   fail "hooks/lib 매니페스트 drift (C14-A): 누락 —$MISS46. 디스크가 SSOT — 신규 파서는 4곳 모두에 등재해야 함(spec §13.8)"
 fi
 
+# 47. Rule C3 제외목록 봉인 (C14-D, spec §13.3 ①축): agents/*.md 에서 model 을 **선언**하는(=inherit 이
+#     아닌) wrapper 는 세션을 상속하지 않으므로 C3 대상이 아니다 — 그 이름이 hook 의 제외 목록에
+#     포함되어야 한다(⊆ 방향; 등호 아님 — execute/review-strict 는 Rule C·C2 전담이라는 설계 결정이고
+#     '*' 는 동적 판정이라 디스크 대응물이 없다). 새 wrapper 가 하위 모델을 선언하며 추가될 때
+#     hook 갱신 누락을 발화한다. bash 파일옵스만.
+MISS47=""
+for af in "$HOME/.claude/agents/"*.md; do
+  an=$(basename "$af" .md)
+  am=$(grep -m1 -E '^model:' "$af" 2>/dev/null | sed -E 's/^model:[[:space:]]*//' | tr -d '\r')
+  { [ -n "$am" ] && [ "$am" != "inherit" ]; } || continue
+  grep -q "$an" "$HOME/.claude/hooks/surface-model-policy.sh" 2>/dev/null || MISS47="$MISS47 $an"
+done
+if [ -z "$MISS47" ]; then
+  ok "Rule C3 제외목록 봉인: model 선언 wrapper 가 hook 제외 목록에 등재됨"
+else
+  fail "Rule C3 제외목록 drift (C14-D): hook 미등재 —$MISS47. model 을 선언하는 wrapper 는 세션 상속이 아니므로 C3 제외 목록에 추가해야 함(spec §13.3)"
+fi
+
 # 36. verify-setup 총 체크수 <-> README 선언 parity (GAP-009 M1 봉인, 런타임 자기-카운트):
 #     이 시점까지의 PASS+FAIL+1(이 체크 자신) == README "(현재 N PASS)" 선언. 체크 추가 시 README 미동기가 자동 FAIL.
 EXPECTED_TOTAL=$((PASS + FAIL + 1))

@@ -70,10 +70,18 @@ if [ "$TOOL" = "Workflow" ]; then
           *) [ "$SP_T" = "4" ] && C_HIT=1 ;;
         esac
       fi
-    elif [ "$SP_TYPE" = "?" ]; then
-      # Rule C3: agentType **부재** 스폰만 세션 모델을 상속한다(spec §11.3) — fable 세션이면 역류.
-      # '*'(키는 있으나 동적 값)는 상속을 단언할 수 없으므로 제외 — GPT [C]4 REAL (spec §12.6).
-      [ "$WF_TIER" = "4" ] && [ "$SP_MODEL" = "-" ] && C3_HIT=1
+    else
+      # Rule C3 (spec §13.3, C14 축 재정의): 세션 모델을 상속하는 스폰 = **model 을 선언하지 않는** 스폰.
+      # 판정 축은 agentType 의 명시 여부가 아니라 model 선언의 존재다 —
+      #   ① '?'(agentType 키 부재)는 §11.3 실측대로 상속
+      #   ② 리터럴 agentType 중 frontmatter 에 model 을 선언하지 않는 것(builtin general-purpose/Explore/
+      #      Plan 등 — agents/*.md 파일 자체가 없다)도 동일하게 상속한다.
+      # 제외(3 사유): explore-strict=frontmatter model 선언 보유 / execute·review-strict=Rule C·C2 전담 /
+      #   '*'=동적이라 상속 단언 불가(GPT [C]4). 제외목록 ①축은 seal #47 이 디스크와 ⊆ 대조한다.
+      case "$SP_TYPE" in
+        explore-strict|execute-strict|review-strict|'*') ;;
+        *) [ "$WF_TIER" = "4" ] && [ "$SP_MODEL" = "-" ] && C3_HIT=1 ;;
+      esac
     fi
   done <<EOF
 $SPAWNS
@@ -113,7 +121,7 @@ EOF
   fi
   if [ "$C3_HIT" = "1" ] && fire_once model-policy-c3; then
     hook_log "surface-model-policy" "workflow:agentless-inherit" "ALERT" "rule-c3-workflow-fanout-inherit"
-    add_msg "[model-policy] Workflow 스크립트가 agentType 없는 서브에이전트를 model 지정 없이 스폰합니다 — 이 경로는 **세션 모델을 상속**하므로(spec §11.3) fable 세션에선 리서치 fan-out 전체가 플래그십으로 역류합니다. 역할에 맞는 하위 모델을 opts.model 로 명시하십시오(탐색=sonnet). SSOT: docs/ai-context/model-policy.md (advisory · 1세션 1회 · 차단 아님)"
+    add_msg "[model-policy] Workflow 스크립트가 **model 을 선언하지 않는** 서브에이전트를 스폰합니다(agentType 부재 또는 frontmatter 에 model 이 없는 builtin) — 이 경로는 **세션 모델을 상속**하므로(spec §11.3·§13.3) fable 세션에선 리서치 fan-out 전체가 플래그십으로 역류합니다. 역할에 맞는 하위 모델을 opts.model 로 명시하십시오(탐색=sonnet). SSOT: docs/ai-context/model-policy.md (advisory · 1세션 1회 · 차단 아님)"
   fi
   if [ -n "$C2_HIT" ] && fire_once model-policy-c2; then
     hook_log "surface-model-policy" "workflow:review-strict:$C2_HIT" "ALERT" "rule-c2-workflow-verifier-downshift"

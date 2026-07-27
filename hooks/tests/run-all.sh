@@ -1158,6 +1158,17 @@ test_smp_multi() {
 test_smp_multi "$(mk_wf_event script "$WF_MULTI" "$SMP_FABLE_T" "smp30-$$")"
 # 31: [C]4 — 동적 agentType('*')은 상속을 단언할 수 없으므로 Rule C3 대상 아님
 test_smp "31-rule-c3-dynamic-type-exempt" 0 0 "$(mk_wf_event script "$WF_DYN_TYPE" "$SMP_FABLE_T" "smp31-$$")"
+# C14 Rule C3 축 재정의: model 을 선언하는 frontmatter 가 없는 agentType 은 세션을 상속한다 (spec §13.3)
+WF_BUILTIN="export const meta = {name: 'x', description: 'x'}
+await agent('research this', {agentType: 'general-purpose', label: 'r'})"
+WF_EXPLORE="export const meta = {name: 'x', description: 'x'}
+await agent('scan this', {agentType: 'explore-strict', label: 'r'})"
+# 32: builtin(general-purpose)은 frontmatter 가 없어 fable 세션에서 역류 → ALERT
+test_smp "32-rule-c3-builtin-inherit" 0 1 "$(mk_wf_event script "$WF_BUILTIN" "$SMP_FABLE_T" "smp32-$$")"
+# 33: explore-strict 는 frontmatter model: sonnet 보유 → 역류 없음 → 무발화(오탐 방지 대조군)
+test_smp "33-rule-c3-explore-declared-ok" 0 0 "$(mk_wf_event script "$WF_EXPLORE" "$SMP_FABLE_T" "smp33-$$")"
+# 34: 비-fable 세션은 C3 대상 아님 → 무발화
+test_smp "34-rule-c3-builtin-nonfable-ok" 0 0 "$(mk_wf_event script "$WF_BUILTIN" "$SMP_SONNET_T" "smp34-$$")"
 # C14 (35): 삼항 opts 마스킹 해소를 hook 경유 E2E 로 실증 — 준수 분기(opus)가 무선언 분기를 가리지 못한다.
 #   파서 단위(test_lib)만으론 "hook 이 그 출력으로 실제 발화하는가"를 증언 못 한다(C13 교훈: 파서는
 #   정확했는데 hook 이 그 행을 버려 SILENT 였음). 정정 전 SILENT(ctx=0) → 정정 후 ALERT(ctx=1).
