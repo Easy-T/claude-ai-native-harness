@@ -46,8 +46,8 @@ for s in create-orchestrator-skill init-ai-ready-project start-rpi-cycle closeou
   fi
 done
 
-# 8. 11 hook scripts executable
-for h in enforce-orchestrator stable-claude-md auto-compact-watch enforce-rpi-cycle enforce-rpi-bash enforce-secret-scan enforce-session-budget verify-loop-watch session-start-audit surface-constitution worktree-teardown; do
+# 8. 12 hook scripts executable
+for h in enforce-orchestrator stable-claude-md auto-compact-watch enforce-rpi-cycle enforce-rpi-bash enforce-secret-scan enforce-session-budget verify-loop-watch session-start-audit surface-constitution surface-model-policy worktree-teardown; do
   [ -x "$HOME/.claude/hooks/$h.sh" ] && ok "hook: $h" || fail "hook missing or non-executable: $h"
 done
 
@@ -465,6 +465,26 @@ if [ "$MP_OK" -eq 1 ]; then
   ok "역할×모델 매트릭스 물화 (model-policy.md·frontmatter·Agent 매처·skill 토큰)"
 else
   fail "역할×모델 매트릭스 봉인 붕괴 (C11): model-policy.md 앵커/explore frontmatter/inherit 유지/review effort 부재/Agent 매처/skill 토큰 중 결손 — spec §6"
+fi
+
+# 46. hooks/lib/*.js 매니페스트 자동 봉인 (C14-A, spec §13.8): 디스크가 SSOT.
+#     로드-베어링 파서가 매니페스트에서 빠지면 부재해도 침묵 통과한다 — M1(doctor 21b)·M7(witness)이
+#     그 실증(C13 신규 workflow-spawns.js 가 4곳 중 2곳에서 누락). seal #24(doctor⊇hooks/*.sh) 동형
+#     확장 — 하드코딩 목록이 아니라 디스크와 대조하므로 다음 lib 신설 때 자동 발화한다. bash 파일옵스만.
+DISK_LIB=$(for f in "$HOME/.claude/hooks/lib/"*.js; do basename "$f" .js; done | sort -u)
+lib_missing_in() {  # $1=파일 경로 — 그 파일 텍스트에 없는 lib 이름을 출력
+  local hay; hay=$(cat "$1" 2>/dev/null)
+  local n; for n in $DISK_LIB; do case "$hay" in *"$n"*) ;; *) printf '%s ' "$n" ;; esac; done
+}
+MISS46=""
+for mf in setup/doctor.sh setup/verify-setup.sh setup/install.sh setup/tests/failopen-surface.test.sh; do
+  m=$(lib_missing_in "$HOME/.claude/$mf")
+  [ -n "$m" ] && MISS46="$MISS46 $mf:[$m]"
+done
+if [ -z "$MISS46" ]; then
+  ok "hooks/lib 매니페스트 봉인: 디스크 $(printf '%s\n' $DISK_LIB | wc -l | tr -d ' ')종이 doctor·verify-setup·install·witness 전부에 등재"
+else
+  fail "hooks/lib 매니페스트 drift (C14-A): 누락 —$MISS46. 디스크가 SSOT — 신규 파서는 4곳 모두에 등재해야 함(spec §13.8)"
 fi
 
 # 36. verify-setup 총 체크수 <-> README 선언 parity (GAP-009 M1 봉인, 런타임 자기-카운트):

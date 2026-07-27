@@ -350,10 +350,10 @@ done
 
 # 21b. hooks/lib 추출 파서 (hook 들이 의존 — 없으면 hook 이 fail-open으로 조용히 무력화됨)
 LIB_FAIL=0
-for lf in redirect-targets skeleton-scan transcript-usage model-window; do
+for lf in redirect-targets skeleton-scan transcript-usage model-window workflow-spawns; do
   [ -f "$CLAUDE_HOME/hooks/lib/$lf.js" ] || { check "lib: $lf.js" "FAIL" "없음 — $CLAUDE_HOME/hooks/lib/$lf.js"; LIB_FAIL=1; }
 done
-[ "$LIB_FAIL" -eq 0 ] && check "hooks/lib parsers present" "PASS" "4개" || true
+[ "$LIB_FAIL" -eq 0 ] && check "hooks/lib parsers present" "PASS" "$(ls "$CLAUDE_HOME"/hooks/lib/*.js 2>/dev/null | wc -l | tr -d ' ')개" || true
 
 # 23. CLAUDE_AUTOCOMPACT_PCT_OVERRIDE in settings.json
 SETTINGS_JSON="$CLAUDE_HOME/settings.json"
