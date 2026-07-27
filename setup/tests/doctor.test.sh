@@ -38,4 +38,12 @@ if grep -nF '/mnt/c/Users/12132' "$DOCTOR" >/dev/null 2>&1; then
   echo "FAIL: doctor.sh에 하드코딩된 사용자-특정 경로(/mnt/c/Users/12132) 잔존 — 이식성 위반"; exit 1
 fi
 
+# Test 6 (C14-G): #23 이 MSYS 경로 보간이 아니라 stdin 으로 settings.json 을 읽는가 (오보 회귀 봉인).
+# RED 재현자: bash 로 보간한 /c/Users/... 경로를 Windows node 의 readFileSync 에 넘기면 ENOENT 이고
+# catch(e){} 가 삼켜 빈 값 → "미설정 WARN" 오보. 실제로는 키가 설정돼 있어도 그렇게 보고했다(spec §13.10).
+# 정적 소스 검사만 — 라이브 settings.json(토큰 보유)은 읽지 않는다.
+if grep -qF "readFileSync('\$SETTINGS_JSON'" "$DOCTOR"; then
+  echo "FAIL: doctor #23 이 bash-보간 경로를 node 에 넘김 (MSYS 미독 → '미설정' 오보) — stdin 전달로 교체 필요"; exit 1
+fi
+
 echo "PASS: all doctor.sh tests"
