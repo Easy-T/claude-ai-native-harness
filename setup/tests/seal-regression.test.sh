@@ -104,6 +104,9 @@ mut_doctor_lib_drop() { sed -i -E 's/(for lf in [a-z-]+ [a-z-]+ [a-z-]+ [a-z-]+)
 #   mut_explore_write(seal #41) 뿐이라 "9/0 통과"가 #45 의 발화를 증언하지 못했다.
 mut_explore_effort()    { sed -i -E 's/^effort:[[:space:]]*xhigh/effort: medium/' "$1/agents/explore-strict.md"; }
 mut_explore_websearch() { sed -i -E 's/^(tools:.*), WebSearch/\1/' "$1/agents/explore-strict.md"; }
+# Mutator 11 — seal #48 (C14-J): skill 이 스캐폴드 산출물 경로를 지시하면서 "실재하는 것만" 선언을
+#   지우면 발화해야 한다(무조건 지시로의 회귀 봉인).
+mut_skill_conditional() { sed -i 's/실재하는/존재하는/g' "$1/skills/start-rpi-cycle/SKILL.md"; }
 
 assert_seal_fires "state_schema"    mut_state_count_string "state.json schema 위반"
 assert_seal_fires "settings_parity" mut_settings_matcher   "settings/example harness-hook drift"
@@ -115,6 +118,7 @@ assert_seal_fires "floor_18"        mut_floor_shrink       "§6 floor 카운트 
 assert_seal_fires "lib_manifest"    mut_doctor_lib_drop    "hooks/lib 매니페스트 drift"
 assert_seal_fires "explore_effort"    mut_explore_effort     "역할×모델 매트릭스 봉인 붕괴"
 assert_seal_fires "explore_websearch" mut_explore_websearch  "역할×모델 매트릭스 봉인 붕괴"
+assert_seal_fires "skill_conditional" mut_skill_conditional  "skill context_paths 무조건 지시"
 
 # === Live immutability: witnessed files byte-identical (all mutation stayed in replicas) ===
 LIVE_AFTER="$(witness)"

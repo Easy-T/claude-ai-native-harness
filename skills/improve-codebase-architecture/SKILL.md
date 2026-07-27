@@ -22,8 +22,8 @@ orchestrator_version: 1.0
 # Preflight
 
 실행 전 확인:
-- docs/ai-context/architecture.md 존재
-- docs/ai-context/domain-glossary.md 존재
+- docs/ai-context/architecture.md 존재 (대상 프로젝트 기준 — 하네스 자체 실행 시엔 durable spec 이 대체)
+- docs/ai-context/domain-glossary.md 존재 (동상 — 하네스는 CONTEXT.md 가 용어 SSOT)
 - 하나 이상의 완료된 RPI 사이클 존재 (.claude/state.json cycle.count > 0)
 
 없으면: "도메인 문서가 부족합니다. RPIC를 최소 1회 완료 후 실행하세요." 보고 후 중단.
@@ -48,6 +48,8 @@ Agent(subagent_type="explore-strict",
         5. Tight coupling: 과도한 의존성 또는 순환 참조
       ")
 ```
+
+※ 실재하는 경로만 전달 — 위 `docs/ai-context/*` 는 대상 프로젝트 스캐폴드 산출물이라 글로벌 하네스에는 부재가 정상(spec §13.4).
 
 # Phase 2 — Candidate Presentation
 

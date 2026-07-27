@@ -31,12 +31,12 @@ AI 실패 감지 시:
 2. review-strict로 5 Whys 진행
 3. 사람/AI는 root cause 불가 (시스템·프로세스만)
 4. SMART action item 명시
-5. 통과 시에만 `docs/ai-context/non-obvious.md` 추가
+5. 통과 시에만 `docs/ai-context/non-obvious.md` 추가 — **재현 픽스처 경로를 필수 필드로** 동반(GAP-012, 그 파일 헤더 규약)
 
 ## §5. ADR Auto-Trigger
 아키텍처 영향 변경 (모듈 추가/삭제, 의존성 추가, 데이터 흐름 변경, 인증/저장소/통신 패턴 변경):
 - 변경 전 또는 직후 ADR 작성
-- `docs/ai-context/architecture.md`는 append-only
+- `docs/ai-context/architecture.md`는 append-only (대상 프로젝트 기준 — **글로벌 하네스 자신**의 아키텍처 결정은 durable spec in-place 개정으로 기록, spec §13.4)
 - 결정 변경 시 새 ADR로 supersede (이전 항목 수정 X)
 
 ## §6. Domain Glossary 의미 확인

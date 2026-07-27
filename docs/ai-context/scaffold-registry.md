@@ -47,7 +47,7 @@
 |---|---|---|
 | `rpi-implement.js` | RPIC Phase I (d) canonical 2-stage 파이프라인 — stage1 execute(opus·heavy분기) → stage2 review(상속); 역할×모델 매트릭스의 코드 캐리어 | tri-model C12 (2026-07-26) |
 
-## Drift Seals (verify-setup.sh #17~#47, −#26 소각 = 30)
+## Drift Seals (verify-setup.sh #17~#48, −#26 소각 = 31)
 
 거버넌스 사실의 재드리프트를 막는 특정-인스턴스 봉인(안정 앵커 있는 것만; generalized 프레임워크 아님).
 
@@ -83,6 +83,7 @@
 | #45 | 역할×모델 매트릭스 물화 (model-policy.md 앵커·explore frontmatter·execute/review inherit·`Agent\|Workflow` 매처·rpi-implement.js 토큰·skill 토큰) | C11/C12/C13 |
 | #46 | hooks/lib 매니페스트 봉인 (디스크=SSOT, 4-way 대조) | C14 (2026-07-28) |
 | #47 | Rule C3 제외목록 봉인 (agents model 선언 ⊆ hook) | C14 (2026-07-28) |
+| #48 | skill context_paths 조건부 선언 봉인 (스캐폴드 산출물 경로) | C14 (2026-07-28) |
 
 ### 거버넌스 문서 (seal이 지키는 대상 — hook/skill 아님)
 

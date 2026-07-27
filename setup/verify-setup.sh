@@ -505,6 +505,23 @@ else
   fail "Rule C3 제외목록 drift (C14-D): hook 미등재 —$MISS47. model 을 선언하는 wrapper 는 세션 상속이 아니므로 C3 제외 목록에 추가해야 함(spec §13.3)"
 fi
 
+# 48. skill context_paths 조건부 선언 봉인 (C14-J, spec §13.8): 부재가 정상인 스캐폴드 산출물 경로를
+#     지시하는 skill 은 "실재하는 것만 전달" 선언을 동반해야 한다. 경로 실재를 요구하지 않는다 —
+#     그러면 대상-프로젝트 겸용 skill 이 깨진다(§13.4). 지시와 선언의 **동반**만 검사한다.
+#     RED 재현자: 선언 문구를 지우면 발화(seal-regression mut_skill_conditional).
+MISS48=""
+for sk in start-rpi-cycle closeout-pr-cycle improve-codebase-architecture; do
+  sf="$HOME/.claude/skills/$sk/SKILL.md"
+  [ -f "$sf" ] || continue
+  grep -qE 'docs/ai-context/(architecture|domain-glossary|deny-patterns|runbook)' "$sf" || continue
+  grep -q '실재하는' "$sf" || MISS48="$MISS48 $sk"
+done
+if [ -z "$MISS48" ]; then
+  ok "skill context_paths 조건부 선언 봉인 (스캐폴드 산출물 경로 지시 ↔ '실재하는 것만' 선언 동반)"
+else
+  fail "skill context_paths 무조건 지시 (C14-J): 선언 누락 —$MISS48. 하네스엔 부재가 정상인 경로이므로 '실재하는 것만 전달' 선언 필요(spec §13.4·§13.8)"
+fi
+
 # 36. verify-setup 총 체크수 <-> README 선언 parity (GAP-009 M1 봉인, 런타임 자기-카운트):
 #     이 시점까지의 PASS+FAIL+1(이 체크 자신) == README "(현재 N PASS)" 선언. 체크 추가 시 README 미동기가 자동 FAIL.
 EXPECTED_TOTAL=$((PASS + FAIL + 1))
