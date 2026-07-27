@@ -25,6 +25,13 @@
 //     agentType='*' / model='-' 로 보고된다(미탐이 아니라 "정적으로 알 수 없음"의 안전 방향 보고).
 //   · opts 를 변수로 넘기면(agent('p', OPTS)) 깊이 0 에 '{' 가 없어 키 부재로 보인다 → '?'/'-'.
 //     스프레드(...base)로 들어온 키도 마찬가지로 부재 취급.
+//   · **인자 경계를 나누지 않는다**(C14 정직 공개): 깊이 0 의 '{...}' 를 **전부** opts 후보로 보고
+//     각각을 1스폰으로 방출한다. 삼항 opts 의 모든 분기가 관측되는 대신, 첫 인자가 객체 리터럴이면
+//     (agent({t:1},{opts})) 그 객체도 1스폰으로 방출된다 — 대개 agentType/model 키가 없어 '?'/'-' 가
+//     되므로 fable 세션에서 Rule C3 **오탐**이 될 수 있다(안전 방향: 미탐보다 오탐 선택).
+//     정확한 판정은 "마지막 인자" 의미론(깊이-0 콤마 분할)이 필요하며 1-인자 호출·트레일링 콤마 등
+//     경계 케이스를 새로 연다 — 채택하지 않았다(spec §13.7).
+//   · Object.assign({},{...}) 처럼 opts 가 호출로 감싸이면 깊이 0 '{' 가 없어 '?'/'-'(미탐 잔여).
 //   · 계산 키는 정적 문자열(['model'])만 해소하고, 동적 계산 키([k])는 미해소.
 //   · 정규식-vs-나눗셈 판별은 직전 유의 문자/키워드 휴리스틱(완전한 JS 문법 분석 아님).
 //   · 입력은 선두 512KiB, 스폰은 200개까지만 처리(정지성 보장 — GPT [A]10 의 O(N²) 경로 봉인).
@@ -150,13 +157,16 @@ function scan(text) {
     const open = m.index + m[0].length - 1;
     const close = matchPair(mask, open, "(", ")");
     if (close === -1) continue;
-    const opts = findOpts(mask, open, close);
-    const props = opts ? parseProps(mask, strings, opts[0], opts[1]) : {};
-    const at = props.agentType, mo = props.model;
-    out.push({
-      agentType: at === undefined ? "?" : at === null ? "*" : at,
-      model: mo === undefined || mo === null ? "-" : mo,
-    });
+    const cands = findOptsCandidates(mask, open, close);
+    const propsList = cands.length ? cands.map((c) => parseProps(mask, strings, c[0], c[1])) : [{}];
+    for (const props of propsList) {
+      if (out.length >= MAX_SPAWNS) break;
+      const at = props.agentType, mo = props.model;
+      out.push({
+        agentType: at === undefined ? "?" : at === null ? "*" : at,
+        model: mo === undefined || mo === null ? "-" : mo,
+      });
+    }
   }
   return out;
 }
@@ -170,8 +180,11 @@ function matchPair(mask, idx, open, close) {
   return -1;
 }
 
-// 호출 인자 깊이 0 의 첫 '{' = opts 객체 (첫 인자 안의 중첩 객체를 배제)
-function findOpts(mask, open, close) {
+// 호출 인자 깊이 0 의 '{...}' 를 **전부** 수집한다 (C14, spec §13.7).
+// 단일 '첫 {' 만 취하면 ①삼항 opts 의 둘째 분기가 소실되고(준수 리터럴이 무선언을 가리는 마스킹)
+// ②첫 인자의 객체/화살표 본문을 opts 로 오식별한다. 후보를 모두 방출하면 둘 다 안전 방향으로 해소된다.
+function findOptsCandidates(mask, open, close) {
+  const out = [];
   let p = 0, b = 0;
   for (let i = open + 1; i < close; i++) {
     const c = mask[i];
@@ -181,10 +194,12 @@ function findOpts(mask, open, close) {
     else if (c === "]") b--;
     else if (c === "{" && p === 0 && b === 0) {
       const e = matchPair(mask, i, "{", "}");
-      return e === -1 || e > close ? null : [i, e];
+      if (e === -1 || e > close) break;
+      out.push([i, e]);
+      i = e;                    // 이 후보 내부는 건너뛴다(중첩 객체는 프로퍼티 워크가 처리)
     }
   }
-  return null;
+  return out;
 }
 
 // opts 를 깊이 0 프로퍼티로 워크. 값: 단일 문자열 리터럴이면 그 값, 아니면 null(동적).

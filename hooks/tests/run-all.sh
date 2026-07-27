@@ -716,6 +716,20 @@ test_lib "198-ws-dynamic-type"  "$(printf '*\t-')" \
 WS_BOMB=$(node -e 'process.stdout.write("agent(".repeat(20000))')
 test_lib "199-ws-halting-bound" "ok" \
   "$(printf '%s' "$WS_BOMB" | timeout 10 node "$WS" >/dev/null 2>&1 && echo ok || echo timeout)"
+# C14: 삼항 opts — 두 분기를 각각 스폰으로 방출(준수 리터럴이 무선언을 가리지 않음, spec §13.7)
+test_lib "200-ws-ternary-opts-both" \
+  "$(printf 'execute-strict\topus\nexecute-strict\t-')" \
+  "$(printf "%s" "await agent('p', h ? {agentType:'execute-strict',model:'opus'} : {agentType:'execute-strict'})" | node "$WS")"
+# C14: 첫 인자의 화살표 함수 본문이 진짜 opts 를 **가리지 않는다** — 후보 전수 수집이라 둘 다 방출된다.
+#   종전엔 '?\t-' 1행만 나와 execute-strict/opus 선언이 통째로 소실됐다(미탐). 이제 2행이며
+#   첫 행 '?\t-' 는 화살표 본문(안전 방향 오탐 — spec §13.7 정직 공개), 둘째 행이 진짜 opts.
+test_lib "201-ws-firstarg-arrow-body" \
+  "$(printf '?\t-\nexecute-strict\topus')" \
+  "$(printf "%s" "await agent(()=>{return 1},{agentType:'execute-strict',model:'opus'})" | node "$WS")"
+# C14: 검증자 축도 동일 — 삼항의 하향 분기가 소실되지 않는다
+test_lib "202-ws-ternary-verifier" \
+  "$(printf 'review-strict\topus\nreview-strict\thaiku')" \
+  "$(printf "%s" "await agent('v', ok ? {agentType:'review-strict',model:'opus'} : {agentType:'review-strict',model:'haiku'})" | node "$WS")"
 # cycle-26 rank3: plan_status bold-only + 펜스 스킵 (prose 'Status: active' 게이트 오개방 봉인)
 PS_PROSE=$(mktemp "$SCRATCH/ps-XXXXXX.md"); printf '# Plan\nStatus: active\n\n**Status:** completed\n' > "$PS_PROSE"
 test_lib "136-planstatus-prose-skip" "completed" "$(bash -c 'source "$HOME/.claude/hooks/_common.sh"; plan_status "$1"' _ "$PS_PROSE")"
@@ -1144,6 +1158,12 @@ test_smp_multi() {
 test_smp_multi "$(mk_wf_event script "$WF_MULTI" "$SMP_FABLE_T" "smp30-$$")"
 # 31: [C]4 — 동적 agentType('*')은 상속을 단언할 수 없으므로 Rule C3 대상 아님
 test_smp "31-rule-c3-dynamic-type-exempt" 0 0 "$(mk_wf_event script "$WF_DYN_TYPE" "$SMP_FABLE_T" "smp31-$$")"
+# C14 (35): 삼항 opts 마스킹 해소를 hook 경유 E2E 로 실증 — 준수 분기(opus)가 무선언 분기를 가리지 못한다.
+#   파서 단위(test_lib)만으론 "hook 이 그 출력으로 실제 발화하는가"를 증언 못 한다(C13 교훈: 파서는
+#   정확했는데 hook 이 그 행을 버려 SILENT 였음). 정정 전 SILENT(ctx=0) → 정정 후 ALERT(ctx=1).
+WF_TERNARY="export const meta = {name: 'x', description: 'x'}
+await agent('impl', heavy ? {agentType: 'execute-strict', model: 'opus'} : {agentType: 'execute-strict'})"
+test_smp "35-rule-c-ternary-masking-e2e" 0 1 "$(mk_wf_event script "$WF_TERNARY" "$SMP_FABLE_T" "smp35-$$")"
 
 # ==================== Summary ====================
 echo
