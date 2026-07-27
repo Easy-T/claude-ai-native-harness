@@ -18,6 +18,7 @@ bad() { echo "✗ $1"; FAIL=$((FAIL+1)); }
 # --- live immutability witnesses: 버그난 테스트가 건드릴 수 있는 파서+편집 hook 의 cksum ---
 witness() { local f; for f in hooks/lib/redirect-targets.js hooks/lib/skeleton-scan.js \
                                 hooks/lib/transcript-usage.js hooks/lib/model-window.js \
+                                hooks/lib/workflow-spawns.js \
                                 hooks/enforce-rpi-bash.sh hooks/session-start-audit.sh; do
               cksum "$SRC/$f" 2>/dev/null; done; }
 LIVE_BEFORE="$(witness)"

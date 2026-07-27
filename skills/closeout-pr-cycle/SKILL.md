@@ -125,6 +125,8 @@ Agent(subagent_type="review-strict",
         FAIL if any Critical exists.
       ")
 
+※ 실재하는 경로만 전달 — 위 `docs/ai-context/*` 는 대상 프로젝트 스캐폴드 산출물이라 글로벌 하네스에는 부재가 정상(spec §13.4).
+
 review-strict 결과를 사용자에게 구조화해서 전달:
 - Critical N개 / Important N개 / Minor N개 / Suggestions N개
 - Critical 있으면: 수정 목록 제시 후 Phase 5로 전달 (merge 금지)

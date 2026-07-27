@@ -350,15 +350,20 @@ done
 
 # 21b. hooks/lib 추출 파서 (hook 들이 의존 — 없으면 hook 이 fail-open으로 조용히 무력화됨)
 LIB_FAIL=0
-for lf in redirect-targets skeleton-scan transcript-usage model-window; do
+for lf in redirect-targets skeleton-scan transcript-usage model-window workflow-spawns; do
   [ -f "$CLAUDE_HOME/hooks/lib/$lf.js" ] || { check "lib: $lf.js" "FAIL" "없음 — $CLAUDE_HOME/hooks/lib/$lf.js"; LIB_FAIL=1; }
 done
-[ "$LIB_FAIL" -eq 0 ] && check "hooks/lib parsers present" "PASS" "4개" || true
+[ "$LIB_FAIL" -eq 0 ] && check "hooks/lib parsers present" "PASS" "$(ls "$CLAUDE_HOME"/hooks/lib/*.js 2>/dev/null | wc -l | tr -d ' ')개" || true
 
 # 23. CLAUDE_AUTOCOMPACT_PCT_OVERRIDE in settings.json
 SETTINGS_JSON="$CLAUDE_HOME/settings.json"
 if [ -f "$SETTINGS_JSON" ]; then
-  compact_val=$(node -e "try{const s=JSON.parse(require('fs').readFileSync('$SETTINGS_JSON','utf8'));console.log(s.env&&s.env.CLAUDE_AUTOCOMPACT_PCT_OVERRIDE||'')}catch(e){}" 2>/dev/null || echo "")
+  # ★MSYS 경로를 Windows node 에 보간하면 ENOENT 로 조용히 실패해 "미설정" 오보가 된다(C14-G, spec §13.10).
+  # 파일 내용을 stdin 으로 넘긴다 — 경로 해석을 bash 에 맡기고 node 는 파싱만 한다. 값은 출력하지 않는다.
+  compact_val=$(cat "$SETTINGS_JSON" 2>/dev/null | node -e "
+    let d=''; process.stdin.on('data',c=>d+=c).on('end',()=>{
+      try{ const s=JSON.parse(d); const v=(s.env&&s.env.CLAUDE_AUTOCOMPACT_PCT_OVERRIDE)||''; console.log(v) }catch(e){ console.log('') }
+    })" 2>/dev/null || echo "")
   if [ -n "$compact_val" ]; then
     if [ "$compact_val" -le 40 ] 2>/dev/null; then
       check "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE" "PASS" "${compact_val}% (rot-정렬 ≤40)"

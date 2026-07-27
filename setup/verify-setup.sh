@@ -46,8 +46,8 @@ for s in create-orchestrator-skill init-ai-ready-project start-rpi-cycle closeou
   fi
 done
 
-# 8. 11 hook scripts executable
-for h in enforce-orchestrator stable-claude-md auto-compact-watch enforce-rpi-cycle enforce-rpi-bash enforce-secret-scan enforce-session-budget verify-loop-watch session-start-audit surface-constitution worktree-teardown; do
+# 8. 12 hook scripts executable
+for h in enforce-orchestrator stable-claude-md auto-compact-watch enforce-rpi-cycle enforce-rpi-bash enforce-secret-scan enforce-session-budget verify-loop-watch session-start-audit surface-constitution surface-model-policy worktree-teardown; do
   [ -x "$HOME/.claude/hooks/$h.sh" ] && ok "hook: $h" || fail "hook missing or non-executable: $h"
 done
 
@@ -465,6 +465,65 @@ if [ "$MP_OK" -eq 1 ]; then
   ok "역할×모델 매트릭스 물화 (model-policy.md·frontmatter·Agent 매처·skill 토큰)"
 else
   fail "역할×모델 매트릭스 봉인 붕괴 (C11): model-policy.md 앵커/explore frontmatter/inherit 유지/review effort 부재/Agent 매처/skill 토큰 중 결손 — spec §6"
+fi
+
+# 46. hooks/lib/*.js 매니페스트 자동 봉인 (C14-A, spec §13.8): 디스크가 SSOT.
+#     로드-베어링 파서가 매니페스트에서 빠지면 부재해도 침묵 통과한다 — M1(doctor 21b)·M7(witness)이
+#     그 실증(C13 신규 workflow-spawns.js 가 4곳 중 2곳에서 누락). seal #24(doctor⊇hooks/*.sh) 동형
+#     확장 — 하드코딩 목록이 아니라 디스크와 대조하므로 다음 lib 신설 때 자동 발화한다. bash 파일옵스만.
+DISK_LIB=$(for f in "$HOME/.claude/hooks/lib/"*.js; do basename "$f" .js; done | sort -u)
+#     ★C14 GPT 교차리뷰 정정: 파일 **전문** grep 은 주석이 매니페스트를 가린다(이 블록의 설명 주석에도
+#     'workflow-spawns' 가 있어, 실제 목록에서 지워도 통과했다). 주석·설명을 제거한 **실효 라인**에서만 찾는다.
+lib_missing_in() {  # $1=파일 경로 — 그 파일의 비-주석 텍스트에 없는 lib 이름을 출력
+  local hay; hay=$(sed -e 's/#.*$//' -e 's|//.*$||' "$1" 2>/dev/null)
+  local n; for n in $DISK_LIB; do case "$hay" in *"$n"*) ;; *) printf '%s ' "$n" ;; esac; done
+}
+MISS46=""
+for mf in setup/doctor.sh setup/verify-setup.sh setup/install.sh setup/tests/failopen-surface.test.sh; do
+  m=$(lib_missing_in "$HOME/.claude/$mf")
+  [ -n "$m" ] && MISS46="$MISS46 $mf:[$m]"
+done
+if [ -z "$MISS46" ]; then
+  ok "hooks/lib 매니페스트 봉인: 디스크 $(printf '%s\n' $DISK_LIB | wc -l | tr -d ' ')종이 doctor·verify-setup·install·witness 전부에 등재"
+else
+  fail "hooks/lib 매니페스트 drift (C14-A): 누락 —$MISS46. 디스크가 SSOT — 신규 파서는 4곳 모두에 등재해야 함(spec §13.8)"
+fi
+
+# 47. Rule C3 제외목록 봉인 (C14-D, spec §13.3 ①축): agents/*.md 에서 model 을 **선언**하는(=inherit 이
+#     아닌) wrapper 는 세션을 상속하지 않으므로 C3 대상이 아니다 — 그 이름이 hook 의 제외 목록에
+#     포함되어야 한다(⊆ 방향; 등호 아님 — execute/review-strict 는 Rule C·C2 전담이라는 설계 결정이고
+#     '*' 는 동적 판정이라 디스크 대응물이 없다). 새 wrapper 가 하위 모델을 선언하며 추가될 때
+#     hook 갱신 누락을 발화한다. bash 파일옵스만.
+MISS47=""
+for af in "$HOME/.claude/agents/"*.md; do
+  an=$(basename "$af" .md)
+  am=$(grep -m1 -E '^model:' "$af" 2>/dev/null | sed -E 's/^model:[[:space:]]*//' | tr -d '\r')
+  { [ -n "$am" ] && [ "$am" != "inherit" ]; } || continue
+  # ★C14 GPT 교차리뷰 정정: 전문 grep 은 hook 의 설명 주석이 제외목록을 가린다(주석에도 explore-strict 가
+  # 있어 실제 case arm 에서 지워도 통과했다). **실효 case arm** 에서만 찾는다.
+  grep -qE "^[[:space:]]*[a-z|'*-]*${an}[a-z|'*-]*\)[[:space:]]*;;" "$HOME/.claude/hooks/surface-model-policy.sh" 2>/dev/null || MISS47="$MISS47 $an"
+done
+if [ -z "$MISS47" ]; then
+  ok "Rule C3 제외목록 봉인: model 선언 wrapper 가 hook 제외 목록에 등재됨"
+else
+  fail "Rule C3 제외목록 drift (C14-D): hook 미등재 —$MISS47. model 을 선언하는 wrapper 는 세션 상속이 아니므로 C3 제외 목록에 추가해야 함(spec §13.3)"
+fi
+
+# 48. skill context_paths 조건부 선언 봉인 (C14-J, spec §13.8): 부재가 정상인 스캐폴드 산출물 경로를
+#     지시하는 skill 은 "실재하는 것만 전달" 선언을 동반해야 한다. 경로 실재를 요구하지 않는다 —
+#     그러면 대상-프로젝트 겸용 skill 이 깨진다(§13.4). 지시와 선언의 **동반**만 검사한다.
+#     RED 재현자: 선언 문구를 지우면 발화(seal-regression mut_skill_conditional).
+MISS48=""
+for sk in start-rpi-cycle closeout-pr-cycle improve-codebase-architecture; do
+  sf="$HOME/.claude/skills/$sk/SKILL.md"
+  [ -f "$sf" ] || continue
+  grep -qE 'docs/ai-context/(architecture|domain-glossary|deny-patterns|runbook)' "$sf" || continue
+  grep -q '실재하는' "$sf" || MISS48="$MISS48 $sk"
+done
+if [ -z "$MISS48" ]; then
+  ok "skill context_paths 조건부 선언 봉인 (스캐폴드 산출물 경로 지시 ↔ '실재하는 것만' 선언 동반)"
+else
+  fail "skill context_paths 무조건 지시 (C14-J): 선언 누락 —$MISS48. 하네스엔 부재가 정상인 경로이므로 '실재하는 것만 전달' 선언 필요(spec §13.4·§13.8)"
 fi
 
 # 36. verify-setup 총 체크수 <-> README 선언 parity (GAP-009 M1 봉인, 런타임 자기-카운트):

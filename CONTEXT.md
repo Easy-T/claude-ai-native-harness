@@ -93,6 +93,18 @@ _Avoid_: "모델 정책"(범위 불명 — ANTHROPIC_* 라우팅 env 설정과 �
 검증자(review-strict)의 모델 티어가 넘어야 하는 하한 = **`max(세션 티어, 작업자 티어)`** (C13, 2026-07-27 확정). 선행 두 독법 — 세션-기준(model-policy.md)·작업자-기준(cross-family §3) — 의 **합집합**이라 어느 쪽보다 엄격하며, 그래서 완화가 아니라 강화다(DOWNGRADE-DECLARED 대상 아님). 실행자를 하위 모델로 내려도(→[[실행자 하향 위임]]) 검증자는 세션 티어 아래로 못 내려간다. hook 탐지는 Workflow 경로만 가능(스크립트 전문이 한 문자열) — Agent 도구 경로는 호출 간 상태 부재로 구조적 불가(L1 몫, 수용 잔여). **무지정(상속)은 면제가 아니라 "세션 티어로 평가"**다(C13 Closeout, spec §12.6): 실행자를 세션 위로 상향한 스크립트에서 검증자 model을 지우는 것은 위반을 남긴 채 경고만 없애는 거짓 복구다.
 _Avoid_: "검증자 하향 금지"(무엇 대비 하향인지 불명 — 이 모호성이 C13 이전 SSOT 드리프트의 원인), "검증자 상속"(inherit는 구현 수단이지 기준이 아님).
 
+### 스캐폴드 산출물 경계 (scaffold-output boundary)
+`docs/ai-context/{architecture,domain-glossary,deny-patterns,runbook}.md`는 `init-ai-ready-project`가 **대상 프로젝트에** 생성하는 산출물이지 하네스 자신의 자산이 아니다(cycle-31 판정, spec §13.4 — `git log --all` 전부 빈 출력로 확증). 경계는 **파일명**에 걸리지 *디렉터리*에 걸리지 않는다 — `docs/ai-context/`에는 하네스 소유 추적 파일(model-policy·cross-family-review·memory-policy·plugin-pins·scaffold-registry, +C14의 non-obvious)이 함께 산다. skill이 두 문맥(하네스·대상 프로젝트)에서 모두 도므로 부재 경로 지시는 **삭제가 아니라 조건부 선언**("실재하는 것만")으로 정정한다.
+_Avoid_: "ai-context 파일 누락"(부재가 사고라는 함의 — 아키텍처 경계다), "ai-context는 프로젝트 전용"(디렉터리 전체로 과잉 일반화 — Gate R이 반증한 초안 오류).
+
+### 모델-무선언 스폰 (model-undeclared spawn)
+Workflow `agent()` 스폰 중 `opts.model`이 없고 **그 agentType의 frontmatter도 model을 선언하지 않는** 것 — 세션 모델을 상속하므로 fable 세션에서 역류한다. 판정 축은 *agentType의 명시 여부*가 아니라 **model 선언의 존재**다(spec §13.3): `explore-strict`는 agentType 명시이나 frontmatter `model: sonnet`이라 역류 없음 / `general-purpose`는 `agents/` 파일 자체가 없어 선언할 곳이 없으므로 역류. Rule C3의 대상 축.
+_Avoid_: "agentType-less 스폰"(C13의 좁은 독법 — 키 부재만 포함해 builtin 리터럴을 놓친다), "미지정 스폰"(무엇이 미지정인지 불명).
+
+### 재현 픽스처 동반 (fixture-paired registration)
+non-obvious 등록 항목이 **재현 픽스처 경로를 필수 필드로** 갖는 규약(GAP-012). 등록만 있고 재현자가 없으면 다음 사이클이 같은 가정을 반복한다 — C13이 "goal은 없을 것"을 확인 없이 승격한 실패(spec §13.1)가 그 실증. 픽스처는 "테스트 통과"가 아니라 **요구 충족**을 겨눈다.
+_Avoid_: "교훈 기록"(재현자 없는 산문과 혼동), "회귀 테스트"(일반 테스트와 혼동 — 이것은 *실패 클래스*에 결속된 것).
+
 ### 핸드오프 복원력 (handoff resilience)
 임의 시점 중단 후 다른 모델·세션이 **머지된 문서만으로**(이 머신의 auto-memory 없이) 작업을 재개할 수 있는 성질. 산출 문서의 self-containment(필요 사실 인라인 재서술)가 성립 조건이며, cold-agent fitness가 검증 수단.
 _Avoid_: "인수인계 문서"(문서 존재만으로 충족되는 듯한 함의 — 재개 *가능성*이 기준), "백업"(상태 보존과 혼동).

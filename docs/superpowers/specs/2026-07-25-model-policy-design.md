@@ -105,7 +105,7 @@ CC 2.1.220, Windows/MSYS, CLIProxy 라우팅(haiku 티어=gpt-5.6-luna) 환경 �
 | 검증 (게이트/드리프트/적대) | review-strict | **상속** (하향 금지 — 상향 명시는 허용) | **상속** (하향 금지) | ⚠**§12.1이 supersede**(2026-07-27): 기준선은 세션 단독이 아니라 `max(세션, 작업자)`. 아래 원문은 C11 시점 기록. 검증자 티어 ≥ **세션**(오케스트레이터) 보장. 실행자를 세션 위로 상향한 경우(예: sonnet 세션+opus 실행)는 검증자<실행자 잔여 — 그때는 검증자도 동반 상향 권고(L1, hook 미검출 수용) |
 | 교차 검증 (고-스테이크 closeout) | GPT (codex CLI/CCS) | 기존 규약 | — | cross-family-review.md 소비, 신설 금지 |
 
-- **상향은 항상 허용**(사유 불요), **하향은 검증자에 한해 금지**·실행자는 이 표 자체가 선언이다.
+- **상향은 항상 허용**(사유 불요), **하향은 검증자에 한해 금지**(⚠**§12.1이 supersede**: 기준선은 세션 단독이 아니라 `max(세션, 작업자)`)·실행자는 이 표 자체가 선언이다.
   표 밖 하향(예: 구현을 haiku로)은 DOWNGRADE-DECLARED 동형 선언 필요 — hook Rule A는 부재/fable만
   감지하므로 haiku 명시 등은 L2 미검출(수용 잔여, L1이 담당; "검증자 금지"와 hook 메시지의
   DOWNGRADE-DECLARED 언급은 모순 아님 — 금지의 유일 탈출구가 그 선언+사용자 승인이다).
@@ -413,12 +413,12 @@ C11 이래의 일관 패턴이며 이번에도 예외가 아니다.
 
 **강제 범위(정직 공개)**: Workflow 경로(Rule C2)만 탐지 가능 — hook이 스크립트 전문을 한 문자열로 읽으므로
 실행자 model과 검증자 model을 **같은 텍스트에서 비교** 가능. **Agent 도구 경로(Rule B)는 구조적 불가** —
-`hooks/surface-model-policy.sh:105-114`가 단일 호출 `tool_input`만 보고, 실행자 model을 기억할 세션 상태가 없다
+`hooks/surface-model-policy.sh:126-162`가 단일 호출 `tool_input`만 보고, 실행자 model을 기억할 세션 상태가 없다
 (`_common.sh` `session_marker`는 dedup 전용). 신규 상태 파일 + 실행자-선행 순서 가정이 필요한데 그건
 advisory hook의 복잡도 상한을 넘음 → **L1 몫으로 명기하는 수용 잔여**.
 
 **★canonical 캐리어의 floor 적용 범위 (Gate R 2패스 확정, 2026-07-27)**:
-`workflows/rpi-implement.js`는 stage1을 `model:'opus'`(:38)로 고정하고 stage2는 무지정(:53, 상속)이다.
+`workflows/rpi-implement.js`는 stage1을 `model:'opus'`(:42)로 고정하고 stage2는 무지정(:57, 상속)이다.
 세션별 tier 계산(fable=4·opus=3·sonnet=2·haiku=1, floor=`max(세션, 실행자=3)`):
 
 | 세션 | stage1 | stage2(상속) | floor | 판정 |
@@ -444,9 +444,14 @@ advisory hook의 복잡도 상한을 넘음 → **L1 몫으로 명기하는 수�
 대신 ①캐리어가 **선언 모드(A) 전용임을 문서·주석에 명시**하고 ②모드 밖(sonnet/haiku 세션) 사용 시 floor
 위반이 발생함을 **수용 잔여로 정직 공개**한다.
 **★탈출구 부재 (Gate R 3패스 정정)**: 초안은 "호출자가 stage2 상향을 명시"를 탈출구로 적었으나 **실물에 그
-파라미터가 없다** — `workflows/rpi-implement.js`의 stage2 opts(:52-56)는 `{agentType,label,phase}` 하드코딩이고
-args 스키마(:24-31)는 `title/promptVerbatim/files/successCriteria/heavy/effort?`만 받는다. 캐리어를 버리고
+파라미터가 없다** — `workflows/rpi-implement.js`의 stage2 opts(:56-60)는 `{agentType,label,phase}` 하드코딩이고
+args 스키마(:25-35)는 `title/promptVerbatim/files/successCriteria/heavy/effort?`만 받는다. 캐리어를 버리고
 인라인 스크립트를 쓰는 건 "canonical이 1차 방어"(§10) 전제를 무너뜨리므로 탈출구로 부적격.
+
+> **행 인용 갱신 (C14, 2026-07-28)**: 위 `:42`/`:57`/`:56-60`/`:25-35` 및 §12.4 의 `:126-162` 는 C13 이
+> 캐리어·hook 앞부분에 코드를 삽입하면서 밀려난 값을 실측 재대조한 것이다(직전 기록은 `:38`/`:53`/
+> `:52-56`/`:24-31`/`:105-114`). 이 절의 행 인용은 load-bearing(탈출구 부재 논증의 근거)이므로
+> **캐리어·hook 편집 시 동반 갱신 대상**이다.
 → **현 상태의 정직한 서술 = "모드 밖 사용 시 탈출구 없음"**. Phase P가 옵셔널 `verifyModel` args 추가를
 task로 판단하되, 채택 시 **fable 세션에서 리터럴이 Rule C2 자기고발을 유발**하므로(2패스 오답 ②와 동형)
 "floor 미달일 때만 삽입"하는 조건부 로직이 필수다.
@@ -467,6 +472,10 @@ floor 위반이 되는 유일 조건인 *실행자 상향*은 같은 스크립�
 **본 spec §3 매트릭스 `:105`**("검증자 티어 ≥ 세션" — §12.1 supersede 포인터 필요, §10·§11.6-정정 선례 동형) ·
 `workflows/rpi-implement.js`(위 해소) · `hooks/tests/run-all.sh` SMP 픽스처.
 ※ `plans/*`(2026-07-25:60,150,156,327 · 2026-07-18:27)는 **완료 사이클 이력이라 갱신 대상 아님**(genesis-record).
+
+※ **C14 보강**: 위 목록은 C13 Gate R 시점의 전수 결과다. 그 전수가 놓친 실사용 인스턴스
+  (`hooks/surface-model-policy.sh:159` Rule B 메시지 · `workflows/rpi-implement.js:6` meta detail 등)는
+  **§13.6 material drift 표**가 전수 기록한다 — 동반 갱신 대상의 현행 SSOT 는 §13.6 이다.
 
 ### §12.2 웹 리서치 = explore-strict 도구 배선(신규 에이전트 **기각**) — U3 대체
 
@@ -536,8 +545,19 @@ RED 픽스처 추가가 Phase P task 후보.
 1. **`setup/install.sh` REQUIRED에 hook 2개 누락**: `surface-model-policy.sh`·`worktree-teardown.sh`
    (grep 0건 실측). 신규 PC 설치 시 **정책 hook이 없어도 침묵 통과** — L2 강제층이 통째로 증발하는 경로.
 2. **`docs/ai-context/scaffold-registry.md` seal #45 미등재**: 제목이 "#17~#44 … = 27"에서 멈추고 표도 #44까지.
-3. **`skills/ccs-delegation/SKILL.md:5,24,52`가 `~/.ccs/config.json` 지시** — 실재는 `config.yaml`
-   (Glob 실측). 고장난 비-Claude 호출 경로가 라이브 상주.
+3. **`skills/ccs-delegation/SKILL.md`가 `~/.ccs/config.json` 지시** — 실재는 `config.yaml`.
+   **★C14 정정(2026-07-28)**: C13 이 "정정 착륙"이라 기록한 것은 **거짓**이다 — `skills/ccs-delegation`
+   은 심링크(`git ls-tree HEAD` 모드 **120000**, blob 내용 = 링크 포인터 한 줄)이고
+   `git log --all -- skills/ccs-delegation/SKILL.md` 는 빈 출력(리포 역사상 추적된 적 없음)이다.
+   C13 의 근거 grep 은 **심링크 대상(리포 밖 비-git 디렉터리)** 을 읽은 것이라 이 정정은 리포에
+   존재할 수 없었다(plan 의 `git add …/SKILL.md` 도 `beyond a symbolic link` 로 구조적 실행 불가).
+   현 상태(C14 읽기 전용 재확인): 링크 대상 실파일은 `config.json` 0건 / `config.yaml` 4건 —
+   **로컬 정정은 유효하나 배포 경로(`install.sh` `git clone`)로는 따라오지 않는다.**
+   → 판정: **리포 관점에서는 "갱신 대상 아님"**(비추적 로컬 정션 — `scaffold-registry.md` 가 이미
+   `(로컬 정션, 비추적)` 으로 정직 기술). 하네스 문서는 알고 있었는데 spec/plan 이 그것을 무시하고
+   리포 파일처럼 행번호까지 지정해 정정을 지시한 것이 설계 결함이었다.
+   **클래스 교훈**: 리포 내 경로처럼 보이는 심링크가 검증을 오도한다 → grep 증거는 `git ls-files`
+   교차 확인이 필수 동반자(§13.9 · non-obvious 등록 대상 — C14-H).
 4. `docs/superpowers/specs/2026-07-13-harness-upgrade-2026-07-design.md:89-97` cross-family 프로토콜 중복
    기술 + 버전 리터럴(§10 중복 SSOT 소지 — durable spec은 genesis-record라 **본문 편집 대신 포인터 주석**).
 5. `settings.example.json`에 `ANTHROPIC_*_MODEL` env 전무 → "버전 바인딩 SSOT=settings.json env"가
@@ -641,3 +661,288 @@ A6(중첩 객체·중복 키 오귀속)이 모두 같은 뿌리에서 나왔다.
 
 **항목 수 정합**: A 10 + C 5(C1/C3 동일 뿌리라 4행 표기) + D 4(D1/D2 동일 뿌리라 3행 표기) = **19**.
 REAL 17 = 19 − 부분수용 2(D3·D4). 기각 0.
+
+## §13. C14 착수 근거 — C13 잔여 실측 (2026-07-27~28, goal 파일 gitignored이므로 여기 영구화)
+
+> C14 goal 원문 = `_goal/c14-residue-and-eval-goal.md`(비추적). 1차 출처 = `_goal/c13-evidence/`
+> (적대 검증 9-에이전트 + GPT 교차리뷰 원문, 둘 다 비추적). 아래는 **goal 파일 없이도 Phase R이
+> 재현 가능**하도록 실측만 옮긴 것 — §11 선례. C13 Closeout이 "COMPLETE"로 보고했으나 적대 검증
+> 4 렌즈 중 3이 뒤집었고, goal 성공기준 3개가 미충족이었다.
+
+### §13.1 ★방법론 실패 — "없을 것"이라 가정하고 확인하지 않았다 (근본원인)
+
+C13 Closeout은 프롬프트의 "goal은 gitignored라 없을 수 있다"를 **확인 없이 사실로 승격**해 요구사항을
+spec §11/§12로만 읽었다. 그러나 `_goal/c13-dispatch-governance-goal.md`(18,744 bytes)는 **디스크에
+실재했다** — `ls _goal/` 한 번이면 확인됐다. 결과: goal §4 성공기준 6개 중 3개가 미검증 상태로
+"COMPLETE" 보고됨. spec §11.2는 7 probe를 요약만 하고(*"①~⑤⑦ SILENT, ⑥만 ALERT"*) **어느 probe가
+성공기준인지는 goal에만** 있었다.
+
+**시스템 원인**(사람/AI 아님 — CLAUDE.md §4-3): 요구사항 SSOT가 비추적 파일에 있고, 그 파일의 **부재를
+가정해도 되는 조건이 규약에 없었다**. → C14-H가 non-obvious 등록 + 재현 픽스처 규약으로 닫는다.
+
+### §13.2 ★probe p1~p7 실행 정의 (C13 goal이 라벨만 남겨 재현 불가였던 것 — 여기 영구화)
+
+```bash
+cd ~/.claude
+mkdir -p /tmp/probe
+for M in fable-5 opus-5 sonnet-5 haiku-4-5; do
+  printf '{"type":"assistant","message":{"model":"claude-%s","content":[]}}\n' "$M" > /tmp/probe/$M.jsonl
+done
+mkev(){ KIND="$1" VAL="$2" TP="$3" SID="$4" node -e '
+  const ti={}; ti[process.env.KIND]=process.env.VAL;
+  console.log(JSON.stringify({session_id:process.env.SID,transcript_path:process.env.TP,cwd:"",
+    permission_mode:"bypassPermissions",effort:{level:"xhigh"},hook_event_name:"PreToolUse",
+    tool_name:"Workflow",tool_input:ti,tool_use_id:"t"}));'; }
+run(){ rm -f /tmp/model-policy-c*-"$3"* 2>/dev/null   # ★마커 선삭제 필수 — 규칙별 1세션 1회 dedup
+       O=$(mkev script "$1" "$2" "$3" | bash hooks/surface-model-policy.sh 2>/dev/null)
+       printf '%s' "$O" | grep -q additionalContext && echo ALERT || echo SILENT; }
+```
+| probe | 스폰 | 의미 |
+|---|---|---|
+| p1 | `agent('q',{label:'a'})` | 순수 fan-out(agentType 부재) |
+| p2 | `agent('q',{agentType:'explore-strict',label:'a'})` | 탐색자 fan-out |
+| p3 | `agent('q',{agentType:'general-purpose',label:'a'})` | 범용 fan-out |
+| p4 | `agent('r',{agentType:'review-strict'})` + `agent('r2',{})` | 검증자+무선언 |
+| p5 | 준수 execute-strict + 무선언 execute-strict | 마스킹 |
+| p6 | 무선언 execute-strict 단독 | 대조군 |
+| p7 | `const t='execute'+'-strict'` | 변수 조립 |
+
+**2026-07-27 실측(머지된 master `a289a45`, fable transcript)**: p1 **ALERT** · p2 **SILENT** ·
+p3 **SILENT** · p4 ALERT · p5 **ALERT** · p6 ALERT · p7 SILENT(기지 잔여 — 동적 조립).
+**2026-07-28 C14 Phase R 재현: 동일**(7/7 일치).
+→ C13이 닫은 것 = p1·p5(+p6 무회귀). **C13 goal §4.1이 요구한 p2·p3는 미충족.**
+
+### §13.3 ★C14-D 판정 — p2/p3 요구는 **(a) Rule 확장으로 수용**한다
+
+**해석 충돌의 정체**: C13은 "agentType 명시 = 세션 상속 아님 → 역류 없음"으로 해석해 p2/p3를 의도적
+제외했다. 그러나 그 해석은 **한 축을 빠뜨렸다** — 상속 여부를 정하는 것은 *agentType의 명시 여부*가
+아니라 **그 agentType이 model을 선언하는가**다(§11.3 해소 우선순위: `opts.model > frontmatter > inherit`).
+
+실측 대조(2026-07-28):
+
+| agentType | frontmatter `model:` | opts.model 부재 시 실제 스폰 모델 | 역류? |
+|---|---|---|---|
+| `explore-strict` | `sonnet` (`agents/explore-strict.md:14`) | sonnet | **없음** |
+| `general-purpose` | **파일 자체 부재**(builtin) | **세션 상속** | **있음** |
+| `execute-strict` | `inherit` | 세션 상속 | 있음(Rule C가 담당) |
+| `review-strict` | `inherit` | 세션 상속 | floor 판정(Rule C2) |
+
+→ **p2와 p3의 답은 다르다**(goal §2.2가 예견한 대로):
+- **p3 = REAL 미탐, 수용**. `general-purpose`는 `agents/` 파일이 없어 model을 선언할 곳 자체가 없다 →
+  fable 세션의 fan-out이 통째로 플래그십으로 역류한다. §11.1 비용 표에서 이 경로는 **상속분의 10.8%
+  (n=36) 단독 3위**이고, C13 goal 본문이 *"agentType-less + general-purpose = 상속분의 60.6%"*라며
+  표적에 **명시 포함**했다. Rule C3의 근거(§11.3 "agentType-less는 상속")는 **model 무선언 agentType에도
+  똑같이 성립**하므로, C3를 "agentType 부재"가 아니라 **"model을 선언하지 않는 스폰"** 축으로 재정의하는
+  것이 일관된다.
+- **p2 = 발화 불요, 단 조건부**. `explore-strict`는 frontmatter `model: sonnet`이라 역류가 없다.
+  **다만 §11.3의 ★fail-to-parent**(allowlist 검증 실패 시 경고 후 **부모 모델 상속**)가 CCS 프록시
+  환경에서 실재 위험이다. 그러나 그것은 *런타임 allowlist 실패* 조건이고 hook은 정적 텍스트만 보므로
+  **정적으로 판별 불가** → L1/수용 잔여로 유지하고 발화시키지 않는다(오탐 비용이 이득을 넘음:
+  정책 준수 스폰마다 경고가 뜬다).
+
+**채택 = Rule C3 재정의(신규 번호 없이 축 확장)**: fable 세션에서 `model` 무선언 스폰 중
+**"model을 선언하는 frontmatter가 없는 agentType"** 을 대상으로 한다. 구현은 **allowlist가 아니라
+denylist의 역**(= `agents/<type>.md`에 `^model:` 이 있으면 제외)이 아니라 — hook은 파일시스템 조회
+없이 결정론적이어야 하므로 — **정적 목록**으로 한다:
+제외 목록은 **두 개의 서로 다른 사유**로 구성된다(한 공식으로 유도되지 않는다 — Gate R 정정):
+- **사유 ① model 선언 보유** → 역류 없음: `explore-strict`(frontmatter `model: sonnet`).
+  이 축이 디스크에서 유도 가능한 유일한 부분집합이다: `agents/*.md` 중 `^model:`이 `inherit`이 아닌 것
+  = `{explore-strict}` (2026-07-28 실측).
+- **사유 ② 다른 규칙이 전담** → C3 대상 아님: `execute-strict`(Rule C)·`review-strict`(Rule C2).
+  둘 다 frontmatter는 `inherit`이라 ①로는 유도되지 않으며, 규칙 분담이라는 **설계 결정**이다.
+- **사유 ③ 상속 단언 불가**: `*`(동적 agentType — GPT [C]4 판정 유지).
+- 대상(발화): `?`(키 부재 — 현행) **+ 그 외 모든 리터럴 agentType**(general-purpose·Explore·Plan·
+  claude 등 builtin 전부)
+
+**봉인**: ①축만 seal이 자동 대조한다 — `agents/*.md`에서 `^model:`이 `inherit`이 아닌 것이 hook의
+제외 목록에 **포함되는가**(⊆ 방향; 등호 아님 — ②③은 코드 상수라 디스크에 대응물이 없다).
+새 wrapper agent가 `model: <비-inherit>`로 추가되면 hook 제외 목록에 넣으라고 발화한다.
+※ 기존 seal #45 conjunct ②가 이미 `agents/explore-strict.md`의 `^model:[[:space:]]*sonnet`을
+검사하지만, 그것은 **그 파일의 값 고정**이지 *hook 제외 목록과의 대조*가 아니다 — 별개 축.
+②③의 정합은 seal이 아니라 **run-all 픽스처**가 지킨다(리터럴 목록의 로직 회귀는 픽스처 몫 — §6 원칙).
+
+### §13.4 ★C14-J 판정 — context_paths 4파일은 **(b) skill 정정**(신설 아님)
+
+**선행 판정이 이미 존재한다**(C14 Phase R 발견): `docs/superpowers/plans/2026-06-13-cycle31-seal-regression-metatest.md:29`
+> *"`ai-context/*`(deny-patterns·non-obvious·architecture·domain-glossary)는 이 하네스 repo에 **부재**
+> (target 프로젝트용 템플릿). 하네스 거버넌스 SSOT = `CLAUDE.md` + `CONTEXT.md` + `verify-setup.sh` seal."*
+
+즉 이 4파일의 부재는 **사고가 아니라 아키텍처**다 — `skills/init-ai-ready-project/templates/*.tpl`이
+**대상 프로젝트에** 생성하는 산출물이지, 하네스 자신의 자산이 아니다. `git log --all` 전부 빈 출력
+(리포 역사상 추적된 적 없음)이 이를 뒷받침한다. 따라서 **일괄 신설은 아키텍처 위반**(하네스가 자기
+스캐폴드 산출물을 자기 안에 복제)이며, 정정 대상은 **그 사실을 모르는 skill 텍스트**다.
+
+**★경계의 정확한 외연 (Gate R 정정)**: 이 판정은 **파일명**에 걸리지 *디렉터리*에 걸리지 않는다.
+`docs/ai-context/`에는 이미 하네스 소유 추적 파일 5개(`model-policy`·`cross-family-review`·
+`memory-policy`·`plugin-pins`·`scaffold-registry`)가 산다. 따라서 이 디렉터리에 하네스 자신의 문서를
+두는 것 자체는 정상이며, "부재가 정상"인 것은 **위 5개 스캐폴드 파일명**에 한한다.
+그중 `non-obvious.md`는 C14-H가 **하네스용으로 실재하게 만들므로 이 목록에서 빠진다**(§13.5) —
+skill 정정의 대상은 **architecture·domain-glossary·deny-patterns·runbook 4개**다.
+
+**범위는 goal §2.8보다 넓다**(C14 Phase R 전수 실측 — grep으로 형제 인스턴스 발견):
+
+| skill | 부재 경로를 지시하는 행 |
+|---|---|
+| `start-rpi-cycle/SKILL.md` | `:30`(ADR SSOT 서술) · `:41-44`(Phase R C) · `:178-180`(Closeout C-1) |
+| `closeout-pr-cycle/SKILL.md` | `:37`(runbook 참조) · `:101-104` |
+| `improve-codebase-architecture/SKILL.md` | `:25-26`(전제조건) · `:38-40` · `:118` |
+| `init-ai-ready-project/SKILL.md` | `:49-53` — **정정 대상 아님**(생성하는 쪽 = 템플릿 소스) |
+
+**정정 원칙**: 이 skill들은 **하네스에서도, 대상 프로젝트에서도** 돈다. 그래서 경로를 통째로 지우면
+대상 프로젝트에서 기능이 준다. → **"실재하는 것만 전달"이라는 조건부 지시**로 바꾼다(경로 목록은
+보존하되 부재 시 건너뛴다는 것을 명문화). 이는 이미 일어나고 있는 런타임 동작(서브에이전트는 없는
+경로를 조용히 skip)을 **선언으로 승격**하는 것이라 동작 변경이 아니라 **정직성 정정**이다.
+`CLAUDE.md §5`는 여전히 `architecture.md`를 전제하므로 **동반 정정**한다.
+**`§4`는 정정 불요** — C14-H가 `non-obvious.md`를 실재하게 만들므로 §4가 지시하는 경로가 참이 된다(§13.5).
+
+### §13.5 ★C14-H 판정 — non-obvious는 **`docs/ai-context/non-obvious.md`에 신설**(goal §4.8 그대로)
+
+**★초안 판정을 Gate R이 반증 — 기록으로 남긴다(정직)**: 초안은 "§13.4가 경계를 세웠으니 하네스
+non-obvious를 `docs/ai-context/`에 두면 그 경계를 위반한다 → `docs/harness-non-obvious.md`에 신설"이라
+판정했다. **틀렸다.** Gate R이 지적한 실물: `docs/ai-context/`에는 이미 **하네스 소유 추적 파일 5개**가
+산다(`model-policy.md`·`cross-family-review.md`·`memory-policy.md`·`plugin-pins.md`·`scaffold-registry.md`).
+즉 그 디렉터리는 "대상 프로젝트 전용"이 아니라 **하네스의 ai-context SSOT 디렉터리**이고, §13.4의
+경계는 *디렉터리*가 아니라 **그 5개 파일명**에만 걸린다. 초안은 §13.4의 결론을 디렉터리 전체로
+과잉 일반화해, 요구사항 SSOT(goal §4.8이 `docs/ai-context/non-obvious.md` 실재를 명시)와 어긋나는
+경로를 만들 뻔했다. **교훈: 경계를 세운 직후 그 경계를 다른 축으로 확대 적용하지 말 것 — §13.1과
+같은 "확인 없이 승격" 계열이다**(이번엔 파일 존재가 아니라 *판정 범위*를 승격했다).
+
+**채택**: `docs/ai-context/non-obvious.md`에 신설한다(goal §4.8·§3 C14-H 문면 그대로).
+동거는 모순이 아니다 — 같은 파일명이 두 문맥에서 다른 역할을 한다:
+| 문맥 | 경로 | 생성자 |
+|---|---|---|
+| **하네스 자신** | `~/.claude/docs/ai-context/non-obvious.md` (추적, C14 신설) | 하네스 사이클 Closeout |
+| 대상 프로젝트 | `<project>/docs/ai-context/non-obvious.md` | `init-ai-ready-project` 템플릿 |
+→ `CLAUDE.md §4`는 경로를 바꿀 필요가 없다(이미 이 경로를 지시한다). §13.4의 skill 정정은
+**나머지 4개 파일명**(architecture·domain-glossary·deny-patterns·runbook)에만 적용된다 —
+non-obvious는 이번에 실재하게 되므로 그 목록에서 빠진다.
+
+**GAP-012 규약(픽스처 동반)**: non-obvious 등록 항목은 **재현 픽스처 경로를 필수 필드로** 갖는다.
+근거 = 이번 사이클 자체가 그 갭의 실증이다(§13.1 — 등록만 있고 재현자가 없으면 다음 사이클이 같은
+가정을 반복한다). 첫 실적용 = §13.1의 방법론 실패.
+
+### §13.6 material drift 6건 (C14 Phase R 전건 실물 재현 — 2026-07-28)
+
+| # | 위치 | 실물 | 결함 |
+|---|---|---|---|
+| M1 | `setup/doctor.sh:353` | lib 파서 4종(`workflow-spawns` 누락) | 이 파일 부재 시 Rule C/C2/C3 **전체 침묵 fail-open**인데 doctor는 "PASS 4개" 초록불. `verify-setup.sh:99`는 5종 → 두 매니페스트 상호 드리프트 |
+| M2 | `setup/verify-setup.sh:50` | hook 권한 루프 11개(`surface-model-policy` 부재), 주석도 `11 hook scripts` | L2 정책 hook 권한 소실이 verify-setup 단독 실행에서 미탐(doctor `:332`가 부분 커버) |
+| M3 | `hooks/surface-model-policy.sh:159` | `검증자 티어 ≥ 세션 티어(작업자 기준선)가 원칙` | C12와 byte-identical. 인용처 `cross-family-review.md:51`은 이미 max() → **메시지와 SSOT 불일치**. §12.6 교훈③이 겨눈 클래스 |
+| M4 | `workflows/rpi-implement.js:6` | `검증자 하향 금지` | 같은 파일 `:20-23`은 max()로 갱신 — **파일 내부 자기모순**. `CONTEXT.md:94`가 `_Avoid_`로 금지한 문구이고 **런타임 meta로 노출** |
+| M5 | `README.md:28,66` + 전역 | `11개 hook`(배선 12) · explore-strict 도구에 WebSearch 부재 · `model-policy` 문자열 **0건** | README만 읽는 사용자는 모델 디스패치 거버넌스의 **존재 자체를 모른다** |
+| M6 | `hooks/lib/workflow-spawns.js` `findOpts:174-188` | 삼항 opts는 첫 분기만 / 첫 인자에 깊이-0 `{`면 오식별 | 실측: `agent('p', h ? {…model:'opus'} : {…무선언})` → 1행(무선언 소실=SILENT); `agent(()=>{…},{opts})` → `?\t-`(오탐+미탐 양방향) |
+
+**M7(신규, C14 Phase R)**: `setup/tests/failopen-surface.test.sh:19-21` `witness()` cksum 목록도
+4종 하드코딩 — `workflow-spawns.js` 누락. 격리 breach가 이 파일에 대해서만 미탐. M1과 동일 클래스의
+**3번째 인스턴스**이며, C14-A의 seal이 이것까지 커버해야 클래스가 닫힌다.
+
+### §13.7 ★C14-C 판정 — M6은 **(a) 구현**(삼항) + **(b) 정직 공개**(오식별) 혼합
+
+두 형태의 성격이 다르므로 한 덩어리로 택일하지 않는다:
+- **삼항 opts = (a) 구현.** 조건부 모델 선택(`heavy ? {opus} : {무선언}`)은 **이 정책이 규율하는 바로
+  그 패턴**이라 현실성이 높고, 미탐 방향이 **마스킹**(준수 리터럴이 무선언을 가림 — §12.6이 "제거
+  대상"으로 명명한 클래스가 호출-내 축에서 생존)이다. `findOpts`가 첫 `{`에서 반환하는 대신 **깊이 0의
+  모든 `{…}` 후보를 수집**해 각각을 스폰으로 방출하면 해소된다(보수적: 후보가 여럿이면 전부 평가 →
+  안전 방향).
+- **opts 오식별 = (b) 정직 공개 + 픽스처 봉인.** `agent(()=>{…}, {opts})` 형태를 정확히 판정하려면
+  "마지막 인자" 의미론이 필요한데, 인자 경계(깊이 0 콤마) 분할은 파서를 한 단계 더 복잡하게 만들고
+  `agent('p')` 1-인자·트레일링 콤마 등 경계 케이스를 새로 연다. **위 삼항 수정이 이 축의 실용 사례
+  대부분을 흡수**하므로(후보 수집이 첫-인자 객체와 진짜 opts를 **둘 다** 방출 → 진짜 opts가 관측됨),
+  잔여는 파서 헤더·spec·픽스처 3곳에 명시하고 현행 동작을 고정한다.
+  → **DOWNGRADE-DECLARED 불요**: 삼항 수정으로 오식별 축도 실질 개선되며(둘 다 "깊이-0 첫 `{`만
+  본다"는 같은 뿌리), 남는 잔여는 기능 열화가 아니라 **정적 분석의 알려진 상한**이다.
+
+### §13.8 ★C14-A 판정 — seal은 **디스크=SSOT 대조**(하드코딩 목록 금지)
+
+기존 **seal #24**(`verify-setup.sh:196-201`)가 정확한 템플릿이다 — `DISK_H`(glob) vs `DOC_H`(awk 추출)
+→ `comm -23`. 이 관용구를 `hooks/lib/*.js` 축으로 확장한다:
+- **신규 seal**: 디스크 `hooks/lib/*.js` ⊆ {`doctor.sh` 21b 목록 ∩ `verify-setup.sh` item-16 목록 ∩
+  `install.sh` REQUIRED ∩ `failopen-surface.test.sh` witness}. 하드코딩 목록을 **디스크와 대조**하므로
+  다음 lib 신설 때 자동 발화한다(M1·M7이 이 seal 부재의 실증).
+- **agents 제외목록 축**(C14-D 재발 방지 — §13.3 ①이 요구하는 seal): `agents/*.md` 중 `^model:`이
+  `inherit`이 아닌 agent 이름이 `hooks/surface-model-policy.sh`의 C3 제외 목록에 **포함**되는가(⊆).
+  새 wrapper가 하위 모델을 선언하며 추가될 때 hook 갱신 누락을 발화한다. ②③(규칙 전담·동적)은
+  코드 상수라 디스크 대응물이 없어 이 seal의 대상이 아니다 — 픽스처가 담당.
+- **skill context_paths 축**(C14-J 재발 방지): skill의 `context_paths` 리터럴 경로 ⊆ 실재 파일
+  — 단 §13.4가 "부재 시 skip"을 정식 동작으로 승격하므로, seal은 **경로 실재**가 아니라 **조건부
+  지시 문구의 존재**를 봉인한다(부재 경로를 무조건 FAIL시키면 대상-프로젝트 겸용 skill이 깨진다).
+- seal/드리프트 검사는 **bash 파일옵스만**(node 보간형 금지 — C14-G가 그 위반을 정정하는 사이클이라
+  신규 도입은 자기모순).
+
+### §13.9 C14-E — spec §12.4-3(ccs) 거짓 기록 정정
+
+`skills/ccs-delegation`은 **심링크**(`git ls-tree HEAD` = 모드 `120000`, blob 내용 = 링크 포인터 한 줄)
+→ `git ls-files skills/ccs-delegation/` 은 빈 출력. C13이 "config.json → config.yaml 정정 착륙"의 근거로
+쓴 grep은 **심링크 대상(리포 밖 실파일)** 을 읽은 것이라 리포에는 그 정정이 존재하지 않는다.
+**2026-07-28 재확인(읽기 전용)**: 링크 대상 실파일은 `config.json` 0건 / `config.yaml` 4건 —
+**로컬 정정 자체는 유효**하나 배포 경로(`git clone`)로는 따라오지 않는다.
+→ §12.4-3의 "정정됨" 서술은 **취소**하고 심링크 사실로 대체한다. `scaffold-registry.md:44`는 이미
+`(로컬 정션, 비추적)`으로 정직 기술하고 있었다 — **하네스 문서는 알고 있었는데 spec/plan이 무시**했다.
+**클래스 교훈**: 리포 내 경로처럼 보이는 심링크가 검증을 오도한다 → `git ls-files` 교차 확인이
+grep 증거의 필수 동반자(§13.1과 같은 "확인 없이 가정" 계열, non-obvious 등록 후보).
+
+### §13.10 C14-G — doctor #23 bash-보간형 node (실물 재현)
+
+`setup/doctor.sh:361`은 bash로 보간한 **MSYS 경로**(`/c/Users/…`)를 Windows node의 `readFileSync`에
+넘긴다. **2026-07-28 실측**: 그 형태 → `ENOENT`(`catch(e){}`가 삼킴 → 빈 값 → "미설정" WARN).
+같은 파일을 **stdin으로 전달**하면 `PCT-present:true WINDOW-present:true`. 즉 **설정돼 있는데 오보**한다.
+정정 = stdin/argv 전달(값 미출력 원칙 유지 — 키 존재/숫자 비교만; `settings.json`은 gitignored +
+`ANTHROPIC_AUTH_TOKEN` 보유라 `git add` 금지·값 출력 금지).
+**메모리 교훈의 기존 위반 인스턴스**("bash-보간형 node = MSYS 미독" — cycle-10 doctor #23 발견분).
+
+### §13.11 C14-F — seal #45 seal-regression 커버리지 공백
+
+뮤테이터 7종(+control) 중 **seal #45 대상이 0개**(`setup/tests/seal-regression.test.sh:100-106` 실측 —
+explore 대상은 `mut_explore_write`=seal #41뿐). 따라서 "9/0 통과"가 #45의 발화를 증언하지 않는다.
+→ `mut_explore_effort`(xhigh→medium)·`mut_explore_websearch`(WebSearch 제거) 추가.
+
+### §13.12 C14-I 판정 — `verifyModel` args는 **미채택**
+
+§12.1이 남긴 "모드 밖 사용 시 탈출구 부재" 잔여. **미채택 사유**: ①실사용 조건이 "캐리어를 선언 모드
+(fable+ultracode) 밖에서 쓸 때"인데 그 자체가 비권장 경로(`model-policy.md` 모드 C/haiku 항) ②채택 시
+fable 세션에서 리터럴이 **Rule C2 자기고발**을 유발하므로 "floor 미달일 때만 삽입"하는 조건부 로직이
+필수인데, 그 조건 판정은 세션 티어를 알아야 하고 **스크립트는 세션 티어를 모른다**(hook만 안다) →
+정적 캐리어에 동적 조건을 넣는 구조적 부정합 ③§12.6 정정으로 이 잔여는 이미 **침묵 → 관측되는 잔여**로
+성격이 바뀌었다(모드 밖에서 쓰면 Rule C2가 발화해 사용자에게 표면화된다).
+→ **스코프 축소가 아니라 설계 판정**(YAGNI + 구조적 부정합). 잔여는 §12.1 서술 그대로 유지.
+
+### §13.13 C14 교차패밀리(GPT) 적대 리뷰 — 트리아지 결과 (2026-07-28)
+
+`docs/ai-context/cross-family-review.md` §2 규약대로 경로 A(codex CLI, `gpt-5.6-sol`·ultra·priority·
+verbosity high·`--sandbox read-only`)로 **사이클당 1회** 실행. 대상 = 본 §13 전문 + C14 plan(94KB, stdin).
+GPT 발견 ~20건을 **원문 실측 대조**로 트리아지(GPT는 발견자이지 판정자가 아님 — 규약 §2).
+
+**REAL 6건 — 전부 이 사이클 안에서 정정 착륙**:
+
+| # | 발견 | 실측 재현 | 정정 |
+|---|---|---|---|
+| R1 | seal #46 이 파일 **전문** grep 이라 자기 설명 주석이 매니페스트를 마스킹 — 실효 목록에서 지워도 GREEN | `grep -n workflow-spawns setup/verify-setup.sh` → `:99`(실효) + `:472`(주석) | `lib_missing_in` 을 **주석 제거 후** 검사로. 뮤테이터 `mut_verify_item16_drop` 신설(주석 남기고 실효만 삭제 → 발화 확인) |
+| R2 | seal #47 도 동형 — hook 설명 주석의 `explore-strict` 가 실효 `case` arm 삭제를 가림 | `grep -n explore-strict hooks/surface-model-policy.sh` → `:79`(주석) + `:82`(실효) | 앵커를 **case arm 정규식**으로. 뮤테이터 `mut_c3_exclude_drop` 신설 |
+| R3 | **그룹핑 괄호**로 감싼 삼항이 통째 소실 — 마스킹 클래스가 괄호 하나로 부활 | `agent('v', (c ? {…opus} : {…haiku}))` → `?\t-` | `findOptsCandidates` 가 **호출 괄호가 아닌 괄호는 투명 처리**(직전 유의 문자 휴리스틱). 픽스처 203 |
+| R4 | 명시 `model:'inherit'` 가 C3 를 빠져나감 — §13.3 표는 `inherit`=세션 상속이라 규정하는데 hook 은 `-` 만 검사 | `{agentType:'general-purpose', model:'inherit'}` → C3 무발화 | 조건을 `'-' 또는 'inherit'` 로. 픽스처 36(E2E) |
+| R5 | C14-J 가 `:118`(Phase 4 입력 목록)을 범위로 명시했으나 **미정정** — plan 이 지목한 인스턴스가 잔존 | `improve-codebase-architecture/SKILL.md:116-120` 무조건 목록 | 조건부 주 추가(seal #48 은 파일 단위로 이미 GREEN 이었으나, 지목 인스턴스 자체를 정정) |
+| R6 | 오탐이 **순수 안전 방향이 아님** — 가짜 후보가 ①`MAX_SPAWNS` 상한을 소비해 뒤쪽 진짜 위반을 자르고 ②규칙별 dedup 마커를 먼저 소비해 같은 세션의 진짜 위반을 침묵시킴 | 첫-인자 객체 100회 + 진짜 review-strict 위반 → 200행 방출·`review-strict` **0행** | 파서 헤더 한계 공개에 **오탐↔미탐 연결**을 명시(종전 공개는 오탐 결과만 적어 절반이었다) |
+
+**기각 / 수용-잔여 (판정 근거 기록 — 재논의 방지)**:
+
+- "§13.3 이 자기모순(`inherit` 선언인데 상속)" → **용어 정밀화로 수용**: 축은 "선언 유무"가 아니라
+  "**하위 모델을 확정 선언하는가**"다. R4 정정이 이 독법을 코드에 물화했다.
+- "builtin `Explore`/`Plan`/`claude` 의 상속을 실측 안 함" → **정당한 지적, 잔여로 명시**: `general-purpose`
+  만 실측(§13.2 p3)했고 나머지는 "`agents/*.md` 부재 → frontmatter 없음"이라는 **동일 구조**에서 추론했다.
+  advisory 환기라 오탐 비용이 낮아 수용하되, 실측 확장은 후속 후보.
+- "동적 `model:f()` 을 '무선언'이라 부르는 건 `*` 면제와 비대칭" → **REAL 이나 이번 스코프 밖**: 판정 축을
+  3값(`리터럴`/`-`/`동적`)으로 확장하는 **출력 계약 변경**이라 다음 사이클 후보로 이월.
+- "상호배타 분기를 동시 스폰으로 취급해 Rule C2 오탐 가능" → **REAL, 수용 잔여**: 정적 분석이 분기
+  배타성을 알 수 없다. advisory 이므로 오탐이 차단을 만들지 않는다 — R6 공개에 포함.
+- "doctor Test 6 이 stdin 동작을 시험하지 않음" → **부분 수용**: 정적 소스 앵커가 맞다(라이브
+  `settings.json` 은 토큰 보유라 테스트가 읽지 않는 것이 제약이다). 다만 "재현 테스트"라는 명명이
+  과했다 — 실제로는 **회귀 앵커**다. 비-vacuity 는 pre-fix 소스 대조로 확인했다(RED 재현).
+- 카운트 지적 3건 → **문면 오류 인정**: ①Task 3 Step 3 의 `235/239` 는 Step 5b 픽스처를 함께 착륙시킨
+  실행 순서를 plan 문면이 앞질러 적은 것(실측은 `235/239` 로 관측) ②"4-way 대조" 서술 옆 주석의
+  "3곳 중 2곳"은 **4곳 중 2곳**이 옳다(정정 완료) ③§13.4 의 "위 5개 스캐폴드 파일명"은 열거가 4개뿐이라
+  `runbook` 을 포함해 읽어야 한다.
+
+**교훈 (재사용)**: 문자열-존재 seal 은 **자기 설명 주석이 검사 대상을 가린다** — 앵커는 실효 라인
+(주석 제거 또는 구문 앵커)에 걸어야 하고, 그 비-vacuity 는 "주석은 남기고 실효만 삭제"하는 뮤테이터로만
+증명된다. R1/R2 는 C14 가 *신설한* seal 에서 발견됐다 — 즉 seal 을 늘리는 사이클은 그 seal 자체의
+마스킹을 같은 사이클에서 검사해야 한다.

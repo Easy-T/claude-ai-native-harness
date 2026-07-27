@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # surface-model-policy.sh — advisory PreToolUse hook (Agent|Workflow 매처; tri-model C11+C12, spec 2026-07-25 §5·§10).
 # 역할×모델 매트릭스(docs/ai-context/model-policy.md)의 L2: Rule A(fable 세션 실행자 하향 미적용)·
-# Rule B(검증자 하향, 전 세션)·Rule C/C2(Workflow 스크립트 경로 — C12)를 additionalContext 로 환기.
+# Rule B(검증자가 기준선 max(세션,작업자) 미만, 전 세션)·Rule C/C2/C3(Workflow 스크립트 경로 — C12·C13)를 additionalContext 로 환기.
 # 차단하지 않는다(항상 exit 0, fail-open — ERR trap 이 내부 실패도 exit 0 으로 흡수).
 # 세션 모델은 hook stdin 에 없어 transcript 의 assistant 라인 message.model 로 판별(실측 shape).
 # 라인 내 첫 매치만 취해 content 의 모델 id 인용에 면역(assistant JSON 은 model 이 content 앞).
@@ -70,10 +70,20 @@ if [ "$TOOL" = "Workflow" ]; then
           *) [ "$SP_T" = "4" ] && C_HIT=1 ;;
         esac
       fi
-    elif [ "$SP_TYPE" = "?" ]; then
-      # Rule C3: agentType **부재** 스폰만 세션 모델을 상속한다(spec §11.3) — fable 세션이면 역류.
-      # '*'(키는 있으나 동적 값)는 상속을 단언할 수 없으므로 제외 — GPT [C]4 REAL (spec §12.6).
-      [ "$WF_TIER" = "4" ] && [ "$SP_MODEL" = "-" ] && C3_HIT=1
+    else
+      # Rule C3 (spec §13.3, C14 축 재정의): 세션 모델을 상속하는 스폰 = **model 을 선언하지 않는** 스폰.
+      # 판정 축은 agentType 의 명시 여부가 아니라 model 선언의 존재다 —
+      #   ① '?'(agentType 키 부재)는 §11.3 실측대로 상속
+      #   ② 리터럴 agentType 중 frontmatter 에 model 을 선언하지 않는 것(builtin general-purpose/Explore/
+      #      Plan 등 — agents/*.md 파일 자체가 없다)도 동일하게 상속한다.
+      # 제외(3 사유): explore-strict=frontmatter model 선언 보유 / execute·review-strict=Rule C·C2 전담 /
+      #   '*'=동적이라 상속 단언 불가(GPT [C]4). 제외목록 ①축은 seal #47 이 디스크와 ⊆ 대조한다.
+      case "$SP_TYPE" in
+        explore-strict|execute-strict|review-strict|'*') ;;
+        # ★C14 GPT 교차리뷰 정정: 명시 `model:'inherit'` 도 세션 상속이다(§13.3 표가 그렇게 규정).
+        # '-'(무선언)만 보면 `{agentType:'general-purpose', model:'inherit'}` 가 빠져나갔다.
+        *) [ "$WF_TIER" = "4" ] && { [ "$SP_MODEL" = "-" ] || [ "$SP_MODEL" = "inherit" ]; } && C3_HIT=1 ;;
+      esac
     fi
   done <<EOF
 $SPAWNS
@@ -113,7 +123,7 @@ EOF
   fi
   if [ "$C3_HIT" = "1" ] && fire_once model-policy-c3; then
     hook_log "surface-model-policy" "workflow:agentless-inherit" "ALERT" "rule-c3-workflow-fanout-inherit"
-    add_msg "[model-policy] Workflow 스크립트가 agentType 없는 서브에이전트를 model 지정 없이 스폰합니다 — 이 경로는 **세션 모델을 상속**하므로(spec §11.3) fable 세션에선 리서치 fan-out 전체가 플래그십으로 역류합니다. 역할에 맞는 하위 모델을 opts.model 로 명시하십시오(탐색=sonnet). SSOT: docs/ai-context/model-policy.md (advisory · 1세션 1회 · 차단 아님)"
+    add_msg "[model-policy] Workflow 스크립트가 **model 을 선언하지 않는** 서브에이전트를 스폰합니다(agentType 부재 또는 frontmatter 에 model 이 없는 builtin) — 이 경로는 **세션 모델을 상속**하므로(spec §11.3·§13.3) fable 세션에선 리서치 fan-out 전체가 플래그십으로 역류합니다. 역할에 맞는 하위 모델을 opts.model 로 명시하십시오(탐색=sonnet). SSOT: docs/ai-context/model-policy.md (advisory · 1세션 1회 · 차단 아님)"
   fi
   if [ -n "$C2_HIT" ] && fire_once model-policy-c2; then
     hook_log "surface-model-policy" "workflow:review-strict:$C2_HIT" "ALERT" "rule-c2-workflow-verifier-downshift"
@@ -156,7 +166,7 @@ if [ "$SUB" = "review-strict" ] && [ -n "$REQ_MODEL" ] && [ "$SESSION_TIER" != "
     [ -f "$MARKER" ] && exit 0
     touch "$MARKER" 2>/dev/null || true
     hook_log "surface-model-policy" "review-strict:$REQ_MODEL" "ALERT" "rule-b-verifier-downshift"
-    emit_additional_context "[model-policy] 검증자(review-strict) 하향 감지(세션=$SESSION_MODEL > 요청=$REQ_MODEL) — 검증자 티어 ≥ 세션 티어(작업자 기준선)가 원칙(cross-family-review.md §3). 의도된 하향이면 DOWNGRADE-DECLARED(사유) 선언 필요. (advisory · 1세션 1회 · 차단 아님)"
+    emit_additional_context "[model-policy] 검증자(review-strict) 하향 감지(세션=$SESSION_MODEL > 요청=$REQ_MODEL) — 검증자 기준선은 max(세션 티어, 작업자 티어)입니다(spec §12.1, SSOT: docs/ai-context/model-policy.md). 의도된 하향이면 DOWNGRADE-DECLARED(사유) 선언 필요. (advisory · 1세션 1회 · 차단 아님)"
     exit 0
   fi
 fi

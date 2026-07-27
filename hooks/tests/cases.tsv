@@ -247,8 +247,17 @@ hooks-lib	195-ws-escape-decode	0	test_lib
 hooks-lib	196-ws-line-continuation	0	test_lib
 hooks-lib	198-ws-dynamic-type	0	test_lib
 hooks-lib	199-ws-halting-bound	0	test_lib
+hooks-lib	200-ws-ternary-opts-both	0	test_lib
+hooks-lib	201-ws-firstarg-arrow-body	0	test_lib
+hooks-lib	202-ws-ternary-verifier	0	test_lib
+hooks-lib	203-ws-grouped-ternary	0	test_lib
 surface-model-policy	27-rule-c2-inherit-below-floor	0	mk_wf_event
 surface-model-policy	28-rule-c2-tier0-not-exempt	0	mk_wf_event
 surface-model-policy	29-rule-c2-inherit-above-floor	0	mk_wf_event
 surface-model-policy	30-rule-priority-no-loss	0	mk_wf_event
 surface-model-policy	31-rule-c3-dynamic-type-exempt	0	mk_wf_event
+surface-model-policy	32-rule-c3-builtin-inherit	0	mk_wf_event
+surface-model-policy	33-rule-c3-explore-declared-ok	0	mk_wf_event
+surface-model-policy	34-rule-c3-builtin-nonfable-ok	0	mk_wf_event
+surface-model-policy	35-rule-c-ternary-masking-e2e	0	mk_wf_event
+surface-model-policy	36-rule-c3-explicit-inherit	0	mk_wf_event

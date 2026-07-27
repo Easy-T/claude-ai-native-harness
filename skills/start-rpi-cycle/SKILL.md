@@ -27,7 +27,8 @@ A. brainstorming skill 절차 (메인이 직접 따름) — 외향적 (요구·�
 B. grill-with-docs skill 절차 (메인이 직접 따름) — A의 design을 도메인 모델·코드에 비춰 stress-test
    ※ 미설치 시: `bash ~/.claude/setup/doctor.sh` 로 자동 설치
    → 산출물: CONTEXT.md 갱신(용어집), ADR(조건부)
-   ※ ADR은 docs/ai-context/architecture.md (append-only, §5 SSOT)에 기록 — grill 기본 docs/adr/ 대신 하네스 SSOT 사용
+   ※ ADR은 docs/ai-context/architecture.md (append-only, §5 SSOT)에 기록 — grill 기본 docs/adr/ 대신 하네스 SSOT 사용.
+     **단 이 파일은 대상 프로젝트에서만 실재한다**(하네스 자신의 아키텍처 결정은 durable spec 의 in-place 개정으로 기록 — spec §13.4).
    → grill 종료 후 메인이 직접: domain-glossary.md 메타데이터 테이블에 신규 용어 기록
    ★ spec delta 결정 (이진, 필수 — 재진입 사이클의 핵심):
      이번 R(grill 포함)이 durable spec에 없던 design 결정·교정된 의미·새 제약을 드러냈는가?
@@ -43,6 +44,10 @@ C. Agent(subagent_type="explore-strict",
                        "docs/ai-context/non-obvious.md",
                        "docs/ai-context/deny-patterns.md"],
         success_criteria="발견사항·영향 모듈·신규 도메인 용어·deny pattern 충돌 식별")
+   ※ **경로는 실재하는 것만 전달한다** — `docs/ai-context/{architecture,domain-glossary,deny-patterns}.md`는
+     대상 프로젝트의 스캐폴드 산출물(init-ai-ready-project)이라 **글로벌 하네스에는 부재가 정상**이다
+     (spec §13.4 · CONTEXT.md "스캐폴드 산출물 경계"). 하네스 사이클에서는 CONTEXT.md +
+     `docs/ai-context/{model-policy,non-obvious,cross-family-review}.md` 가 실재 SSOT다.
    ※ CLAUDE.md는 메인이 자동 로드하므로 context_paths에 미포함 (중복 회피)
    ※ C는 B와 병렬·교차 가능 (A 완료 후)
    ※ explore-strict 는 frontmatter 기본 sonnet+xhigh+WebSearch — 판단-heavy 탐색만 호출 인자 model 상향 (SSOT: docs/ai-context/model-policy.md)
@@ -189,6 +194,8 @@ closeout-pr-cycle 결과를 받아:
             plan에 DOWNGRADE-DECLARED(사유)가 있으면 그 범위는 열화가 아니라 선언된 결정.
           - finishing-a-development-branch 산출물(브랜치/PR)이 존재 시 일관성 (선택)
         ")
+
+   ※ 위 context_paths 중 **실재하는 것만** 전달(하네스에서는 architecture·domain-glossary 부재가 정상 — spec §13.4).
 
    ※ 고-스테이크 사이클(하네스 거버넌스·루브릭 재채점·spec 변경)은 교차패밀리(GPT) 적대 리뷰 옵션 — 탐지·프로토콜·트리아지는 `docs/ai-context/cross-family-review.md`(GAP-006 규약, 가용 시 사이클당 1회·불가 시 SKIP+사유).
 
