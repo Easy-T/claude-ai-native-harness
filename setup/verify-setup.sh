@@ -472,8 +472,10 @@ fi
 #     그 실증(C13 신규 workflow-spawns.js 가 4곳 중 2곳에서 누락). seal #24(doctor⊇hooks/*.sh) 동형
 #     확장 — 하드코딩 목록이 아니라 디스크와 대조하므로 다음 lib 신설 때 자동 발화한다. bash 파일옵스만.
 DISK_LIB=$(for f in "$HOME/.claude/hooks/lib/"*.js; do basename "$f" .js; done | sort -u)
-lib_missing_in() {  # $1=파일 경로 — 그 파일 텍스트에 없는 lib 이름을 출력
-  local hay; hay=$(cat "$1" 2>/dev/null)
+#     ★C14 GPT 교차리뷰 정정: 파일 **전문** grep 은 주석이 매니페스트를 가린다(이 블록의 설명 주석에도
+#     'workflow-spawns' 가 있어, 실제 목록에서 지워도 통과했다). 주석·설명을 제거한 **실효 라인**에서만 찾는다.
+lib_missing_in() {  # $1=파일 경로 — 그 파일의 비-주석 텍스트에 없는 lib 이름을 출력
+  local hay; hay=$(sed -e 's/#.*$//' -e 's|//.*$||' "$1" 2>/dev/null)
   local n; for n in $DISK_LIB; do case "$hay" in *"$n"*) ;; *) printf '%s ' "$n" ;; esac; done
 }
 MISS46=""
@@ -497,7 +499,9 @@ for af in "$HOME/.claude/agents/"*.md; do
   an=$(basename "$af" .md)
   am=$(grep -m1 -E '^model:' "$af" 2>/dev/null | sed -E 's/^model:[[:space:]]*//' | tr -d '\r')
   { [ -n "$am" ] && [ "$am" != "inherit" ]; } || continue
-  grep -q "$an" "$HOME/.claude/hooks/surface-model-policy.sh" 2>/dev/null || MISS47="$MISS47 $an"
+  # ★C14 GPT 교차리뷰 정정: 전문 grep 은 hook 의 설명 주석이 제외목록을 가린다(주석에도 explore-strict 가
+  # 있어 실제 case arm 에서 지워도 통과했다). **실효 case arm** 에서만 찾는다.
+  grep -qE "^[[:space:]]*[a-z|'*-]*${an}[a-z|'*-]*\)[[:space:]]*;;" "$HOME/.claude/hooks/surface-model-policy.sh" 2>/dev/null || MISS47="$MISS47 $an"
 done
 if [ -z "$MISS47" ]; then
   ok "Rule C3 제외목록 봉인: model 선언 wrapper 가 hook 제외 목록에 등재됨"

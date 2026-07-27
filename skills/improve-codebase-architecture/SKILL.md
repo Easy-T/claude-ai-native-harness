@@ -122,6 +122,8 @@ Phase 3 실행 여부와 무관하게 항상 실행.
 - docs/ai-context/runbook.md (설치, 실행, 운영 절차)
 - 코드베이스 진입점 (main.py / index.ts / Cargo.toml / README 힌트 등)
 
+※ 위 `docs/ai-context/*` 도 **실재하는 것만** 로드 — 대상 프로젝트 스캐폴드 산출물이라 글로벌 하네스에는 부재가 정상(spec §13.4).
+
 README.md 생성 기준:
 - **독자**: 개발자가 아닌 일반 최종 사용자
 - **언어**: 전문 용어 최소화, 쉬운 문장

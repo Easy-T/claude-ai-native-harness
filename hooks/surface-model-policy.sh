@@ -80,7 +80,9 @@ if [ "$TOOL" = "Workflow" ]; then
       #   '*'=동적이라 상속 단언 불가(GPT [C]4). 제외목록 ①축은 seal #47 이 디스크와 ⊆ 대조한다.
       case "$SP_TYPE" in
         explore-strict|execute-strict|review-strict|'*') ;;
-        *) [ "$WF_TIER" = "4" ] && [ "$SP_MODEL" = "-" ] && C3_HIT=1 ;;
+        # ★C14 GPT 교차리뷰 정정: 명시 `model:'inherit'` 도 세션 상속이다(§13.3 표가 그렇게 규정).
+        # '-'(무선언)만 보면 `{agentType:'general-purpose', model:'inherit'}` 가 빠져나갔다.
+        *) [ "$WF_TIER" = "4" ] && { [ "$SP_MODEL" = "-" ] || [ "$SP_MODEL" = "inherit" ]; } && C3_HIT=1 ;;
       esac
     fi
   done <<EOF

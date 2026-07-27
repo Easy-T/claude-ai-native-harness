@@ -730,6 +730,10 @@ test_lib "201-ws-firstarg-arrow-body" \
 test_lib "202-ws-ternary-verifier" \
   "$(printf 'review-strict\topus\nreview-strict\thaiku')" \
   "$(printf "%s" "await agent('v', ok ? {agentType:'review-strict',model:'opus'} : {agentType:'review-strict',model:'haiku'})" | node "$WS")"
+# C14 (GPT 교차리뷰): 그룹핑 괄호로 감싼 삼항도 두 분기를 방출한다 — 괄호 하나로 마스킹이 부활하던 결함.
+test_lib "203-ws-grouped-ternary" \
+  "$(printf 'review-strict\topus\nreview-strict\thaiku')" \
+  "$(printf "%s" "agent('v', (ok ? {agentType:'review-strict',model:'opus'} : {agentType:'review-strict',model:'haiku'}))" | node "$WS")"
 # cycle-26 rank3: plan_status bold-only + 펜스 스킵 (prose 'Status: active' 게이트 오개방 봉인)
 PS_PROSE=$(mktemp "$SCRATCH/ps-XXXXXX.md"); printf '# Plan\nStatus: active\n\n**Status:** completed\n' > "$PS_PROSE"
 test_lib "136-planstatus-prose-skip" "completed" "$(bash -c 'source "$HOME/.claude/hooks/_common.sh"; plan_status "$1"' _ "$PS_PROSE")"
@@ -1175,6 +1179,10 @@ test_smp "34-rule-c3-builtin-nonfable-ok" 0 0 "$(mk_wf_event script "$WF_BUILTIN
 WF_TERNARY="export const meta = {name: 'x', description: 'x'}
 await agent('impl', heavy ? {agentType: 'execute-strict', model: 'opus'} : {agentType: 'execute-strict'})"
 test_smp "35-rule-c-ternary-masking-e2e" 0 1 "$(mk_wf_event script "$WF_TERNARY" "$SMP_FABLE_T" "smp35-$$")"
+# C14 (36, GPT 교차리뷰): 명시 `model:'inherit'` 도 세션 상속이므로 C3 대상 — '-'(무선언)만 보던 결함.
+WF_EXPL_INHERIT="export const meta = {name: 'x', description: 'x'}
+await agent('research', {agentType: 'general-purpose', model: 'inherit'})"
+test_smp "36-rule-c3-explicit-inherit" 0 1 "$(mk_wf_event script "$WF_EXPL_INHERIT" "$SMP_FABLE_T" "smp36-$$")"
 
 # ==================== Summary ====================
 echo
