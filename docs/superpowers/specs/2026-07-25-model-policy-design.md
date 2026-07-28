@@ -718,14 +718,20 @@ p3 **SILENT** · p4 ALERT · p5 **ALERT** · p6 ALERT · p7 SILENT(기지 잔여
 제외했다. 그러나 그 해석은 **한 축을 빠뜨렸다** — 상속 여부를 정하는 것은 *agentType의 명시 여부*가
 아니라 **그 agentType이 model을 선언하는가**다(§11.3 해소 우선순위: `opts.model > frontmatter > inherit`).
 
-실측 대조(2026-07-28):
+실측 대조(2026-07-28; **builtin 행은 C15가 2026-07-29 실측으로 교체** — §14.2, 종전 "구조 추론" 표기 해소):
 
 | agentType | frontmatter `model:` | opts.model 부재 시 실제 스폰 모델 | 역류? |
 |---|---|---|---|
 | `explore-strict` | `sonnet` (`agents/explore-strict.md:14`) | sonnet | **없음** |
-| `general-purpose` | **파일 자체 부재**(builtin) | **세션 상속** | **있음** |
+| `general-purpose` | **파일 자체 부재**(builtin) | **세션 상속** (p3 실측 + C15 probe 재확인: fable 세션 → `claude-fable-5[1m]`) | **있음** |
 | `execute-strict` | `inherit` | 세션 상속 | 있음(Rule C가 담당) |
 | `review-strict` | `inherit` | 세션 상속 | floor 판정(Rule C2) |
+| `claude` (builtin) | 파일 부재 | **세션 상속** (C15 실측: fable 세션 → `claude-fable-5[1m]`) | 있음 |
+| `Plan` (builtin) | 파일 부재 | **세션 상속** (C15 실측: 동일) | 있음 |
+| `Explore` (builtin) | 파일 부재 | **★opus 티어 — 상속 아님** (C15 실측: fable 세션에서 `claude-opus-5[1m]`, Workflow+Agent 2경로 일치) | **없음**(오히려 하향) |
+| `claude-code-guide` | 파일 부재(플러그인/빌트인) | **★haiku 티어 — 상속 아님** (C15 실측: `gpt-5.6-luna` = 이 머신 haiku 티어 라우팅) | 없음(하향) |
+
+※ C15 실측 방법·신뢰성 근거·바인딩의 버전 의존성(수용 잔여)은 §14.2.
 
 → **p2와 p3의 답은 다르다**(goal §2.2가 예견한 대로):
 - **p3 = REAL 미탐, 수용**. `general-purpose`는 `agents/` 파일이 없어 model을 선언할 곳 자체가 없다 →
@@ -946,3 +952,107 @@ GPT 발견 ~20건을 **원문 실측 대조**로 트리아지(GPT는 발견자�
 (주석 제거 또는 구문 앵커)에 걸어야 하고, 그 비-vacuity 는 "주석은 남기고 실효만 삭제"하는 뮤테이터로만
 증명된다. R1/R2 는 C14 가 *신설한* seal 에서 발견됐다 — 즉 seal 을 늘리는 사이클은 그 seal 자체의
 마스킹을 같은 사이클에서 검사해야 한다.
+
+## §14. C15 설계 결정 (in-place 개정, 2026-07-29 — Phase R 실측 + grill 확정)
+
+> C15 goal 원문 = `_goal/c15-contract-and-fitness-goal.md`(비추적). §13.13 이 명시 이월한 2건
+> (파서 동적-model 3값 축 · builtin 상속 실측)을 닫는 사이클. 아래는 goal 파일 없이도 재현
+> 가능하도록 실측·판정을 영구화한 것 — §11/§13 선례.
+
+### §14.1 ★C15-A 판정 — model 축 3값 확장: 동적 선언 기호 = `*` (agentType 축과 동형)
+
+**결함 (2026-07-29 실측 재현)**: `agent('p',{agentType:'general-purpose', model:chooseModel()})` 과
+`agent('p',{agentType:'general-purpose'})` 가 **둘 다 `general-purpose\t-`** 로 방출된다 — "선언 안 함"과
+"동적으로 선언함"이 같은 기호로 붕괴. 그 결과 Rule C3 가 동적 model 을 "**model 을 선언하지 않는**
+서브에이전트"라며 ALERT 한다 — 메시지 전제가 거짓(오탐). agentType 축은 같은 불확실성을 `*` 로 구분해
+C3 에서 **면제**하면서(§13.3 사유 ③ "상속 단언 불가"), model 축은 "부재"로 단정 — 비대칭(GPT [C]4 의
+이월 지적, §13.13).
+
+**채택 — 기호는 `*`**: agentType 축과 동일 기호·동일 의미(키 존재·값 비-리터럴)라 계약 독해가 한 규칙으로
+통일된다. `-`(키 부재)·리터럴과 충돌하지 않음. 구현 지점은 `workflow-spawns.js` 의 방출부 한 곳 —
+`parseProps` 가 이미 `undefined`(키 부재)와 `null`(키 존재·동적, `readValue` 판정)을 구분해 오므로
+`mo === undefined ? "-" : mo === null ? "*" : mo` 로 끝난다(파서 내부 로직 변경 없음 — 계약 방출만).
+
+**규칙별 면제 매트릭스 (전 소비자 전수 판정 — 2026-07-29 explore 전수조사)**:
+
+| 규칙 | 현행 (`-` 로 붕괴) | 3값 후 (`*`) | 근거 |
+|---|---|---|---|
+| Rule C (fable 실행자) | `-` → C_HIT (오탐: "model 지정 없이"가 거짓) | **면제** (`'*'` arm 신설) | 하향 미적용을 단언 불가 — agentType `*` 면제(§13.3 ③)와 동일 원리. advisory 오탐은 순수 안전이 아님(R6: dedup 마커 소비가 진짜 위반을 침묵시킴) |
+| Rule C3 (무선언 상속) | `-` → C3_HIT (오탐) | **자동 면제** (조건이 `-`/`inherit` 만 매치 — 코드 무변경) | 동적 선언은 "무선언"이 아님 — C3 판정 축(§13.3 "model 선언의 존재") 그대로 |
+| Rule C2 (검증자 floor) | `-` → 세션 티어로 평가 | **면제** (`'*'` arm 신설; 방치 시 `tier_of("*")=0` 으로 떨어져 "0 티어 평가"로 의미 변질 — explore 조사 지적) | floor 미달을 단언 불가. §12.6 "상속=세션 평가"는 *무지정*에 대한 규정이지 동적 선언에 대한 규정이 아님 |
+| WORKER_TIER 산정 | `tier_of("-")=0` | `tier_of("*")=0` — **수치 불변** | 동적 실행자는 floor 를 올리지 못함(알 수 없음) — 현행과 동일한 보수 방향 |
+
+**소비자 전수 (계약 변경 동반 갱신 — goal §5-3)**: ①`workflow-spawns.js` 방출부+헤더 계약 서술(:6·:24-25)
+②`surface-model-policy.sh` Rule C/C2 case arm(C3 는 무변경) ③`run-all.sh` 계약 주석(:664)+픽스처 186
+기대값 `-`→`*` ④`docs/ai-context/model-policy.md:35` L2 계약 서술 ⑤이 spec(§13.7 포인터는 역사 기록
+유지, 본 §14.1 이 현행). **소비자 아님(실측 확정)**: README(기호 서술 없음)·seal #45~#48(기호 의미
+비앵커 — 파일명 매니페스트·case arm 존재 앵커뿐)·opencode-harness(`git grep spawns` 0건 — `git ls-files`
+교차 확인, 미러 파서 부재)·완결 plan 2건(genesis-record).
+
+**잔여 (정직 공개)**: ①리터럴 `model:'*'`/`model:'-'` 는 동적/부재와 구분 불가 — agentType 축의 기존
+잔여와 동형(기호 충돌 클래스; 실사용 모델명이 아니라 수용) ②변수 opts(`agent('p', OPTS)`)는 여전히
+`?`/`-`(파서 헤더 기지 한계 — OPTS 안의 model 은 관측 불가) ③상호배타 삼항 분기의 동시-스폰 취급
+(§13.13 수용 잔여) 불변.
+
+### §14.2 ★C15-B — builtin agentType 상속 실측 (§13.3 표의 "구조 추론" 행 교체)
+
+**방법 (2026-07-29, fable 세션 = claude-fable-5[1m], CC 2.1.x, CLIProxy 라우팅 환경)**:
+각 agentType 을 **model 무선언**으로 스폰해(상속 기본값이 측정 대상) 시스템 프롬프트의 모델 문장을
+**verbatim 인용**하게 함 — "자기지식으로 추측 금지, 문면 인용만" + 도구 사용 금지. 2경로 교차:
+Workflow `agent()`(6종 병렬) + Agent 도구(`Explore` 재현). **방법 신뢰성 근거(대조군 2중)**:
+①`explore-strict`(frontmatter `model: sonnet` = 디스크 ground truth) → "Sonnet 5 / claude-sonnet-5[1m]"
+정확 일치 ②`general-purpose` → fable 상속 = §13.2 p3 선행 실측과 일치.
+
+| agentType | 관측 모델 | 판정 |
+|---|---|---|
+| `claude` | claude-fable-5[1m] (=세션) | **세션 상속 — 실측 확정** (종전 추론과 일치) |
+| `general-purpose` | claude-fable-5[1m] (=세션) | 세션 상속 — p3 재확인 |
+| `Plan` | claude-fable-5[1m] (=세션) | **세션 상속 — 실측 확정** (종전 추론과 일치) |
+| `Explore` | **claude-opus-5[1m] (≠세션)** | **★비-상속 — 추론이 틀렸다.** CC 가 자체 모델 바인딩 보유(Workflow·Agent 2경로 일치) |
+| `claude-code-guide` | **gpt-5.6-luna (≠세션)** | **★비-상속** — haiku 티어 바인딩(이 머신 CLIProxy 라우팅에서 haiku→luna). agents/*.md 부재인데도 하위 티어로 돔 |
+| `explore-strict` (대조군) | claude-sonnet-5[1m] | frontmatter sonnet — 방법 검증용 |
+
+**교훈**: "`agents/*.md` 파일 부재 → frontmatter 없음 → 세션 상속"이라는 §13.3 의 구조 추론은
+**builtin 2종(Explore·claude-code-guide)에서 틀렸다** — CC 바이너리가 파일시스템 밖에서 자체 바인딩을
+가질 수 있다. 실측 없는 구조 추론을 정책 표에 올리면 안 되는 실증(§13.1 "확인 없이 승격" 계열).
+
+**Rule C3 함의 — 제외목록은 불변, 메시지만 hedge (설계 판정)**: 실측상 `Explore`/`claude-code-guide`
+스폰은 역류가 없으므로 C3 ALERT 의 "세션 모델을 상속" 전제가 이 CC 버전에선 거짓(오탐 클래스).
+그러나 제외목록에 추가하지 **않는다** — 목록의 채택 사유(§13.3)는 정적·디스크-유도 사실(①frontmatter)
+·규칙 분담(②)·논리 필연(③)인데, 이 바인딩은 **CC 버전-의존 경험 사실**이라 바이너리 업그레이드로
+조용히 뒤집힐 수 있고, 그때 제외는 미탐이 된다(advisory 오탐 < 침묵 미탐). 대신 C3 메시지에
+"일부 builtin 은 CC 자체 바인딩으로 하위 티어에 돌 수 있음(spec §14.2 실측)" hedge 1줄을 넣어 전제
+과잉단정을 제거한다. **바인딩의 버전 의존성 = 수용 잔여**(재실측 트리거: CC 메이저 업그레이드).
+
+### §14.3 ★C15-E 판정 — 재개(resume)는 **신설 마커 없이 기존 자산 + SessionStart 1줄 주입으로 채택**
+
+**요구(사용자, C14 중단 2회 이월)**: 예기치 못한 중단 후 다음 세션이 작업을 이어받는 hook.
+
+**판정 = 채택(경량) — 세 질문에 대한 근거**:
+1. **어떤 이벤트가 재개 신호를 잡는가 → SessionStart, 실런타임 증거 확보**: ①이 세션 자체가
+   superpowers 플러그인의 SessionStart 컨텍스트 블록("SessionStart hook additional context")을 수신 —
+   SessionStart stdout→모델 컨텍스트 채널이 **이 머신·이 CC 버전에서 실제 작동함을 라이브 관측**
+   (합성 stdin 아님 — cycle-40 교훈 충족). ②반면 `session-start-audit.sh` 의 기존 `[plan] active plan: N`
+   줄은 **stderr** 라 사용자에게만 보이고 모델 컨텍스트에 없음(이 세션 컨텍스트에 그 줄 부재로 실측) —
+   즉 "재개 신호가 이미 있는데 모델에 도달하지 않는 것"이 현행 갭의 정체다. ③SessionStart cwd =
+   CLI 실행 디렉터리(cycle-40 확정) = plan 이 사는 프로젝트 루트 — 이 용도에는 정확히 맞는 필드.
+2. **작업 상태의 표현 → 기존 자산으로 충분, 신설 없음**: active plan(Status 헤더) + 미체크 체크박스가
+   이미 "중단된 작업"의 완전한 표현이다(RPI 게이트가 이미 이것에 의존). 별도 재개 마커는 이중 장부 —
+   plan 과 어긋나는 순간 거짓 재개 신호가 된다. **기각**.
+3. **위험한 재개의 배제 → 자동 재실행이 없으므로 구조적으로 배제**: 주입되는 것은 "active plan 이 있다,
+   열어서 재개 여부를 판단하라"는 **권고 1줄**뿐이다. 파괴적 연산 재시도 여부는 plan 을 읽은 모델·사용자
+   판단에 남는다(자동 재개 아님). fail-open: 기존 hook 의 advisory 불변식 그대로(실패 시 무출력·exit 0).
+
+**구현(선택 요건이나 채택 — ~10줄)**: `session-start-audit.sh` 의 기존 active-plan 카운트 블록에서
+active ≥1 이면 **stdout** 으로 `[resume]` 1줄(plan 파일명 + 미체크 박스 수 + "이전 세션 중단 작업일 수
+있음 — plan 을 열어 재개 여부 판단") 방출. SessionStart 는 stdout 이 컨텍스트로 주입되는 문서화된
+채널이고 위 ①이 라이브 실증. 픽스처: stdout 내용 단언(active plan 존재 시 `[resume]` 존재, 부재 시 부재).
+※ stderr 줄은 사용자용으로 유지(이중 채널 — 목적이 다름).
+
+### §14.4 C15-C — fable+ultracode 라이브 fitness 관측 프레임 (결과는 Closeout 이 기록)
+
+관측 프로토콜: runlog 오프셋(사이클 시작 시 6881줄) 이후의 `surface-model-policy` ALERT 레코드 +
+합성 재생(주입 이벤트 재현) 대조. **Phase R 관측(중간 기록)**: C15-B probe Workflow(동적 agentType
+`agentType: t` → `*`)에 hook SILENT — 재생으로 재현(SILENT), 리터럴 `general-purpose` control 은
+ALERT — 즉 무발화는 미탐이 아니라 `*` 면제 설계의 정상 작동이고, 판정 경로 생존은 control 이 증명.
+canonical carrier(`workflows/rpi-implement.js`) 사용 여부·Rule A/C/C2/C3 발화 대차는 Closeout 표로.

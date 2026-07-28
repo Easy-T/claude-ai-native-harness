@@ -98,8 +98,16 @@ _Avoid_: "검증자 하향 금지"(무엇 대비 하향인지 불명 — 이 모
 _Avoid_: "ai-context 파일 누락"(부재가 사고라는 함의 — 아키텍처 경계다), "ai-context는 프로젝트 전용"(디렉터리 전체로 과잉 일반화 — Gate R이 반증한 초안 오류).
 
 ### 모델-무선언 스폰 (model-undeclared spawn)
-Workflow `agent()` 스폰 중 `opts.model`이 없고 **그 agentType의 frontmatter도 model을 선언하지 않는** 것 — 세션 모델을 상속하므로 fable 세션에서 역류한다. 판정 축은 *agentType의 명시 여부*가 아니라 **model 선언의 존재**다(spec §13.3): `explore-strict`는 agentType 명시이나 frontmatter `model: sonnet`이라 역류 없음 / `general-purpose`는 `agents/` 파일 자체가 없어 선언할 곳이 없으므로 역류. Rule C3의 대상 축.
-_Avoid_: "agentType-less 스폰"(C13의 좁은 독법 — 키 부재만 포함해 builtin 리터럴을 놓친다), "미지정 스폰"(무엇이 미지정인지 불명).
+Workflow `agent()` 스폰 중 `opts.model`이 없고 **그 agentType의 frontmatter도 model을 선언하지 않는** 것 — 세션 모델을 상속하므로 fable 세션에서 역류한다. 판정 축은 *agentType의 명시 여부*가 아니라 **model 선언의 존재**다(spec §13.3): `explore-strict`는 agentType 명시이나 frontmatter `model: sonnet`이라 역류 없음 / `general-purpose`는 `agents/` 파일 자체가 없어 선언할 곳이 없으므로 역류. Rule C3의 대상 축. **[[동적-model 스폰]]은 무선언이 아니다**(C15 — 선언은 있고 값만 런타임 결정; 파서 기호 `*`).
+_Avoid_: "agentType-less 스폰"(C13의 좁은 독법 — 키 부재만 포함해 builtin 리터럴을 놓친다), "미지정 스폰"(무엇이 미지정인지 불명), "동적 model = 무선언"(C15 이전 계약의 붕괴 — 오탐의 원인).
+
+### 동적-model 스폰 (dynamic-model spawn)
+Workflow `agent()` 스폰 중 `model` 키는 존재하나 값이 단일 문자열 리터럴이 아닌 것(`model: chooseModel()`, `model: M`, 삼항 등). 파서 계약 기호 `*`(C15 3값 확장 — 리터럴/`-`=키 부재/`*`=동적). 정적으로 값을 알 수 없으므로 Rule C/C2/C3 전부 **면제** — agentType `*` 면제(§13.3 ③ "단언 불가")와 동일 원리. 면제는 "안전 인증"이 아니라 "판정 불가의 정직 표기"다 — L1 규범은 여전히 적용된다.
+_Avoid_: "무선언 취급"(C15 이전 안전-방향 붕괴 — Rule C3 오탐을 만든 독법), "미선언"(선언은 존재한다).
+
+### builtin 자체 바인딩 (builtin self-binding)
+`agents/*.md` frontmatter 없이 CC 바이너리가 자체적으로 모델을 정하는 builtin agentType의 성질 — C15 실측: `Explore`=opus 티어·`claude-code-guide`=haiku 티어(≠세션 상속). "파일 부재 → 세션 상속" 구조 추론을 반증한 클래스(spec §14.2). CC 버전-의존 경험 사실이라 정책 계층(제외목록)에 넣지 않는다 — 업그레이드로 조용히 뒤집히면 미탐이 되므로.
+_Avoid_: "builtin 상속"(2종은 상속하지 않는다 — 과잉 일반화), "builtin frontmatter"(파일이 없다).
 
 ### 재현 픽스처 동반 (fixture-paired registration)
 non-obvious 등록 항목이 **재현 픽스처 경로를 필수 필드로** 갖는 규약(GAP-012). 등록만 있고 재현자가 없으면 다음 사이클이 같은 가정을 반복한다 — C13이 "goal은 없을 것"을 확인 없이 승격한 실패(spec §13.1)가 그 실증. 픽스처는 "테스트 통과"가 아니라 **요구 충족**을 겨눈다.
