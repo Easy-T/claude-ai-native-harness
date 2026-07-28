@@ -22,7 +22,6 @@
   cat <대상문서> | codex exec \
     -m gpt-5.6-sol \
     -c model_reasoning_effort=ultra \
-    -c service_tier="priority" \
     -c model_verbosity=high \
     --sandbox read-only --skip-git-repo-check \
     -o "$REVIEW_OUT" \
@@ -33,7 +32,7 @@
 - **플래그별 근거 (전부 2026-07-27 라이브 실측 — 조합 완주 확인, 14,854 토큰)**:
   · `-m gpt-5.6-sol` — **사용자 확정(2026-07-27): codex GPT는 앞으로도 최상위 sol 고정**(codex 토큰 여유). 이 고정이 아래 `ultra`/`max` 계열의 모델별 비호환 리스크를 소멸시키는 전제다. **sol 이외 슬롯으로 바꾸려면 이 절 전체 재검증 필수**(luna=ultra 침묵 강등·5.5/5.4=max/ultra 400).
   · `model_reasoning_effort=ultra` — 카탈로그 최상위(sol/terra 전용). 실측 기전: wire는 `reasoning.effort="max"` + developer 메시지가 `<multi_agent_mode>Proactive multi-agent delegation is active…`로 교체 = **max + 자동 위임 스위치**. 서버 enum(`…xhigh,max`)엔 없는 클라이언트 티어라 `-m` 고정이 전제.
-  · `service_tier="priority"` — codex TUI `/fast`의 비대화형 등가물(카탈로그 `{"id":"priority","name":"Fast","description":"1.5x speed, increased usage"}`). wire에 `"service_tier":"priority"` 실제 전송 확인. **속도·quota 축이지 품질 축이 아님**(정직 표기).
+  · ~~`service_tier="priority"`~~ — **철회(2026-07-28, 사용자 실측 판정)**. codex TUI `/fast`의 비대화형 등가물(카탈로그 `{"id":"priority","name":"Fast","description":"1.5x speed, increased usage"}`)로 wire 전송은 확인됐으나, **1.5배 속도에 토큰 소비 2.5배 초과**가 실사용에서 관측됐다. 카탈로그 문구 자체가 "increased usage"라고 명시하며 이는 **속도·quota 축이지 품질 축이 아니다** — 리뷰 품질 레버는 `ultra`(추론)와 `verbosity=high`(분량)이고, 이 둘은 유지한다. 속도를 위해 quota를 2.5배 태우는 것은 사이클당 1회 상한과 상충하므로 **기본 커맨드에서 제외**한다. (되살리려면 이 줄과 위 커맨드에 `-c service_tier="priority"` 를 함께 복원 — 단 소비 배수를 재실측할 것.)
   · `model_verbosity=high` — sol 기본이 `low`라 산출이 절반 이하로 잘리고 있었다. A/B 실측: 동일 프롬프트·effort·stdin에서 low 9,669B → high 25,022B(**2.6배**). 리뷰 분량의 실질 레버.
   · `-o "$REVIEW_OUT"` — 최종 메시지를 파일에 verbatim 기록(C12의 tail 절단 사고 재발 방지). **소비 전 3중 단언 필수**(아래 항목).
 - **★`-o` 소비 규율 (실측된 3개 실패 모드)**: ①API 실패 시 파일 미생성인데 **직전 파일이 그대로 남아** 이전 사이클 리뷰를 새 리뷰로 오독 ②쓰기 실패가 stderr 1줄 + **exit 0**(침묵 손실) ③리뷰어가 발견을 여러 메시지로 쪼개면 **마지막 메시지만** 기록. → 호출 전 `rm -f "$REVIEW_OUT"`, 호출 후 `[ -s "$REVIEW_OUT" ]` 단언, **stdout도 함께 보존**(다중 메시지 대비 — stdout이 상위 진실).
@@ -42,7 +41,7 @@
 - 경로 A는 반드시 **`--sandbox read-only`**(리뷰어에게 쓰기 권한 불필요 — 최소 권한, Rule-of-Two reader 원칙 동형) + 신뢰 디렉터리 밖은 `--skip-git-repo-check`.
 - **프롬프트 형태**: refute-by-default(칭찬 금지·결함만) · 검사 범주 명시 · **원문 인용 강제**("§번호+정확한 인용 없으면 무효") · 범주에 결함 없으면 "none found" 명시 요구 · 신규 기능/스타일 제안 금지.
 - **★메인 세션 트리아지 필수**: 타 패밀리 발견은 그대로 편입 금지 — 발견마다 원문 실측 대조 후 REAL/기각 판정(첫 실행 14건 중 4건이 스코프 오독). 편입 기준은 Claude 발견과 동일(인용+실측). **GPT는 추가 발견자이지 판정자가 아니다.**
-- **빈도 상한: 사이클당 1회**(quota 소비 — 다만 2026-07-27 사용자 확정으로 codex 토큰 여유가 전제되어 sol+ultra+priority 조합을 상한 내에서 최대로 쓴다. Claude 일상 위임에 luna를 남발하지 않는 규칙은 유지 — 그건 별개 슬롯 얘기).
+- **빈도 상한: 사이클당 1회**(quota 소비 — 2026-07-27 사용자 확정으로 codex 토큰 여유가 전제되어 **sol+ultra+verbosity high** 조합을 상한 내에서 최대로 쓴다. `priority`(fast)는 2026-07-28 철회 — 속도 1.5배에 소비 2.5배 초과 실측. Claude 일상 위임에 luna를 남발하지 않는 규칙은 유지 — 그건 별개 슬롯 얘기).
 - **호출 지점 = 고-스테이크만**: closeout senior review·루브릭 재채점·적대 리뷰. 일상 검증(verify-setup·run-all)은 모델 무관 bash라 대상 아님.
 - **컨텍스트 무공유가 원칙**: 리뷰 대상 문서만 stdin으로 전달 — 세션 컨텍스트·작업 이력 이관 금지(fresh-context 독립성이 이 규약의 존재 이유; §3 참조).
 
