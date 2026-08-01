@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # surface-model-policy.sh — advisory PreToolUse hook (Agent|Workflow 매처; tri-model C11+C12, spec 2026-07-25 §5·§10).
 # 역할×모델 매트릭스(docs/ai-context/model-policy.md)의 L2: Rule A(fable 세션 실행자 하향 미적용)·
-# Rule B(검증자가 기준선 max(세션,작업자) 미만, 전 세션)·Rule C/C2/C3(Workflow 스크립트 경로 — C12·C13)를 additionalContext 로 환기.
+# Rule B(검증자가 기준선 max(세션,작업자) 미만, 전 세션)·Rule C/C3(Workflow 스크립트 경로 — C12·C13)·
+# Rule C2(Workflow 검증자가 작업자 티어 미만 — 임무-분리 floor, spec §15.1)를 additionalContext 로 환기.
 # 차단하지 않는다(항상 exit 0, fail-open — ERR trap 이 내부 실패도 exit 0 으로 흡수).
 # 세션 모델은 hook stdin 에 없어 transcript 의 assistant 라인 message.model 로 판별(실측 shape).
 # 라인 내 첫 매치만 취해 content 의 모델 id 인용에 면역(assistant JSON 은 model 이 content 앞).
@@ -56,12 +57,15 @@ if [ "$TOOL" = "Workflow" ]; then
   SPAWNS=$(printf '%s' "$WF_TEXT" | node "$HOME/.claude/hooks/lib/workflow-spawns.js" 2>/dev/null)
   [ -n "$SPAWNS" ] || exit 0
 
-  # 1패스: 위반 수집. WORKER_TIER = 실행자 최고 티어(검증자 floor 산정용 — spec §12.1).
-  C_HIT=0; C3_HIT=0; C2_HIT=""; WORKER_TIER="$WF_TIER"
+  # 1패스: 위반 수집. WORKER_TIER = 실행자 최고 티어의 순수 관측(0=실행자 부재 — 검증자 floor 산정용, spec §15.1).
+  C_HIT=0; C3_HIT=0; C2_HIT=""; WORKER_TIER=0
   while IFS="$(printf '\t')" read -r SP_TYPE SP_MODEL; do
     [ -n "$SP_TYPE" ] || continue
     if [ "$SP_TYPE" = "execute-strict" ]; then
-      SP_T=$(tier_of "$SP_MODEL")
+      case "$SP_MODEL" in
+        -|inherit|'*') SP_T="$WF_TIER" ;;   # C16 S1/S2: 상속=세션 평가(검증자와 동일 규칙)·동적=세션 상계(보수)
+        *)             SP_T=$(tier_of "$SP_MODEL") ;;
+      esac
       [ "$SP_T" -gt "$WORKER_TIER" ] 2>/dev/null && WORKER_TIER="$SP_T"
       # Rule C: fable 세션의 실행자가 무선언(-) 또는 inherit/fable 명시 = 하향 미적용
       if [ "$WF_TIER" = "4" ]; then
@@ -76,7 +80,8 @@ if [ "$TOOL" = "Workflow" ]; then
       # 판정 축은 agentType 의 명시 여부가 아니라 model 선언의 존재다 —
       #   ① '?'(agentType 키 부재)는 §11.3 실측대로 상속
       #   ② 리터럴 agentType 중 frontmatter 에 model 을 선언하지 않는 것(builtin general-purpose/Explore/
-      #      Plan 등 — agents/*.md 파일 자체가 없다)도 동일하게 상속한다.
+      #      Plan 등 — agents/*.md 파일 자체가 없다)도 **통상** 상속한다(예외: 일부 builtin 은 CC 자체
+      #      바인딩 — Explore=opus·claude-code-guide=haiku, spec §14.2 실측).
       # 제외(3 사유): explore-strict=frontmatter model 선언 보유 / execute·review-strict=Rule C·C2 전담 /
       #   '*'=동적이라 상속 단언 불가(GPT [C]4). 제외목록 ①축은 seal #47 이 디스크와 ⊆ 대조한다.
       case "$SP_TYPE" in
@@ -90,10 +95,11 @@ if [ "$TOOL" = "Workflow" ]; then
 $SPAWNS
 EOF
 
-  # 2패스: 검증자 floor = max(세션, 작업자) — spec §12.1.
-  # 무지정('-')·inherit 는 **세션 티어로 평가**한다(폐기 아님). 실행자를 세션 위로 상향한 스크립트에서
-  # 상속 검증자는 floor 미달이며, 그 미달이야말로 §12.1 표가 "위반"으로 정의한 칸이다 — GPT [C]1/[C]3/[D]1/[D]2 REAL.
-  # 기타 모델(tier 0)도 면제하지 않는다 — "기타=0" 은 tier 계약이지 판정 면제가 아니다 (GPT [C]2 REAL).
+  # 2패스: 검증자 floor — 임무-분리 (C16 spec §15.1, C13 §12.1 supersede).
+  # Workflow 경로(준수-확인 임무) floor = **작업자 티어** (실행자 부재/전량-동적 스크립트는 세션 티어 폴백 — 보수 유지).
+  # 무지정('-')·inherit 는 **세션 티어로 평가**한다(C13 Closeout 정정 불변 — 폐기 아님).
+  # 하한 불변식: 검증자 < 작업자 는 어떤 임무에서도 위반(goal §5-12). 판단-게이트(Agent 경로 Rule B)는 max(세션,작업자) 유지.
+  FLOOR_TIER="$WORKER_TIER"; [ "$FLOOR_TIER" -gt 0 ] 2>/dev/null || FLOOR_TIER="$WF_TIER"
   while IFS="$(printf '\t')" read -r SP_TYPE SP_MODEL; do
     [ "$SP_TYPE" = "review-strict" ] || continue
     case "$SP_MODEL" in
@@ -101,7 +107,7 @@ EOF
       -|inherit) SP_T="$WF_TIER"; SP_LABEL="상속(세션=$WF_SESSION_MODEL)" ;;
       *)         SP_T=$(tier_of "$SP_MODEL"); SP_LABEL="$SP_MODEL" ;;
     esac
-    [ "$SP_T" -lt "$WORKER_TIER" ] 2>/dev/null && C2_HIT="$SP_LABEL"
+    [ "$SP_T" -lt "$FLOOR_TIER" ] 2>/dev/null && C2_HIT="$SP_LABEL"
   done <<EOF
 $SPAWNS
 EOF
@@ -129,7 +135,7 @@ EOF
   fi
   if [ -n "$C2_HIT" ] && fire_once model-policy-c2; then
     hook_log "surface-model-policy" "workflow:review-strict:$C2_HIT" "ALERT" "rule-c2-workflow-verifier-downshift"
-    add_msg "[model-policy] Workflow 스크립트의 검증자(review-strict)가 기준선 미만입니다(관측='$C2_HIT', 필요 티어=$WORKER_TIER). 기준선은 max(세션 티어, 작업자 티어)입니다(spec §12.1) — **실행자를 세션 위로 상향했다면 model 을 지우는 것(상속)만으로는 해소되지 않습니다**(상속 = 세션 티어). 실행자 티어 이상을 명시하거나 실행자 상향을 되돌리십시오. 의도 하향이면 DOWNGRADE-DECLARED(사유) 선언이 필요합니다. (advisory · 1세션 1회 · 차단 아님)"
+    add_msg "[model-policy] Workflow 스크립트의 검증자(review-strict)가 기준선 미만입니다(관측='$C2_HIT', 필요 티어=$FLOOR_TIER). 기준선은 작업자 티어(실행자 부재 시 세션 티어)입니다(spec §15.1 임무-분리 — Agent 경로 게이트는 max(세션,작업자) 유지) — **실행자를 세션 위로 상향했다면 model 을 지우는 것(상속)만으로는 해소되지 않습니다**(상속 = 세션 티어). 실행자 티어 이상을 명시하거나 실행자 상향을 되돌리십시오. 의도 하향이면 DOWNGRADE-DECLARED(사유) 선언이 필요합니다. (advisory · 1세션 1회 · 차단 아님)"
   fi
   [ -n "$MSGS" ] && emit_additional_context "$MSGS"
   exit 0

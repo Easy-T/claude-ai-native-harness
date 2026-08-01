@@ -1063,6 +1063,8 @@ SMP_FABLE_T=$(mktemp "$SCRATCH/smp-fable-XXXXXX.jsonl")
 printf '{"type":"assistant","message":{"model":"claude-fable-5","content":[]}}\n' > "$SMP_FABLE_T"
 SMP_SONNET_T=$(mktemp "$SCRATCH/smp-sonnet-XXXXXX.jsonl")
 printf '{"type":"assistant","message":{"model":"claude-sonnet-5","content":[]}}\n' > "$SMP_SONNET_T"
+SMP_OPUS_T=$(mktemp "$SCRATCH/smp-opus-XXXXXX.jsonl")
+printf '{"type":"assistant","message":{"model":"claude-opus-5","content":[]}}\n' > "$SMP_OPUS_T"
 SMP_QUOTE_T=$(mktemp "$SCRATCH/smp-quote-XXXXXX.jsonl")
 printf '{"type":"assistant","message":{"model":"claude-fable-5","content":[{"type":"text","text":"claude-opus-5[1m] 언급 텍스트"}]}}\n' > "$SMP_QUOTE_T"
 
@@ -1237,6 +1239,19 @@ test_smp "38-rule-c2-dynamic-model-exempt" 0 0 "$(mk_wf_event script "$WF_DYN_RE
 WF_DYN_FANOUT="export const meta = {name: 'x', description: 'x'}
 await agent('research', {agentType: 'general-purpose', model: modelFor(i)})"
 test_smp "39-rule-c3-dynamic-model-exempt" 0 0 "$(mk_wf_event script "$WF_DYN_FANOUT" "$SMP_FABLE_T" "smp39-$$")"
+# C16 §15.1: floor 임무-분리 — Workflow(준수-확인) floor = 작업자 티어. 검증자==작업자면 세션이 위여도 무발화.
+WF_WORKER_FLOOR="await agent('impl', {agentType: 'execute-strict', model: 'opus'})
+await agent('v', {agentType: 'review-strict', model: 'opus'})"
+test_smp "41-rule-c2-worker-floor-ok" 0 0 "$(mk_wf_event script "$WF_WORKER_FLOOR" "$SMP_FABLE_T" "smp41-$$")"
+WF_WORKER_FLOOR_S="await agent('impl', {agentType: 'execute-strict', model: 'sonnet'})
+await agent('v', {agentType: 'review-strict', model: 'sonnet'})"
+test_smp "42-rule-c2-worker-floor-sonnet" 0 0 "$(mk_wf_event script "$WF_WORKER_FLOOR_S" "$SMP_FABLE_T" "smp42-$$")"
+# C16 슬롯1 S1/S2: 상속·동적 실행자는 세션 티어로 평가 — 하위 리터럴 실행자가 floor 를 끌어내리지 못함.
+# opus 세션 사용 — fable 세션이면 Rule C(무선언 실행자)가 함께 발화해 C2 회귀를 가린다(판정 격리).
+WF_MIXED_EXEC="await agent('a', {agentType: 'execute-strict'})
+await agent('b', {agentType: 'execute-strict', model: 'sonnet'})
+await agent('v', {agentType: 'review-strict', model: 'sonnet'})"
+test_smp "43-rule-c2-mixed-inherit-exec" 0 1 "$(mk_wf_event script "$WF_MIXED_EXEC" "$SMP_OPUS_T" "smp43-$$")"
 # C15 GPT 정정(X8): C3 hedge 내용 봉인 — additionalContext 존재만 보던 픽스처는 hedge 원복을 못 잡는다
 test_smp_hedge() {
   TOTAL=$((TOTAL+1))

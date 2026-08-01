@@ -31,8 +31,8 @@ session-start-audit	04-31-days-ago	0	gen_ssa_31
 session-start-audit	05-bad-format	0	gen_ssa_bad
 session-start-audit	06-multiple-markers	0	gen_ssa_multi
 session-start-audit	07-future-date	0	gen_ssa_future
-session-start-audit	08-resume-active-plan	output	gen_ssa_resume
-session-start-audit	09-resume-no-active	output	gen_ssa_resume
+session-start-audit	08-resume-active-plan	output	test_ssa_resume
+session-start-audit	09-resume-no-active	output	test_ssa_resume
 session-start-audit	10-resume-compact-suppressed	output	test_ssa_resume
 # Patch A (2026-05-29) — side-door + whitelist hardening regression cases
 enforce-rpi-cycle	20-docs-py-block	2	gen_erc_docs_py
@@ -276,3 +276,6 @@ surface-model-policy	37-rule-c-dynamic-model-exempt	0	mk_wf_event
 surface-model-policy	38-rule-c2-dynamic-model-exempt	0	mk_wf_event
 surface-model-policy	39-rule-c3-dynamic-model-exempt	0	mk_wf_event
 surface-model-policy	40-c3-hedge-content	0	test_smp_hedge
+surface-model-policy	41-rule-c2-worker-floor-ok	0	mk_wf_event
+surface-model-policy	42-rule-c2-worker-floor-sonnet	0	mk_wf_event
+surface-model-policy	43-rule-c2-mixed-inherit-exec	0	mk_wf_event
