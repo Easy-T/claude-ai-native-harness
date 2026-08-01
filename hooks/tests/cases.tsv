@@ -33,6 +33,7 @@ session-start-audit	06-multiple-markers	0	gen_ssa_multi
 session-start-audit	07-future-date	0	gen_ssa_future
 session-start-audit	08-resume-active-plan	output	gen_ssa_resume
 session-start-audit	09-resume-no-active	output	gen_ssa_resume
+session-start-audit	10-resume-compact-suppressed	output	test_ssa_resume
 # Patch A (2026-05-29) — side-door + whitelist hardening regression cases
 enforce-rpi-cycle	20-docs-py-block	2	gen_erc_docs_py
 enforce-rpi-cycle	21-claude-sh-block	2	gen_erc_claude_sh
@@ -255,6 +256,12 @@ hooks-lib	202-ws-ternary-verifier	0	test_lib
 hooks-lib	203-ws-grouped-ternary	0	test_lib
 hooks-lib	204-ws-dynamic-model-call	0	test_lib
 hooks-lib	205-ws-dynamic-model-vs-absent	0	test_lib
+hooks-lib	206-ws-shorthand-model	0	test_lib
+hooks-lib	207-ws-shorthand-dup-lww	0	test_lib
+hooks-lib	208-ws-unicode-ident-key	0	test_lib
+hooks-lib	209-ws-computed-key-prefix	0	test_lib
+hooks-lib	210-ws-tmpl-prop-before	0	test_lib
+hooks-lib	211-ws-grouped-literal-model	0	test_lib
 surface-model-policy	27-rule-c2-inherit-below-floor	0	mk_wf_event
 surface-model-policy	28-rule-c2-tier0-not-exempt	0	mk_wf_event
 surface-model-policy	29-rule-c2-inherit-above-floor	0	mk_wf_event
@@ -268,3 +275,4 @@ surface-model-policy	36-rule-c3-explicit-inherit	0	mk_wf_event
 surface-model-policy	37-rule-c-dynamic-model-exempt	0	mk_wf_event
 surface-model-policy	38-rule-c2-dynamic-model-exempt	0	mk_wf_event
 surface-model-policy	39-rule-c3-dynamic-model-exempt	0	mk_wf_event
+surface-model-policy	40-c3-hedge-content	0	test_smp_hedge

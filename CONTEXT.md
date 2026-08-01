@@ -98,7 +98,7 @@ _Avoid_: "검증자 하향 금지"(무엇 대비 하향인지 불명 — 이 모
 _Avoid_: "ai-context 파일 누락"(부재가 사고라는 함의 — 아키텍처 경계다), "ai-context는 프로젝트 전용"(디렉터리 전체로 과잉 일반화 — Gate R이 반증한 초안 오류).
 
 ### 모델-무선언 스폰 (model-undeclared spawn)
-Workflow `agent()` 스폰 중 `opts.model`이 없고 **그 agentType의 frontmatter도 model을 선언하지 않는** 것 — 세션 모델을 상속하므로 fable 세션에서 역류한다. 판정 축은 *agentType의 명시 여부*가 아니라 **model 선언의 존재**다(spec §13.3): `explore-strict`는 agentType 명시이나 frontmatter `model: sonnet`이라 역류 없음 / `general-purpose`는 `agents/` 파일 자체가 없어 선언할 곳이 없으므로 역류. Rule C3의 대상 축. **[[동적-model 스폰]]은 무선언이 아니다**(C15 — 선언은 있고 값만 런타임 결정; 파서 기호 `*`).
+Workflow `agent()` 스폰 중 `opts.model`이 없고 **그 agentType의 frontmatter도 model을 선언하지 않는** 것 — **통상** 세션 모델을 상속하므로 fable 세션에서 역류한다(예외: [[builtin 자체 바인딩]] 2종 — Explore·claude-code-guide 는 비상속, spec §14.2). 판정 축은 *agentType의 명시 여부*가 아니라 **model 선언의 존재**다(spec §13.3): `explore-strict`는 agentType 명시이나 frontmatter `model: sonnet`이라 역류 없음 / `general-purpose`는 `agents/` 파일 자체가 없어 선언할 곳이 없으므로 역류. Rule C3의 대상 축. **[[동적-model 스폰]]은 무선언이 아니다**(C15 — 선언은 있고 값만 런타임 결정; 파서 기호 `*`).
 _Avoid_: "agentType-less 스폰"(C13의 좁은 독법 — 키 부재만 포함해 builtin 리터럴을 놓친다), "미지정 스폰"(무엇이 미지정인지 불명), "동적 model = 무선언"(C15 이전 계약의 붕괴 — 오탐의 원인).
 
 ### 동적-model 스폰 (dynamic-model spawn)

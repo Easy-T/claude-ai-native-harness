@@ -1049,10 +1049,87 @@ active ≥1 이면 **stdout** 으로 `[resume]` 1줄(plan 파일명 + 미체크 
 채널이고 위 ①이 라이브 실증. 픽스처: stdout 내용 단언(active plan 존재 시 `[resume]` 존재, 부재 시 부재).
 ※ stderr 줄은 사용자용으로 유지(이중 채널 — 목적이 다름).
 
-### §14.4 C15-C — fable+ultracode 라이브 fitness 관측 프레임 (결과는 Closeout 이 기록)
+### §14.4 C15-C — fable+ultracode 라이브 fitness 대차 (2026-07-29~08-01 실측, 최종)
 
-관측 프로토콜: runlog 오프셋(사이클 시작 시 6881줄) 이후의 `surface-model-policy` ALERT 레코드 +
-합성 재생(주입 이벤트 재현) 대조. **Phase R 관측(중간 기록)**: C15-B probe Workflow(동적 agentType
-`agentType: t` → `*`)에 hook SILENT — 재생으로 재현(SILENT), 리터럴 `general-purpose` control 은
-ALERT — 즉 무발화는 미탐이 아니라 `*` 면제 설계의 정상 작동이고, 판정 경로 생존은 control 이 증명.
-canonical carrier(`workflows/rpi-implement.js`) 사용 여부·Rule A/C/C2/C3 발화 대차는 Closeout 표로.
+관측 프로토콜: runlog 오프셋(2026-07.jsonl 6881줄 / 2026-08.jsonl 0줄) 이후의 `surface-model-policy`
+레코드 전수 + **라이브 입력의 합성 재생**(동일 스크립트를 hook 에 직접 주입) 대조. 사이클은 자연
+실행(fitness 를 위한 인위 위반 0 — goal §5-9 준수).
+
+**규칙별 발화 대차 (라이브 도구 호출 한정 — 픽스처 실행분 제외)**:
+
+| 규칙 | 라이브 발화 | 기대 | 판정 |
+|---|---|---|---|
+| Rule A | 0회 | 0회 — execute-strict 를 Agent 경로로 위임한 적 없음(구현 전량 canonical carrier 경유) | **일치** — 모드 (A) 준수의 자연 결과 |
+| Rule B | 0회 | 0회 — review-strict 위임 3회 전부 model 무지정(상속) | 일치 |
+| Rule C | 0회 | 0회 — canonical carrier stage1 = `model:'opus'` 리터럴 | 일치 |
+| Rule C2 | 0회 | 0회 — carrier stage2 무지정(상속) = fable 세션 floor 충족(§12.1 표 1행) | 일치 |
+| Rule C3 | 0회 | 0회 — C15-B probe(인라인 Workflow)의 6스폰은 `agentType: t`(동적)=`*` 면제(§13.3 ③) | 일치 — **면제 설계의 정상 작동이지 미탐 아님** |
+
+**미탐/오탐 판정의 근거 (무발화 ≠ 무작동 증명)**: hook 은 ALERT 시에만 runlog 를 남기므로 라이브
+무발화만으론 "돌았는데 침묵"과 "안 돌았음"이 구분 안 된다. 2중 대조: ①같은 세션에서 다른 PreToolUse
+hook(enforce-rpi-cycle)이 실 sid 로 발화 기록 — 배선 자체는 라이브 작동 ②라이브 입력 2건(probe
+스크립트·control)을 hook 에 **재생**: probe→SILENT 재현, 리터럴 `general-purpose` control→**ALERT**
+— 판정 경로 생존 실증. 잔여: "그 순간 CC 가 hook 을 실제 호출했는가"는 컴플라이언트 호출이 무기록이라
+직접 증거 없음(수용 잔여 — ALERT 외 verdict 도 기록하는 확장은 로그 bloat 대비 이득 없어 미채택).
+
+**advisory 행동 변화 (goal §3-C-3, 정직 기록)**: 이 사이클에서 advisory 가 낼 ALERT 자체가 0(위반
+없음)이라 "환기→행동 교정" 사례는 관측 기회가 없었다 — L2 의 이 축은 이번 사이클에서 **미검증**이며
+"작동함"으로 기록하지 않는다. 관측된 것은 오탐 0(컴플라이언트 실행에 소음 없음)뿐.
+
+**canonical carrier (goal §3-C-4)**: Phase I 구현 4 task 전부 `Workflow({scriptPath:
+"C:/Users/12132/.claude/workflows/rpi-implement.js", args:[...]})` — **canonical 경유, 인라인 이탈 0**.
+비-구현 Workflow 1건(C15-B probe)은 인라인이나 구현 아님(관측 프로브 — §10 의 canonical 의무는
+Phase I 구현 스테이지 대상). 실측 부수 확인: 도구는 `scriptPath` 의 슬래시 방향 무관(C:/ 표기 작동).
+
+**신규 결함 등록 (C15-C 기준 2항)**: 미탐·오탐 신규 발견 0건. 단 사이클 중 세션이 장기 정지 후
+재개된 사례 1회(2026-07-29→08-01) — C15-E 의 [resume] 주입이 겨눈 바로 그 시나리오가 사이클 내에서
+재현됐고, 재개는 사용자 프롬프트+active plan 로 수행됐다(신설 [resume] 줄은 다음 세션부터 작동).
+
+### §14.5 C15 교차패밀리(GPT) 적대 리뷰 — 트리아지 (2026-08-01)
+
+`cross-family-review.md` §2 규약 경로 A(`gpt-5.6-sol`·ultra·verbosity high·read-only·**fast 미사용** —
+§1-2 철회 준수). 대상 = §14 전문 + 사이클 전체 diff(913935b..HEAD, 33KB stdin). 발견 15건을 **전건
+원문 실측 재현**으로 트리아지(GPT는 발견자이지 판정자가 아님). 실측 주의: X2 재현은 파일에 리터럴
+`d` 바이트가 실제로 들어가야 한다 — bash `printf`/따옴표 계층이 이스케이프를 먼저 삼키면
+"재현 안 됨"으로 오판한다(2번 오쳤음 — od -c 로 바이트 확인 후 확정).
+
+**REAL — 이 사이클 내 정정 (T5a 파서 5건 + T5b hook/문서 8건)**:
+
+| # | 발견 | 실측 재현 (HEAD) | 정정 |
+|---|---|---|---|
+| X1 | shorthand `{model}` 이 `-`(키 부재)로 붕괴 + shorthand 중복 키가 LWW 위반(stale `opus` 유지) | `general-purpose\t-` / `execute-strict\topus` | `parseProps.flush` 에 콜론-없는 세그먼트의 `agentType`/`model` 식별자 인식(→동적 `*`). 픽스처 206·207 |
+| X2 | 식별자 이스케이프 키(`model`)가 미인식 — 문자열 키만 디코드하고 bare 키는 raw | `general-purpose\t-` / dup 조합 `execute-strict\topus` | `readKey` bare-식별자에 `\uXXXX` 디코드. 픽스처 208 |
+| X3 | 앞 프로퍼티의 템플릿 보간 닫는 `}` 가 mask 에 잔존 → parseProps 깊이 -1 → 이후 키 전멸 | `label:\`t-${x}\`` 선행 시 `?\t-` | `lex()` 의 fromTmpl 복귀 `}` 를 blank(여는 `${` 와 대칭). 픽스처 210 |
+| X4 | `['model'+'X']` 를 `model` 로 오해소 — 리터럴이 bracket 전체를 소진하는지 미검증 → 날조 `opus` 행이 Rule C 침묵 | `execute-strict\topus` (실제 키는 modelX) | `readKey` bracket 분기에 전체-스팬 검증(잔여 토큰 있으면 null). 픽스처 209 |
+| X6 | 그룹핑 괄호 리터럴 `model:('fable')` 이 `*` 로 과분류 → **Rule C/C2/C3 실위반이 ALERT→SILENT 회귀**(base 는 `-` 붕괴라 발화했음) | `execute-strict\t*` (base: `execute-strict\t-`) | `readValue` 그룹핑 괄호 unwrap(정적 확정 리터럴로 복원). 픽스처 211. **3값 확장이 만든 유일한 실회귀 클래스 — 과분류의 비용이 base 와 반대 방향** |
+| X8 | C3 hedge 가 어느 픽스처에도 내용-앵커 없음(additionalContext 존재만 검사) — hedge 원복해도 전량 GREEN | 실측 확인(픽스처 grep 대상 없음) | `test_smp_hedge` 40 신설(메시지 본문 '자체 바인딩' 단언) — R1/R2 교훈("신설 표면은 같은 사이클에서 마스킹 검사") 의 픽스처판 |
+| X9 | resume 픽스처가 `[resume]` 접두만 검사 — 파일명·카운트·exit 0·완전 무출력 미단언 | 실측 확인 | `test_ssa_resume` 강화(패턴/EMPTY/exit0) |
+| X10 | 다중 active plan 시 첫 파일명 + **전체 합산** 카운트 — 지목 파일에 대해 거짓 수치 | a.md(1)+b.md(2) → "a.md (미체크 3)" | 첫 plan 단독 카운트 + `외 N개 활성 plan` 서픽스 |
+| X11 | 서브디렉터리 cwd(`<repo>/src`)에서 plans 게이트 미통과 → [resume] 구조적 미발화 | 게이트 `[ -d "$CWD/docs/superpowers/plans" ]` 실물 | `resolve_project_root` 앵커(PLAN_ROOT) — cycle-42 가 enforce 훅에 이미 배선한 SSOT 재사용 |
+| X12 | 체크박스 regex `^\- \[ \]` 가 들여쓰기·`*` 불릿 미집계 | 실측 확인 | `^[[:space:]]*[-*] \[ \]` 확장. 펜스 내 예시 과계수는 수용 잔여(advisory 수치) |
+| X13 | source 미판별 — `/clear`·post-compact SessionStart 에도 "이전 세션 중단" 오주입 | 게이트 `ACT_N>=1` 단독 실물 | source 게이트: `startup` 또는 필드 부재(구 CC fail-open)만 방출. 픽스처 10(compact 억제) |
+| X14 | model-policy.md 신규 문면 "두 축 모두 3값: 리터럴/`-`/`*`" — agentType 부재 기호는 `?` 인데 `-` 로 오기(**C15 자신의 T3 문면 오류**) | 실물 확인 | 축별 분리 서술(agentType `?` / model `-`) |
+| X15 | C3 메시지·CONTEXT.md·model-policy.md 가 "세션 모델을 상속" **전칭 단정** 유지 — §14.2 가 반증한 전제를 hedge 괄호가 부정하는 자기모순 | 실물 확인 | 본문을 "통상 상속"으로 완화 + 예외 2종 명시(3문서 동기) |
+
+**수용-잔여 / 부분 채택 (판정 근거 기록 — 재논의 방지)**:
+
+- **X5 (혼합 삼항 `c ? {리터럴} : OPTS` 의 변수 분기 소실)** — 결함 실재(재현: `general-purpose\t*`
+  1행만, OPTS 분기 무행). 단 **후보-존재 시 폴백-미발동은 C14 이전부터의 구조**(후보 수집기의 알려진
+  상한)이고, 완전 해소는 인자-경계 의미론(§13.7 이 기각한 그 축)을 요구한다. base 대비 회귀 부분
+  (그 1행이 `-`→`*` 로 바뀌어 C3 가 침묵)은 실재하나, 같은 입력에서 base 의 ALERT 는 **리터럴 분기를
+  오판**한 우연 발화였다(동적 model 선언 분기를 "무선언"이라 했음 — C15 가 제거한 바로 그 오탐).
+  → 파서 헤더 + 이 절에 정직 공개, 미구현. 탐지 우회 의도가 아닌 자연 코드에서 희귀 형태.
+- **X7 (픽스처 37 이 Rule C `'*'` arm 자체를 앵커하지 않음)** — 지적 사실(arm 삭제해도 fallthrough
+  `tier_of("*")=0≠4` 로 37 GREEN — 실측 확인). 단 37 이 봉인하는 것은 **행동**("동적 선언은 발화하지
+  않는다")이고, 그 행동은 arm 을 위반 목록(`-|inherit|'*'`)에 넣는 회귀를 잡는다. arm 은 fallthrough
+  의존을 명시로 바꾼 방어적 중복(의도 문서화)이며 제거해도 행동 불변 → 픽스처는 비-vacuous(행동 축),
+  arm 은 belt-and-braces 로 유지. §14.1 의 "arm 신설" 서술은 "명시화"로 읽을 것.
+- X6 의 "C2 `continue` 배치" 등 bash case 의미론 지적 — 확인 결과 문제 없음(첫 arm 매치 시 후속 arm
+  미평가, `continue` 는 while 루프로 정확히 탈출). 기각.
+
+**교훈 (재사용)**: ①**출력 계약에 값을 추가하면 "과분류의 방향"이 뒤집힌다** — 2값 시대의 `-` 붕괴는
+안전 방향(무선언 취급→발화)이었지만, 같은 코드가 3값에서 `*` 로 흐르면 면제 방향이 된다(X6). 계약
+확장 시 **기존 붕괴 경로 전수를 새 기호의 의미로 재감사**해야 한다 — 방출부 한 줄만 보면 안 된다.
+②정적 파서의 "동적" 판정은 **"확정 불가"의 증명이 아니라 "우리 파서가 못 읽음"의 자백**이다 —
+그룹핑 괄호·shorthand·식별자 이스케이프처럼 정적으로 확정 가능한 형태가 섞여 있다. 면제 기호를
+소비하는 규칙은 이 차이를 전제로 설계할 것.
