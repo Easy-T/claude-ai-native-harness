@@ -50,6 +50,22 @@ if [ -n "$CWD" ] && [ -d "$CWD/docs/superpowers/plans" ]; then
   else
     echo "[plan] active plan: 0" >&2
   fi
+
+  # C15-E (spec §14.3): 재개 신호를 모델 컨텍스트에 주입 — SessionStart stdout 은 컨텍스트로 전달된다
+  # (superpowers SessionStart 블록으로 라이브 실증). stderr [plan] 줄은 사용자용 — 이중 채널, 목적이 다름.
+  if (( ACT_N >= 1 )); then
+    FIRST_PLAN=$(printf '%s' "$ACT_NAMES" | awk '{print $1}')
+    UNCHECKED=0
+    for p in "$CWD/docs/superpowers/plans"/*.md; do
+      [ -f "$p" ] || continue
+      case "$(plan_status "$p")" in
+        active|in_progress)
+          N=$(grep -c '^\- \[ \]' "$p" 2>/dev/null || true)
+          UNCHECKED=$((UNCHECKED + ${N:-0})) ;;
+      esac
+    done
+    echo "[resume] active plan: $FIRST_PLAN (미체크 $UNCHECKED) — 이전 세션 중단 작업일 수 있음. plan 을 열어 재개 여부를 판단하십시오. (advisory — 자동 재실행 아님)"
+  fi
 fi
 
 # --- D-FAILOPEN-SURFACE: 차단 hook 자가점검 (알림형 — fail-open은 유지, 고장만 표면화, cycle-23) ---

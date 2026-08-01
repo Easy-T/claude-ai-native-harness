@@ -67,6 +67,7 @@ if [ "$TOOL" = "Workflow" ]; then
       if [ "$WF_TIER" = "4" ]; then
         case "$SP_MODEL" in
           -|inherit) C_HIT=1 ;;
+          '*') ;;   # C15: 동적 선언 — 하향 미적용을 단언 불가(agentType '*' 면제와 동일 원리, spec §14.1)
           *) [ "$SP_T" = "4" ] && C_HIT=1 ;;
         esac
       fi
@@ -96,6 +97,7 @@ EOF
   while IFS="$(printf '\t')" read -r SP_TYPE SP_MODEL; do
     [ "$SP_TYPE" = "review-strict" ] || continue
     case "$SP_MODEL" in
+      '*')       continue ;;   # C15: 동적 선언 — floor 미달 단언 불가(tier 0 오평가 방지, spec §14.1)
       -|inherit) SP_T="$WF_TIER"; SP_LABEL="상속(세션=$WF_SESSION_MODEL)" ;;
       *)         SP_T=$(tier_of "$SP_MODEL"); SP_LABEL="$SP_MODEL" ;;
     esac
@@ -123,7 +125,7 @@ EOF
   fi
   if [ "$C3_HIT" = "1" ] && fire_once model-policy-c3; then
     hook_log "surface-model-policy" "workflow:agentless-inherit" "ALERT" "rule-c3-workflow-fanout-inherit"
-    add_msg "[model-policy] Workflow 스크립트가 **model 을 선언하지 않는** 서브에이전트를 스폰합니다(agentType 부재 또는 frontmatter 에 model 이 없는 builtin) — 이 경로는 **세션 모델을 상속**하므로(spec §11.3·§13.3) fable 세션에선 리서치 fan-out 전체가 플래그십으로 역류합니다. 역할에 맞는 하위 모델을 opts.model 로 명시하십시오(탐색=sonnet). SSOT: docs/ai-context/model-policy.md (advisory · 1세션 1회 · 차단 아님)"
+    add_msg "[model-policy] Workflow 스크립트가 **model 을 선언하지 않는** 서브에이전트를 스폰합니다(agentType 부재 또는 frontmatter 에 model 이 없는 builtin) — 이 경로는 **세션 모델을 상속**하므로(spec §11.3·§13.3) fable 세션에선 리서치 fan-out 전체가 플래그십으로 역류합니다(일부 builtin 은 CC 자체 바인딩으로 하위 티어에 돌 수 있음 — spec §14.2 실측; Explore·claude-code-guide). 역할에 맞는 하위 모델을 opts.model 로 명시하십시오(탐색=sonnet). SSOT: docs/ai-context/model-policy.md (advisory · 1세션 1회 · 차단 아님)"
   fi
   if [ -n "$C2_HIT" ] && fire_once model-policy-c2; then
     hook_log "surface-model-policy" "workflow:review-strict:$C2_HIT" "ALERT" "rule-c2-workflow-verifier-downshift"

@@ -289,7 +289,7 @@ bash ~/.claude/setup/doctor.sh
 │   │   ├── model-window.js                모델→컨텍스트 창 매핑
 │   │   └── workflow-spawns.js             Workflow agent() 스폰 per-spawn 추출 (C13)
 │   └── tests/
-│       ├── cases.tsv                     244 case (run-all과 1:1 정합, 100% 구현)
+│       ├── cases.tsv                     251 case (run-all과 1:1 정합, 100% 구현)
 │       └── run-all.sh                    단위 테스트 러너 (+ cases.tsv 정합 검사)
 │
 ├── tests/statusline/                     statusline.sh 단위 테스트 (run-tests.sh + fixtures)
@@ -527,7 +527,7 @@ git push
 
 - 설계 명세: [`docs/superpowers/specs/2026-05-01-ai-native-orchestration-design.md`](docs/superpowers/specs/2026-05-01-ai-native-orchestration-design.md) (3,000+ 줄)
 - 13단계 빌드 plan: [`docs/superpowers/plans/2026-05-01-ai-native-orchestration.md`](docs/superpowers/plans/2026-05-01-ai-native-orchestration.md)
-- Hook 단위 테스트: `hooks/tests/cases.tsv` (244 케이스, run-all과 1:1 정합, 100% 통과). 원 설계 명세(spec §6.2, 원안 65개)
+- Hook 단위 테스트: `hooks/tests/cases.tsv` (251 케이스, run-all과 1:1 정합, 100% 통과). 원 설계 명세(spec §6.2, 원안 65개)
 
 ---
 

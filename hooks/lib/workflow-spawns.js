@@ -3,7 +3,8 @@
 // 입력: stdin = 스크립트 전문. 출력: 스폰당 1행 "<agentType>\t<model>".
 //   agentType: 리터럴 값 / 키 부재='?' / 키는 있으나 비-리터럴='*'  (C13 GPT 교차리뷰 [C]4 — '?' 가
 //              "부재"와 "동적"을 뭉뚱그리면 Rule C3(상속 단언)이 거짓 안내가 된다)
-//   model:     리터럴 값 / 부재·비-리터럴='-' (동적 값은 정적으로 알 수 없으므로 **미선언 취급** = 안전 방향)
+//   model:     리터럴 값 / 키 부재='-' / 키는 있으나 비-리터럴='*'  (C15 3값 — 동적 선언을 "무선언"과
+//              구분한다. 종전 2값은 Rule C3 가 model:f() 를 "선언하지 않음"이라 오탐하는 원인이었다)
 // 존재 이유 (spec §12.3): bash ERE 는 스크립트 전역 boolean OR 로만 판정 가능해
 //   "준수 스폰 1개가 나머지 무선언 스폰을 침묵시키는" 마스킹이 구조적으로 발생한다(실물 E2E 확정).
 //   per-call 파싱을 node 로 분리해 탐지 입도를 스폰 단위로 올린다.
@@ -22,7 +23,7 @@
 //
 // 한계 (정직 공개 — §10/§12.3 유지):
 //   · **동적 조립** ('execute'+'-strict', MODELS[i], f.model ?? 'sonnet')은 값이 단일 리터럴이 아니므로
-//     agentType='*' / model='-' 로 보고된다(미탐이 아니라 "정적으로 알 수 없음"의 안전 방향 보고).
+//     agentType='*' / model='*' 로 보고된다(동적 표기 — C15).
 //   · opts 를 변수로 넘기면(agent('p', OPTS)) 깊이 0 에 '{' 가 없어 키 부재로 보인다 → '?'/'-'.
 //     스프레드(...base)로 들어온 키도 마찬가지로 부재 취급.
 //   · **인자 경계를 나누지 않는다**(C14 정직 공개): 깊이 0 의 '{...}' 를 **전부** opts 후보로 보고
@@ -169,7 +170,7 @@ function scan(text) {
       const at = props.agentType, mo = props.model;
       out.push({
         agentType: at === undefined ? "?" : at === null ? "*" : at,
-        model: mo === undefined || mo === null ? "-" : mo,
+        model: mo === undefined ? "-" : mo === null ? "*" : mo,
       });
     }
   }
