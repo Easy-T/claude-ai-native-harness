@@ -1,6 +1,6 @@
 # C15 — 파서 계약 3값 확장 · builtin 실측 반영 · 재개 주입 · fitness Implementation Plan
 
-**Status:** active
+**Status:** completed
 **RPI-Cycle:** 66
 **Started:** 2026-07-29
 
