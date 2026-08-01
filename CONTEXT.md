@@ -90,8 +90,8 @@ _Avoid_: "동적 모델 선택"(기각된 재량 — self-pass 우회로), "모�
 _Avoid_: "모델 정책"(범위 불명 — ANTHROPIC_* 라우팅 env 설정과 혼동), "모델 라우팅"(CLIProxy 티어 매핑과 혼동).
 
 ### 검증자 기준선 (verifier floor)
-검증자(review-strict)의 모델 티어가 넘어야 하는 하한 = **`max(세션 티어, 작업자 티어)`** (C13, 2026-07-27 확정). 선행 두 독법 — 세션-기준(model-policy.md)·작업자-기준(cross-family §3) — 의 **합집합**이라 어느 쪽보다 엄격하며, 그래서 완화가 아니라 강화다(DOWNGRADE-DECLARED 대상 아님). 실행자를 하위 모델로 내려도(→[[실행자 하향 위임]]) 검증자는 세션 티어 아래로 못 내려간다. hook 탐지는 Workflow 경로만 가능(스크립트 전문이 한 문자열) — Agent 도구 경로는 호출 간 상태 부재로 구조적 불가(L1 몫, 수용 잔여). **무지정(상속)은 면제가 아니라 "세션 티어로 평가"**다(C13 Closeout, spec §12.6): 실행자를 세션 위로 상향한 스크립트에서 검증자 model을 지우는 것은 위반을 남긴 채 경고만 없애는 거짓 복구다.
-_Avoid_: "검증자 하향 금지"(무엇 대비 하향인지 불명 — 이 모호성이 C13 이전 SSOT 드리프트의 원인), "검증자 상속"(inherit는 구현 수단이지 기준이 아님).
+검증자(review-strict)의 모델 티어가 넘어야 하는 하한 — **검문의 임무별로 분리**된다(C16, 2026-08-02 — C13 일괄 `max(세션,작업자)`의 의식적 supersede, spec §12.1→§15.1). **준수-확인 임무**(Workflow 경로 = canonical carrier stage2): floor = **작업자 티어**(실행자 부재 스크립트는 세션 티어 폴백 — 보수 유지). **판단-필요 게이트**(Agent 도구 경로 = Gate R/P·senior·drift): floor = **`max(세션 티어, 작업자 티어)` 유지**(Rule B 불변). 근거: C15 per-layer 수율 실측 — stage2는 준수-확인 임무에서 내용 발견 0, Gate P가 유일한 내부 발견 층. 하한 불변식: 어떤 임무에서도 검증자 < 작업자 금지. **무지정(상속)은 면제가 아니라 "세션 티어로 평가"**다(C13 Closeout, 불변): 상속 검증자는 세션 티어로 셈해 floor와 비교한다.
+_Avoid_: "검증자 하향 금지"(무엇 대비 하향인지 불명 — 이 모호성이 C13 이전 SSOT 드리프트의 원인), "검증자 상속"(inherit는 구현 수단이지 기준이 아님), "일괄 floor"(C16 이후 임무 축이 선행한다).
 
 ### 스캐폴드 산출물 경계 (scaffold-output boundary)
 `docs/ai-context/{architecture,domain-glossary,deny-patterns,runbook}.md`는 `init-ai-ready-project`가 **대상 프로젝트에** 생성하는 산출물이지 하네스 자신의 자산이 아니다(cycle-31 판정, spec §13.4 — `git log --all` 전부 빈 출력로 확증). 경계는 **파일명**에 걸리지 *디렉터리*에 걸리지 않는다 — `docs/ai-context/`에는 하네스 소유 추적 파일(model-policy·cross-family-review·memory-policy·plugin-pins·scaffold-registry, +C14의 non-obvious)이 함께 산다. skill이 두 문맥(하네스·대상 프로젝트)에서 모두 도므로 부재 경로 지시는 **삭제가 아니라 조건부 선언**("실재하는 것만")으로 정정한다.
@@ -112,6 +112,14 @@ _Avoid_: "builtin 상속"(2종은 상속하지 않는다 — 과잉 일반화), 
 ### 재현 픽스처 동반 (fixture-paired registration)
 non-obvious 등록 항목이 **재현 픽스처 경로를 필수 필드로** 갖는 규약(GAP-012). 등록만 있고 재현자가 없으면 다음 사이클이 같은 가정을 반복한다 — C13이 "goal은 없을 것"을 확인 없이 승격한 실패(spec §13.1)가 그 실증. 픽스처는 "테스트 통과"가 아니라 **요구 충족**을 겨눈다.
 _Avoid_: "교훈 기록"(재현자 없는 산문과 혼동), "회귀 테스트"(일반 테스트와 혼동 — 이것은 *실패 클래스*에 결속된 것).
+
+### 층별 수율 (layer yield)
+사이클의 검문 층(Gate R/P·stage2·senior·drift·교차패밀리)별로 "실발견(내용 결함) N건 vs 확인"을 기록하는 계량 축(C16 신설). Closeout 고유 필수 필드 `layer-yield:`가 캐리어, 축적 대장은 `docs/ai-context/review-yield.md`. 목적: floor·리뷰 배분 결정을 감이 아니라 축적 데이터로 재심. "확인"은 낭비가 아니라 성격 분류다 — 준수 강제(TDD RED 증거 등)의 억지 효과는 분리 측정 불가로 수용.
+_Avoid_: "리뷰 ROI"(토큰 수치가 필수인 듯한 함의 — 필수는 발견 카운트뿐), "검증 효율"(검증 축소 정당화로 오독).
+
+### 델타 재심 (delta re-review)
+게이트/스테이지 FAIL 후 재실행 리뷰의 success_criteria를 "직전 FAIL이 지목한 항목 각각의 해소 + 그 정정이 새로 깨뜨린 것 없음"으로 한정하는 규약(C16). 전체 기준 재검은 첫 회만. 근거: C15 Gate P #2가 발견 3건 재검에 전체 재리뷰 83k 지출.
+_Avoid_: "재검증 생략"(스코프 한정이지 생략이 아님), "증분 리뷰"(diff-증분과 혼동 — 이것은 FAIL-항목 스코프).
 
 ### 핸드오프 복원력 (handoff resilience)
 임의 시점 중단 후 다른 모델·세션이 **머지된 문서만으로**(이 머신의 auto-memory 없이) 작업을 재개할 수 있는 성질. 산출 문서의 self-containment(필요 사실 인라인 재서술)가 성립 조건이며, cold-agent fitness가 검증 수단.
