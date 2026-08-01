@@ -36,7 +36,7 @@
 | `enforce-secret-scan` | 차단 | Write/Edit/NotebookEdit + Bash | 고-특이도 시크릿(API 키/토큰/PEM private key) 감지 시 차단(종류만 보고). `SECRET_SCAN_SKIP` 우회 |
 | `stable-claude-md` | 알림 | 프로젝트 루트 CLAUDE.md 수정 | "캐시 비용 ≈20배" 환기 (작업은 허용). 글로벌 `~/.claude/CLAUDE.md`는 제외 — §1 모델-레벨 환기로 위임 |
 | `surface-constitution` | 알림 | Write/Edit/NotebookEdit on 의존성 매니페스트(§5)·UI 확장자(§8) | 해당 헌법 조항을 `additionalContext`(모델 컨텍스트)로 환기 — ADR 작성(§5)/ui-design 사용(§8). 1세션 §별 1회, 차단 아님 |
-| `surface-model-policy` | 알림 | PreToolUse `Agent`\|`Workflow` | 역할×모델 매트릭스(구현=opus·탐색=sonnet·검증=기준선 `max(세션,작업자)`)를 `additionalContext`로 환기. Rule A(fable 실행자 하향 미적용)·B(검증자 기준선 미달)·C/C2/C3(Workflow 스크립트 per-spawn 판정 — `hooks/lib/workflow-spawns.js` 파서). 규칙별 1세션 1회, 차단 아님. SSOT: `docs/ai-context/model-policy.md` |
+| `surface-model-policy` | 알림 | PreToolUse `Agent`\|`Workflow` | 역할×모델 매트릭스(구현=opus·탐색=sonnet·검증=기준선 임무-분리 — 준수-확인=작업자 티어/판단-게이트=`max(세션,작업자)`)를 `additionalContext`로 환기. Rule A(fable 실행자 하향 미적용)·B(검증자 기준선 미달)·C/C2/C3(Workflow 스크립트 per-spawn 판정 — `hooks/lib/workflow-spawns.js` 파서). 규칙별 1세션 1회, 차단 아님. SSOT: `docs/ai-context/model-policy.md` |
 | `auto-compact-watch` | 알림 | Read/Bash/Agent 후 | **모델-인지** 컨텍스트 창(opus-4-7/4-8·fable·`[1m]` suffix→1M, 그 외 200K; `CONTEXT_LIMIT` override) 기준 임계 도달 시 `/compact` 권장. 경고 %는 `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE`에서 도출 (1세션 1회) |
 | `verify-loop-watch` | 알림 | Stop (턴 종료) | active plan + 미검증 코드 변경 시 `scripts/check.sh`+closeout 권장 (1세션 1회, advisory) |
 | `session-start-audit` | 알림 | 세션 시작 | CLAUDE.md audit 마커 30일 초과 시 알림 + **보조** `session_id`-키 마커(`~/.claude/worktrees-marker/<sid>`=WT_ROOT) 기록(드물게 cwd가 워크트리일 때만 — 주 기록은 PreToolUse 게이트, spec §10)·스테일 마커 prune (빈 SID skip) + **self-healing sweep**(harness-worktree 프로젝트면: prunable 워크트리 등록 `prune` + 고아 `worktree-*` 브랜치 `-D`, 활성/비-컨벤션 보호; spec §11) |
@@ -53,7 +53,7 @@
 | 오케스트레이션·판단·게이트 해석 | 세션 모델 (위임 금지) | 세션 effort |
 | 구현 (execute-strict) | **opus** | ultracode: heavy `xhigh` / light `high` |
 | 탐색 (explore-strict) | **sonnet** (frontmatter 기본) | **xhigh** + WebSearch/WebFetch |
-| 검증 (review-strict) | **상속** — 기준선 `max(세션 티어, 작업자 티어)` 미만 금지 | 상속 |
+| 검증 (review-strict) | **상속** — 기준선(임무-분리, spec §15.1: 준수-확인=작업자 티어 / 판단-게이트=`max(세션 티어, 작업자 티어)` 유지) 미만 금지 | 상속 |
 | 교차 검증 (고-스테이크 closeout) | GPT (`cross-family-review.md` 규약) | 사이클당 1회 |
 
 강제는 3층: **L1** 문서(이 표 + `start-rpi-cycle` skill) · **L2** hook `surface-model-policy`(advisory 환기, 차단 아님) · **L3** verify-setup seal #45(토큰 존재 봉인). 상향은 항상 허용, 하향은 검증자에 한해 `DOWNGRADE-DECLARED(사유)`가 유일 탈출구.

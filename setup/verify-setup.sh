@@ -443,7 +443,7 @@ fi
 # 45. 역할×모델 매트릭스 물화 봉인 (tri-model C11, spec 2026-07-25 §6): conjunctive —
 #     ① model-policy.md 존재+행 앵커(execute→opus·explore→sonnet) ② explore-strict frontmatter sonnet+xhigh+WebSearch (C13)
 #     ③ execute/review `model: inherit` 유지 + review-strict effort 키 부재(무지정=세션 상속의 물리 앵커
-#        — 기준선 자체는 max(세션, 작업자)이며 inherit 은 그중 세션 축만 보장, spec §12.1)
+#        — 기준선은 임무-분리(spec §15.1) — inherit 유지는 wrapper frontmatter 기본값 앵커(Agent 경로 세션 축 보장))
 #     ④ settings.example 에 Agent 매처+hook 배선(#23 이 live 와 parity) ⑤ start-rpi-cycle 토큰(재생성 소실 표면화).
 #     C12: canonical workflow(rpi-implement.js 앵커)+Workflow 매처 conjunct 확장 (spec §10).
 #     bash grep only (staged-safe).
@@ -457,7 +457,8 @@ grep -qE '^model:[[:space:]]*inherit' "$HOME/.claude/agents/execute-strict.md" 2
 grep -qE '^model:[[:space:]]*inherit' "$HOME/.claude/agents/review-strict.md" 2>/dev/null || MP_OK=0
 if grep -qE '^effort:' "$HOME/.claude/agents/review-strict.md" 2>/dev/null; then MP_OK=0; fi
 grep -q 'surface-model-policy' "$HOME/.claude/settings.example.json" 2>/dev/null || MP_OK=0
-grep -qE "model: 'opus'" "$HOME/.claude/workflows/rpi-implement.js" 2>/dev/null || MP_OK=0
+grep -A2 "agentType: 'execute-strict'," "$HOME/.claude/workflows/rpi-implement.js" 2>/dev/null | grep -qE "model: 'opus'" || MP_OK=0
+grep -A2 "agentType: 'review-strict'," "$HOME/.claude/workflows/rpi-implement.js" 2>/dev/null | grep -qE "model: 'opus'" || MP_OK=0
 grep -qE "effort: t\.effort \?\? \(t\.heavy \? 'xhigh' : 'high'\)" "$HOME/.claude/workflows/rpi-implement.js" 2>/dev/null || MP_OK=0
 grep -qE '"matcher":[[:space:]]*"Agent\|Workflow"' "$HOME/.claude/settings.example.json" 2>/dev/null || MP_OK=0
 grep -q 'model-policy' "$HOME/.claude/skills/start-rpi-cycle/SKILL.md" 2>/dev/null || MP_OK=0

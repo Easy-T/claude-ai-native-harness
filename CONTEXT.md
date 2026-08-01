@@ -82,15 +82,15 @@ _Avoid_: "단순화 금지"(스코프 최소주의까지 부정하는 오독), "
 _Avoid_: "타협"(정당한 트레이드오프 선언까지 포함하는 중립어), "간소화"(스코프 축소와 혼동).
 
 ### 실행자 하향 위임 (executor downshift)
-fable 세션이 실행자(execute-strict)·탐색자(explore-strict) 위임을 역할×모델 매트릭스의 하위 모델+effort로 디스패치하는 **정적·문서화** 정책(SSOT=docs/ai-context/model-policy.md). 검증자(review-strict)는 대상 아님 — [[검증자 기준선]] `max(세션, 작업자)`가 별도 규율(상속 유지가 기본). 오케스트레이터의 동적 모델 재량이 아니다.
+fable 세션이 실행자(execute-strict)·탐색자(explore-strict) 위임을 역할×모델 매트릭스의 하위 모델+effort로 디스패치하는 **정적·문서화** 정책(SSOT=docs/ai-context/model-policy.md). 검증자(review-strict)는 대상 아님 — [[검증자 기준선]](임무-분리 — C16)이 별도 규율. 오케스트레이터의 동적 모델 재량이 아니다.
 _Avoid_: "동적 모델 선택"(기각된 재량 — self-pass 우회로), "모델 다운그레이드"(품질 열화 함의 — 이것은 역할 적합 배치).
 
 ### 역할×모델 매트릭스 (role-model matrix)
-(세션 모델, ultracode 여부) 2키로 역할(오케스트레이션/구현/탐색/검증)별 모델·effort를 정하는 정적 표. 상향은 항상 허용, 하향은 검증자가 [[검증자 기준선]](max(세션,작업자)) 미만 금지·실행자는 표 자체가 선언. SSOT=docs/ai-context/model-policy.md.
+(세션 모델, ultracode 여부) 2키로 역할(오케스트레이션/구현/탐색/검증)별 모델·effort를 정하는 정적 표. 상향은 항상 허용, 하향은 검증자가 [[검증자 기준선]](임무별 floor — C16) 미만 금지·실행자는 표 자체가 선언. SSOT=docs/ai-context/model-policy.md.
 _Avoid_: "모델 정책"(범위 불명 — ANTHROPIC_* 라우팅 env 설정과 혼동), "모델 라우팅"(CLIProxy 티어 매핑과 혼동).
 
 ### 검증자 기준선 (verifier floor)
-검증자(review-strict)의 모델 티어가 넘어야 하는 하한 — **검문의 임무별로 분리**된다(C16, 2026-08-02 — C13 일괄 `max(세션,작업자)`의 의식적 supersede, spec §12.1→§15.1). **준수-확인 임무**(Workflow 경로 = canonical carrier stage2): floor = **작업자 티어**(실행자 부재 스크립트는 세션 티어 폴백 — 보수 유지). **판단-필요 게이트**(Agent 도구 경로 = Gate R/P·senior·drift): floor = **`max(세션 티어, 작업자 티어)` 유지**(Rule B 불변). 근거: C15 per-layer 수율 실측 — stage2는 준수-확인 임무에서 내용 발견 0, Gate P가 유일한 내부 발견 층. 하한 불변식: 어떤 임무에서도 검증자 < 작업자 금지. **무지정(상속)은 면제가 아니라 "세션 티어로 평가"**다(C13 Closeout, 불변): 상속 검증자는 세션 티어로 셈해 floor와 비교한다.
+검증자(review-strict)의 모델 티어가 넘어야 하는 하한 — **임무-분리**(검문의 임무별 floor)된다(C16, 2026-08-02 — C13 일괄 `max(세션,작업자)`의 의식적 supersede, spec §12.1→§15.1). **준수-확인 임무**(Workflow 경로 = canonical carrier stage2): floor = **작업자 티어**(실행자 부재 스크립트는 세션 티어 폴백 — 보수 유지). **판단-게이트**(판단-필요 게이트, Agent 도구 경로 = Gate R/P·senior·drift): floor = **`max(세션 티어, 작업자 티어)` 유지**(Rule B 불변). 근거: C15 per-layer 수율 실측 — stage2는 준수-확인 임무에서 내용 발견 0, Gate P가 유일한 내부 발견 층. 하한 불변식: 어떤 임무에서도 검증자 < 작업자 금지. **무지정(상속)은 면제가 아니라 "세션 티어로 평가"**다(C13 Closeout, 불변): 상속 검증자는 세션 티어로 셈해 floor와 비교한다.
 _Avoid_: "검증자 하향 금지"(무엇 대비 하향인지 불명 — 이 모호성이 C13 이전 SSOT 드리프트의 원인), "검증자 상속"(inherit는 구현 수단이지 기준이 아님), "일괄 floor"(C16 이후 임무 축이 선행한다).
 
 ### 스캐폴드 산출물 경계 (scaffold-output boundary)

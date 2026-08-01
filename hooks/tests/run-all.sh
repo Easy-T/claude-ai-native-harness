@@ -1171,7 +1171,7 @@ test_smp "23-rule-c3-fanout-inherit" 0 1 "$(mk_wf_event script "$WF_FANOUT" "$SM
 test_smp "24-rule-c3-fanout-declared" 0 0 "$(mk_wf_event script "$WF_FANOUT_OK" "$SMP_FABLE_T" "smp24-$$")"
 # 25: 비-fable 세션의 fan-out → Rule C3 비대상
 test_smp "25-rule-c3-nonfable-ok" 0 0 "$(mk_wf_event script "$WF_FANOUT" "$SMP_SONNET_T" "smp25-$$")"
-# 26: floor — sonnet 세션 + 실행자 opus 상향 + 검증자 sonnet → max(2,3)=3 > 2 위반 ALERT
+# 26: floor — sonnet 세션 + 실행자 opus 상향 + 검증자 sonnet → 작업자 floor 3 > 2 위반 ALERT (C16 임무-분리 — 산식 결과 동일)
 test_smp "26-rule-c2-floor-worker" 0 1 "$(mk_wf_event script "$WF_EX_UP" "$SMP_SONNET_T" "smp26-$$")"
 
 # --- C13 closeout: GPT 교차패밀리 리뷰 [C] REAL 정정 (spec §12.6) ---

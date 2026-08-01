@@ -113,7 +113,7 @@ CC 2.1.220, Windows/MSYS, CLIProxy 라우팅(haiku 티어=gpt-5.6-luna) 환경 �
   `agentType:'execute-strict', model:'opus', effort:'xhigh'|'high'`(heavy|light — plan task가 코드
   변경/TDD 포함이면 heavy, 순수 문서·기계 편집이면 light; 원안 high|medium은 §0 품질-우선 상향으로
   2026-07-26 대체 — 비-ultracode 상속 대비 역전 결함), stage2 `agentType:'review-strict'`
-  **model/effort 무지정**(상속). goal 원문의 "stage2 GPT 규약 분기" 대안은 **기각(grill 확정)**:
+  **model/effort 무지정**(상속) (⚠§15.1이 supersede — stage2 는 `model:'opus'` 명시). goal 원문의 "stage2 GPT 규약 분기" 대안은 **기각(grill 확정)**:
   GPT quota는 사이클당 1회 상한(cross-family §2)인데 stage2는 task마다 발화 — 양립 불가. GPT 검증은
   closeout 지점 1회 유지. **(B) fable 비-ultracode** → (a)/(b)/(c) 세 경로 공통 규칙이되, skill 문구는
   execute-strict 위임이 실제 발생하는 (a)/(c)에 배치 — (b) executing-plans는 메인 직접 실행이라
@@ -247,7 +247,7 @@ ad-hoc 워크플로 스크립트가 `agent()`를 model 없이 부르면 메인�
 1. **canonical 구현 워크플로** `workflows/rpi-implement.js` (git-추적, 신규 디렉터리): (d) 경로의
    2-stage 파이프라인을 **코드로 고정** — stage1 `agentType:'execute-strict', model:'opus',
    effort: task.effort ?? (task.heavy?'xhigh':'high')` (§0 품질-우선 상향; per-task effort=선언적
-   override, max 포함) / stage2 `agentType:'review-strict'` model·effort 무지정.
+   override, max 포함) / stage2 `agentType:'review-strict'` model·effort 무지정 (⚠§15.1이 supersede — stage2 는 `model:'opus'` 명시).
    `args` = task 배열 `[{title, promptVerbatim, files[], successCriteria, heavy, effort?}]`
    (필수 필드는 스크립트가 검증 — heavy boolean 필수로 silent light 강등 차단, effort enum 검증;
    worktree 필드는 2026-07-26 트리아지로 **제거** — [C]3, 아래 한계 참조).
@@ -265,7 +265,7 @@ ad-hoc 워크플로 스크립트가 `agent()`를 model 없이 부르면 메인�
    - **Rule C** (fable 세션): `execute-strict` 스폰 객체(같은-중괄호 `[^}]*` 근사, 키 순서 양방향,
      따옴표 키 `"model":` 허용)에 model 부재 **또는 model=fable/inherit** → ALERT(1세션 1회, rule-c).
    - **Rule C2** (전 claude 세션): `review-strict` 스폰 객체에 하향 model 리터럴(티어 < 세션 티어)
-     → ALERT(1세션 1회, rule-c2) — Workflow 경로의 검증자 하향도 Rule B 동형 커버.
+     → ALERT(1세션 1회, rule-c2) — Workflow 경로의 검증자 하향도 Rule B 동형 커버 (⚠§15.1이 supersede — floor 임무-분리).
    - 저-오탐 설계(원안 "오탐 0"은 휴리스틱과 양립 불가라 정정): execute/review-strict 없는 스크립트
      (순수 리서치 fan-out)는 무발화 — 일반 워크플로의 model-less agent()는 플랫폼 기본(메인루프 상속)이
      정당하므로 hook 비대상, L1 지침만. 같은-객체 model 선언이 있으면(opus든 선언적 override든) 무발화.
@@ -575,7 +575,7 @@ RED 픽스처 추가가 Phase P task 후보.
 
 ### §12.5 CONTEXT.md 신규/갱신 용어
 
-- **검증자 기준선 (verifier floor)**: 검증자 티어가 넘어야 하는 하한 = `max(세션 티어, 작업자 티어)`.
+- **검증자 기준선 (verifier floor)**: 검증자 티어가 넘어야 하는 하한 = `max(세션 티어, 작업자 티어)` (⚠§15.1이 supersede — 임무-분리).
   두 선행 독법(세션-기준·작업자-기준)의 합집합이라 어느 쪽보다 엄격. Workflow 경로만 hook 탐지 가능.
   _Avoid_: "검증자 하향 금지"(무엇 대비 하향인지 불명 — 이 모호성이 C13 이전 문서 드리프트의 원인).
 
@@ -641,7 +641,7 @@ A6(중첩 객체·중복 키 오귀속)이 모두 같은 뿌리에서 나왔다.
 `agents/review-strict.md:14`의 `model: inherit`은 여전히 **세션 축을 공짜로 보장**하지만, 작업자 축(실행자 상향)은
 보장하지 않는다 — 그 갭이 바로 이번에 코드로 닫힌 부분이다. `workflows/rpi-implement.js`의 모드-밖 사용
 (sonnet/haiku 세션) 잔여는 성격이 바뀐다: **침묵 잔여 → 관측되는 잔여**(캐리어를 그 세션에서 쓰면 Rule C2가 발화해
-사용자에게 표면화된다). 탈출구 부재라는 사실 자체는 유지(수용 잔여).
+사용자에게 표면화된다). 탈출구 부재라는 사실 자체는 유지(수용 잔여) (⚠§15.1이 소멸 — stage2 `model:'opus'` 명시로 전 세션 floor 충족).
 
 **★§12.3 시점 라벨 (D3 반영)**: §12.3의 표와 `EX_HAS_MODEL` 인용은 **C13 Phase R 시점(정정 전 코드)의 재현 기록**이다.
 해당 변수·행 번호는 현행 `hooks/surface-model-policy.sh`에 더 이상 존재하지 않는다(per-spawn 파서로 대체).
