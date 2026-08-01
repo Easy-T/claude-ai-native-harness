@@ -41,7 +41,12 @@
 test_lib "204-ws-dynamic-model-call" "$(printf 'execute-strict\t*')" \
   "$(printf "%s" "agent('p', {agentType:'execute-strict', model: chooseModel()})" | node "$WS")"
 test_lib "205-ws-dynamic-model-vs-absent" "$(printf 'general-purpose\t*\ngeneral-purpose\t-')" \
-  "$(printf "%s" "agent('a', {agentType:'general-purpose', model: M})\nagent('b', {agentType:'general-purpose'})" | node "$WS")"
+  "$(printf "agent('a', {agentType:'general-purpose', model: M})\nagent('b', {agentType:'general-purpose'})" | node "$WS")"
+```
+
+※ Gate P F1 정정: 205 입력은 **포맷 문자열 직접 사용**(173 선례) — `%s` 경유는 `\n`이 리터럴 2문자로 남아 두 번째 `agent(`가 lookbehind에 걸려 1행만 방출된다(실측).
+
+```bash
 ```
 
 186은 기대값만 변경: `"$(printf 'execute-strict\t-')"` → `"$(printf 'execute-strict\t*')"` (주석도 "동적은 `*`"로).
@@ -210,13 +215,17 @@ run-all.sh의 test_ssa 계열 아래 추가 (기존 test_ssa는 exit code만 봄
 test_ssa_resume() {
   local name="$1"; local expect_resume="$2"; local plan_body="$3"
   TOTAL=$((TOTAL+1))
-  local D="$SCRATCH/ssa-resume-$name"; mkdir -p "$D/docs/superpowers/plans" "$SCRATCH/.claude"
-  echo "Header" > "$SCRATCH/.claude/CLAUDE.md"
+  local D="$SCRATCH/ssa-resume-$name"; mkdir -p "$D/docs/superpowers/plans"
   [ -n "$plan_body" ] && printf '%s\n' "$plan_body" > "$D/docs/superpowers/plans/p.md"
-  local out; out=$(HOME="$SCRATCH" printf '{"cwd":"%s","session_id":"ssa-res-%s"}' "$D" "$$" | HOME="$SCRATCH" bash "$HOOKS/session-start-audit.sh" 2>/dev/null)
+  local out; out=$(printf '{"cwd":"%s","session_id":"ssa-res-%s"}' "$D" "$$" | bash "$HOOKS/session-start-audit.sh" 2>/dev/null)
   local got=0; printf '%s' "$out" | grep -q '^\[resume\]' && got=1
   [ "$got" = "$expect_resume" ] && PASSED=$((PASSED+1)) || FAILED_LIST+=("session-start-audit/$name (resume-line got=$got exp=$expect_resume)")
 }
+```
+
+※ Gate P F2 정정: **HOME override 금지** — `session-start-audit.sh:2`가 `$HOME/.claude/hooks/_common.sh`를 source하므로 override 시 `resolve_cwd` 미정의 → `CWD=""` → plan 블록 미진입(픽스처 구조적 GREEN 불가, 실측). stdin cwd 전달 + 실 HOME은 기존 `test_ssa_mark`(:156-158) 선례와 동형이며, 실 HOME의 audit/메모리/plugin 블록은 전부 stderr라 stdout 단언을 오염하지 않는다.
+
+```bash
 test_ssa_resume "08-resume-active-plan" 1 $'**Status:** active\n- [ ] Task 1\n- [x] Task 0'
 test_ssa_resume "09-resume-no-active" 0 $'**Status:** completed\n- [x] Task 1'
 ```
@@ -281,7 +290,7 @@ git commit -m "feat(c15): 재개 주입 — active plan 시 SessionStart stdout 
 **Files:**
 - Modify: `docs/superpowers/specs/2026-07-25-model-policy-design.md` (§14.4에 fitness 최종 대차 기록)
 
-- [ ] **Step 1: runlog 대차 — 오프셋 6881 이후 `surface-model-policy` ALERT 전수 추출 + 규칙별 발화/무발화 표 작성 (미탐·오탐 판정 포함, goal §3-C 4항: advisory가 행동을 바꿨는지 정직 기록)**
+- [ ] **Step 1: runlog 대차 — 오프셋 6881 이후 `surface-model-policy` ALERT 전수 추출 + 규칙별 발화/무발화 표 작성 (goal §3-C 요구 3항: advisory가 행동을 바꿨는지 정직 기록 · 요구 4항: canonical carrier 사용 여부 명시 — 미탐·오탐 판정 포함)**
 - [ ] **Step 2: 전 스위트 포그라운드 — `bash setup/verify-setup.sh`(기대 86/0 — seal 신설 없음) · `bash hooks/tests/run-all.sh`(기대 251/251) · `bash setup/tests/seal-regression.test.sh`(기대 15/0)** ※ seal-regression 600s 초과 자동 백그라운드 강등은 허용(완주 확인)
 - [ ] **Step 3: GPT 교차리뷰 1회 — cross-family-review.md §2 규약(sol·ultra·verbosity high·read-only·fast 금지). 대상: 이번 사이클 diff + spec §14. `${…}` 리터럴은 파일 경유. 발견은 트리아지 후 REAL만 정정 편입**
 - [ ] **Step 4: §14.4 대차 기록 커밋**
@@ -290,3 +299,5 @@ git commit -m "feat(c15): 재개 주입 — active plan 시 SessionStart stdout 
 git add docs/superpowers/specs/2026-07-25-model-policy-design.md
 git commit -m "docs(c15): §14.4 fitness 대차 — fable+ultracode 라이브 관측 기록"
 ```
+
+- [ ] **Step 5: ★goal §4 메타 대조 (goal §4-8, C14 교훈 #2)** — Closeout 보고 작성 시 `_goal/c15-contract-and-fitness-goal.md` §4를 **직접 열어** 8항 각각에 증거를 붙인 대조 표를 보고에 포함. 항목별 증거 없이 "COMPLETE" 선언 금지.
