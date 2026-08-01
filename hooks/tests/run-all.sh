@@ -661,7 +661,7 @@ test_lib "140-redir-fdamp-code"     "evil.py" "$(CMD='echo x >& evil.py' CODE_EX
 test_lib "141-redir-fdamp-num-pass" ""        "$(CMD='ls foo >&2' CODE_EXT_REGEX="$LIBREGEX" node "$LIB/redirect-targets.js")"
 test_lib "142-redir-2to1-pass"      ""        "$(CMD='ls 2>&1' CODE_EXT_REGEX="$LIBREGEX" node "$LIB/redirect-targets.js")"
 # workflow-spawns.js: agent() 스폰당 "<agentType>\t<model>"
-#   model: 리터럴 / 부재·동적 = '-'   ·   agentType: 리터럴 / 키 부재 = '?' / 키 존재·동적 = '*'  (C13 3값 계약)
+#   model: 리터럴 / 키 부재 = '-' / 키 존재·동적 = '*'  (C15 3값 계약)   ·   agentType: 리터럴 / 키 부재 = '?' / 키 존재·동적 = '*'  (C13 3값 계약)
 WS="$LIB/workflow-spawns.js"
 test_lib "171-ws-single-bare"   "$(printf 'execute-strict\t-')" \
   "$(printf "await agent('a', {agentType: 'execute-strict'})" | node "$WS")"
@@ -690,8 +690,28 @@ test_lib "184-ws-regex-paren"   "$(printf 'execute-strict\topus')" \
   "$(printf "agent(\n String(/[)]/),\n {agentType:'execute-strict', model:'opus'}\n)" | node "$WS")"
 test_lib "185-ws-nested-tmpl"   "$(printf 'execute-strict\t-')" \
   "$(printf "agent(\n \`outer \${\`model: 'opus'\`}\`,\n {agentType:'execute-strict'}\n)" | node "$WS")"
-test_lib "186-ws-dynamic-model" "$(printf 'execute-strict\t-')" \
+test_lib "186-ws-dynamic-model" "$(printf 'execute-strict\t*')" \
   "$(printf "agent('p', {agentType:'execute-strict', model:\`\${MODE}\`})" | node "$WS")"
+# C15: model 축 3값 — 동적 선언(키 존재·비-리터럴)은 '-'(키 부재)와 구분해 '*' 로 방출 (spec §14.1)
+test_lib "204-ws-dynamic-model-call" "$(printf 'execute-strict\t*')" \
+  "$(printf "%s" "agent('p', {agentType:'execute-strict', model: chooseModel()})" | node "$WS")"
+test_lib "205-ws-dynamic-model-vs-absent" "$(printf 'general-purpose\t*\ngeneral-purpose\t-')" \
+  "$(printf "agent('a', {agentType:'general-purpose', model: M})\nagent('b', {agentType:'general-purpose'})" | node "$WS")"
+# C15 GPT 교차리뷰 정정 회귀 (X1/X2/X3/X4/X6 — spec §14.5)
+test_lib "206-ws-shorthand-model" "$(printf 'general-purpose\t*')" \
+  "$(printf "%s" "agent('p', {agentType: 'general-purpose', model})" | node "$WS")"
+test_lib "207-ws-shorthand-dup-lww" "$(printf 'execute-strict\t*')" \
+  "$(printf "%s" "agent('p', {agentType: 'execute-strict', model: 'opus', model})" | node "$WS")"
+WS_UKEY=$(mktemp "$SCRATCH/ws-ukey-XXXXXX.js")
+printf 'agent("p", {agentType: "general-purpose", mo\\u0064el: f()})' > "$WS_UKEY"
+test_lib "208-ws-unicode-ident-key" "$(printf 'general-purpose\t*')" "$(node "$WS" < "$WS_UKEY")"
+test_lib "209-ws-computed-key-prefix" "$(printf 'execute-strict\t-')" \
+  "$(printf "agent('p', {agentType: 'execute-strict', ['model' + 'X']: 'opus'})" | node "$WS")"
+WS_TMPLPROP=$(mktemp "$SCRATCH/ws-tmplprop-XXXXXX.js")
+printf 'agent("p", {label: `t-${x}`, agentType: "general-purpose", model: f()})' > "$WS_TMPLPROP"
+test_lib "210-ws-tmpl-prop-before" "$(printf 'general-purpose\t*')" "$(node "$WS" < "$WS_TMPLPROP")"
+test_lib "211-ws-grouped-literal-model" "$(printf 'execute-strict\tfable')" \
+  "$(printf "agent('p', {agentType: 'execute-strict', model: ('fable')})" | node "$WS")"
 test_lib "187-ws-firstarg-obj"  "$(printf 'execute-strict\t-')" \
   "$(printf "agent(\n makePrompt({model:'opus'}),\n {agentType:'execute-strict'}\n)" | node "$WS")"
 test_lib "188-ws-nested-prop"   "$(printf 'review-strict\topus')" \
@@ -793,6 +813,27 @@ test_ssa_multi() {
   [ "$actual" = "0" ] && PASSED=$((PASSED+1)) || FAILED_LIST+=("session-start-audit/06-multiple-markers (got=$actual)")
 }
 test_ssa_multi
+
+# C15-E (spec §14.3): active plan 존재 시 stdout [resume] 1줄 (SessionStart stdout→컨텍스트 채널), 부재 시 무출력
+# HOME override 금지 — session-start-audit.sh:2 가 $HOME/.claude/hooks/_common.sh 를 source 하므로 override 시
+#   resolve_cwd 미정의 → CWD="" → plan 블록 미진입(픽스처 구조적 GREEN 불가). stdin cwd 전달 + 실 HOME 은
+#   test_ssa_mark 선례와 동형이며, 실 HOME 의 audit/메모리/plugin 블록은 전부 stderr 라 stdout 단언을 오염하지 않는다.
+test_ssa_resume() {
+  local name="$1"; local expect="$2"; local plan_body="$3"; local src="${4:-}"
+  TOTAL=$((TOTAL+1))
+  local D="$SCRATCH/ssa-resume-$name"; mkdir -p "$D/docs/superpowers/plans"
+  [ -n "$plan_body" ] && printf '%s\n' "$plan_body" > "$D/docs/superpowers/plans/p.md"
+  local out rc
+  out=$(printf '{"cwd":"%s","session_id":"ssa-res-%s"%s}' "$D" "$$" "${src:+,\"source\":\"$src\"}" | bash "$HOOKS/session-start-audit.sh" 2>/dev/null); rc=$?
+  local ok=0
+  if [ "$expect" = "EMPTY" ]; then { [ -z "$out" ] && [ "$rc" = "0" ]; } && ok=1
+  else { printf '%s' "$out" | grep -qE "$expect" && [ "$rc" = "0" ]; } && ok=1; fi
+  [ "$ok" = "1" ] && PASSED=$((PASSED+1)) || FAILED_LIST+=("session-start-audit/$name (rc=$rc out=${out:0:60})")
+}
+test_ssa_resume "08-resume-active-plan" '^\[resume\] active plan: p\.md \(미체크 1\)' $'**Status:** active\n- [ ] Task 1\n- [x] Task 0'
+test_ssa_resume "09-resume-no-active" EMPTY $'**Status:** completed\n- [x] Task 1'
+# C15 GPT 정정(X13): 같은 세션의 compact SessionStart 는 [resume] 억제 — source 게이트
+test_ssa_resume "10-resume-compact-suppressed" EMPTY $'**Status:** active\n- [ ] Task 1' compact
 
 # 19-windows-backslash: Windows path with backslashes inside .claude -> whitelisted via normalize_path
 test_erc "19-windows-backslash" 0 "$(FILE='C:\Users\foo\.claude\bar.sh' OLD='x' NEW='y' CWD='C:\Users\foo\.claude' node -e '
@@ -1183,6 +1224,28 @@ test_smp "35-rule-c-ternary-masking-e2e" 0 1 "$(mk_wf_event script "$WF_TERNARY"
 WF_EXPL_INHERIT="export const meta = {name: 'x', description: 'x'}
 await agent('research', {agentType: 'general-purpose', model: 'inherit'})"
 test_smp "36-rule-c3-explicit-inherit" 0 1 "$(mk_wf_event script "$WF_EXPL_INHERIT" "$SMP_FABLE_T" "smp36-$$")"
+# C15 (37): 동적 model 선언(execute-strict) — 선언은 존재·값만 런타임 → Rule C 면제 (spec §14.1 매트릭스)
+WF_DYN_MODEL="export const meta = {name: 'x', description: 'x'}
+await agent('impl', {agentType: 'execute-strict', model: pickModel()})"
+test_smp "37-rule-c-dynamic-model-exempt" 0 0 "$(mk_wf_event script "$WF_DYN_MODEL" "$SMP_FABLE_T" "smp37-$$")"
+# C15 (38): 동적 model 검증자 — floor 미달 단언 불가 → Rule C2 면제 (tier 0 오평가 방지, spec §14.1)
+WF_DYN_REVIEW="export const meta = {name: 'x', description: 'x'}
+await agent('impl', {agentType: 'execute-strict', model: 'opus'})
+await agent('verify', {agentType: 'review-strict', model: chooseVerifier()})"
+test_smp "38-rule-c2-dynamic-model-exempt" 0 0 "$(mk_wf_event script "$WF_DYN_REVIEW" "$SMP_SONNET_T" "smp38-$$")"
+# C15 (39): 동적 model fan-out — "무선언"이 아니므로 Rule C3 면제 (파서가 '*' 로 방출, C3 는 '-'/'inherit' 만 매치)
+WF_DYN_FANOUT="export const meta = {name: 'x', description: 'x'}
+await agent('research', {agentType: 'general-purpose', model: modelFor(i)})"
+test_smp "39-rule-c3-dynamic-model-exempt" 0 0 "$(mk_wf_event script "$WF_DYN_FANOUT" "$SMP_FABLE_T" "smp39-$$")"
+# C15 GPT 정정(X8): C3 hedge 내용 봉인 — additionalContext 존재만 보던 픽스처는 hedge 원복을 못 잡는다
+test_smp_hedge() {
+  TOTAL=$((TOTAL+1))
+  rm -f /tmp/model-policy-c3-smp40-* 2>/dev/null
+  local out; out=$(printf '%s' "$1" | "$HOOKS/surface-model-policy.sh" 2>/dev/null)
+  if printf '%s' "$out" | grep -q '자체 바인딩'; then PASSED=$((PASSED+1))
+  else FAILED_LIST+=("surface-model-policy/40-c3-hedge-content"); fi
+}
+test_smp_hedge "$(mk_wf_event script "$WF_BUILTIN" "$SMP_FABLE_T" "smp40-$$")"
 
 # ==================== Summary ====================
 echo

@@ -3,7 +3,8 @@
 // 입력: stdin = 스크립트 전문. 출력: 스폰당 1행 "<agentType>\t<model>".
 //   agentType: 리터럴 값 / 키 부재='?' / 키는 있으나 비-리터럴='*'  (C13 GPT 교차리뷰 [C]4 — '?' 가
 //              "부재"와 "동적"을 뭉뚱그리면 Rule C3(상속 단언)이 거짓 안내가 된다)
-//   model:     리터럴 값 / 부재·비-리터럴='-' (동적 값은 정적으로 알 수 없으므로 **미선언 취급** = 안전 방향)
+//   model:     리터럴 값 / 키 부재='-' / 키는 있으나 비-리터럴='*'  (C15 3값 — 동적 선언을 "무선언"과
+//              구분한다. 종전 2값은 Rule C3 가 model:f() 를 "선언하지 않음"이라 오탐하는 원인이었다)
 // 존재 이유 (spec §12.3): bash ERE 는 스크립트 전역 boolean OR 로만 판정 가능해
 //   "준수 스폰 1개가 나머지 무선언 스폰을 침묵시키는" 마스킹이 구조적으로 발생한다(실물 E2E 확정).
 //   per-call 파싱을 node 로 분리해 탐지 입도를 스폰 단위로 올린다.
@@ -22,8 +23,10 @@
 //
 // 한계 (정직 공개 — §10/§12.3 유지):
 //   · **동적 조립** ('execute'+'-strict', MODELS[i], f.model ?? 'sonnet')은 값이 단일 리터럴이 아니므로
-//     agentType='*' / model='-' 로 보고된다(미탐이 아니라 "정적으로 알 수 없음"의 안전 방향 보고).
+//     agentType='*' / model='*' 로 보고된다(동적 표기 — C15).
 //   · opts 를 변수로 넘기면(agent('p', OPTS)) 깊이 0 에 '{' 가 없어 키 부재로 보인다 → '?'/'-'.
+//     단 **혼합 삼항**(c ? {리터럴} : OPTS)에선 리터럴 후보가 존재해 변수 분기 행 자체가 방출되지
+//     않는다(후보-0 폴백 미발동; 탐지 시 컴플라이언트 삼항·첫-인자 삼항에 오탐을 열어 미채택 — spec §14.5).
 //     스프레드(...base)로 들어온 키도 마찬가지로 부재 취급.
 //   · **인자 경계를 나누지 않는다**(C14 정직 공개): 깊이 0 의 '{...}' 를 **전부** opts 후보로 보고
 //     각각을 1스폰으로 방출한다. 삼항 opts 의 모든 분기가 관측되는 대신, 첫 인자가 객체 리터럴이면
@@ -133,7 +136,7 @@ function lex(text) {
     // 코드
     if (ch === "{") top.d++;
     else if (ch === "}") {
-      if (top.d === 0 && top.fromTmpl) { stack.pop(); i++; continue; }
+      if (top.d === 0 && top.fromTmpl) { mask[i] = " "; stack.pop(); i++; continue; }
       top.d--;
     }
     if (!/\s/.test(ch)) {
@@ -169,7 +172,7 @@ function scan(text) {
       const at = props.agentType, mo = props.model;
       out.push({
         agentType: at === undefined ? "?" : at === null ? "*" : at,
-        model: mo === undefined || mo === null ? "-" : mo,
+        model: mo === undefined ? "-" : mo === null ? "*" : mo,
       });
     }
   }
@@ -223,6 +226,14 @@ function parseProps(mask, strings, s, e) {
     if (colon !== -1) {
       const key = readKey(mask, strings, segStart, colon);
       if (key === "agentType" || key === "model") props[key] = readValue(mask, strings, colon + 1, end);
+    } else {
+      // C15 GPT 정정(X1): shorthand {model}/{agentType} — 키 존재·값=동일명 변수 = 동적('*').
+      // 종전엔 콜론-세그먼트만 기록해 '-'(키 부재)로 붕괴했고, 중복 키 LWW도 깨졌다(model:'opus', model → stale opus).
+      let ss = segStart, ee = end;
+      while (ss < ee && /\s/.test(mask[ss])) ss++;
+      while (ee > ss && /\s/.test(mask[ee - 1])) ee--;
+      const word = mask.slice(ss, ee);
+      if (word === "agentType" || word === "model") props[word] = null;
     }
     segStart = end + 1; colon = -1;
   };
@@ -245,11 +256,16 @@ function readKey(mask, strings, a, b) {
   if (mask[s] === "[" && mask[e - 1] === "]") {
     let t = s + 1; while (t < e && /\s/.test(mask[t])) t++;
     const span = strings.get(t);
-    return span && !span.dynamic ? decode(strings, t) : null;
+    if (!span || span.dynamic) return null;
+    // C15 GPT 정정(X4): 리터럴이 bracket 내용 전체를 소진하는지 검증 — ['model'+'X'] 를 'model' 로 오해소해 날조 행을 만들던 결함
+    let u = span.end + 1; while (u < e - 1 && /\s/.test(mask[u])) u++;
+    return u === e - 1 ? decode(strings, t) : null;
   }
   const span = strings.get(s);
   if (span) return span.end === e - 1 && !span.dynamic ? decode(strings, s) : null;
-  return mask.slice(s, e);
+  const raw = mask.slice(s, e);
+  // C15 GPT 정정(X2): 식별자 이스케이프(mo\u0064el == model) 디코드 — 문자열 키는 이미 디코드하면서 식별자 키만 raw 였다
+  return raw.indexOf("\\") === -1 ? raw : raw.replace(/\\u\{([0-9a-fA-F]{1,6})\}|\\u([0-9a-fA-F]{4})/g, (_m, u1, u2) => safeChar(parseInt(u1 || u2, 16)));
 }
 
 // value: 트림한 범위가 정확히 하나의 (비-동적) 문자열 리터럴일 때만 정적
@@ -257,6 +273,12 @@ function readValue(mask, strings, a, b) {
   let s = a, e = b;
   while (s < e && /\s/.test(mask[s])) s++;
   while (e > s && /\s/.test(mask[e - 1])) e--;
+  // C15 GPT 정정(X6): 그룹핑 괄호 unwrap — ('fable') 은 정적 확정 리터럴이다. '*' 과분류는 Rule C/C2/C3 실위반을 침묵시켰다(ALERT→SILENT 회귀)
+  while (mask[s] === "(" && matchPair(mask, s, "(", ")") === e - 1) {
+    s++; e--;
+    while (s < e && /\s/.test(mask[s])) s++;
+    while (e > s && /\s/.test(mask[e - 1])) e--;
+  }
   const span = strings.get(s);
   if (!span || span.end !== e - 1 || span.dynamic) return null;
   return decode(strings, s);

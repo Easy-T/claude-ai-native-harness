@@ -35,9 +35,11 @@ if [ -n "$CWD" ] && [ -d "$CWD/.claude/worktrees" ]; then
   sweep_orphan_worktrees "$CWD"
 fi
 
-if [ -n "$CWD" ] && [ -d "$CWD/docs/superpowers/plans" ]; then
+PLAN_ROOT=""
+[ -n "$CWD" ] && PLAN_ROOT=$(resolve_project_root "$CWD")
+if [ -n "$PLAN_ROOT" ] && [ -d "$PLAN_ROOT/docs/superpowers/plans" ]; then
   ACT_N=0; ACT_NAMES=""
-  for p in "$CWD/docs/superpowers/plans"/*.md; do
+  for p in "$PLAN_ROOT/docs/superpowers/plans"/*.md; do
     [ -f "$p" ] || continue
     case "$(plan_status "$p")" in
       active|in_progress) ACT_N=$((ACT_N+1)); ACT_NAMES="$ACT_NAMES $(basename "$p")" ;;
@@ -49,6 +51,18 @@ if [ -n "$CWD" ] && [ -d "$CWD/docs/superpowers/plans" ]; then
     echo "[plan] active plan: 1 —$ACT_NAMES" >&2
   else
     echo "[plan] active plan: 0" >&2
+  fi
+
+  # C15-E (spec §14.3, GPT 정정 X10/X12/X13): 재개 신호를 모델 컨텍스트에 주입 — SessionStart stdout 채널.
+  # source 게이트: startup(새 CLI 기동)만 — clear/compact/resume 은 같은 세션의 연속이라 "이전 세션 중단" 전제가 거짓(X13).
+  # source 부재(구 CC)는 fail-open 으로 방출. 카운트는 메시지가 지목한 첫 plan 만(X10 — 집계 오귀속 방지).
+  SSA_SRC=$(echo "$INPUT" | json_get 'source')
+  if (( ACT_N >= 1 )) && { [ -z "$SSA_SRC" ] || [ "$SSA_SRC" = "startup" ]; }; then
+    FIRST_PLAN=$(printf '%s' "$ACT_NAMES" | awk '{print $1}')
+    FP="$PLAN_ROOT/docs/superpowers/plans/$FIRST_PLAN"
+    N=$(grep -cE '^[[:space:]]*[-*] \[ \]' "$FP" 2>/dev/null || true)   # X12: 들여쓰기·* 불릿 포함(펜스 내 예시 과계수는 수용 잔여)
+    EXTRA=""; [ "$ACT_N" -gt 1 ] && EXTRA=" 외 $((ACT_N-1))개 활성 plan"
+    echo "[resume] active plan: $FIRST_PLAN (미체크 ${N:-0})$EXTRA — 이전 세션 중단 작업일 수 있음. plan 을 열어 재개 여부를 판단하십시오. (advisory — 자동 재실행 아님)"
   fi
 fi
 
