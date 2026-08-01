@@ -1065,6 +1065,8 @@ SMP_SONNET_T=$(mktemp "$SCRATCH/smp-sonnet-XXXXXX.jsonl")
 printf '{"type":"assistant","message":{"model":"claude-sonnet-5","content":[]}}\n' > "$SMP_SONNET_T"
 SMP_OPUS_T=$(mktemp "$SCRATCH/smp-opus-XXXXXX.jsonl")
 printf '{"type":"assistant","message":{"model":"claude-opus-5","content":[]}}\n' > "$SMP_OPUS_T"
+SMP_HAIKU_T=$(mktemp "$SCRATCH/smp-haiku-XXXXXX.jsonl")
+printf '{"type":"assistant","message":{"model":"claude-haiku-4-5","content":[]}}\n' > "$SMP_HAIKU_T"
 SMP_QUOTE_T=$(mktemp "$SCRATCH/smp-quote-XXXXXX.jsonl")
 printf '{"type":"assistant","message":{"model":"claude-fable-5","content":[{"type":"text","text":"claude-opus-5[1m] 언급 텍스트"}]}}\n' > "$SMP_QUOTE_T"
 
@@ -1252,6 +1254,13 @@ WF_MIXED_EXEC="await agent('a', {agentType: 'execute-strict'})
 await agent('b', {agentType: 'execute-strict', model: 'sonnet'})
 await agent('v', {agentType: 'review-strict', model: 'sonnet'})"
 test_smp "43-rule-c2-mixed-inherit-exec" 0 1 "$(mk_wf_event script "$WF_MIXED_EXEC" "$SMP_OPUS_T" "smp43-$$")"
+# C16 §15.1: canonical carrier 실물 4세션 E2E — stage2 model:'opus' 명시 후 전 세션 무발화
+# (구 carrier: sonnet/haiku 세션 ALERT — §12.1 표의 위반 칸이 §15.1 로 소멸함을 실물로 봉인. 슬롯1 S12)
+WF_CANON="$(cat "$HOME/.claude/workflows/rpi-implement.js")"
+test_smp "44-canonical-fable-silent" 0 0 "$(mk_wf_event script "$WF_CANON" "$SMP_FABLE_T" "smp44-$$")"
+test_smp "45-canonical-opus-silent" 0 0 "$(mk_wf_event script "$WF_CANON" "$SMP_OPUS_T" "smp45-$$")"
+test_smp "46-canonical-sonnet-silent" 0 0 "$(mk_wf_event script "$WF_CANON" "$SMP_SONNET_T" "smp46-$$")"
+test_smp "47-canonical-haiku-silent" 0 0 "$(mk_wf_event script "$WF_CANON" "$SMP_HAIKU_T" "smp47-$$")"
 # C15 GPT 정정(X8): C3 hedge 내용 봉인 — additionalContext 존재만 보던 픽스처는 hedge 원복을 못 잡는다
 test_smp_hedge() {
   TOTAL=$((TOTAL+1))

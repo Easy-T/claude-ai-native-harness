@@ -279,3 +279,7 @@ surface-model-policy	40-c3-hedge-content	0	test_smp_hedge
 surface-model-policy	41-rule-c2-worker-floor-ok	0	mk_wf_event
 surface-model-policy	42-rule-c2-worker-floor-sonnet	0	mk_wf_event
 surface-model-policy	43-rule-c2-mixed-inherit-exec	0	mk_wf_event
+surface-model-policy	44-canonical-fable-silent	0	mk_wf_event
+surface-model-policy	45-canonical-opus-silent	0	mk_wf_event
+surface-model-policy	46-canonical-sonnet-silent	0	mk_wf_event
+surface-model-policy	47-canonical-haiku-silent	0	mk_wf_event

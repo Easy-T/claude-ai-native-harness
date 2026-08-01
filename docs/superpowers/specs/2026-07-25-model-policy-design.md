@@ -102,10 +102,10 @@ CC 2.1.220, Windows/MSYS, CLIProxy 라우팅(haiku 티어=gpt-5.6-luna) 환경 �
 | 구현 (heavy: 코드/TDD/다파일) | execute-strict | **opus** (fable 세션 한정 호출 인자 명시 — 비-fable 세션은 모드 C 상속) | ultracode: **xhigh** / 비-ultracode: 상속 | 사용자 확정 "구현은 opus"+effort 품질-우선(§0) |
 | 구현 (light: 기계적 편집/문서 생성) | execute-strict | **opus** (동일 — sonnet 구현은 선언적 override만) | ultracode: **high** / 비-ultracode: 상속 | 동상. per-task `effort` 명시(max 포함)=선언적 override |
 | 탐색 (읽기 전용 발견·전수조사) | explore-strict | **sonnet** (frontmatter 기본) | **medium** (frontmatter 기본) | 기계적 스코프 탐색 — model 상향은 호출 인자로 허용. effort는 frontmatter 고정(§1.5 제약)이므로 **판단-heavy 탐색은 explore-strict가 아니라 builtin Explore(상속 — 단 CC가 Opus 상한을 걸 수 있어 fable 세션은 fable 미보장, GPT 리뷰 지적) 또는 메인 직접**이 탈출구 |
-| 검증 (게이트/드리프트/적대) | review-strict | **상속** (하향 금지 — 상향 명시는 허용) | **상속** (하향 금지) | ⚠**§12.1이 supersede**(2026-07-27): 기준선은 세션 단독이 아니라 `max(세션, 작업자)`. 아래 원문은 C11 시점 기록. 검증자 티어 ≥ **세션**(오케스트레이터) 보장. 실행자를 세션 위로 상향한 경우(예: sonnet 세션+opus 실행)는 검증자<실행자 잔여 — 그때는 검증자도 동반 상향 권고(L1, hook 미검출 수용) |
+| 검증 (게이트/드리프트/적대) | review-strict | **상속** (하향 금지 — 상향 명시는 허용) | **상속** (하향 금지) | ⚠**§12.1→§15.1이 supersede**(현행: 임무-분리 — 준수-확인=작업자 티어/판단-게이트=max(세션,작업자))(2026-07-27): 기준선은 세션 단독이 아니라 `max(세션, 작업자)`. 아래 원문은 C11 시점 기록. 검증자 티어 ≥ **세션**(오케스트레이터) 보장. 실행자를 세션 위로 상향한 경우(예: sonnet 세션+opus 실행)는 검증자<실행자 잔여 — 그때는 검증자도 동반 상향 권고(L1, hook 미검출 수용) |
 | 교차 검증 (고-스테이크 closeout) | GPT (codex CLI/CCS) | 기존 규약 | — | cross-family-review.md 소비, 신설 금지 |
 
-- **상향은 항상 허용**(사유 불요), **하향은 검증자에 한해 금지**(⚠**§12.1이 supersede**: 기준선은 세션 단독이 아니라 `max(세션, 작업자)`)·실행자는 이 표 자체가 선언이다.
+- **상향은 항상 허용**(사유 불요), **하향은 검증자에 한해 금지**(⚠**§12.1→§15.1이 supersede**(현행: 임무-분리 — 준수-확인=작업자 티어/판단-게이트=max(세션,작업자)): 기준선은 세션 단독이 아니라 `max(세션, 작업자)`)·실행자는 이 표 자체가 선언이다.
   표 밖 하향(예: 구현을 haiku로)은 DOWNGRADE-DECLARED 동형 선언 필요 — hook Rule A는 부재/fable만
   감지하므로 haiku 명시 등은 L2 미검출(수용 잔여, L1이 담당; "검증자 금지"와 hook 메시지의
   DOWNGRADE-DECLARED 언급은 모순 아님 — 금지의 유일 탈출구가 그 선언+사용자 승인이다).
@@ -423,7 +423,7 @@ C11 이래의 일관 패턴이며 이번에도 예외가 아니다.
 advisory hook의 복잡도 상한을 넘음 → **L1 몫으로 명기하는 수용 잔여**.
 
 **★canonical 캐리어의 floor 적용 범위 (Gate R 2패스 확정, 2026-07-27)**:
-`workflows/rpi-implement.js`는 stage1을 `model:'opus'`(:42)로 고정하고 stage2는 무지정(:57, 상속)이다.
+`workflows/rpi-implement.js`는 stage1을 `model:'opus'`(:41)로 고정하고 stage2는 무지정(:56, 상속)이다.
 세션별 tier 계산(fable=4·opus=3·sonnet=2·haiku=1, floor=`max(세션, 실행자=3)`):
 
 | 세션 | stage1 | stage2(상속) | floor | 판정 |
@@ -449,14 +449,16 @@ advisory hook의 복잡도 상한을 넘음 → **L1 몫으로 명기하는 수�
 대신 ①캐리어가 **선언 모드(A) 전용임을 문서·주석에 명시**하고 ②모드 밖(sonnet/haiku 세션) 사용 시 floor
 위반이 발생함을 **수용 잔여로 정직 공개**한다.
 **★탈출구 부재 (Gate R 3패스 정정)**: 초안은 "호출자가 stage2 상향을 명시"를 탈출구로 적었으나 **실물에 그
-파라미터가 없다** — `workflows/rpi-implement.js`의 stage2 opts(:56-60)는 `{agentType,label,phase}` 하드코딩이고
-args 스키마(:25-35)는 `title/promptVerbatim/files/successCriteria/heavy/effort?`만 받는다. 캐리어를 버리고
+파라미터가 없다** — `workflows/rpi-implement.js`의 stage2 opts(:55-60)는 `{agentType,label,phase}` 하드코딩이고
+args 스키마(:24-34)는 `title/promptVerbatim/files/successCriteria/heavy/effort?`만 받는다. 캐리어를 버리고
 인라인 스크립트를 쓰는 건 "canonical이 1차 방어"(§10) 전제를 무너뜨리므로 탈출구로 부적격.
 
 > **행 인용 갱신 (C14, 2026-07-28)**: 위 `:42`/`:57`/`:56-60`/`:25-35` 및 §12.4 의 `:126-162` 는 C13 이
 > 캐리어·hook 앞부분에 코드를 삽입하면서 밀려난 값을 실측 재대조한 것이다(직전 기록은 `:38`/`:53`/
 > `:52-56`/`:24-31`/`:105-114`). 이 절의 행 인용은 load-bearing(탈출구 부재 논증의 근거)이므로
 > **캐리어·hook 편집 시 동반 갱신 대상**이다.
+> **C16 재실측 (2026-08-02)**: stage2 `model:'opus'` 명시(§15.1)로 캐리어 주석·본문이 재편돼 위 인용을
+> `:41`/`:56`/`:55-60`/`:24-34` 로 갱신(직전 C14 값 `:42`/`:57`/`:56-60`/`:25-35`).
 → **현 상태의 정직한 서술 = "모드 밖 사용 시 탈출구 없음"**. Phase P가 옵셔널 `verifyModel` args 추가를
 task로 판단하되, 채택 시 **fable 세션에서 리터럴이 Rule C2 자기고발을 유발**하므로(2패스 오답 ②와 동형)
 "floor 미달일 때만 삽입"하는 조건부 로직이 필수다.
