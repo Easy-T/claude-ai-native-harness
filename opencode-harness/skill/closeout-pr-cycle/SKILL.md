@@ -140,7 +140,7 @@ review-strict 결과를 사용자에게 구조화해서 전달:
 **교차패밀리 리뷰 분기 (GAP-006 규약 — `docs/ai-context/cross-family-review.md`가 SSOT)**:
 senior review 후, 고-스테이크 사이클(하네스 거버넌스 변경·루브릭 재채점·spec 변경)이면 교차패밀리(GPT) 적대 리뷰를 시도한다:
 1. **probe**: runbook §1 순서(A: `command -v codex`+`codex login status` → B: `claude --model <gpt-모델> -p --output-format json`의 `modelUsage`에 `gpt-*`). 설치/로그인 시도 절대 금지.
-2. **가용 시**: runbook §2 프로토콜로 **사이클당 1회** 실행(stdin 파이프·read-only·refute-by-default·원문 인용 강제) → 발견은 **메인 세션이 원문 실측 대조 후 REAL/기각 트리아지**(그대로 편입 금지) → REAL 발견은 Critical/Important 목록에 병합.
+2. **가용 시**: runbook §2 프로토콜로 **슬롯 2**(Closeout, 코드 diff — 사이클당 2슬롯 상한의 둘째; 슬롯 1은 Gate P 직후 spec delta+plan 대상, cross-family-review.md §2) 실행(stdin 파이프·read-only·refute-by-default·원문 인용 강제) → 발견은 **메인 세션이 원문 실측 대조 후 REAL/기각 트리아지**(그대로 편입 금지) → REAL 발견은 Critical/Important 목록에 병합.
 3. **불가 시**: SKIP + 사유 1줄 기록(비차단 — advisory fail-open).
 
 # Phase 5 — User Approval Gate

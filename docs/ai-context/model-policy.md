@@ -17,7 +17,7 @@
 | 구현 light (기계적 편집·문서 생성) | execute-strict | **opus** (동일) | ultracode: **high** (실행 모델 기본 effort — *기본 분기*는 이 밑으로 불가) / 그 외: 상속 | sonnet 구현·effort 변경(max 포함 양방향)은 per-task 선언적 override만 — 명시=선언, 하향 선언은 plan의 DOWNGRADE-DECLARED 규율 |
 | 탐색 (읽기 전용 발견·전수조사·**웹 근거 조달**) | explore-strict | **sonnet** (frontmatter 기본) | **xhigh** (frontmatter 기본 — C13) | `WebSearch`+`WebFetch` 보유(웹 근거는 이 경로로 — 규약 밖 builtin 사용 금지). model 상향은 호출 인자로 자유. WebSearch는 세션당 200회를 전 서브에이전트가 공유 |
 | 검증 (게이트·드리프트·적대) | review-strict | **상속 — 기준선 미만 금지** (상향 명시는 허용) | **상속 — 하향 금지** | 검증자 기준선 = **임무-분리**(C16, spec §15.1): **준수-확인**(Workflow 경로·Rule C2) = **작업자 티어**(상속·동적 실행자는 세션 티어로 평가, 실행자 전무 시 세션 폴백) / **판단-게이트**(Agent 경로·Rule B) = **`max(세션 티어, 작업자 티어)` 유지**. 하한: 어떤 임무에서도 검증자 < 작업자 금지. Workflow stage2는 `model:'opus'` 명시(작업자 티어)가 새 기본 — 무지정(상속)도 fable/opus 세션에선 여전히 충족 |
-| 교차 검증 (고-스테이크 closeout) | GPT | cross-family-review.md 규약 그대로 | — | 사이클당 1회 quota — stage별 GPT 검증 기각 |
+| 교차 검증 (고-스테이크 closeout) | GPT | cross-family-review.md 규약 그대로 | — | 슬롯 2회(C16 §15.5) quota — stage별 GPT 검증 기각 |
 
 - **상향은 항상 허용**(사유 불요). **하향**: 검증자는 **기준선(임무-분리 — 준수-확인=작업자 티어 / 판단-게이트=`max(세션, 작업자)`, spec §15.1) 미만 금지**(유일 탈출구 = DOWNGRADE-DECLARED(사유)+사용자 승인) / 실행자·탐색자는 이 표 자체가 선언 — 표 밖 하향(예: 구현을 haiku로)은 DOWNGRADE-DECLARED(사유) 필요. hook(L2) Rule A는 부재/`inherit`/`fable`/`claude-fable-*` 표기를 감지 — 변수 조립 등 그 외 표기·builtin 에이전트는 L1/L3 몫(수용 잔여).
 - GPT quota 주의: 일상 경량 Claude 작업에 luna 남발 금지 — 경량은 sonnet 우선.

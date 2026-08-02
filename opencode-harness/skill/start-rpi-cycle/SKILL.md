@@ -191,7 +191,7 @@ closeout-pr-cycle 결과를 받아:
      - finishing-a-development-branch 산출물(브랜치/PR)이 존재 시 일관성 (선택)
    ".
 
-   ※ 고-스테이크 사이클(하네스 거버넌스·루브릭 재채점·spec 변경)은 교차패밀리(GPT) 적대 리뷰 옵션 — 탐지·프로토콜·트리아지는 `docs/ai-context/cross-family-review.md`(GAP-006 규약, 가용 시 사이클당 1회·불가 시 SKIP+사유).
+   ※ 고-스테이크 사이클(하네스 거버넌스·루브릭 재채점·spec 변경)은 교차패밀리(GPT) 적대 리뷰 옵션 — 탐지·프로토콜·트리아지는 `docs/ai-context/cross-family-review.md`(GAP-006+C16 §15.5 2-슬롯 규약 — 슬롯 1: Gate P 직후 spec delta+plan / 슬롯 2: Closeout 코드 diff. 가용 시 슬롯당 1회·불가 시 SKIP+사유).
 
 2. plan 헤더 갱신: **Status:** active → completed (또는 abandoned 시 abandoned) (메인이 직접 Edit)
 

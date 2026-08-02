@@ -54,7 +54,7 @@
 | 구현 (execute-strict) | **opus** | ultracode: heavy `xhigh` / light `high` |
 | 탐색 (explore-strict) | **sonnet** (frontmatter 기본) | **xhigh** + WebSearch/WebFetch |
 | 검증 (review-strict) | **상속** — 기준선(임무-분리, spec §15.1: 준수-확인=작업자 티어 / 판단-게이트=`max(세션 티어, 작업자 티어)` 유지) 미만 금지 | 상속 |
-| 교차 검증 (고-스테이크 closeout) | GPT (`cross-family-review.md` 규약) | 사이클당 1회 |
+| 교차 검증 (고-스테이크: Gate P 직후 + closeout) | GPT (`cross-family-review.md` 규약) | 사이클당 2슬롯(슬롯당 1회) |
 
 강제는 3층: **L1** 문서(이 표 + `start-rpi-cycle` skill) · **L2** hook `surface-model-policy`(advisory 환기, 차단 아님) · **L3** verify-setup seal #45(토큰 존재 봉인). 상향은 항상 허용, 하향은 검증자에 한해 `DOWNGRADE-DECLARED(사유)`가 유일 탈출구.
 
@@ -297,7 +297,7 @@ bash ~/.claude/setup/doctor.sh
 ├── setup/
 │   ├── doctor.sh                         환경 진단·치료
 │   ├── install.sh                        하네스 설치 스크립트
-│   ├── verify-setup.sh                   §6.3 file/structure 체크 (현재 86 PASS)
+│   ├── verify-setup.sh                   §6.3 file/structure 체크 (현재 87 PASS)
 │   ├── verify-integration.sh             §6.5 8개 E2E 시나리오
 │   ├── verify-all.sh                     4 stage acceptance gate
 │   └── tests/doctor.test.sh

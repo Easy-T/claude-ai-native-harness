@@ -69,6 +69,8 @@ C. Agent(subagent_type="explore-strict",
           - CONTEXT.md 갱신됨 또는 신규 용어 없음(no-op) 명시
           FAIL with: 누락 용어·미반영 결정·spec 부재 목록")
    FAIL 시: spec 역류/CONTEXT.md 보강 후 재실행 (또는 사용자가 \"Gate R override: <이유>\" 명시)
+   ※ 델타 재심 (C16 spec §15.4): 재실행 review-strict 의 success_criteria 는 "직전 FAIL 이 지목한
+     항목 각각의 해소 + 그 정정이 새로 깨뜨린 것 없음"으로 한정 — 전체 기준 재검은 첫 회만.
 2. 신규 도메인 용어 confidence < 80% → 사용자 확인 → domain-glossary.md 메타데이터 추가
 3. 아키텍처 영향 → ADR을 architecture.md(append-only)에 작성 권유
 
@@ -118,7 +120,10 @@ plan 상단 헤더 주입 (writing-plans 표준 헤더 위에):
    - scope creep이 정당하지 않으면 → plan을 spec 범위로 축소
    - R이 발견한 정당한 신규 design이면 → plan을 깎지 말고 durable spec에 in-place 개정 또는 §5 ADR 추가 후 Gate P 재실행
    - 미커버 spec 요구사항 → plan 보강 후 재실행
+   ※ 델타 재심 (C16 spec §15.4): 재실행 review-strict 의 success_criteria 는 "직전 FAIL 이 지목한 항목 각각의 해소 + 그 정정이 새로 깨뜨린 것 없음"으로 한정 — 전체 기준 재검은 첫 회만.
    - override 문구 예시: "Gate P override: <이유>" 명시 시 Phase I 진행 허용
+
+   ※ 고-스테이크 사이클은 Gate P PASS 직후 교차패밀리 슬롯 1(spec delta+plan 적대 리뷰) 시도 — cross-family-review.md §2.
 
 # Phase I — Implement
 
@@ -134,6 +139,8 @@ plan 상단 헤더 주입 (writing-plans 표준 헤더 위에):
       ※ wrapper는 self-spawn 불가 → execute→verify는 반드시 별도 2 스테이지(한 에이전트가 둘 다 못 함).
       ※ **데이터 의존(load-bearing):** stage2(review-strict는 읽기전용)는 stage1이 산출한 변경(diff/수정 파일)을 context_paths로 **반드시 받아** 검증. 순서만 맞고 stage1 산출을 안 먹이면 stale·빈 상태를 검증해 false PASS — pipeline의 prevResult + 수정 파일 경로를 stage2 context_paths에 명시 전달.
       ※ **검증 기준 명시:** stage2에 plan task별 success_criteria를 `PASS only if ALL ...` 형태로 전달(Gate R/P/Closeout과 동형). 빈/모호 기준이면 올바른 diff를 읽고도 vacuous PASS 가능.
+      ※ **델타 재심 (C16 §15.4):** stage2 FAIL 후 재실행 시 successCriteria 를 "FAIL 지목 항목 해소 + 신규 파손 없음"으로
+        좁혀 새 호출로 전달(canonical carrier 코드 무변경 — 프롬프트 규약).
       ※ **TDD-verbatim (cycle-23):** stage1 프롬프트에는 plan task 본문(TDD 5-step 체크박스·코드블록 포함)을
         **verbatim 전달** — 요약·재서술 금지(요약은 RED→GREEN 단계를 증발시킴; plan이 유일한 TDD carrier).
         stage2 success_criteria에 "stage1 보고에 RED 증거(실패 출력)와 GREEN 증거(통과 출력)가 모두 없으면 FAIL" 명시.
@@ -197,7 +204,7 @@ closeout-pr-cycle 결과를 받아:
 
    ※ 위 context_paths 중 **실재하는 것만** 전달(하네스에서는 architecture·domain-glossary 부재가 정상 — spec §13.4).
 
-   ※ 고-스테이크 사이클(하네스 거버넌스·루브릭 재채점·spec 변경)은 교차패밀리(GPT) 적대 리뷰 옵션 — 탐지·프로토콜·트리아지는 `docs/ai-context/cross-family-review.md`(GAP-006 규약, 가용 시 사이클당 1회·불가 시 SKIP+사유).
+   ※ 고-스테이크 사이클(하네스 거버넌스·루브릭 재채점·spec 변경)은 교차패밀리(GPT) 적대 리뷰 옵션 — 탐지·프로토콜·트리아지는 `docs/ai-context/cross-family-review.md`(GAP-006+C16 §15.5 2-슬롯 규약 — 슬롯 1: Gate P 직후 spec delta+plan / 슬롯 2: Closeout 코드 diff. 가용 시 슬롯당 1회·불가 시 SKIP+사유).
 
 2. plan 헤더 갱신: **Status:** active → completed (또는 abandoned 시 abandoned) (메인이 직접 Edit)
 
@@ -250,6 +257,17 @@ closeout-pr-cycle 결과를 받아:
    - 목적: RPI phase 실행(어느 skill을 실제 호출했나)은 plan-FILE proxy로 증명 불가(enforce-rpi-cycle은 plan 존재만 검사) → 보고의 *고유 필수 필드*로 자가-표면. 누락/무사유 skip = 구조적 불완전.
    - 정지점: 자가-표면은 skip을 *눈에 띄는 선언*으로 바꿀 뿐 호출을 물리 강제하진 않음(수락된 advisory 잔여).
 
+9. layer-yield 계량 (Communication Protocol `layer-yield:` 필드로 출력 — C16 spec §15.3):
+   - 이번 사이클 검문 층별 1줄: `<층명>: <상태> · 실발견 <N>건 · <발견|확인>` — `<상태>` ∈ {PASS, FAIL→정정,
+     `k PASS/m FAIL` 집계, SKIP(사유), 실행(비판정 층)}. 층 = Gate R/P·stage2·senior·drift·교차패밀리·기타 실행분.
+     다회 호출 층은 호출 수 병기(`stage2 ×6` — 1호출과 6호출의 발견 0은 다른 증거 강도).
+   - 실발견 = REAL 판정된 내용 결함(정정/수용잔여 처분 무관 — 판정이 기준). 토큰 수치는 세션 아티팩트 가용 시
+     부기(필수 아님 — 최소 계약은 발견 카운트).
+   - 같은 행을 **글로벌 대장** `~/.claude/docs/ai-context/review-yield.md` 에 append(대상-프로젝트 사이클도 —
+     리뷰 배분 재심은 하네스 거버넌스 결정. 3사이클 축적 후 floor·배분 재심이 소비처). append 는 Closeout
+     **최종 커밋**에 포함(말미 층의 행이 실측이 되도록 — spec §15.3 S19).
+   - 누락 = 구조적 불완전 (harness-verify·phase-skills 선례 — seal #49 가 필드 존재를 봉인).
+
 ## Sub-cycle states
 - active / in_progress: 진행 중
 - completed: 완료
@@ -280,3 +298,6 @@ closeout-pr-cycle 결과를 받아:
   · `I: <executing-plans|execute-strict|subagent-driven|workflow(d)>=<…>`
   · `Closeout: review-strict=<…>`
   무사유 skip 또는 필드 생략 = 자가-표면화(silent-skip 불가). ※ hook 물리 강제는 불가(PreToolUse는 Skill 호출 히스토리·skill명 미제공·`/skill` bypass — claude-code-guide 공식 docs) → advisory 상한 수락. [F12]
+- layer-yield: **고유 필수 필드** (모든 사이클). 검문 층별 `<층명>: <상태> · 실발견 <N>건 · <발견|확인>` 1줄씩
+  (상태 enum·호출 수 병기·실발견 정의는 Step C-1 sub-step 9). 동일 행을 글로벌 review-yield.md 대장에 축적.
+  생략 = 구조적 불완전. [C16 spec §15.3]

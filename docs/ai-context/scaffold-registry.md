@@ -47,7 +47,7 @@
 |---|---|---|
 | `rpi-implement.js` | RPIC Phase I (d) canonical 2-stage 파이프라인 — stage1 execute(opus·heavy분기) → stage2 review(opus 명시 — 작업자 티어); 역할×모델 매트릭스의 코드 캐리어 | tri-model C12 (2026-07-26) |
 
-## Drift Seals (verify-setup.sh #17~#48, −#26 소각 = 31)
+## Drift Seals (verify-setup.sh #17~#49, −#26 소각 = 32)
 
 거버넌스 사실의 재드리프트를 막는 특정-인스턴스 봉인(안정 앵커 있는 것만; generalized 프레임워크 아님).
 
@@ -84,6 +84,7 @@
 | #46 | hooks/lib 매니페스트 봉인 (디스크=SSOT, 4-way 대조) | C14 (2026-07-28) |
 | #47 | Rule C3 제외목록 봉인 (agents model 선언 ⊆ hook) | C14 (2026-07-28) |
 | #48 | skill context_paths 조건부 선언 봉인 (스캐폴드 산출물 경로) | C14 (2026-07-28) |
+| #49 | layer-yield 필드 parity + review-yield.md 대장 존재 | **C16 (2026-08-02)** |
 
 ### 거버넌스 문서 (seal이 지키는 대상 — hook/skill 아님)
 
@@ -93,6 +94,7 @@
 | `docs/ai-context/plugin-pins.md` | 플러그인 공급망 핀(cksum) — rug-pull 표면화 | **C7 (GAP-011)**; seal #40·D-SUPPLY-CHAIN |
 | `docs/ai-context/cross-family-review.md` | 교차패밀리 검증 규약(2경로 탐지·트리아지·quota·plugin-cc 기각) — agreement bias 중화 | **C10 (GAP-006)**; seal은 GAP-019 편승 예정 |
 | `docs/ai-context/non-obvious.md` | 하네스 자신의 AI 실패 등록부 + 재현 픽스처 동반 규약(GAP-012) | **C14 (2026-07-28)** |
+| `docs/ai-context/review-yield.md` | per-layer 리뷰 수율 축적 대장 — floor·배분 결정의 데이터 재심 | **C16 (2026-08-02)**; seal #49 |
 
 ※ 검사 항목 1~16(파일/구조/템플릿/hook 실행권한 등)은 seal이 아닌 기본 구조 검증. verify-setup 총 ok/fail 수(81, C9/재감사 시점)는 #8 hook 루프 등이 항목당 다중 발화하므로 검사 번호 수와 다르다. **#38~#44 등재는 2026-07-17 Fable 재감사 C-3 백필** — #37 seal은 hook/skill만 검사하므로 seal/문서 신설은 registry에 수동 등재해야 한다(자동 봉인 확장은 후속 검토).
 

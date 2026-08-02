@@ -527,6 +527,20 @@ else
   fail "skill context_paths 무조건 지시 (C14-J): 선언 누락 —$MISS48. 하네스엔 부재가 정상인 경로이므로 '실재하는 것만 전달' 선언 필요(spec §13.4·§13.8)"
 fi
 
+# 49. layer-yield 필드 parity + 대장 존재 (C16 spec §15.3, #19 동형): Step C-1 절차와 Communication
+#     Protocol 출력 계약이 같은 'layer-yield' 토큰을 갖고, 축적 대장 review-yield.md 가 실재해야.
+#     누락 시 per-layer 수율이 복합 evidence 에 접혀 축적이 죽는다. bash grep only.
+SK49="$HOME/.claude/skills/start-rpi-cycle/SKILL.md"
+C1_49=$(awk '/^## Step C-1/{f=1;next} /^## Sub-cycle states/{f=0} f' "$SK49" 2>/dev/null)
+CP_49=$(awk '/^## Communication Protocol/{f=1} f' "$SK49" 2>/dev/null)
+if printf '%s' "$C1_49" | grep -q 'layer-yield' && printf '%s' "$CP_49" | grep -q 'layer-yield' \
+   && [ -f "$HOME/.claude/docs/ai-context/review-yield.md" ] \
+   && grep -q 'C15' "$HOME/.claude/docs/ai-context/review-yield.md"; then
+  ok "layer-yield 필드 parity + review-yield.md 대장 (C16 §15.3)"
+else
+  fail "layer-yield drift (C16): SKILL.md 양구간 토큰 또는 review-yield.md 대장/C15 행 결손 — spec §15.3"
+fi
+
 # 36. verify-setup 총 체크수 <-> README 선언 parity (GAP-009 M1 봉인, 런타임 자기-카운트):
 #     이 시점까지의 PASS+FAIL+1(이 체크 자신) == README "(현재 N PASS)" 선언. 체크 추가 시 README 미동기가 자동 FAIL.
 EXPECTED_TOTAL=$((PASS + FAIL + 1))
