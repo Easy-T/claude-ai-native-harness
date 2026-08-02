@@ -64,7 +64,9 @@ if [ "$TOOL" = "Workflow" ]; then
     if [ "$SP_TYPE" = "execute-strict" ]; then
       case "$SP_MODEL" in
         -|inherit|'*') SP_T="$WF_TIER" ;;   # C16 S1/S2: 상속=세션 평가(검증자와 동일 규칙)·동적=세션 상계(보수)
-        *)             SP_T=$(tier_of "$SP_MODEL") ;;
+        *)             SP_T=$(tier_of "$SP_MODEL")
+                       # C16 슬롯2 F4: 미지-티어 리터럴(tier_of=0)도 세션 상계 — 판별-불가 실행자가 floor 를 끌어내리지 못함
+                       [ "$SP_T" -gt 0 ] 2>/dev/null || SP_T="$WF_TIER" ;;
       esac
       [ "$SP_T" -gt "$WORKER_TIER" ] 2>/dev/null && WORKER_TIER="$SP_T"
       # Rule C: fable 세션의 실행자가 무선언(-) 또는 inherit/fable 명시 = 하향 미적용

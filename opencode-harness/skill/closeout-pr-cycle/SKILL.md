@@ -95,9 +95,17 @@ CI 실패:
 
 # Phase 4 — Senior Review
 
-review-strict subagent를 `task` 도구로 디스패치 — task: "pre-merge senior maintainer review"; read: `docs/ai-context/runbook.md`, `docs/ai-context/architecture.md`, `docs/ai-context/deny-patterns.md`, `docs/ai-context/non-obvious.md`; success:
+review-strict subagent를 `task` 도구로 디스패치 — task: "pre-merge adversarial senior review — refute-by-default"; read: `docs/ai-context/runbook.md`, `docs/ai-context/architecture.md`, `docs/ai-context/deny-patterns.md`, `docs/ai-context/non-obvious.md`; success:
 
 ```
+임무: 준수 확인이 아니라 결함 발견이다 (C16 spec §15.2 — 내부 적대 패스).
+refute-by-default: 각 검사 범주에서 결함을 찾으려 시도하고, 없으면 범주별 'none found' 명시.
+검사 범주: A 계약 정합성(출력 계약·판정식·소비자 동반) · B 소비 로직(경계·폴백·마스킹)
+· C 픽스처 vacuity(구현 되돌려도 GREEN 인 픽스처) · D 문서-실물 드리프트 · E 무회귀(기존 의미 침묵 변경).
+발견은 파일:행 + 원문 인용 필수 — 인용 없는 발견은 무효.
+발견의 처분: 각 발견을 기존 보고 형식(Critical/Important/Minor)으로 분류해 합류 — PASS/FAIL 판정
+기준(FAIL if any Critical)은 불변.
+
 PASS only if ALL of:
 - local check 통과 증거 있음 (Phase 1 결과 참조)
 - PR description이 실제 diff와 일치
@@ -123,7 +131,7 @@ FAIL if any Critical exists.
 
 ```
 Agent(subagent_type="review-strict",
-      task="pre-merge senior maintainer review",
+      task="pre-merge adversarial senior review — refute-by-default",
       context_paths=[
         "docs/ai-context/runbook.md",
         "docs/ai-context/architecture.md",

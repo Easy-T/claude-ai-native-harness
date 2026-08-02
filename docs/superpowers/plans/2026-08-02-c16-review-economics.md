@@ -16,7 +16,7 @@
 
 - **goal §5 전면 승계**: settings.json git add·값 출력 금지 / seal·드리프트 검사는 bash 파일옵스만 / verify-setup·run-all·seal-regression 최종 게이트는 메인 포그라운드(600s 초과 자동 백그라운드 강등 허용, 완주 확인) / wrapper agent에 schema 금지 / 글로벌 CLAUDE.md 수정 없음 / GPT `service_tier` 복원 금지 / 검증자 < 작업자 금지(§5-12) / 검증 횟수 축소 금지(§5-13)
 - 커밋은 task 종료 시 메인이 그룹 커밋(Workflow 스크립트는 커밋 금지)
-- 기존 259 케이스 무회귀. 신규 케이스는 cases.tsv 등재 + README 카운트 동기(#20/#21). 최종 산술: run-all 259→262(T1)→266(T2) · verify-setup 86→87(#49) · seal-regression 15→16(Mutator 4)
+- 기존 259 케이스 무회귀. 신규 케이스는 cases.tsv 등재 + README 카운트 동기(#20/#21). 최종 산술: run-all 259→262(T1)→266(T2)→267(슬롯2 F4) · verify-setup 86→87(#49) · seal-regression 15→16(Mutator 4)
 - C16-C(블라인드 A/B)는 Phase R에서 실행·판정 완료(7/13 — spec §15.2) — §5-11 순서 의존 충족
 - 교차패밀리 슬롯 1은 Gate P 직후 실행·트리아지 완료(spec §15.7 — REAL 26 정정 반영·수용잔여/기각 11 판정 기록). 슬롯 2는 T9(Closeout).
 
@@ -34,7 +34,7 @@
 **Interfaces:**
 - Produces: Rule C2 신규 판정식 `FLOOR = WORKER_TIER>0 ? WORKER_TIER : WF_TIER` — Task 2(carrier)가 이 hook 하에서 stage2 `model:'opus'`를 명시해도 무발화임에 의존.
 
-- [ ] **Step 1: RED — 신규 픽스처 2개 먼저 추가**
+- [x] **Step 1: RED — 신규 픽스처 2개 먼저 추가**
 
 `hooks/tests/run-all.sh`의 smp 39 블록 뒤에 추가:
 
@@ -76,12 +76,12 @@ surface-model-policy	42-rule-c2-worker-floor-sonnet	0	mk_wf_event
 surface-model-policy	43-rule-c2-mixed-inherit-exec	0	mk_wf_event
 ```
 
-- [ ] **Step 2: RED 확인**
+- [x] **Step 2: RED 확인**
 
 Run: `bash hooks/tests/run-all.sh 2>&1 | tail -12`
 Expected: **요약 라인 기준** FAIL 2건 (41·42 — 구 코드는 fable 세션 floor=4로 ALERT, got 1 vs want 0; 43은 구 코드에서도 ALERT라 이미 GREEN). ※슬롯1 S13: run-all은 pass-rate ≥95%면 exit 0 — RED 판정은 종료코드가 아니라 요약의 `got/want` FAIL 라인으로 한다. 실패 출력 원문 인용.
 
-- [ ] **Step 3: GREEN — hook 개정 (4곳)**
+- [x] **Step 3: GREEN — hook 개정 (4곳)**
 
 `hooks/surface-model-policy.sh` 2패스(:93-107)를 다음으로 교체:
 
@@ -126,12 +126,12 @@ C3 주석 블록(:78-79)의 "…(builtin general-purpose/Explore/ Plan 등 — a
 //     절단되면 완전 침묵(2값 시대엔 동적 행 자체가 ALERT 였음). 수용 잔여(spec §15.2).
 ```
 
-- [ ] **Step 4: GREEN 확인 + 기존 무회귀**
+- [x] **Step 4: GREEN 확인 + 기존 무회귀**
 
 Run: `bash hooks/tests/run-all.sh 2>&1 | tail -8`
 Expected: `262 / 262 passed` (259+3). 특히 smp 14(실행자無+sonnet검증자=ALERT 폴백)·26·27·28(sonnet 세션+opus 실행자=ALERT)·29(fable inherit=SILENT)·03/04(Rule B 불변) 무회귀. 통과 출력 원문 인용.
 
-- [ ] **Step 5: README 카운트 259→262 (2곳 :292·:530) 갱신 + cases.tsv ssa 08/09 col4 정정 (§15.6-5 편승)**
+- [x] **Step 5: README 카운트 259→262 (2곳 :292·:530) 갱신 + cases.tsv ssa 08/09 col4 정정 (§15.6-5 편승)**
 
 `hooks/tests/cases.tsv` :34-35의 col4 `gen_ssa_resume` → `test_ssa_resume` 2행 (col4는 비소비 정보 컬럼 — run-all :1260이 col1/col2만 소비, 기능 무영향. 실제 실행 함수 `test_ssa_resume`와 표기 통일).
 
@@ -146,7 +146,7 @@ Expected: `262 / 262 passed` (259+3). 특히 smp 14(실행자無+sonnet검증자
 - Consumes: Task 1의 신규 Rule C2 (fable 세션에서 stage2 `model:'opus'` 리터럴이 자기고발 ALERT를 내지 않음).
 - Produces: 새 canonical carrier — Task 3~7이 이 carrier로 (d) 경로 실행.
 
-- [ ] **Step 1: RED — canonical 실물 E2E 픽스처 2개 추가**
+- [x] **Step 1: RED — canonical 실물 E2E 픽스처 2개 추가**
 
 ```bash
 # C16 §15.1: canonical carrier 실물 4세션 E2E — stage2 model:'opus' 명시 후 전 세션 무발화
@@ -165,12 +165,12 @@ test_smp "47-canonical-haiku-silent" 0 0 "$(mk_wf_event script "$WF_CANON" "$SMP
 cases.tsv 4행 등재 (`44-canonical-fable-silent`·`45-canonical-opus-silent`·`46-canonical-sonnet-silent`·`47-canonical-haiku-silent`, col4 `mk_wf_event`).
 ※ WF_CANON 은 **실물 파일을 읽는다** — 합성 재현 금지 원칙(cycle-40)의 픽스처판. carrier 를 고치면 픽스처가 자동 추종.
 
-- [ ] **Step 2: RED 확인**
+- [x] **Step 2: RED 확인**
 
 Run: `bash hooks/tests/run-all.sh 2>&1 | tail -12`
 Expected: **요약 라인 기준** 46·47 FAIL (수정 전 carrier = stage2 무지정 → sonnet 상속 2 / haiku 상속 1 < 작업자 3 → ALERT, got 1 vs want 0). 44·45는 이미 PASS(fable 4·opus 3 ≥ 3). 실패 출력 원문 인용. (S13 — 종료코드 아닌 요약 판정.)
 
-- [ ] **Step 3: GREEN — carrier stage2 model 명시 + 주석 동기**
+- [x] **Step 3: GREEN — carrier stage2 model 명시 + 주석 동기**
 
 `workflows/rpi-implement.js` stage2 opts를:
 
@@ -188,14 +188,14 @@ meta detail(:6) `'task별 review-strict (모델 무지정=세션 상속 — 검�
 적용 범위 주석(:20-23)의 "모드 (A) 전용 … sonnet/haiku 세션에서 쓰면 … 탈출구가 없다 … 그 세션에선 이 캐리어를 쓰지 말 것" → "주 사용 모드는 (A) fable+ultracode 이나, stage2=opus(작업자 티어)라 어느 세션에서도 준수-확인 floor 를 충족한다(§12.1 '탈출구 부재' 잔여 소멸 — spec §15.1). 판단-게이트가 아닌 준수-확인 경로 전용."
 description(:3) `execute(opus) → review(inherit)` → `execute(opus) → review(opus)`.
 
-- [ ] **Step 4: GREEN 확인 + 파서 계약 확인**
+- [x] **Step 4: GREEN 확인 + 파서 계약 확인**
 
 Run: `bash hooks/tests/run-all.sh 2>&1 | tail -8`
 Expected: `266 / 266 passed` (262+4).
 Run: `node hooks/lib/workflow-spawns.js < workflows/rpi-implement.js`
 Expected: `execute-strict	opus` + `review-strict	opus` 2행 — 보고에 원문 인용.
 
-- [ ] **Step 5: spec §12.1 행 인용 재실측 갱신 + §3 매트릭스 포인터 + README 카운트**
+- [x] **Step 5: spec §12.1 행 인용 재실측 갱신 + §3 매트릭스 포인터 + README 카운트**
 
 spec :451 인용-갱신 블록 규약대로 — carrier 편집 후 `grep -n "model: 'opus'\|agentType: 'review-strict'\|args.forEach\|const EFFORTS" workflows/rpi-implement.js`로 신규 행 번호 실측, §12.1 본문의 `:42`/`:57`/`:56-60`/`:25-35` 인용을 신값으로 치환하고 갱신 블록에 "C16 재실측" 1줄 추가.
 spec §3 매트릭스(:105 검증 행·:108 하향 불릿)의 `⚠**§12.1이 supersede**` 2곳을 `⚠**§12.1→§15.1이 supersede**(현행: 임무-분리 — 준수-확인=작업자 티어/판단-게이트=max(세션,작업자))`로 갱신 (Gate P 미커버 ① 해소).
@@ -218,7 +218,7 @@ README 카운트 262→266 (2곳).
 - Consumes: spec §15.1 확정 문안(동반 갱신 전수 목록 — 슬롯1 보강판).
 - Produces: L1 전 계층이 "임무-분리 floor" 단일 서술 — Gate/Closeout drift 검사가 이 정합에 의존.
 
-- [ ] **Step 1: 각 파일의 현재 문구를 grep으로 실측 인용 후, 아래 요지로 치환 (기계적 편집 — 요지 밖 변경 금지)**
+- [x] **Step 1: 각 파일의 현재 문구를 grep으로 실측 인용 후, 아래 요지로 치환 (기계적 편집 — 요지 밖 변경 금지)**
 
 공통 치환 요지: "검증자 기준선 = max(세션, 작업자)" 단일 서술 → "검증자 기준선 = 임무-분리(C16 spec §15.1): 준수-확인(Workflow/Rule C2) = 작업자 티어(상속·동적 실행자는 세션 티어로 평가·실행자 전무 시 세션 폴백) / 판단-게이트(Agent/Rule B) = max(세션, 작업자) 유지. 하한: 어떤 임무에서도 검증자 < 작업자 금지".
 - model-policy.md :19 검증 행: "상속 — 기준선 미만 금지" 유지하되 기준선 정의를 임무-분리로, 비고에 "Workflow stage2는 model:'opus' 명시(작업자 티어)가 새 기본 — 무지정(상속)도 fable/opus 세션에선 여전히 충족".
@@ -235,7 +235,7 @@ README 카운트 262→266 (2곳).
 - run-all.sh 픽스처 26 주석 [S11]: `max(2,3)=3 > 2 위반 ALERT` → `작업자 floor 3 > 2 위반 ALERT (C16 임무-분리 — 산식 결과 동일)`.
 - README :39·:56 부근: 실측 후 기준선 문구만 동기.
 
-- [ ] **Step 2: 검증 — 문서 정합 grep + 스위트**
+- [x] **Step 2: 검증 — 문서 정합 grep + 스위트**
 
 Run: `grep -rn "max(세션" docs/ai-context/model-policy.md docs/ai-context/cross-family-review.md skills/start-rpi-cycle/SKILL.md CONTEXT.md README.md | grep -v "임무-분리\|판단-게이트\|Agent 경로\|max(세션, 작업자) 유지" || true`
 Expected: 출력 0행 (임무-분리 문맥 없는 단독 max 서술 잔존 없음 — 슬롯1 S15: 0행이면 grep exit 1이 정상이라 `|| true`로 판정은 출력 기준). 출력 원문 인용.
@@ -251,7 +251,7 @@ Run: `bash setup/verify-setup.sh 2>&1 | tail -3` → #45 개정 conjunct 포함 
 **Interfaces:**
 - Produces: Closeout 고유 필수 필드 `layer-yield:` — 이번 사이클 Closeout 보고가 첫 소비자(자기 적용).
 
-- [ ] **Step 1: RED — seal #49를 먼저 추가**
+- [x] **Step 1: RED — seal #49를 먼저 추가**
 
 `setup/verify-setup.sh` seal #48 뒤에:
 
@@ -271,12 +271,12 @@ else
 fi
 ```
 
-- [ ] **Step 2: RED 확인**
+- [x] **Step 2: RED 확인**
 
 Run: `bash setup/verify-setup.sh 2>&1 | grep -E "layer-yield|카운트 seal|PASS="`
 Expected: `PASS=85 FAIL=2` — #49 fail(SKILL.md 토큰·대장 부재) + #36 count-seal 연쇄 fail(총계 87 vs README 86 — 슬롯1 S14: #36은 PASS+FAIL+1 산식이라 #49 추가 즉시 README 미갱신 상태에서 함께 FAIL하는 것이 정상 RED). #49의 fail 메시지를 grep으로 직접 확인(tail은 #36에 가려짐). 출력 원문 인용.
 
-- [ ] **Step 3: GREEN — SKILL.md 필드 + 대장 신설**
+- [x] **Step 3: GREEN — SKILL.md 필드 + 대장 신설**
 
 SKILL.md Step C-1에 sub-step 9 추가(8 뒤):
 
@@ -324,12 +324,12 @@ Communication Protocol에 필드 추가(phase-skills 뒤):
 scaffold-registry.md Docs 표에 1행: `| docs/ai-context/review-yield.md | per-layer 리뷰 수율 축적 대장 — floor·배분 결정의 데이터 재심 | **C16 (2026-08-02)**; seal #49 |` + Drift Seals 절 헤딩 `#17~#48, −#26 소각 = 31` → `#17~#49, −#26 소각 = 32` + 표에 #49 행 추가 [S7].
 README :300 `현재 86 PASS` → `현재 87 PASS`.
 
-- [ ] **Step 4: GREEN 확인**
+- [x] **Step 4: GREEN 확인**
 
 Run: `bash setup/verify-setup.sh 2>&1 | tail -3`
 Expected: `PASS=87 FAIL=0`. 출력 원문 인용.
 
-- [ ] **Step 5: seal-regression #49 변이 추가 (S6, §13.13 "seal 신설 사이클은 그 seal 의 마스킹을 같은 사이클에서 검사")** ※ 재심 3회차 관측: 실물에는 Mutator 1~13이 이미 존재 — 신규는 **Mutator 14 (seal #49)** 로 명명(아래 "Mutator 4" 표기는 오기, 실물 넘버링 따를 것)
+- [x] **Step 5: seal-regression #49 변이 추가 (S6, §13.13 "seal 신설 사이클은 그 seal 의 마스킹을 같은 사이클에서 검사")** ※ 재심 3회차 관측: 실물에는 Mutator 1~13이 이미 존재 — 신규는 **Mutator 14 (seal #49)** 로 명명(아래 "Mutator 4" 표기는 오기, 실물 넘버링 따를 것)
 
 `setup/tests/seal-regression.test.sh`의 Mutator 3 블록 뒤에 동형 추가 — 격리 복제본($HOME 스테이징)에서 `docs/ai-context/review-yield.md`를 삭제하는 변이를 주입하고 verify-setup이 non-zero exit + `layer-yield drift` FAIL 메시지를 내는지 단언:
 
@@ -353,7 +353,7 @@ Expected: `PASS=16 FAIL=0` (기존 15 + #49 변이 1). 출력 원문 인용.
 **Interfaces:**
 - Produces: 재심 스코프 규약 — 이번 사이클에서 Gate P/stage2 FAIL 재심이 발생하면 즉시 적용.
 
-- [ ] **Step 1: 3곳 명문화 (기계적 편집)**
+- [x] **Step 1: 3곳 명문화 (기계적 편집)**
 
 Gate R `FAIL 시:` 줄 뒤에:
 
@@ -370,7 +370,7 @@ Gate P `FAIL 시:` 블록 말미(override 줄 앞)에 동일 문구 1줄(spec §
         좁혀 새 호출로 전달(canonical carrier 코드 무변경 — 프롬프트 규약).
 ```
 
-- [ ] **Step 2: 검증**
+- [x] **Step 2: 검증**
 
 Run: `grep -c "델타 재심" skills/start-rpi-cycle/SKILL.md`
 Expected: 3. seal #17(Phase R 3토큰)·#19(harness-verify)·#49(layer-yield) 무회귀: `bash setup/verify-setup.sh 2>&1 | tail -3` → `PASS=87 FAIL=0`.
@@ -388,7 +388,7 @@ Expected: 3. seal #17(Phase R 3토큰)·#19(harness-verify)·#49(layer-yield) �
 - Consumes: spec §15.2 채택(senior 임무 전환 — 티어 세션 상속 불변)·§15.5 2-슬롯.
 - Produces: 슬롯 1 규약 — 이번 사이클 Gate P 직후 실행이 첫 소비(이미 Phase P에서 실행 예정이므로 문서는 그 사후 착륙).
 
-- [ ] **Step 1: cross-family-review.md 개정**
+- [x] **Step 1: cross-family-review.md 개정**
 
 :44 빈도 불릿을 교체:
 
@@ -406,7 +406,7 @@ Expected: 3. seal #17(Phase R 3토큰)·#19(harness-verify)·#49(layer-yield) �
 :3 리드 문구 [S25]: `비-Claude 패밀리(GPT) 1회 리뷰` → `비-Claude 패밀리(GPT) 2-슬롯 리뷰(설계층·구현층)`.
 §3 말미에 1문단: "**내부 적대 패스 (C16 §15.2)**: senior review(closeout-pr-cycle Phase 4)는 refute-by-default 적대 임무로 운용한다 — C16 블라인드 A/B(재발견 7/13, n=1 방향 신호)가 임무 프레이밍 전환의 충분성을 보임. 티어=세션 상속(판단-게이트 floor)·PASS/FAIL 출력 계약 불변(프레이밍만 교체). GPT-전속 발견 6건의 실측 1례처럼 교차패밀리 층의 대체가 아니라 보완이다."
 
-- [ ] **Step 2: closeout-pr-cycle Phase 4 프롬프트 적대 전환**
+- [x] **Step 2: closeout-pr-cycle Phase 4 프롬프트 적대 전환**
 
 success_criteria의 검사 항목·PASS/FAIL 계약·Critical/Important/Minor/Suggestions 보고 형식은 **전부 유지**(S29 — 출력 계약 불변, 프레이밍만 교체). task를 `"pre-merge adversarial senior review — refute-by-default"`로, success_criteria 앞부분에 다음 추가:
 
@@ -422,12 +422,12 @@ success_criteria의 검사 항목·PASS/FAIL 계약·Critical/Important/Minor/Su
 
 교차패밀리 분기(:135-139)의 "**사이클당 1회** 실행" → "**슬롯 2**(Closeout, 코드 diff — 사이클당 2슬롯 상한의 둘째; 슬롯 1은 Gate P 직후 spec delta+plan 대상, cross-family-review.md §2)".
 
-- [ ] **Step 3: 나머지 동기 — model-policy :20 · start-rpi-cycle :200 · README · opencode 미러 2파일**
+- [x] **Step 3: 나머지 동기 — model-policy :20 · start-rpi-cycle :200 · README · opencode 미러 2파일**
 
 start-rpi-cycle :200: "…(GAP-006 규약, 가용 시 사이클당 1회·불가 시 SKIP+사유)" → "…(GAP-006+C16 §15.5 2-슬롯 규약 — 슬롯 1: Gate P 직후 spec delta+plan / 슬롯 2: Closeout 코드 diff. 가용 시 슬롯당 1회·불가 시 SKIP+사유)". Gate P 절 말미에도 1줄: "고-스테이크 사이클은 Gate P PASS 직후 교차패밀리 슬롯 1(spec delta+plan 적대 리뷰) 시도 — cross-family-review.md §2."
 opencode 미러 2파일의 해당 줄(:143·:194)을 정본과 같은 요지로 동기.
 
-- [ ] **Step 4: 검증**
+- [x] **Step 4: 검증**
 
 Run: `grep -rn "사이클당 1회" docs/ai-context/ skills/ opencode-harness/skill/ README.md | grep -v "슬롯당 1회\|슬롯\|priority\|철회\|명시 호출"`
 Expected: 0행(문맥 없는 구 빈도 서술 잔존 없음). ※ Gate P+델타 재심 지적 반영 — `cross-family-review.md:35`(priority 철회 이력, 토큰 `철회`)·`:53`(codex-plugin-cc 기각 ② "사이클당 1회·명시 호출" 인용, 토큰 `명시 호출`)은 **판정-이력 기록이라 편집하지 않고 필터로 제외**한다(재논의-방지 기록의 원문 보존 — genesis-record 동형 원칙). :35의 "사이클당 1회 상한과 상충" 문구는 2-슬롯 후에도 논리 유효(슬롯당 1회 상한과 상충)이므로 잔존이 드리프트가 아님을 보고에 명시. 출력 인용.
@@ -437,7 +437,7 @@ Expected: 0행(문맥 없는 구 빈도 서술 잔존 없음). ※ Gate P+델타
 **Files:**
 - Modify: `docs/ai-context/plugin-pins.md` (핀 표·skill-cksum·skill-count·갱신 이력 주석)
 
-- [ ] **Step 1: 재실측 + 갱신**
+- [x] **Step 1: 재실측 + 갱신**
 
 Run: `find "$HOME/.claude/plugins/cache/claude-plugins-official" -name SKILL.md | sort | xargs cat | cksum` 및 `... | wc -l`
 Expected: 1583290756 / 37 (착수 실측치 — 변했으면 신값 사용 + 변동 사유 재확인).
@@ -450,7 +450,7 @@ Expected: 1583290756 / 37 (착수 실측치 — 변했으면 신값 사용 + 변
   rug-pull 아님. skill-creator 8버전 dir byte-동일. 구버전 6.1.1 캐시 잔존은 cksum 전량 해시에 포함(결정론). -->
 ```
 
-- [ ] **Step 2: 검증**
+- [x] **Step 2: 검증**
 
 Run: `bash setup/verify-setup.sh 2>&1 | grep -E "plugin|#40" ; grep "skill-cksum" docs/ai-context/plugin-pins.md`
 Expected: seal #40 green + 신값 기재.
@@ -469,6 +469,6 @@ Expected: seal #40 green + 신값 기재.
 
 ### Task 9 (Closeout 게이트): 전 스위트 + 커밋/PR + GPT 슬롯 2
 
-- [ ] 메인 포그라운드: `bash setup/verify-setup.sh`(87/0) · `bash hooks/tests/run-all.sh`(266/266) · `bash setup/tests/seal-regression.test.sh`(16/0 — Mutator 4 포함)
+- [ ] 메인 포그라운드: `bash setup/verify-setup.sh`(87/0) · `bash hooks/tests/run-all.sh`(267/267 — 슬롯2 F4 포함) · `bash setup/tests/seal-regression.test.sh`(16/0 — Mutator 4 포함)
 - [ ] 브랜치 커밋 → PR 생성(MERGE_POLICY wait — 머지는 사용자 승인)
 - [ ] Closeout: drift review + GPT 슬롯 2(코드 diff) + goal §4 항목별 대조 + layer-yield 필드 자기 적용(첫 소비) + review-yield.md C16 행 append

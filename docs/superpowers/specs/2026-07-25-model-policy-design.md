@@ -114,8 +114,9 @@ CC 2.1.220, Windows/MSYS, CLIProxy 라우팅(haiku 티어=gpt-5.6-luna) 환경 �
   변경/TDD 포함이면 heavy, 순수 문서·기계 편집이면 light; 원안 high|medium은 §0 품질-우선 상향으로
   2026-07-26 대체 — 비-ultracode 상속 대비 역전 결함), stage2 `agentType:'review-strict'`
   **model/effort 무지정**(상속) (⚠§15.1이 supersede — stage2 는 `model:'opus'` 명시). goal 원문의 "stage2 GPT 규약 분기" 대안은 **기각(grill 확정)**:
-  GPT quota는 사이클당 1회 상한(cross-family §2)인데 stage2는 task마다 발화 — 양립 불가. GPT 검증은
-  closeout 지점 1회 유지. **(B) fable 비-ultracode** → (a)/(b)/(c) 세 경로 공통 규칙이되, skill 문구는
+  GPT quota는 상한 규율(cross-family §2 — 당시 사이클당 1회, ⚠§15.5가 2-슬롯으로 supersede)인데
+  stage2는 task마다 발화 — 양립 불가(기각 논리는 2-슬롯에서도 동일: N-task ≫ 2슬롯). GPT 검증은
+  고정 슬롯 지점 유지(⚠§15.5: 슬롯 1=Gate P 직후·슬롯 2=Closeout — "closeout 1회"는 C12 시점 기록). **(B) fable 비-ultracode** → (a)/(b)/(c) 세 경로 공통 규칙이되, skill 문구는
   execute-strict 위임이 실제 발생하는 (a)/(c)에 배치 — (b) executing-plans는 메인 직접 실행이라
   execute-strict 위임 자체가 없음(경로 명시 차이는 모순 아님, 2026-07-26 리뷰 정정) — execute-strict
   위임 시 `model:'opus'` 명시(effort는 플랫폼 제약으로 상속 — §1.5). **(C) 비-fable 세션** → 현행
@@ -1177,7 +1178,10 @@ stage2의 억지 효과(TDD RED 증거 강제 등)는 분리 측정 불가로 �
 **구현 형태 (Rule C2 — 슬롯1 S1/S2 정정 반영)**: `WORKER_TIER` 초기값을 세션 티어 → **0**으로,
 1패스의 실행자 티어 평가를 **3분기**로: 리터럴 → `tier_of` / `-`·`inherit` → **세션 티어**(정의적 —
 상속=세션 평가는 검증자와 동일 규칙) / `*`(동적) → **세션 티어**(보수 상계 — 런타임 해소값을 배제할 수
-없음). 2패스 floor = `WORKER_TIER>0 ? WORKER_TIER : WF_TIER`(실행자 전무 시 세션 폴백). 검증자 측의
+없음). **미지-티어 리터럴(`tier_of`=0, 예: gpt-커스텀)도 세션 상계**(슬롯2 F4 정정 — 초안은 0 유지라
+"미지 리터럴 단독 실행자" 스크립트가 실행자-부재로 오분류돼 세션 폴백이 이중 적용될 뻔; 0 상계는 판별-불가
+실행자가 floor 를 끌어내리지 못하게 하는 동일 보수 원칙, 픽스처 48 앵커). 2패스 floor =
+`WORKER_TIER>0 ? WORKER_TIER : WF_TIER`(실행자 전무 시 세션 폴백). 검증자 측의
 무지정(상속)="세션 티어로 평가"는 **불변**(C13 Closeout 정정 유지).
 ※ **슬롯1 정정 이력(S1/S2)**: 초안은 1패스를 `tier_of` 단독으로 두어 상속(`tier_of=0`)·동적(0) 실행자가
 floor 기여 0이었다 — 혼합 스크립트(상속 실행자+하위 리터럴 실행자)에서 floor가 실제 작업자 아래로 붕괴해
@@ -1199,6 +1203,15 @@ floor 기여 0이었다 — 혼합 스크립트(상속 실행자+하위 리터�
 | 상속/동적 실행자 혼재·하위 검증자 | ALERT | **ALERT (불변)** | 슬롯1 S1/S2 정정 — 상속·동적 실행자를 세션 티어로 평가하므로 관측-불가 실행자 존재 시 floor≥세션 유지(완화는 전-리터럴 스크립트에만 적용) |
 | sonnet 세션·opus 실행자·상속 검증자(=2) | ALERT | **ALERT (불변)** | floor=작업자 3, 상속=세션 2<3 — C13 GPT C1/C3 정정 보존 |
 | 검증자 < 작업자 (전 조합) | ALERT | ALERT (불변) | §5-12 하한. ※MAX_SPAWNS 절단 뒤 실행자는 관측 밖(슬롯1 S4) — 상한 자체는 C15 이전부터의 수용 잔여이나, C16 완화로 "절단된 상위 실행자+관측된 하위 실행자" 조합의 침묵이 커지는 방향성을 정직 부기(파서 헤더 자인 — 자연 코드에서 200+ 스폰은 비현실적 규모라 수용) |
+
+※ **임무 축의 정의적 한계 (슬롯2 F3 — 수용 잔여, 정직 부기)**: 임무-분리는 "Workflow 경로 = 준수-확인"을
+**경로 정의로** 선언한다(§15.1 서두 — canonical carrier 가 Workflow 의 규정 사용처). ad-hoc Workflow
+스크립트에 판단-게이트급 review-strict 를 실으면 hook 은 임무를 판별할 신호가 없어 작업자-floor 로
+평가한다(fable 세션·sonnet 실행자·opus 검증자 = 신 SILENT / 구 ALERT — 위 표 S3 대역과 동일 산식).
+구조 해소는 scriptPath 신뢰 목록 또는 mission 표식 계약을 요구 — L2 는 tool_input.script 텍스트만 받아
+scriptPath 대조 불가(hook 입력 계약). 방어선: L1 규범(판단-게이트는 Agent 경로로 — start-rpi-cycle
+Gate R/P/senior/drift 전부 Agent 경로 고정)+canonical carrier 가 Workflow 의 규정 사용처라는 §10 규약.
+잔여 수용 조건 = 판단-게이트를 Workflow 로 감싸는 것 자체가 규약 위반(그 시점에 L1 이 잡을 계층 오류).
 
 **픽스처 함의 (Phase R 실측 — 기존 기대값 반전 0)**: 폴백 설계에서 기존 C2 픽스처 전수(smp 14·15·16·
 26·27·28·29) 재계산 결과 전부 기대값 유지 — 14(fable·실행자無·sonnet검증자)=폴백 4→ALERT / 26·27·28
@@ -1316,6 +1329,11 @@ Step C-1 구간 ↔ Communication Protocol 구간 양쪽 토큰 parity) + 대장
 변이 동반(§13.13 규약 — S6). scaffold-registry Docs 표 + Drift Seals 표에 등재(S7). **C16 행 기록
 시점(S19)**: Closeout 보고 작성 시점의 완결 층까지 기재하고, 대장 append는 **머지 전 마지막 커밋**에
 포함(슬롯 2·drift 등 말미 층의 행은 그 시점 실측 — 이후 층이 없도록 append를 Closeout 최종 커밋으로).
+**커밋 소유권(슬롯2 F1 정정)**: "최종 커밋"은 하네스 사이클 한정 해석 — C-0(closeout-pr-cycle)가 PR 을
+만든 뒤에도 머지는 사용자 승인 대기(MERGE_POLICY wait)라 브랜치에 추가 커밋이 가능하고, append 는 그
+마지막 브랜치 커밋에 실린다(머지 후 소급 불가). auto-merge 사이클이면 C-0 **이전**에 append 를 선행.
+대상-프로젝트 사이클은 대장이 ~/.claude 저장소에 있어 대상 repo 트랜잭션에 태울 수 없다(cross-repo
+staging 불가) — **별도 하네스-repo 커밋**으로 분리(SKILL.md sub-step 9 동기).
 
 ### §15.4 C16-B — 델타 재심 규약
 
@@ -1359,9 +1377,11 @@ Gate P 델타 재심 2회가 이 규약으로 실행됨(1회차 4항 → 2회차
 1. **plugin-pins 드리프트 = 정당 업데이트 판정** (C10 절차 ② 동형): 핀 1781304936/33 → 실측
    1583290756/37. 원인 = superpowers 6.1.1→**6.2.0**(installed_plugins lastUpdated 2026-07-25) +
    context7/skill-creator/playwright 캐시 버전 디렉터리 추가(디렉터리명 = 이 하네스 repo 커밋 sha —
-   C10 명명 특성 재확인: ba53b2ab03ad 등). 콘텐츠 diff 리뷰: superpowers SKILL.md 14종 중 7종 문구
-   정련(brainstorming visual-companion 신설·executing-plans worktree 선행 단계·요약 절 삭제류) —
-   **위임 agent명/게이트/권한 변경 0**. skill-creator 8버전 디렉터리 byte-동일. → 핀 재실측 갱신.
+   C10 명명 특성 재확인: ba53b2ab03ad 등). 콘텐츠 diff 리뷰(⚠C16 stage2+슬롯2 F8 정정 — 초기 "7종 문구
+   정련"은 오기재): cmp 14/14 전수 = **13/14 변경**(byte-동일은 using-superpowers 1종) — 대형 리워크
+   3건(subagent-driven-development 600줄=리뷰-라운드 게이트 신설·finishing-a-development-branch 256줄·
+   test-driven-development 78줄) + 문구 정련 10건. 판정 근거 = **보안 표면 0**(위임 agent명/allowed-tools/
+   권한/원격조작 명령 변경 없음) + 정상 릴리스 채널. skill-creator 8버전 디렉터리 byte-동일. → 핀 재실측 갱신.
    구버전 6.1.1 캐시 잔존은 cksum 계산에 포함(결정론 유지 — find|sort|cat 전량 해시).
 2. **[P1] model-window.js opus-4-(7|8) regex = 유지(사유)**: 사실로서 정확(실제 1M 창 모델)·이 머신
    라우팅 이력상 재등장 가능·제거 이득 0 vs 소비자 4건(픽스처 78·60·189·190) + README 동반 비용.

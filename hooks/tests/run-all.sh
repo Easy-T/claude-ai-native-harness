@@ -1254,6 +1254,11 @@ WF_MIXED_EXEC="await agent('a', {agentType: 'execute-strict'})
 await agent('b', {agentType: 'execute-strict', model: 'sonnet'})
 await agent('v', {agentType: 'review-strict', model: 'sonnet'})"
 test_smp "43-rule-c2-mixed-inherit-exec" 0 1 "$(mk_wf_event script "$WF_MIXED_EXEC" "$SMP_OPUS_T" "smp43-$$")"
+# C16 슬롯2 F4: 미지-티어 리터럴 실행자(tier_of=0)도 세션 티어로 평가(보수) — 하위 판별-가능 리터럴이 floor 를 끌어내리지 못함.
+WF_UNKNOWN_EXEC="await agent('a', {agentType: 'execute-strict', model: 'gpt-custom'})
+await agent('b', {agentType: 'execute-strict', model: 'sonnet'})
+await agent('v', {agentType: 'review-strict', model: 'sonnet'})"
+test_smp "48-rule-c2-unknown-worker-floor" 0 1 "$(mk_wf_event script "$WF_UNKNOWN_EXEC" "$SMP_FABLE_T" "smp48-$$")"
 # C16 §15.1: canonical carrier 실물 4세션 E2E — stage2 model:'opus' 명시 후 전 세션 무발화
 # (구 carrier: sonnet/haiku 세션 ALERT — §12.1 표의 위반 칸이 §15.1 로 소멸함을 실물로 봉인. 슬롯1 S12)
 WF_CANON="$(cat "$HOME/.claude/workflows/rpi-implement.js")"
