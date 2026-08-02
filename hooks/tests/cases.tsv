@@ -284,3 +284,4 @@ surface-model-policy	45-canonical-opus-silent	0	mk_wf_event
 surface-model-policy	46-canonical-sonnet-silent	0	mk_wf_event
 surface-model-policy	47-canonical-haiku-silent	0	mk_wf_event
 surface-model-policy	48-rule-c2-unknown-worker-floor	0	mk_wf_event
+surface-model-policy	49-rule-c-unknown-literal-exempt	0	mk_wf_event

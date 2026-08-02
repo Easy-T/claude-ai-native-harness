@@ -63,9 +63,10 @@ if [ "$TOOL" = "Workflow" ]; then
     [ -n "$SP_TYPE" ] || continue
     if [ "$SP_TYPE" = "execute-strict" ]; then
       case "$SP_MODEL" in
-        -|inherit|'*') SP_T="$WF_TIER" ;;   # C16 S1/S2: 상속=세션 평가(검증자와 동일 규칙)·동적=세션 상계(보수)
-        *)             SP_T=$(tier_of "$SP_MODEL")
-                       # C16 슬롯2 F4: 미지-티어 리터럴(tier_of=0)도 세션 상계 — 판별-불가 실행자가 floor 를 끌어내리지 못함
+        -|inherit|'*') SP_T="$WF_TIER"; SP_T_RAW="$SP_T" ;;   # C16 S1/S2: 상속=세션 평가(검증자와 동일 규칙)·동적=세션 상계(보수)
+        *)             SP_T_RAW=$(tier_of "$SP_MODEL"); SP_T="$SP_T_RAW"
+                       # C16 슬롯2 F4: 미지-티어 리터럴(tier_of=0)도 세션 상계 — 판별-불가 실행자가 floor 를 끌어내리지 못함.
+                       # 상계는 floor(WORKER_TIER) 전용 — Rule C 판정은 원시 SP_T_RAW 사용(senior I1: 누출 시 오발화)
                        [ "$SP_T" -gt 0 ] 2>/dev/null || SP_T="$WF_TIER" ;;
       esac
       [ "$SP_T" -gt "$WORKER_TIER" ] 2>/dev/null && WORKER_TIER="$SP_T"
@@ -74,7 +75,7 @@ if [ "$TOOL" = "Workflow" ]; then
         case "$SP_MODEL" in
           -|inherit) C_HIT=1 ;;
           '*') ;;   # C15: 동적 선언 — 하향 미적용을 단언 불가(agentType '*' 면제와 동일 원리, spec §14.1)
-          *) [ "$SP_T" = "4" ] && C_HIT=1 ;;
+          *) [ "$SP_T_RAW" = "4" ] && C_HIT=1 ;;   # 원시 티어 — F4 세션-상계 누출 차단(senior I1)
         esac
       fi
     else
