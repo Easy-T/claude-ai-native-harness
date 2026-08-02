@@ -1454,3 +1454,364 @@ Gate P 델타 재심 2회가 이 규약으로 실행됨(1회차 4항 → 2회차
 "발견이 말미에 도착해 재작업 25%"와 대조되는 첫 데이터 포인트. GPT 방향 오류도 있었음(S13의 "RED가
 게이트가 아님"은 맞지만 plan의 RED는 애초 텍스트 판정 — 정밀화로 수용). 비용: 본호출 1회(+timeout
 재시도 1회 — 첫 호출이 10분 타임아웃으로 유실, `-o` 파일 경유 재실행. C15 교훈 ③ 재확인).
+
+## §16. C17 설계 결정 (in-place 개정, 2026-08-02 — U4 공리 + 매트릭스 v2 + 리뷰 통합)
+
+> C17 goal 원문 = `_goal/c17-fable-minimization-goal.md`(비추적 · rev2 — opus 2렌즈 적대 검증 반영).
+> 아래는 goal 없이 재현 가능하도록 근거를 영구화한 것 — §11/§13/§14/§15 선례. 주제 = fable 최소화:
+> 역할×모델 매트릭스 v2(검증자 floor **세션 축 전면 제거**) · 리뷰 통합(Gate R 조건부화·drift/senior
+> 합본·light-배칭) · fable 예외 밸브.
+
+### §16.0 U4 공리 (사용자 선언, 2026-08-02 — 이 절의 전제)
+
+**U4: "opus 와 fable 의 성능은 오케스트레이션을 제외하면 거의 같다고 가정한다."** (verbatim 요지)
+
+따름정리:
+1. fable 의 상주 역할 = **메인 세션 오케스트레이션 단 하나**. 서브에이전트 위임(실행·검증·판단·탐색)은
+   기본적으로 fable 을 쓰지 않는다(§16.5 밸브만 예외). 메인이 하는 트리아지·판정 종합은 오케스트레이션의
+   일부(위임 아님)라 U4 적용 밖.
+2. C13 판단-게이트 floor `max(세션, 작업자)` 의 근거("세션이 만든 산출물을 세션보다 약한 눈으로 검증
+   금지")는 U4 아래에서 소멸 → 검증자 floor 의 **세션 축을 전면 제거**한다. §15.1 임무-분리의
+   판단-게이트 절반을 재-supersede — 신 기준선: **판단-게이트 = `max(작업자 티어, opus)` / 준수-확인 =
+   작업자 티어(불변)**. 하한 불변식(어떤 임무에서도 검증자 < 작업자 금지)은 유지.
+   ※ **근거의 정직 표기**: "opus 로 충분"의 실측은 준수-확인 층뿐(C16 stage2 T3·T7 — 사실 오류 2건
+   실차단). 판단-게이트에서의 opus 충분성 실측은 없다 — C16 senior/A/B 는 전부 fable 단일 티어라 티어와
+   프레이밍이 교란(n=1, §15.2 S34/S35 자인). **판단-게이트 opus 전환의 근거는 U4 공리 단독**이며,
+   layer-yield 축적(C17 행 = opus 게이트 첫 실측, 3호 = §15.3 소비 임계 충족)이 **사후 관측 신호**가
+   된다. ※주장 강도 한정(슬롯1 F1 정정): layer-yield 는 자기보고 계량이라 검증자 열화의 **검증**이
+   아니다 — 약한 검증자는 결함을 놓쳐 PASS 를 늘리는 방향이라 대장 단독으론 열화가 관측되지 않을 수
+   있고, C17 은 티어·프레이밍·게이트 빈도·Closeout 구조를 동시 변경해 교란도 남는다. 독립 대조군은
+   교차패밀리 GPT 층(§15.5 — opus 게이트가 놓친 것을 슬롯1/2 가 잡으면 그것이 열화 신호). 열화 관측 시
+   floor 원복이 역-supersede 경로(§15.1 S36 동형).
+3. **리뷰 통합·조건부화·배칭 허용** — C16 goal §5-13("검증 횟수 자체의 축소 금지")을 사용자 선언이
+   supersede. ※ **권위의 정직 표기**: 이 결정의 권위는 U4+사용자 지시이지 수율 대장이 아니다 — 대장은
+   2행(C15·C16)뿐이라 §15.3 소비 임계(3사이클) 미달. 대장 데이터는 보조 근거로만 인용하고, floor·배분의
+   데이터 기반 전면 재심은 §15.3 대로 C17 행 축적 후(C18) 별도 수행. 델타 재심(§15.4)·하한 불변식 유지.
+
+### §16.1 매트릭스 v2 + Option 1 (frontmatter opus) — 실측 ①② 기록
+
+**신 기준선 (model-policy.md 로 증류 — §3/§15.1 의 해당 행 supersede)**:
+
+| 역할 | 모델 | 비고 |
+|---|---|---|
+| 오케스트레이션(메인 세션) | fable(+ultracode) | fable 의 유일한 상주 역할 |
+| 실행 (execute-strict) | **opus** (frontmatter 기본) | 불변 |
+| 준수-확인 검증 (Workflow stage2 / Rule C2) | **작업자 티어** | §15.1 불변 (carrier stage2 opus 명시 유지) |
+| 판단-게이트 검증 (Agent 경로: Gate·통합 Closeout 리뷰·델타 재심 / Rule B) | **`max(작업자, opus)`** | 세션 축 제거 — fable 세션에서도 opus |
+| 탐색 (explore-strict) | sonnet | 불변 |
+| 교차패밀리 | GPT sol 2슬롯 | 불변 (§15.5) |
+| fable 서브에이전트 위임 | **기본 금지** | §16.5 밸브만 |
+
+**구현 = Option 1 채택 (실측 ①② 성립 — 2026-08-02, 세션 아티팩트 `subagents/*.jsonl`
+`message.model` 실측·자가보고 불인정)**: `agents/execute-strict.md`·`agents/review-strict.md`
+frontmatter `model: inherit` → **`model: opus`**. **무지정 호출** 클래스의 상속-누출이 wrapper 에서
+소멸(신 세션 기준 — 슬롯1 F3 한정: 명시 `inherit` 경로와 전환-창 세션은 §16.2/§16.4 의 별도 축).
+
+- **실측 ① (Agent 경로 전환 E2E)**: frontmatter opus 상태에서 fresh 헤드리스 fable 세션
+  (`claude -p --model claude-fable-5`, 세션 54e3fd31)의 무지정 위임 → execute-strict=claude-opus-5·
+  review-strict=claude-opus-5. 명시 `model:'opus'` 호출도 opus(회귀 없음). **성립.**
+- **실측 ② (Workflow 무선언 스폰)**: 동일 조건 fresh 세션(c4a86737)의 인라인 Workflow `agent()`
+  무선언 스폰 → execute-strict=claude-opus-5·review-strict=claude-opus-5. **frontmatter 추종 확정** —
+  Rule C 의 "무선언=세션 상속" 전제는 frontmatter inherit 에 의존했던 것(§16.2 재계산 근거). **성립.**
+- **★신규 발견 — frontmatter 세션-내 캐싱**: 전환은 **이미 열린 세션에 미적용** — 같은 실측에서
+  현행(전환 전 시작) 세션의 무지정 위임은 Agent·Workflow 양 경로 모두 fable 로 상속됐다(각 2건 실측).
+  frontmatter 값은 **세션-스코프로 고정되어 관측**된다(정확한 로드/캐시 시점 — 시작-시 로드 vs 첫-사용
+  캐시 — 은 미판별, 슬롯1 F4 한정; 관측 사실은 "열린 세션 내 불변·새 세션 반영"뿐). **함의**: ⓐ전환 커밋 이전에 시작된 세션은 커밋 후에도
+  무지정=구 의미(상속) — 그 창에서는 명시 `model:'opus'` 가 유일한 보장(C17 세션 자신이 그 케이스,
+  전 위임 명시 규약으로 커버). ⓑhook 이 "무지정=frontmatter opus"로 평가하는 것은 새 세션부터
+  사실-정확 — 전환-창 세션의 이론적 오차는 advisory 수용 잔여로 부기.
+
+**Option 2 (기각 — 사유 기록)**: inherit 유지 + 전 호출 지점 명시 의무화 + hook 무지정 ALERT.
+실측 ①② 성립으로 불채택 — 물리 기본값(Option 1)이 규약 기억 의존을 제거(Best-Direction).
+
+### §16.2 hook 재정의 — Rule A/B v2 + Rule C/C2 재계산 (arm 집합 정의)
+
+구 "세션-대비 하향 감지" → **"opus-floor + fable-누출 감지"**. 정책 상수 **OPUS_FLOOR=3**.
+
+**무지정 vs 명시 inherit 의 의미 분리 (Option 1 이 만든 새 축 — 자율 확정)**:
+- **무지정**(Agent `model` 인자 부재 / Workflow `-`) = **frontmatter opus 추종**(실측 ②) → tier 3 평가.
+- **명시 `inherit`** = frontmatter 우회 세션 상속(§11.3 해소 순서: opts.model 존재 시 그것이 우선 —
+  C14 §13.3 "명시 inherit 도 세션 상속" 유지) → **세션 티어 평가**(C13 의미론은 이 축에만 존속).
+
+- **Rule B v2 (Agent 경로 review-strict) — 2계 arm (슬롯1 A1/A4/A6 정정 반영)**:
+  - **floor arm (전 세션 — 미지-티어 세션 포함)**: 평가 티어 < OPUS_FLOOR → ALERT. 평가 = 리터럴은
+    tier_of · 명시 `inherit` 은 세션 티어(세션 티어 미상=0 이면 이 분기만 skip — 단언 불가) · 무지정은
+    opus(frontmatter — Option 1) · **미지-티어 리터럴(tier_of=0)은 비면제**(≥opus 단언 불가 → ALERT —
+    C2 F4/픽스처 28 과 규약 정렬, 구 `!= "0"` 면제 arm 제거). **리터럴 평가는 세션 티어가 불필요하므로
+    미지-티어(claude-미지) 세션에서도 수행**(슬롯1 A1 — 구 `SESSION_TIER != 0` 전체-skip 가드 제거;
+    transcript 부재/비-claude 세션은 세션 판별 자체가 실패해 기존 fail-open 그대로).
+    예: opus 세션 명시 inherit=3 침묵 · sonnet 세션 명시 inherit=2 → ALERT(**새로 발화** — 구 코드는
+    inherit 의 tier_of=0 이라 검사 자체를 skip) · sonnet 세션 명시 sonnet=2 → ALERT(**새로 발화** —
+    구 하향식은 2<2 거짓) · haiku 세션 haiku/sonnet/inherit 동류 · 무지정은 전 세션 침묵(안전 기본).
+  - **누출 arm (fable-리터럴 = 전 세션 / 명시 inherit = fable 세션 한정)**: U4 의 fable 위임 금지는
+    세션 무관이므로 **명시 `fable`(tier 4 리터럴) 은 어느 세션에서도 ALERT**(슬롯1 A6 — 구 설계의
+    "fable 세션 한정" 게이트는 opus/sonnet 세션의 fable 요청을 침묵시켰다). 명시 `inherit` 은 fable
+    세션에서만 누출(=fable 상속)이라 그 세션 한정. 메시지는 밸브(V1/V2/V3+FABLE-ESCALATION) 예외를
+    환기 — hook 은 선언을 관측할 수 없으므로 밸브-정당 호출에도 발화한다(advisory 환기, 오탐 수용).
+  - **구 "세션 대비 하향" arm 제거** — 신 정책의 정상 패턴(fable 세션 opus 검증자)을 ALERT 하는 소음원
+    (라이브 실증: 2026-08-02 C16 T7 델타 재심 opus 지정 시 `rule-b-verifier-downshift` ALERT).
+    로그 슬러그 교체: `rule-b-verifier-downshift` → `rule-b-verifier-below-opus-floor`(floor arm)·
+    `rule-b-fable-leak`(누출 arm). **메시지 내용 픽스처 1건 동반**(슬롯1 B2 — additionalContext 존재만
+    보는 픽스처는 구 메시지 잔존을 못 잡는다; `max(작업자` 토큰 단언, test_smp_hedge 동형).
+  - ※ Agent 경로의 "작업자" 축은 **관측 불가 유지**(per-call 입력 — §12.1 강제-범위 단락) — hook 은
+    opus 상수 축만 검사하고, `max(작업자, opus)` 의 작업자 절반은 L1 규범 몫(수용 잔여, §16.4-1).
+- **Rule A v2 (execute-strict)**: 무지정 arm 의 전제가 뒤집힘(무지정=frontmatter opus=안전) →
+  **무지정 arm 침묵 전환**. 유지 arm = 명시 `inherit`(fable 세션 한정 — 비-fable 세션의 inherit 은
+  fable 누출이 아니라 실행자 하향(L1 몫, 구 코드도 미탐 — 불변 잔여)) + **명시 `fable`(전 세션 —
+  A6 동형 확장)**. 슬러그 교체: `rule-a-downshift-missing` → `rule-a-fable-leak`.
+- **Rule C 재계산 (실측 ② 성립 + A6 확장)**: fable 세션 실행자 무선언(`-`)=frontmatter opus=하향
+  적용됨 → **`-` arm 침묵 전환**(새로 침묵). 명시 `inherit` arm 은 fable 세션 한정 유지(세션 상속=
+  fable). **원시 티어 4 리터럴 arm 은 전 세션으로 확장**(A6 — U4 금지는 세션 무관). `*` 면제 불변.
+  슬러그·메시지 교체: `rule-c-workflow-downshift-missing` → `rule-c-workflow-fable-leak`(슬롯1 B1 —
+  구 메시지 "model 지정 없이" 는 신 의미론에서 거짓: 무지정은 안전이고 위반은 inherit/fable 명시다).
+- **Rule C2 재계산**: 1패스 WORKER_TIER 평가 3분기 재정의 — 리터럴=tier_of / `-` 무선언=**opus(3 —
+  frontmatter, 구: 세션)** / 명시 `inherit`=세션 티어(불변) / `*` 동적=세션 티어 평가(불변 — 런타임
+  해소값 배제 불가. ※"상계"가 아니라 휴리스틱: 동적이 세션 위 값으로 해소되면 미달 — 관측 불가
+  수용 잔여, 구 코드 동일 클래스) / 미지-리터럴(tier_of=0)=**opus 평가(구: 세션 — fable 세션에서 세션
+  평가는 floor 4 를 만들어 opus 검증자 ALERT = 신 정책 정상 패턴 고발이 되므로 opus 로 교체. 이 역시
+  상계 아님: 미지 리터럴이 실제 fable 급이면 과소평가 — 판별-불가의 정직 한계, 표에 반전 행으로 기록.
+  floor 를 0 으로 끌어내리지 못하게 하는 F4 원리는 유지)**. **실행자-전무 폴백 = opus 상수(구: 세션
+  티어)** — "보수"의 기준 자체가 세션→opus(라이브 실증: 검증-전용 Workflow 에서 `관측='opus', 필요
+  티어=4` ALERT 가 신 정책 정상 패턴을 고발). ※전량-동적 스크립트는 실행자-전무가 **아니다**(각 동적
+  스폰이 세션 티어로 floor 에 기여 — 폴백 미적용, 혼동 금지). 검증자 측 평가도 동형 분기: `-`=opus
+  (frontmatter)·명시 `inherit`=세션·`*`=면제·리터럴=tier_of. floor 비교식 불변(`SP_T < FLOOR_TIER →
+  ALERT`). **누출 arm 신설(C2-leak, A6)**: 검증자 **fable-리터럴은 전 세션 ALERT** + 검증자 명시
+  `inherit` 은 fable 세션 한정 ALERT — floor 만으로는 fable 검증자가 항상 충족-침묵이라 U4 금지가
+  Workflow 검증자 축에서 무검이 된다(구 §16.4-4 예정 잔여의 코드 해소; 밸브 동반-상향 케이스(fable
+  작업자+fable 검증자)에도 발화하는 오탐은 advisory 환기로 수용 — 메시지가 밸브 선언을 환기).
+  슬러그: `rule-c2-fable-verifier`. 폴백 상수와 원시 관측값은 변수 분리 유지(SP_T_RAW — 픽스처 49
+  클래스). ※Workflow 경로의 세션-미상(WF_TIER=0) 조기 exit 은 유지 — C2 의 inherit/동적/폴백 평가가
+  세션 티어를 요구해 부분-평가의 복잡도가 advisory 상한 초과(수용 잔여 §16.4-5; Agent 경로 Rule B 와
+  비대칭임을 정직 부기).
+- **Rule C3 불변** (fable 세션 무선언-frontmatter builtin fan-out — execute/review-strict 는 제외
+  목록이라 이 개정과 무관; explore-strict frontmatter sonnet 불변).
+
+**픽스처 기대값 반전 전수 표 (양방향 — C15 교훈 ⑬·⑯, goal §5-3; 슬롯1 A4/A5 보강 후 확정판)**.
+대상 = 기존 smp 01~49 전수 재계산 + 반전·신설마다 RED/GREEN:
+
+| 경로·케이스 | 구 판정 | 신 판정 | 방향 | 정당성 |
+|---|---|---|---|---|
+| A: fable 세션·exec 무지정 (smp 01) | ALERT | **SILENT** | 새로 침묵 | 무지정=frontmatter opus(실측 ②) — 안전 기본 |
+| A: fable 세션·exec 명시 inherit/fable | ALERT | ALERT | 불변 | 명시 상속/fable = 누출 |
+| B: fable 세션·review 명시 sonnet (smp 03) | ALERT(하향) | **ALERT(floor)** | 사유 교체 | 2<3 floor 미달 — 메시지·슬러그 갱신, 발화 자체는 유지 |
+| B: fable 세션·review 명시 opus | ALERT(구 하향 — T7 라이브) | **SILENT** | 새로 침묵 | 신 정책의 목표 케이스 — 소음원 제거 |
+| B: fable 세션·review 명시 inherit | SILENT(tier_of=0 skip) | **ALERT(누출)** | 새로 발화 | 선언 없는 fable 소비 |
+| B: fable 세션·review 무지정 (smp 04) | SILENT | SILENT | 불변 | 구: 검사 skip / 신: frontmatter opus=3 충족 — 사유 교체 |
+| B: sonnet 세션·review 명시 inherit | SILENT(skip) | **ALERT(floor)** | 새로 발화 | 세션 평가 2<3 |
+| B: sonnet 세션·review 무지정 | SILENT | SILENT | 불변 | frontmatter opus 평가=3 충족 |
+| B: opus 세션·review 명시 sonnet | ALERT | ALERT | 불변 | 2<3 (구: 2<세션3) — 사유 교체 |
+| B: sonnet 세션·review 명시 sonnet (A4) | SILENT(2<2 거짓) | **ALERT(floor)** | 새로 발화 | 2<3 — 구 하향식의 동일-티어 구멍 소멸 |
+| B: haiku 세션·review 명시 haiku/sonnet/inherit (A4) | SILENT·ALERT 혼재 | **ALERT(floor)** | 새로 발화·통일 | 1·2<3 (구: haiku→haiku 는 1<1 거짓 침묵) |
+| B: 비-fable 세션·review 명시 fable (A6) | SILENT(상향) | **ALERT(누출)** | 새로 발화 | U4 fable 금지는 세션 무관 — 구: 상향은 항상 허용이었음 |
+| A: 비-fable 세션·exec 명시 fable (A6) | SILENT(비-fable skip) | **ALERT(누출)** | 새로 발화 | 동상 |
+| B: 미지-티어 리터럴 review (전 세션) | SILENT(`!=0` skip) | **ALERT(floor)** | 새로 발화 | ≥opus 단언 불가 비면제 |
+| B: 미지-티어 **세션**·review 명시 sonnet (A1) | SILENT(`SESSION_TIER=0` 전체 skip) | **ALERT(floor)** | 새로 발화 | 리터럴 평가는 세션 불요 — 구 가드가 세션-축 잔존이었음 |
+| C: 비-fable 세션·wf exec 명시 fable (A6) | SILENT | **ALERT(누출)** | 새로 발화 | U4 세션 무관 |
+| C2: fable 세션·미지 실행자 단독·rev opus (A2) | ALERT(세션 평가 floor 4) | **SILENT** | 새로 침묵 | 미지→opus 평가 — 미지가 실제 fable 급이면 과소평가(정직 한계, 판별-불가 수용) |
+| C2: 검증자 fable-리터럴 (전 세션, A6) | SILENT(floor 충족) | **ALERT(C2-leak)** | 새로 발화 | U4 — floor 축과 독립인 누출 arm 신설 |
+| C: fable 세션·wf exec 무선언 (smp 09/11) | ALERT | **SILENT** | 새로 침묵 | 무선언=frontmatter opus(실측 ②) |
+| C: fable 세션·wf exec 명시 inherit/fable (smp 18/36) | ALERT | ALERT | 불변 | 명시 상속/fable |
+| C2: fable 세션·exec sonnet·rev sonnet (smp 42) | SILENT(작업자 floor) | SILENT | 불변 | 검증자==작업자 |
+| C2: fable 세션·실행자 전무·rev sonnet (smp 14) | ALERT(세션 폴백 4) | **ALERT(opus 폴백 3)** | 불변·산식 교체 | 2<3 — 발화 유지, 필요 티어 표기 4→3 |
+| C2: fable 세션·실행자 전무·rev opus | ALERT(3<4) | **SILENT** | 새로 침묵 | 신 폴백 3 충족 — 검증-전용 Workflow 라이브 오발화의 해소 |
+| C2: 혼합 상속 실행자·하위 검증자 (smp 27/43) | ALERT | ALERT± | 재계산 | 무선언 실행자=opus 평가로 floor 산식 변화 — 케이스별 재계산(§15.1 S1/S2 하한 원리 유지) |
+| C2: 미지-리터럴 단독 실행자·rev sonnet (smp 48) | ALERT(세션 상계) | **ALERT(opus 상계)** | 불변·산식 교체 | 2<3 |
+| C2: canonical carrier 4세션 (smp 44~47) | SILENT | SILENT | 불변 | stage1/stage2 리터럴 opus — floor 3 충족 |
+| C3 전 케이스 (smp 23~25/31~34/39) | 불변 | 불변 | 불변 | 이 개정과 직교 |
+
+※ 위 표의 "재계산" 행 포함 smp 01~49 전수를 plan 이 개별 확정(픽스처 주석의 구 산식 표기 동반 갱신
+— §15.1 S11 선례). 반전 픽스처마다 RED(구 코드에 신 기대 적용 시 FAIL)/GREEN(신 코드 PASS) 실측.
+※ **판별력 보존 원칙 (자율 확정)**: 검사 *주제*가 무선언 arm 이 아니라 **다른 성질**(per-spawn 마스킹
+해소 smp 20/35 · 프롬프트-노이즈 오인 방지 smp 21 · 세션 판별 면역 smp 08/19)인 픽스처는, 무선언 arm
+침묵 전환으로 단순 기대 반전하면 그 성질의 봉인이 증발한다(위반-트리거가 사라져 vacuous) — 이 클래스는
+**위반 트리거를 명시 `inherit` 로 교체**해(신 정책에서도 ALERT 인 arm) 원 성질의 판별력을 보존하고,
+무선언 arm 의 침묵 전환 자체는 반전 표의 전용 픽스처(smp 01/09 류)가 앵커한다. smp 27 은 검사
+주제가 "상속 검증자의 floor 평가" 자체이므로 입력 유지 + 기대 반전(ALERT→SILENT — 무선언=frontmatter
+opus 가 floor 충족)이 옳고, 구 "거짓 복구 경로" 서사는 신 의미론에서 소멸(주석 동반 갱신 — hook C2
+메시지의 "model 을 지우는 것(상속)만으로는 해소되지 않습니다" 문장도 같은 서사라 **교체 대상**, 슬롯1
+C4: 신 의미론에선 model 삭제=frontmatter opus 라 실제로 해소된다 — "명시 inherit 로는 해소되지 않음"
+으로 교체). smp 16(실행자-전무·sonnet 세션·sonnet 검증자)은 폴백 opus 상수로 **새로 발화** — 검증-전용
+Workflow 의 검증자도 opus floor 를 적용한다는 신 정책의 직접 귀결(§16.2 Rule C2 폴백). **smp 30(3규칙
+동시-emit 무손실)도 트리거-교체 클래스**(슬롯1 C1/Gate P BLOCKER-1 공통): WF_MULTI 의 무선언
+execute-strict 가 신 의미론에서 침묵해 3규칙 동시 성립이 깨진다 — 그 스폰을 명시 `inherit` 로 교체해
+판별 주제(규칙 우선순위 무손실)를 보존. **smp 11 도 트리거-교체로 확정**(Gate P deviation 정정): 판별
+주제가 "scriptPath 파일 읽기 경로"이므로 파일 내용을 명시 `inherit` 스폰으로 교체해 ALERT 유지 — 위
+반전 표·앵커 서술의 "smp 09/11" 은 **smp 09 단독**으로 정정해 읽는다(무선언 침묵 전환의 scriptPath
+변형은 인라인과 판정 로직 동일 — 별도 앵커 불요). **구 슬러그 잔존 픽스처명(smp 03 등)은 신 슬러그로
+rename**(슬롯1 B2) + 신 메시지 내용 픽스처 1건(`max(작업자` 토큰 단언 — test_smp_hedge 동형) 동반.
+
+### §16.3 리뷰 통합 (C17-B — §16.0-3 이 근거)
+
+1. **Gate R 조건부화 — 판별자 = spec-delta (슬롯1 D1 보강)**: spec delta 없는 재진입 사이클(durable
+   spec 무변경 — "delta 없음(no-op)" 경로)만 서브에이전트 Gate R 생략 + 메인 자기점검 체크리스트
+   대체. **delta 사이클(신설 포함)은 Gate R 유지 — opus**(§16.1 매트릭스). ★self-pass 방어(D1 —
+   "no-op 선언" 자체가 생략 주체의 자기증언이므로 선언만으론 순환): 생략 경로의 자기점검 1줄은
+   **`git diff <직전 사이클 머지 커밋>..HEAD -- docs/superpowers/specs/` 의 0-diff 출력을 증거로
+   동반**해야 한다(spec 디렉터리 무변경 = no-op 의 기계 판별 — 선언이 아니라 diff 가 판별자). diff 가
+   비어 있지 않으면 no-op 선언은 무효 — Gate R 필수. 잔여: spec 에 반영했어야 할 delta 를 반영하지
+   않은 채 no-op 를 선언하는 미반영-delta 는 diff 로 못 잡는다(그건 Gate R 이 있어도 spec 역류 누락
+   클래스 — 기존 Gate R 의 성질과 동일한 상한, 수용). C15/C16/C17 전부 delta 사이클 — C17 자신도
+   Gate R 실행.
+2. **Closeout 통합 리뷰 (슬롯1 D2/D3/D4/D5/E3 보강)**: drift 검사(start-rpi-cycle Step C-1
+   sub-step 1)와 senior review(closeout-pr-cycle Phase 4)를 **단일 opus 적대 리뷰 1회로 합본, 실행
+   지점 = Phase 4(머지 전 — drift 발견도 머지 전 정정 가능해야 의미)**. senior 검사 범주 A~E + drift
+   체크리스트(CONTEXT/plan 체크박스/자산 갱신 — **5 Whys 통과 non-obvious 누적 또는 명시 면제 기준
+   포함(D4 — 구 sub-step 1 문면 승계, 합본에서 탈락 금지)**/silent-downgrade 실물 대조)를
+   success_criteria 합본. **드리프트 체크리스트 항목의 미충족은 최소 Important 로 분류**하고, 통합
+   리뷰 보고는 **drift 항목별 판정을 명시 절로 분리 출력**(E3 — Critical 강등으로 PASS 를 얻는 우회
+   차단: 스탬프 조건은 "PASS"가 아니라 "drift 절 판정이 전항 명시됨"이다). context_paths 는 구 drift
+   검사가 받던 실재 자산(CONTEXT.md·active plan·non-obvious.md)을 **합본 호출에 추가**(D3 — 입력
+   없는 체크리스트는 vacuous). 출력 계약(Critical/Important/Minor·FAIL if any Critical) 불변.
+   **Step C-1 sub-step 1 은 "Phase 4 통합 리뷰 결과 소비(포인터)"로 개정**, **sub-step 3
+   `audit.last_drift_check` 스탬프 조건을 "통합 리뷰(drift 체크리스트 포함)가 실제 수행된 경우에만"
+   으로 재바인딩**(cycle-17 D-F5 위장-방지 불변식 보존 — 조건의 지시 대상만 이동). **폴백 술어는
+   "C-0 미충족"이 아니라 "Phase 4 통합 리뷰 미수행"**(D2 — C-0 은 충족했으나 local check FAIL·PR
+   실패·PARTIAL·abandoned 로 Phase 4 에 못 간 사이클도 폴백 대상): Closeout 이 Step C-1 에 도달했을
+   때 Phase 4 통합 리뷰가 수행되지 않았으면 **사유 불문 sub-step 1 단독 drift 검사 실행**(리뷰 0회
+   사이클 방지 — 술어가 원인 열거가 아니라 결과 부재). **머지-전 최종 리비전 창(D5 — 정직 부기)**:
+   통합 리뷰 후 브랜치에 추가되는 말미 커밋(CLAUDE.md §3·layer-yield append — §5-7 캐시 제약이 강제
+   하는 순서)은 리뷰 미대상 창이다 — 수용 조건: 그 창의 허용 내용을 **선언적 기계 편집 2건으로 한정**
+   (plan 최종 task 가 내용을 사전 명시 + verify-setup 재실행이 증인)하고 그 외 변경은 통합 리뷰 재실행
+   대상. 두 SKILL+미러 동기.
+3. **stage2 light-배칭 — carrier 무수정, plan-작성 규약**: 인접 light task(순수 문서·기계 편집)는
+   **plan 단계에서 하나의 task 로 병합**(files 합집합·successCriteria conjunct·문서-편집 대체 규약
+   명시). carrier 불변(seal #45 ⑦⑧⑨ 앵커·30000자 slice 자연 적용). 병합 상한: 합본 stage1 보고
+   30k 초과 예상 시 분할 유지(slice 절단 = 후미 diff 소실 = false PASS 클래스). heavy(코드/TDD)는
+   per-task 유지(RED/GREEN 증거 규약 보호). start-rpi-cycle (d) 절 문구 1곳.
+4. **델타 재심(§15.4)·교차패밀리 2-슬롯(§15.5) 불변. layer-yield(§15.3)는 계약 유지 + 층 분류법만
+   개정(슬롯1 E2)**: 통합 리뷰는 대장에 **`통합(senior+drift)` 1층 1행**으로 기록(senior·drift 2행
+   분리 기재 금지 — 이중 계상; 층 목록의 "senior·drift" 는 "통합(senior+drift) — C-0 미충족/미수행
+   폴백 시 drift 단독" 으로 개정). append 시점 규약(§15.3 "머지 전 마지막 커밋")과 통합 리뷰의 시간
+   관계(E4): 통합 리뷰가 측정하는 층은 자신 이전의 층이고, 통합 리뷰 자신의 행은 리뷰 완료 직후
+   기재 — auto-merge 사이클의 "C-0 이전 append 선행" 규약은 **통합 리뷰가 Phase 4 로 이동한 뒤에는
+   "통합 리뷰 완료 직후·merge 명령 이전 append"** 로 재해석(§15.3 문면의 C-0 기준은 wait-merge 시대
+   기록 — 재해석을 이 절이 명문화).
+
+### §16.4 수용 잔여 (명문 — 검증 A-2 + 슬롯1 A2/A3/A5/D6/F2)
+
+1. **Agent 경로 작업자-축 관측 불가**: per-call 입력이라 hook 이 작업자를 볼 수 없다 — 세션 축 제거
+   후 "작업자를 opus 위로 상향한 사이클(V1/V3 fable 작업자)의 검증자 동반 상향"은 **L2 강제 불가,
+   L1 규범 몫**(C13 §12.1 강제-범위 단락 선례 동형). §16.5 밸브가 fable 작업자를 합법화하므로 이 창은
+   실경로 — 밸브 발동 규약에 검증자 동반 상향 의무 포함으로 방어. **frontmatter opus 가 보장하는 것은
+   floor 의 opus-상수 절반뿐**(F2 — "판단-게이트 floor 전체를 공짜로 보장" 류의 서술 금지; 작업자
+   절반은 항상 L1 몫).
+2. **frontmatter 세션-내 캐싱 창**(§16.1): 전환 커밋 이전 시작 세션의 무지정=구 상속. advisory 오차
+   수용(새 세션부터 소멸·경계 세션은 명시 규약).
+3. **hook 무지정 평가의 frontmatter 의존**: Rule A/B/C/C2 의 "무지정=opus" 평가는 frontmatter 실물이
+   opus 임에 의존 — frontmatter 회귀는 seal #5/#45(개정판)가 FAIL 로 표면화(L3 분담). seal 은 라인
+   앵커 grep(토큰-존재 계열)이라 frontmatter 블록-스코프 판별은 아니다 — 본문에 같은 라인을 심는
+   조작-내성은 seal 의 알려진 상한(#19 클래스, 위협 모델은 적대가 아니라 망각).
+4. **미지-티어의 opus "평가"는 상계가 아니다**(A2/A3): Rule C2 의 미지-리터럴 실행자 opus 평가·동적
+   실행자 세션 평가는 휴리스틱 — 미지/동적이 실제 fable 급으로 해소되면 floor 과소평가로 하한
+   불변식이 L2 미탐이 된다(구 코드도 동적 축은 동일 클래스). 구조 해소는 런타임 관측을 요구해 텍스트
+   휴리스틱 상한 초과 — L1(밸브 동반-상향 규약)이 방어선, 표에 정직 기록.
+5. **Workflow 세션-미상(WF_TIER=0) 조기 exit**(A1 비대칭): Agent 경로 Rule B 는 리터럴-평가를 세션
+   무관 수행하도록 개정되나 Workflow 경로는 유지 — C2 의 inherit/동적/폴백 평가가 세션 티어 필수라
+   부분-평가 복잡도가 advisory 상한 초과. 비대칭 정직 부기.
+6. **V3 밸브의 상한 부재**(D6): V2 와 달리 V3(goal 명시 실험)는 회수 상한이 없다 — goal 문서가
+   비추적이라 선언의 감사물은 Closeout 보고의 FABLE-ESCALATION 목록 + layer-yield 부기뿐. 수용 근거:
+   V3 의 정의 자체가 "goal 이 사전 지정"이라 사용자 승인이 선행하고(§16.0 U4 와 같은 권위 채널),
+   Closeout 의 fable-0 실측(§16.0-1)이 미선언 소비를 표면화한다. 남용 관측 시 V2 동형 상한(사이클당
+   ≤N) 도입이 예비 경로.
+
+### §16.5 fable 예외 밸브 (C17-E — 명시 선언 없이는 위임 금지)
+
+발동 조건 3종만. 각 발동 = 보고에 `FABLE-ESCALATION(<사유>)` 선언 + layer-yield 부기 + **검증자 동반
+상향 의무**(fable 작업자 승인 시 그 산출물의 검증자도 fable — 하한 불변식의 L1 이행):
+- **V1**: 사용자 명시 요청.
+- **V2**: 판정 충돌 tie-break — opus 내부 게이트와 교차패밀리 GPT 가 같은 대상에 Critical 급으로
+  상충할 때 1회 재심(사이클당 ≤1).
+- **V3**: goal 이 명시한 실험/캘리브레이션(C17 에서는 §16.1 실측 ①② 가 사전 지정분 — 실측 중 fable
+  스폰 4건은 지표 위반이 아니라 V3 카운트).
+
+### §16.6 동반 갱신 전수 (L1 전파 — C16 T3 동형)
+
+seal: **#5**(verify-setup :26-30 — `^model: inherit$` 루프 → `^model: opus$`, 카운트 불변 2 ok →
+δ=0)·**#45 conjunct ③**(`^model:[[:space:]]*inherit` → `opus` + review effort 키 부재 유지) + 개정
+seal 각각에 seal-regression 변이 동반(§13.13 — **기존 변이에 model 축 커버 0건이 실측**되어 신설이
+곧 공백 해소다) + 기존 frontmatter 관련 변이 기대값 재계산.
+문서 (슬롯1 B3/B4/B5/E1 로 전수 보강): model-policy.md 매트릭스(:19 검증 행·:22·§2·§3 L2 서술)·
+CONTEXT.md 「검증자 기준선」(3차 supersede)·「실행자 하향 위임」·「역할×모델 매트릭스」·
+cross-family-review.md §3(기준선 **첫 단락 + :67 내부 적대 패스 단락의 "티어=세션 상속(판단-게이트
+floor)" — 둘 다**(E1); "동적 선택 불채택" 논거는 "정적 opus 상수"로 유지됨을 명시)·start-rpi-cycle
+SKILL.md(Gate 디스패치 model 규약·(d) 경로·Gate R 조건부·Step C-1 재배선·**sub-step 9 층 분류법
+"senior·drift"→"통합"**(E2))·closeout-pr-cycle SKILL.md(Phase 4 통합 리뷰 + **frontmatter description
+·본문 요약의 "senior review" 서술**(B3))·README(:39·:56·:59 + **:69/:185/:234 의 2-리뷰 토폴로지
+서술("이후 review-strict drift 검사"·"Phase 4 (Senior Review)")**(B3) + **:292/:530 cases 카운트
+2곳**(Gate P B-2 — seal #20 이 양쪽 대조))·spec §3/§12.1/§15.1 supersede 포인터·scaffold-registry
+(:24·:48·:83 + **:32 Closeout 요약 행**(B3))·**hook :180 Rule B 메시지의 §12.1 인용 잔존(C16 미갱신
+— Rule B 재정의가 메시지 자체를 교체하며 자연 해소)**·**hooks/verify-loop-watch.sh :38 의
+"closeout(review-strict drift + state.json 갱신)" 권고 문구**(B4 — "closeout(통합 리뷰 + state.json
+갱신)" 으로)·CLAUDE.md §3(→ 세션 종료 직전 마지막 task — §1 캐시 제약).
+**opencode 미러**: C17-A(모델 축) 몫은 **no-op**(미러에 agent frontmatter `model:` 키·
+surface-model-policy 동형물 자체가 부재 — 2026-08-02 전수 grep 실측, 의도적 제외). C17-B(절차 축)
+동기는 skill 2파일(start-rpi-cycle·closeout-pr-cycle) + **opencode-harness/AGENTS.md :25 의 §3
+Closeout 서술**(B5 — CLAUDE.md §3 개정의 미러 동형; 세션 종료 직전 task 에 포함).
+
+### §16.7 하우스키핑 (C17-C)
+
+1. §12.1 의 C16 재실측 인용 중 `:56`("stage2 는 무지정") — 현행 실물(stage2 `model: 'opus'` 명시,
+   :57)과 불일치 → 인용 주석 정밀화 1줄.
+2. hook 2패스 구 "[C]2 REAL 기타 tier 0 비면제" 출처 주석 소실 — 행동 불변 확인 후 복원 1줄.
+3. §15.2 의 PR#37 body "X1~X13" 라벨 오기(GT=X1~X15) 정오 1줄. → **정오 (C17)**: §15.2 표의 GT 는
+   X1~X15 가 옳다(PR#37 body 의 "X1~X13" 은 오기).
+4. review-yield.md C16 행 정정: `stage2 ×8` → `×9`(1차 7+재심 2), `5 PASS/3 FAIL` → `7 PASS/2 FAIL`
+   (재심 2 PASS 포함 산술). **append-정정 행**으로(원행 편집 대신 정오 병기 — 축적 데이터 이력 보존).
+
+### §16.8 교차패밀리 슬롯 1 + Gate P 트리아지 (2026-08-02~03 — A1~F4 + BLOCKER 2)
+
+경로 A(`gpt-5.6-sol`·ultra·verbosity high·read-only·`-o` 슬롯별 파일). 대상 = §16 초판 + plan 초판.
+GPT 제기 26건(A1~A6·B1~B5·C1~C7·D1~D6·E1~E4·F1~F4) + Gate P(opus) FAIL 2 BLOCKER. 전건 원문 실측
+대조 트리아지 — **REAL 24 / 수용 잔여 전환 2(A2/A3 의 "상계" 주장 철회·D6 V3 상한) / 기각 0**:
+
+- **A1(REAL)**: Rule B 의 `SESSION_TIER != 0` 전체-skip 이 미지-세션에서 리터럴 검증자 평가까지
+  삼킴 — 리터럴 평가는 세션 불요 → floor arm 을 세션-무관으로 개정(§16.2). Workflow 조기 exit 은
+  비대칭 수용(§16.4-5).
+- **A2/A3(REAL→정직 전환)**: 미지/동적의 opus·세션 "상계"는 상계가 아님(실제 상위 해소 시 과소평가)
+  → "평가(휴리스틱)"로 전면 개칭 + §16.4-4 수용 잔여 명문 + 반전 표에 A2 행 추가.
+- **A4(REAL)**: 반전 표가 Rule B 의 동일-티어 구멍 소멸(sonnet+sonnet·haiku 조합) 누락 → 행 추가 +
+  픽스처 신설.
+- **A5(REAL)**: 작업자-측 `-`/미지 산식 교체를 판별하는 픽스처 부재(fable 세션 미지 실행자+opus
+  검증자 = 구 ALERT/신 SILENT) → 반전 행 + 전용 픽스처.
+- **A6(REAL — 최중대)**: fable-누출 arm 의 "fable 세션 한정" 게이트가 비-fable 세션의 fable 명시
+  위임을 침묵시킴(U4 금지는 세션 무관) + Workflow 검증자 fable 은 floor 충족이라 전-무검 → Rule
+  A/B/C 의 fable-리터럴 arm 전 세션 확장 + C2-leak arm 신설(§16.2). 밸브-정당 호출 오탐은 advisory
+  환기로 수용.
+- **B1(REAL)**: Rule C 발화 메시지·슬러그가 제거된 무선언 arm 서사("model 지정 없이") 잔존 →
+  `rule-c-workflow-fable-leak` 로 교체. **B2(REAL)**: 신 슬러그·메시지 무픽스처 + smp 03 구 슬러그명
+  잔존 → rename + 내용 픽스처(`max(작업자` 단언). **B3(REAL)**: README :69/:185/:234·
+  scaffold-registry :32·closeout SKILL description 의 2-리뷰 토폴로지 서술 미열거 → §16.6 편입.
+  **B4(REAL)**: verify-loop-watch.sh :38 구 drift 권고 → 편입. **B5(REAL)**: CLAUDE.md §3 개정의
+  opencode AGENTS.md :25 미러 동형물 미열거 → 편입.
+- **C1(REAL — Gate P BLOCKER-1 동일)**: smp 30 의 무선언 트리거가 신 의미론에서 죽어 3규칙 동시-emit
+  판별 증발(277/277 불성립 실측) → 트리거-교체 클래스 편입. **C2(REAL)**: plan 의 방향 분류(4/5)와
+  가드 계수(3/4) 오기 → 정정. **C3(REAL)**: T1(hook)→T2(frontmatter) 순서가 "hook 침묵 + frontmatter
+  inherit" 커밋 창을 만듦 → **task 순서 교환**(frontmatter 선행 = 구 hook 소음-안전 창으로 대체).
+  **C4(REAL)**: C2 메시지 "model 을 지우면 해소되지 않음"이 신 의미론에서 거짓 → "명시 inherit 로는
+  해소 불가"로 교체. **C5(REAL)**: M15/M16 단언 부분문자열이 seal #5 만 증명(#45 미증) → 변이당 #5·
+  #45 각 1 단언(4 assert). **C6(REAL)**: seal grep 이 frontmatter 블록-스코프가 아님 → #5 를 awk
+  frontmatter-스코프로 강화 + #45 는 토큰-존재 상한 수용(§16.4-3 부기). **C7(REAL)**: 무지정/명시
+  inherit 의미 분리 후 구 픽스처명("inherit-ok" 류)이 오독 유발 → 04/15/29 등 rename.
+- **D1(REAL)**: Gate R 생략 술어가 자기증언 → spec-디렉터리 git-diff 0 출력을 기계 판별자로(§16.3-1).
+  **D2(REAL)**: C-0 폴백 술어가 원인-열거라 "C-0 충족 후 Phase 4 미도달" 누락 → 술어를 "Phase 4
+  미수행"으로(§16.3-2). **D3(REAL)**: 합본 리뷰 context_paths 에 drift 입력(CONTEXT·plan·non-obvious)
+  부재 → 추가. **D4(REAL)**: 5 Whys/명시 면제 기준 탈락 → 승계 명문. **D5(REAL)**: 통합 리뷰 후
+  말미 커밋 창 미검 → 허용 내용을 선언적 기계 편집으로 한정(§16.3-2). **D6(수용 잔여)**: V3 무상한
+  → §16.4-6(사용자-권위 채널 + fable-0 실측이 표면화, 남용 시 상한 예비).
+- **E1(REAL)**: cross-family §3 :67 "티어=세션 상속" 자기모순 예정 → 편집 대상 편입. **E2(REAL)**:
+  layer-yield 층 분류법의 senior·drift 2층이 합본과 충돌 → "통합(senior+drift)" 1층 개정(§16.3-4).
+  **E3(REAL)**: Critical-만-FAIL 이 drift 항목 강등-PASS 우회 허용 → 최소 Important + drift 절 분리
+  출력 + 스탬프 조건을 "전항 명시"로. **E4(REAL)**: auto-merge append 시점 규약과 Phase 4 이동 충돌
+  → 재해석 명문(§16.3-4).
+- **F1(REAL)**: "layer-yield 가 사후 검증"은 과잉(자기보고 계량 — 약한 검증자는 PASS 증가 방향) →
+  "사후 관측 신호 + GPT 층이 독립 대조군"으로 정정(§16.0-2). **F2(REAL)**: "frontmatter 가 floor 를
+  공짜로 보장"은 opus-상수 절반만 참 → §16.4-1 부기 + 전파 문구 수정. **F3(REAL)**: "구조적 소멸"
+  과잉 → "무지정 클래스 한정(신 세션 기준)"으로(§16.1). **F4(REAL)**: "세션 시작 시점 로드" 단정 →
+  "세션-스코프 고정 관측(로드 시점 미판별)"로(§16.1).
+- **Gate P BLOCKER-2(REAL)**: README cases 카운트 2곳(:292 "N case"·:530 "N 케이스") 중 :530 만
+  치환 계획 — seal #20 이 양쪽 대조라 FAIL → §16.6 에 2곳 명시.
+- **Gate P deviation(REAL)**: smp 11 의 반전/트리거-교체 이중 분류 → 트리거-교체로 확정(§16.2 말미).
+
+**메타 관측**: 슬롯 1 2회차도 전건이 **코드 작성 전** 도착 — A6(U4 금지의 세션-축 구멍)·C1(fixture
+회귀)·D2(리뷰-0 사이클 잔여 경로) 클래스를 설계 층에서 차단. Gate P(opus) 첫 실측이 산술 BLOCKER 2건
+을 샌드박스 재현으로 잡음(§16.0-2 의 "opus 게이트 첫 실측" 데이터 포인트 — 발견 2건 REAL).

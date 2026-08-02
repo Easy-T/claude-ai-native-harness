@@ -90,8 +90,8 @@ _Avoid_: "동적 모델 선택"(기각된 재량 — self-pass 우회로), "모�
 _Avoid_: "모델 정책"(범위 불명 — ANTHROPIC_* 라우팅 env 설정과 혼동), "모델 라우팅"(CLIProxy 티어 매핑과 혼동).
 
 ### 검증자 기준선 (verifier floor)
-검증자(review-strict)의 모델 티어가 넘어야 하는 하한 — **임무-분리**(검문의 임무별 floor)된다(C16, 2026-08-02 — C13 일괄 `max(세션,작업자)`의 의식적 supersede, spec §12.1→§15.1). **준수-확인 임무**(Workflow 경로 = canonical carrier stage2): floor = **작업자 티어**(실행자 부재 스크립트는 세션 티어 폴백 — 보수 유지). **판단-게이트**(판단-필요 게이트, Agent 도구 경로 = Gate R/P·senior·drift): floor = **`max(세션 티어, 작업자 티어)` 유지**(Rule B 불변). 근거: C15 per-layer 수율 실측 — stage2는 준수-확인 임무에서 내용 발견 0, Gate P가 유일한 내부 발견 층. 하한 불변식: 어떤 임무에서도 검증자 < 작업자 금지. **무지정(상속)은 면제가 아니라 "세션 티어로 평가"**다(C13 Closeout, 불변): 상속 검증자는 세션 티어로 셈해 floor와 비교한다.
-_Avoid_: "검증자 하향 금지"(무엇 대비 하향인지 불명 — 이 모호성이 C13 이전 SSOT 드리프트의 원인), "검증자 상속"(inherit는 구현 수단이지 기준이 아님), "일괄 floor"(C16 이후 임무 축이 선행한다).
+검증자(review-strict)의 모델 티어가 넘어야 하는 하한 — **임무-분리**(검문의 임무별 floor, C16)에 이어 **세션 축이 전면 제거**됐다(C17, 2026-08-02 — U4 공리에 의한 §15.1 판단-게이트 절반의 재-supersede, spec §16). **준수-확인 임무**(Workflow 경로 = canonical carrier stage2): floor = **작업자 티어**(불변 — 실행자 부재 스크립트는 **opus 정책 상수 폴백**, C17이 세션 폴백을 교체). **판단-게이트**(Agent 도구 경로 = Gate·통합 리뷰·델타 재심): floor = **`max(작업자 티어, opus)`** — fable 세션에서도 opus 검증자가 기준 충족. 근거: 판단-게이트 opus 전환은 U4 공리 단독(실측은 준수-확인 층뿐 — C16 stage2 T3·T7; layer-yield 축적이 사후 검증). 하한 불변식: 어떤 임무에서도 검증자 < 작업자 금지. **평가 규칙(C17·Option 1)**: 무지정 = frontmatter opus 추종(tier 3) / **명시 `inherit`만 세션 티어로 평가**(C13 의미론은 이 축에 존속) / 미지-티어 리터럴은 비면제(≥opus 단언 불가 → 위반).
+_Avoid_: "검증자 하향 금지"(무엇 대비 하향인지 불명 — 이 모호성이 C13 이전 SSOT 드리프트의 원인), "검증자 상속"(inherit는 구현 수단이지 기준이 아님), "일괄 floor"(C16 이후 임무 축이 선행한다), "세션 floor"(C17이 제거한 축 — U4).
 
 ### 스캐폴드 산출물 경계 (scaffold-output boundary)
 `docs/ai-context/{architecture,domain-glossary,deny-patterns,runbook}.md`는 `init-ai-ready-project`가 **대상 프로젝트에** 생성하는 산출물이지 하네스 자신의 자산이 아니다(cycle-31 판정, spec §13.4 — `git log --all` 전부 빈 출력로 확증). 경계는 **파일명**에 걸리지 *디렉터리*에 걸리지 않는다 — `docs/ai-context/`에는 하네스 소유 추적 파일(model-policy·cross-family-review·memory-policy·plugin-pins·scaffold-registry, +C14의 non-obvious)이 함께 산다. skill이 두 문맥(하네스·대상 프로젝트)에서 모두 도므로 부재 경로 지시는 **삭제가 아니라 조건부 선언**("실재하는 것만")으로 정정한다.
@@ -120,6 +120,14 @@ _Avoid_: "리뷰 ROI"(토큰 수치가 필수인 듯한 함의 — 필수는 발
 ### 델타 재심 (delta re-review)
 게이트/스테이지 FAIL 후 재실행 리뷰의 success_criteria를 "직전 FAIL이 지목한 항목 각각의 해소 + 그 정정이 새로 깨뜨린 것 없음"으로 한정하는 규약(C16). 전체 기준 재검은 첫 회만. 근거: C15 Gate P #2가 발견 3건 재검에 전체 재리뷰 83k 지출.
 _Avoid_: "재검증 생략"(스코프 한정이지 생략이 아님), "증분 리뷰"(diff-증분과 혼동 — 이것은 FAIL-항목 스코프).
+
+### fable 예외 밸브 (fable escalation valve)
+fable 서브에이전트 위임 기본 금지(U4 공리 — fable의 상주 역할은 메인 오케스트레이션 하나)의 유일한 탈출구 3종: V1 사용자 명시 요청 / V2 판정 충돌 tie-break(opus 게이트 ↔ GPT Critical 상충 시 1회, 사이클당 ≤1) / V3 goal 명시 실험·캘리브레이션. 발동 = `FABLE-ESCALATION(<사유>)` 선언 + layer-yield 부기 + **검증자 동반 상향 의무**(fable 작업자면 검증자도 fable — 하한 불변식의 L1 이행). spec §16.5.
+_Avoid_: "fable 금지"(밸브 존재를 지우는 과잉 표현), "에스컬레이션"(일반 장애 대응과 혼동 — 이것은 모델-티어 상향 선언).
+
+### 통합 리뷰 (integrated closeout review)
+Closeout의 drift 검사(start-rpi-cycle Step C-1 sub-step 1)와 senior review(closeout-pr-cycle Phase 4)를 합본한 **단일 opus 적대 리뷰 1회**(C17) — 실행 지점 = Phase 4(머지 전). senior 검사 범주 A~E + drift 체크리스트를 success_criteria 합본, 출력 계약(Critical/Important/Minor·FAIL if any Critical) 불변. `audit.last_drift_check` 스탬프는 통합 리뷰(drift 체크리스트 포함) 실수행 시에만. C-0 미충족 사이클(remote 없음 등)은 sub-step 1 이 단독 drift 검사로 폴백(리뷰 0회 사이클 방지). spec §16.3-2.
+_Avoid_: "리뷰 생략"(횟수 재배분이지 생략 아님), "drift 검사 폐지"(폴백 경로가 존속한다).
 
 ### 핸드오프 복원력 (handoff resilience)
 임의 시점 중단 후 다른 모델·세션이 **머지된 문서만으로**(이 머신의 auto-memory 없이) 작업을 재개할 수 있는 성질. 산출 문서의 self-containment(필요 사실 인라인 재서술)가 성립 조건이며, cold-agent fitness가 검증 수단.
