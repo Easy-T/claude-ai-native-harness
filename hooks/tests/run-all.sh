@@ -1058,7 +1058,7 @@ test_smp() {
   if [ "$actual" = "$expected_exit" ] && [ "$ctx" = "$expect_ctx" ]; then PASSED=$((PASSED+1))
   else FAILED_LIST+=("surface-model-policy/$name (exit=$actual ctx=$ctx)"); fi
 }
-rm -f /tmp/model-policy-a-smp* /tmp/model-policy-b-smp* /tmp/model-policy-c-smp* /tmp/model-policy-c2-smp* /tmp/model-policy-c3-smp* 2>/dev/null   # stale-marker 플레이크 방지 (MSYS PID 재활용 — senior review C12)
+rm -f /tmp/model-policy-a-smp* /tmp/model-policy-b-smp* /tmp/model-policy-c-smp* /tmp/model-policy-c2-smp* /tmp/model-policy-c2l-smp* /tmp/model-policy-c3-smp* 2>/dev/null   # stale-marker 플레이크 방지 (MSYS PID 재활용 — senior review C12)
 SMP_FABLE_T=$(mktemp "$SCRATCH/smp-fable-XXXXXX.jsonl")
 printf '{"type":"assistant","message":{"model":"claude-fable-5","content":[]}}\n' > "$SMP_FABLE_T"
 SMP_SONNET_T=$(mktemp "$SCRATCH/smp-sonnet-XXXXXX.jsonl")
@@ -1070,14 +1070,14 @@ printf '{"type":"assistant","message":{"model":"claude-haiku-4-5","content":[]}}
 SMP_QUOTE_T=$(mktemp "$SCRATCH/smp-quote-XXXXXX.jsonl")
 printf '{"type":"assistant","message":{"model":"claude-fable-5","content":[{"type":"text","text":"claude-opus-5[1m] 언급 텍스트"}]}}\n' > "$SMP_QUOTE_T"
 
-# 01: fable 세션 + execute-strict + model 부재 → Rule A ALERT (ctx=1)
-test_smp "01-rule-a-fable-nomodel" 0 1 "$(mk_agent_event execute-strict "" "$SMP_FABLE_T" "smp01-$$")"
+# 01: fable + exec 무지정 → C17 무지정=frontmatter opus(§16.1 실측) — 침묵 전환 (구 ALERT)
+test_smp "01-rule-a-fable-nomodel" 0 0 "$(mk_agent_event execute-strict "" "$SMP_FABLE_T" "smp01-$$")"
 # 02: fable 세션 + execute-strict + model:'opus' → 정책 준수 (ctx=0)
 test_smp "02-rule-a-opus-ok" 0 0 "$(mk_agent_event execute-strict opus "$SMP_FABLE_T" "smp02-$$")"
-# 03: fable 세션 + review-strict + model:'sonnet' → Rule B 하향 ALERT (ctx=1)
-test_smp "03-rule-b-verifier-downshift" 0 1 "$(mk_agent_event review-strict sonnet "$SMP_FABLE_T" "smp03-$$")"
-# 04: review-strict + model 무지정(상속) → 무출력 (ctx=0)
-test_smp "04-rule-b-inherit-ok" 0 0 "$(mk_agent_event review-strict "" "$SMP_FABLE_T" "smp04-$$")"
+# 03: fable 세션 + review-strict + model:'sonnet' → Rule B opus-floor 미달 ALERT (ctx=1)
+test_smp "03-rule-b-below-opus-floor" 0 1 "$(mk_agent_event review-strict sonnet "$SMP_FABLE_T" "smp03-$$")"
+# 04: review-strict + model 무지정(=frontmatter opus) → 무출력 (ctx=0)
+test_smp "04-rule-b-nomodel-ok" 0 0 "$(mk_agent_event review-strict "" "$SMP_FABLE_T" "smp04-$$")"
 # 05: sonnet 세션 + execute-strict + model 부재 → Rule A 비대상 (ctx=0)
 test_smp "05-nonfable-execute-ok" 0 0 "$(mk_agent_event execute-strict "" "$SMP_SONNET_T" "smp05-$$")"
 # 06: 깨진 stdin → fail-open exit 0 무출력
@@ -1085,7 +1085,8 @@ test_smp "06-broken-stdin" 0 0 "not-json"
 # 07: transcript 부재 → fail-open exit 0 무출력
 test_smp "07-no-transcript" 0 0 "$(mk_agent_event execute-strict "" "$SCRATCH/smp-none.jsonl" "smp07-$$")"
 # 08: assistant 라인 content 가 타 모델 id 를 인용해도 message.model(첫 매치)로 판정 → Rule A ALERT
-test_smp "08-quoted-id-immune" 0 1 "$(mk_agent_event execute-strict "" "$SMP_QUOTE_T" "smp08-$$")"
+#     (C17: 트리거를 명시 inherit 로 — 무지정은 frontmatter opus 라 더는 위반이 아니다. 원 성질=content 인용 면역)
+test_smp "08-quoted-id-immune" 0 1 "$(mk_agent_event execute-strict inherit "$SMP_QUOTE_T" "smp08-$$")"
 
 # --- Rule C (Workflow 매처, C12 spec §10): 실측 shape verbatim ---
 mk_wf_event() {
@@ -1102,14 +1103,17 @@ WF_BAD_SCRIPT="export const meta = {name: 'x', description: 'x'}
 await agent('do it', {agentType: 'execute-strict'})"
 WF_OK_SCRIPT="export const meta = {name: 'x', description: 'x'}
 await agent('do it', {agentType: 'execute-strict', model: 'opus'})"
-WF_SP_BAD=$(mktemp "$SCRATCH/wf-sp-bad-XXXXXX.js"); printf '%s\n' "$WF_BAD_SCRIPT" > "$WF_SP_BAD"
+# C17: scriptPath 픽스처(11)의 주제는 "파일 읽기"라 트리거를 명시 inherit 스폰으로 교체(무선언은 침묵 전환)
+WF_SP_BAD_CONTENT="export const meta = {name: 'x', description: 'x'}
+await agent('do it', {agentType: 'execute-strict', model: 'inherit'})"
+WF_SP_BAD=$(mktemp "$SCRATCH/wf-sp-bad-XXXXXX.js"); printf '%s\n' "$WF_SP_BAD_CONTENT" > "$WF_SP_BAD"
 
-# 09: fable + 인라인 script + execute-strict + model 부재 → Rule C ALERT
-test_smp "09-rule-c-inline-nomodel" 0 1 "$(mk_wf_event script "$WF_BAD_SCRIPT" "$SMP_FABLE_T" "smp09-$$")"
+# 09: fable + 인라인 wf exec 무선언 → C17 무선언=frontmatter opus 추종 → 침묵 전환 (구 ALERT)
+test_smp "09-rule-c-inline-nomodel" 0 0 "$(mk_wf_event script "$WF_BAD_SCRIPT" "$SMP_FABLE_T" "smp09-$$")"
 # 10: fable + 인라인 + model:'opus' 존재 → 무출력
 test_smp "10-rule-c-inline-opus-ok" 0 0 "$(mk_wf_event script "$WF_OK_SCRIPT" "$SMP_FABLE_T" "smp10-$$")"
-# 11: fable + scriptPath 파일에 execute-strict+무model → ALERT
-test_smp "11-rule-c-scriptpath-nomodel" 0 1 "$(mk_wf_event scriptPath "$WF_SP_BAD" "$SMP_FABLE_T" "smp11-$$")"
+# 11: fable + scriptPath 파일에 execute-strict 명시 inherit → ALERT (주제: scriptPath 파일 읽기)
+test_smp "11-rule-c-scriptpath-explicit-inherit" 0 1 "$(mk_wf_event scriptPath "$WF_SP_BAD" "$SMP_FABLE_T" "smp11-$$")"
 # 12: sonnet 세션 → Rule C 비대상 (무출력)
 test_smp "12-rule-c-nonfable-ok" 0 0 "$(mk_wf_event script "$WF_BAD_SCRIPT" "$SMP_SONNET_T" "smp12-$$")"
 # 13: scriptPath 파일 부재 → fail-open 무출력
@@ -1126,10 +1130,10 @@ await agent("do it", {agentType: "execute-strict", "model": "opus"})'
 
 # 14: fable + 스크립트가 review-strict 를 model:'sonnet' 으로 스폰 → Rule C2 ALERT
 test_smp "14-rule-c2-review-downshift" 0 1 "$(mk_wf_event script "$WF_C2_BAD" "$SMP_FABLE_T" "smp14-$$")"
-# 15: review-strict 무model(상속) → 무출력
-test_smp "15-rule-c2-review-inherit-ok" 0 0 "$(mk_wf_event script "$WF_C2_OK" "$SMP_FABLE_T" "smp15-$$")"
-# 16: sonnet 세션 + review model:'sonnet' → 동일 티어, 무출력
-test_smp "16-rule-c2-equal-tier-ok" 0 0 "$(mk_wf_event script "$WF_C2_BAD" "$SMP_SONNET_T" "smp16-$$")"
+# 15: review-strict 무model(=frontmatter opus 3 ≥ 폴백 floor 3) → 무출력
+test_smp "15-rule-c2-review-nomodel-ok" 0 0 "$(mk_wf_event script "$WF_C2_OK" "$SMP_FABLE_T" "smp15-$$")"
+# 16: sonnet + 검증-전용(실행자 전무) + review sonnet → 폴백=opus 상수 3 > 2 — 새로 발화 (구 SILENT)
+test_smp "16-rule-c2-fallback-opus-floor" 0 1 "$(mk_wf_event script "$WF_C2_BAD" "$SMP_SONNET_T" "smp16-$$")"
 # 17: 인용부호 키 '"model":' 도 선언으로 인정 → Rule C 오탐 없음 (C7 정정)
 test_smp "17-rule-c-quotedkey-ok" 0 0 "$(mk_wf_event script "$WF_QK_OK" "$SMP_FABLE_T" "smp17-$$")"
 # 18: fable + execute-strict 에 model:'fable' 명시 → 하향 미적용과 동일, Rule C ALERT ([B]1 정정)
@@ -1139,15 +1143,17 @@ test_smp "18-rule-c-fable-explicit" 0 1 "$(mk_wf_event script "$WF_FABLE_SCRIPT"
 # 19: transcript 의 model 키가 공백 포함('"model": "...') 이어도 세션 판별 → Rule A ALERT ([B]5 정정)
 SMP_SPACED_T=$(mktemp "$SCRATCH/smp-spaced-XXXXXX.jsonl")
 printf '{"type":"assistant","message":{"model": "claude-fable-5","content":[]}}\n' > "$SMP_SPACED_T"
-test_smp "19-spaced-model-key" 0 1 "$(mk_agent_event execute-strict "" "$SMP_SPACED_T" "smp19-$$")"
+#     (C17: 트리거를 명시 inherit 로 — 주제=공백 model 키 세션 판별)
+test_smp "19-spaced-model-key" 0 1 "$(mk_agent_event execute-strict inherit "$SMP_SPACED_T" "smp19-$$")"
 
 # --- C13: per-spawn 판정 + Rule C3 (spec §12.3) ---
+# C17: 20/21 의 주제는 per-spawn 마스킹 해소·프롬프트 노이즈 오인 방지 — 위반 트리거를 명시 inherit 로 교체
 WF_MASK="export const meta = {name: 'x', description: 'x'}
 await agent('a', {agentType: 'execute-strict', model: 'opus'})
-await agent('b', {agentType: 'execute-strict'})"
+await agent('b', {agentType: 'execute-strict', model: 'inherit'})"
 WF_PROMPT_NOISE="export const meta = {name: 'x', description: 'x'}
 const P = \`policy: model: 'opus' required\`
-await agent(P, {agentType: 'execute-strict'})"
+await agent(P, {agentType: 'execute-strict', model: 'inherit'})"
 WF_COMMENT_ONLY="export const meta = {name: 'x', description: 'x'}
 // 배경: execute-strict 는 구현용이다
 await agent('research', {label: 'r', model: 'sonnet'})"
@@ -1181,20 +1187,21 @@ await agent('v', {agentType: 'review-strict'})"
 WF_EX_UP_OTHER="export const meta = {name: 'x', description: 'x'}
 await agent('a', {agentType: 'execute-strict', model: 'opus'})
 await agent('v', {agentType: 'review-strict', model: 'gpt-custom'})"
+# C17: 30 의 주제는 3규칙 동시-emit 무손실 — 무선언 exec 를 명시 inherit 로 교체
 WF_MULTI="export const meta = {name: 'x', description: 'x'}
-await agent('implement', {agentType: 'execute-strict'})
+await agent('implement', {agentType: 'execute-strict', model: 'inherit'})
 await agent('research', {})
 await agent('review', {agentType: 'review-strict', model: 'haiku'})"
 WF_DYN_TYPE="export const meta = {name: 'x', description: 'x'}
 await agent('p', {agentType: TYPE})"
 
-# 27: [C]1/[C]3 — sonnet 세션 + 실행자 opus + 검증자 **무지정(상속=sonnet 2 < floor 3)** → 위반 ALERT
-#     (종전엔 '-' 를 폐기해 침묵 → "model 을 지우면 경고만 사라지는" 거짓 복구 경로였다)
-test_smp "27-rule-c2-inherit-below-floor" 0 1 "$(mk_wf_event script "$WF_EX_UP_INHERIT" "$SMP_SONNET_T" "smp27-$$")"
+# 27: sonnet + exec opus + review 무지정 → 무지정=frontmatter opus 3 ≥ floor 3 — 침묵 반전 (구 ALERT;
+#     구 "model 지우면 경고만 사라지는 거짓 복구" 서사는 신 의미론(무지정=실제 opus)에서 소멸 — §16.2)
+test_smp "27-rule-c2-nomodel-above-floor" 0 0 "$(mk_wf_event script "$WF_EX_UP_INHERIT" "$SMP_SONNET_T" "smp27-$$")"
 # 28: [C]2 — 기타 모델(tier 0) 검증자도 면제되지 않음
 test_smp "28-rule-c2-tier0-not-exempt" 0 1 "$(mk_wf_event script "$WF_EX_UP_OTHER" "$SMP_SONNET_T" "smp28-$$")"
-# 29: [C]1 반대 방향 — fable 세션 + 실행자 opus + 검증자 상속(fable 4 ≥ 3) → 무발화(정상 경로)
-test_smp "29-rule-c2-inherit-above-floor" 0 0 "$(mk_wf_event script "$WF_EX_UP_INHERIT" "$SMP_FABLE_T" "smp29-$$")"
+# 29: [C]1 반대 방향 — fable 세션 + 실행자 opus + 검증자 무지정(frontmatter opus 3 ≥ floor 3) → 무발화(정상 경로)
+test_smp "29-rule-c2-nomodel-floor-met" 0 0 "$(mk_wf_event script "$WF_EX_UP_INHERIT" "$SMP_FABLE_T" "smp29-$$")"
 # 30: [C]5 — C·C3·C2 동시 성립 시 첫 규칙이 나머지를 삼키지 않음(3 규칙 모두 1회 emit)
 test_smp_multi() {
   TOTAL=$((TOTAL+1))
@@ -1221,8 +1228,9 @@ test_smp "34-rule-c3-builtin-nonfable-ok" 0 0 "$(mk_wf_event script "$WF_BUILTIN
 # C14 (35): 삼항 opts 마스킹 해소를 hook 경유 E2E 로 실증 — 준수 분기(opus)가 무선언 분기를 가리지 못한다.
 #   파서 단위(test_lib)만으론 "hook 이 그 출력으로 실제 발화하는가"를 증언 못 한다(C13 교훈: 파서는
 #   정확했는데 hook 이 그 행을 버려 SILENT 였음). 정정 전 SILENT(ctx=0) → 정정 후 ALERT(ctx=1).
+#   (C17: else 분기를 명시 inherit 로 — 무선언은 침묵 전환이라 주제(삼항 마스킹 해소)를 봉인 못 한다)
 WF_TERNARY="export const meta = {name: 'x', description: 'x'}
-await agent('impl', heavy ? {agentType: 'execute-strict', model: 'opus'} : {agentType: 'execute-strict'})"
+await agent('impl', heavy ? {agentType: 'execute-strict', model: 'opus'} : {agentType: 'execute-strict', model: 'inherit'})"
 test_smp "35-rule-c-ternary-masking-e2e" 0 1 "$(mk_wf_event script "$WF_TERNARY" "$SMP_FABLE_T" "smp35-$$")"
 # C14 (36, GPT 교차리뷰): 명시 `model:'inherit'` 도 세션 상속이므로 C3 대상 — '-'(무선언)만 보던 결함.
 WF_EXPL_INHERIT="export const meta = {name: 'x', description: 'x'}
@@ -1248,20 +1256,21 @@ test_smp "41-rule-c2-worker-floor-ok" 0 0 "$(mk_wf_event script "$WF_WORKER_FLOO
 WF_WORKER_FLOOR_S="await agent('impl', {agentType: 'execute-strict', model: 'sonnet'})
 await agent('v', {agentType: 'review-strict', model: 'sonnet'})"
 test_smp "42-rule-c2-worker-floor-sonnet" 0 0 "$(mk_wf_event script "$WF_WORKER_FLOOR_S" "$SMP_FABLE_T" "smp42-$$")"
-# C16 슬롯1 S1/S2: 상속·동적 실행자는 세션 티어로 평가 — 하위 리터럴 실행자가 floor 를 끌어내리지 못함.
-# opus 세션 사용 — fable 세션이면 Rule C(무선언 실행자)가 함께 발화해 C2 회귀를 가린다(판정 격리).
+# C16 슬롯1 S1/S2 (C17 산식 갱신): 무선언 실행자는 frontmatter opus(3)·명시 inherit/동적은 세션 티어로
+# 평가 — 하위 리터럴 실행자가 floor 를 끌어내리지 못함. opus 세션 사용(판정 격리).
 WF_MIXED_EXEC="await agent('a', {agentType: 'execute-strict'})
 await agent('b', {agentType: 'execute-strict', model: 'sonnet'})
 await agent('v', {agentType: 'review-strict', model: 'sonnet'})"
 test_smp "43-rule-c2-mixed-inherit-exec" 0 1 "$(mk_wf_event script "$WF_MIXED_EXEC" "$SMP_OPUS_T" "smp43-$$")"
-# C16 슬롯2 F4: 미지-티어 리터럴 실행자(tier_of=0)도 세션 티어로 평가(보수) — 하위 판별-가능 리터럴이 floor 를 끌어내리지 못함.
+# C16 슬롯2 F4 (C17 산식 갱신): 미지-티어 리터럴 실행자(tier_of=0)는 opus 상수(3)로 평가 — 하위 판별-가능 리터럴이 floor 를 끌어내리지 못함.
 WF_UNKNOWN_EXEC="await agent('a', {agentType: 'execute-strict', model: 'gpt-custom'})
 await agent('b', {agentType: 'execute-strict', model: 'sonnet'})
 await agent('v', {agentType: 'review-strict', model: 'sonnet'})"
 test_smp "48-rule-c2-unknown-worker-floor" 0 1 "$(mk_wf_event script "$WF_UNKNOWN_EXEC" "$SMP_FABLE_T" "smp48-$$")"
-# C16 senior I1: F4 세션-상계는 floor 전용 — 미지-티어 리터럴 실행자가 fable 세션 Rule C 를 오발화하지 않음(원시 티어 판정).
+# C16 senior I1: F4 폴백 평가는 floor 전용 — 미지-티어 리터럴 실행자가 fable 세션 Rule C 를 오발화하지 않음(원시 티어 판정).
+#   C17: review 를 fable→opus 로 (A5 미지→opus floor 평가 겸용 — 구: 미지 실행자=세션 상계 4 → opus 3<4 C2 ALERT / 신: 미지=opus 3 → 3≥3 SILENT)
 WF_UNKNOWN_ONLY="await agent('a', {agentType: 'execute-strict', model: 'gpt-custom'})
-await agent('v', {agentType: 'review-strict', model: 'fable'})"
+await agent('v', {agentType: 'review-strict', model: 'opus'})"
 test_smp "49-rule-c-unknown-literal-exempt" 0 0 "$(mk_wf_event script "$WF_UNKNOWN_ONLY" "$SMP_FABLE_T" "smp49-$$")"
 # C16 §15.1: canonical carrier 실물 4세션 E2E — stage2 model:'opus' 명시 후 전 세션 무발화
 # (구 carrier: sonnet/haiku 세션 ALERT — §12.1 표의 위반 칸이 §15.1 로 소멸함을 실물로 봉인. 슬롯1 S12)
@@ -1279,6 +1288,62 @@ test_smp_hedge() {
   else FAILED_LIST+=("surface-model-policy/40-c3-hedge-content"); fi
 }
 test_smp_hedge "$(mk_wf_event script "$WF_BUILTIN" "$SMP_FABLE_T" "smp40-$$")"
+
+# --- C17 (spec §16): Rule A/B v2(fable-누출 + opus-floor) · C2 폴백 opus 상수 · C2-leak 신설 ---
+# C17 (50): Rule A 유지 arm — fable 세션 명시 inherit 실행자 = fable 누출 → ALERT
+test_smp "50-rule-a-explicit-inherit" 0 1 "$(mk_agent_event execute-strict inherit "$SMP_FABLE_T" "smp50-$$")"
+# C17 (51): Rule A — fable 세션 명시 fable 실행자 → ALERT
+test_smp "51-rule-a-explicit-fable" 0 1 "$(mk_agent_event execute-strict fable "$SMP_FABLE_T" "smp51-$$")"
+# C17 (52): Rule B 누출 arm — fable 세션 검증자 명시 inherit → ALERT (구: tier0 guard 침묵 — 새로 발화)
+test_smp "52-rule-b-fable-explicit-inherit" 0 1 "$(mk_agent_event review-strict inherit "$SMP_FABLE_T" "smp52-$$")"
+# C17 (53): Rule B floor — sonnet 세션 검증자 명시 inherit = 세션 평가 2<3 → ALERT (새로 발화)
+test_smp "53-rule-b-sonnet-explicit-inherit" 0 1 "$(mk_agent_event review-strict inherit "$SMP_SONNET_T" "smp53-$$")"
+# C17 (54): 구 하향 arm 제거 앵커 — fable 세션 검증자 opus → SILENT (구 ALERT 소음 — T7 라이브 재현)
+test_smp "54-rule-b-fable-opus-silent" 0 0 "$(mk_agent_event review-strict opus "$SMP_FABLE_T" "smp54-$$")"
+# C17 (55): Rule B 미지-리터럴 비면제 → ALERT (구: != 0 guard 침묵 — 새로 발화)
+test_smp "55-rule-b-unknown-literal" 0 1 "$(mk_agent_event review-strict gpt-custom "$SMP_FABLE_T" "smp55-$$")"
+# C17 (56): Rule C2 — 명시 inherit 검증자 세션 평가 유지(C13 존속) — sonnet 세션 2<3 → ALERT
+WF_EX_UP_EXPL_INH="export const meta = {name: 'x', description: 'x'}
+await agent('a', {agentType: 'execute-strict', model: 'opus'})
+await agent('v', {agentType: 'review-strict', model: 'inherit'})"
+test_smp "56-rule-c2-explicit-inherit-below-floor" 0 1 "$(mk_wf_event script "$WF_EX_UP_EXPL_INH" "$SMP_SONNET_T" "smp56-$$")"
+# C17 (57): Rule B floor 전-세션 가드 — opus 세션 검증자 sonnet 2<3 → ALERT (구 세션-하향과 동일 발화·사유 교체)
+test_smp "57-rule-b-opus-session-sonnet" 0 1 "$(mk_agent_event review-strict sonnet "$SMP_OPUS_T" "smp57-$$")"
+# C17 (58): Rule C2 폴백 opus 상수 — fable 검증-전용 + review opus → SILENT (구: 세션 폴백 4>3 ALERT —
+#     2026-08-02 검증-전용 Workflow 라이브 오발화의 재현·해소 앵커)
+WF_REVIEWONLY_OPUS="export const meta = {name: 'x', description: 'x'}
+await agent('verify it', {agentType: 'review-strict', model: 'opus'})"
+test_smp "58-rule-c2-reviewonly-opus-silent" 0 0 "$(mk_wf_event script "$WF_REVIEWONLY_OPUS" "$SMP_FABLE_T" "smp58-$$")"
+# C17 (59/60): Rule B floor — 동일-티어 구멍 소멸 (§16.8 A4; 구 하향식 2<2·1<1 거짓 침묵 → 새로 발화)
+test_smp "59-rule-b-sonnet-session-sonnet" 0 1 "$(mk_agent_event review-strict sonnet "$SMP_SONNET_T" "smp59-$$")"
+test_smp "60-rule-b-haiku-session-haiku" 0 1 "$(mk_agent_event review-strict haiku "$SMP_HAIKU_T" "smp60-$$")"
+# C17 (61/62): fable-리터럴 누출 arm 전 세션 (§16.8 A6 — U4 금지는 세션 무관; 구: 상향 허용 침묵)
+test_smp "61-rule-b-nonfable-fable-leak" 0 1 "$(mk_agent_event review-strict fable "$SMP_SONNET_T" "smp61-$$")"
+test_smp "62-rule-a-nonfable-fable-leak" 0 1 "$(mk_agent_event execute-strict fable "$SMP_SONNET_T" "smp62-$$")"
+# C17 (63): Rule C fable-리터럴 전 세션 (A6) — sonnet 세션 wf exec fable → ALERT
+WF_FABLE_NONFABLE="export const meta = {name: 'x', description: 'x'}
+await agent('do it', {agentType: 'execute-strict', model: 'fable'})"
+test_smp "63-rule-c-nonfable-fable-leak" 0 1 "$(mk_wf_event script "$WF_FABLE_NONFABLE" "$SMP_SONNET_T" "smp63-$$")"
+# C17 (64): C2-leak 신설 arm — 검증자 fable-리터럴 전 세션 (A6; 구: floor 충족 침묵 → 새로 발화)
+WF_C2_FABLE_VERIFIER="await agent('impl', {agentType: 'execute-strict', model: 'opus'})
+await agent('v', {agentType: 'review-strict', model: 'fable'})"
+test_smp "64-rule-c2-fable-verifier" 0 1 "$(mk_wf_event script "$WF_C2_FABLE_VERIFIER" "$SMP_OPUS_T" "smp64-$$")"
+# C17 (65): Rule B floor 미지-세션 수행 (§16.8 A1 — 리터럴 평가는 세션 불요; 구: SESSION_TIER=0 전체 skip)
+SMP_UNKNOWN_T=$(mktemp "$SCRATCH/smp-unknown-XXXXXX.jsonl")
+printf '{"type":"assistant","message":{"model":"claude-quasar-1","content":[]}}\n' > "$SMP_UNKNOWN_T"
+test_smp "65-rule-b-unknown-session-literal" 0 1 "$(mk_agent_event review-strict sonnet "$SMP_UNKNOWN_T" "smp65-$$")"
+# C17 (66): Rule B 신 메시지 내용 봉인 (§16.8 B2 — ctx 존재만 보면 구 메시지 잔존 미탐; hedge 동형)
+test_smp_b_msg() {
+  TOTAL=$((TOTAL+1))
+  local out; out=$(printf '%s' "$1" | "$HOOKS/surface-model-policy.sh" 2>/dev/null)
+  if printf '%s' "$out" | grep -q 'max(작업자'; then PASSED=$((PASSED+1))
+  else FAILED_LIST+=("surface-model-policy/66-rule-b-message-floor-token"); fi
+}
+test_smp_b_msg "$(mk_agent_event review-strict sonnet "$SMP_FABLE_T" "smp66-$$")"
+# C17 (67): C2-leak — fable 세션 검증자 명시 inherit (=fable 상속) → ALERT (구: 4≥floor 침묵 — 새로 발화)
+WF_C2_INH_FABLE="await agent('impl', {agentType: 'execute-strict', model: 'opus'})
+await agent('v', {agentType: 'review-strict', model: 'inherit'})"
+test_smp "67-rule-c2-fable-inherit-verifier" 0 1 "$(mk_wf_event script "$WF_C2_INH_FABLE" "$SMP_FABLE_T" "smp67-$$")"
 
 # ==================== Summary ====================
 echo

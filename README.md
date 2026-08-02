@@ -36,7 +36,7 @@
 | `enforce-secret-scan` | 차단 | Write/Edit/NotebookEdit + Bash | 고-특이도 시크릿(API 키/토큰/PEM private key) 감지 시 차단(종류만 보고). `SECRET_SCAN_SKIP` 우회 |
 | `stable-claude-md` | 알림 | 프로젝트 루트 CLAUDE.md 수정 | "캐시 비용 ≈20배" 환기 (작업은 허용). 글로벌 `~/.claude/CLAUDE.md`는 제외 — §1 모델-레벨 환기로 위임 |
 | `surface-constitution` | 알림 | Write/Edit/NotebookEdit on 의존성 매니페스트(§5)·UI 확장자(§8) | 해당 헌법 조항을 `additionalContext`(모델 컨텍스트)로 환기 — ADR 작성(§5)/ui-design 사용(§8). 1세션 §별 1회, 차단 아님 |
-| `surface-model-policy` | 알림 | PreToolUse `Agent`\|`Workflow` | 역할×모델 매트릭스(구현=opus·탐색=sonnet·검증=기준선 임무-분리 — 준수-확인=작업자 티어/판단-게이트=`max(세션,작업자)`)를 `additionalContext`로 환기. Rule A(fable 실행자 하향 미적용)·B(검증자 기준선 미달)·C/C2/C3(Workflow 스크립트 per-spawn 판정 — `hooks/lib/workflow-spawns.js` 파서). 규칙별 1세션 1회, 차단 아님. SSOT: `docs/ai-context/model-policy.md` |
+| `surface-model-policy` | 알림 | PreToolUse `Agent`\|`Workflow` | 역할×모델 매트릭스(구현=opus 물리 기본·탐색=sonnet·검증=기준선 임무-분리 v2 — 준수-확인=작업자 티어(실행자-전무 폴백 opus)/판단-게이트=`max(작업자,opus)`, 세션 축 제거 — C17)를 `additionalContext`로 환기. Rule A v2(execute-strict fable 누출 — 무지정은 침묵)·B v2(검증자 opus-floor 미달 + fable 누출)·C/C2/C3(Workflow 스크립트 per-spawn 판정 — `hooks/lib/workflow-spawns.js` 파서; C2 폴백=opus 상수·C2-leak). 규칙별 1세션 1회, 차단 아님. SSOT: `docs/ai-context/model-policy.md` |
 | `auto-compact-watch` | 알림 | Read/Bash/Agent 후 | **모델-인지** 컨텍스트 창(opus-4-7/4-8·fable·`[1m]` suffix→1M, 그 외 200K; `CONTEXT_LIMIT` override) 기준 임계 도달 시 `/compact` 권장. 경고 %는 `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE`에서 도출 (1세션 1회) |
 | `verify-loop-watch` | 알림 | Stop (턴 종료) | active plan + 미검증 코드 변경 시 `scripts/check.sh`+closeout 권장 (1세션 1회, advisory) |
 | `session-start-audit` | 알림 | 세션 시작 | CLAUDE.md audit 마커 30일 초과 시 알림 + **보조** `session_id`-키 마커(`~/.claude/worktrees-marker/<sid>`=WT_ROOT) 기록(드물게 cwd가 워크트리일 때만 — 주 기록은 PreToolUse 게이트, spec §10)·스테일 마커 prune (빈 SID skip) + **self-healing sweep**(harness-worktree 프로젝트면: prunable 워크트리 등록 `prune` + 고아 `worktree-*` 브랜치 `-D`, 활성/비-컨벤션 보호; spec §11) |
@@ -53,10 +53,10 @@
 | 오케스트레이션·판단·게이트 해석 | 세션 모델 (위임 금지) | 세션 effort |
 | 구현 (execute-strict) | **opus** | ultracode: heavy `xhigh` / light `high` |
 | 탐색 (explore-strict) | **sonnet** (frontmatter 기본) | **xhigh** + WebSearch/WebFetch |
-| 검증 (review-strict) | **상속** — 기준선(임무-분리, spec §15.1: 준수-확인=작업자 티어 / 판단-게이트=`max(세션 티어, 작업자 티어)` 유지) 미만 금지 | 상속 |
+| 검증 (review-strict) | **opus** (frontmatter 기본) — 기준선(임무-분리 v2, spec §16: 준수-확인=작업자 티어 / 판단-게이트=`max(작업자,opus)` — 세션 축 제거) 미만 금지 | 상속 |
 | 교차 검증 (고-스테이크: Gate P 직후 + closeout) | GPT (`cross-family-review.md` 규약) | 사이클당 2슬롯(슬롯당 1회) |
 
-강제는 3층: **L1** 문서(이 표 + `start-rpi-cycle` skill) · **L2** hook `surface-model-policy`(advisory 환기, 차단 아님) · **L3** verify-setup seal #45(토큰 존재 봉인). 상향은 항상 허용, 하향은 검증자에 한해 `DOWNGRADE-DECLARED(사유)`가 유일 탈출구.
+강제는 3층: **L1** 문서(이 표 + `start-rpi-cycle` skill) · **L2** hook `surface-model-policy`(advisory 환기, 차단 아님) · **L3** verify-setup seal #45(토큰 존재 봉인). 상향은 항상 허용, 하향은 검증자에 한해 `DOWNGRADE-DECLARED(사유)`가 유일 탈출구(기준선 = 임무-분리 v2 — C17, spec §16).
 
 > ⚠️ **멀티 HOME 주의**: `settings.json`(env knobs 포함)은 **HOME별로 독립**입니다. Windows `~/.claude`와 WSL `/home/<user>/.claude`는 각각 따로 설정해야 합니다 — path 정규화는 *경로만* 통일할 뿐 설정은 상속되지 않습니다 (WSL의 bare config가 autocompact 폭주 원인이었음). 또한 **새 hook/matcher 추가 시 세션 재시작 필요**, 이미 등록된 hook 본문 수정은 즉시 반영.
 
@@ -66,7 +66,7 @@
 |---|---|---|
 | `init-ai-ready-project` | "새 프로젝트", "AI-ready", "프로젝트 초기화" | 0(Self-Audit) → 1(Discover) → 2(Generate) → 3(Verify) → 4(Closing) |
 | `start-rpi-cycle` | "기능 추가", "이거 고쳐줘", "구현해줘", "리팩토링" | R(Research) → P(Plan) → I(Implement) → Closeout |
-| `closeout-pr-cycle` | "PR 만들어줘", "merge 준비해줘", "작업 마무리해줘" | Preflight → 1(Local Gate) → 2(PR Gate) → 3(CI Gate) → 4(Senior Review) → 5(User Approval) → 6(Merge/Cleanup) |
+| `closeout-pr-cycle` | "PR 만들어줘", "merge 준비해줘", "작업 마무리해줘" | Preflight → 1(Local Gate) → 2(PR Gate) → 3(CI Gate) → 4(통합 리뷰: senior+drift 합본 — C17) → 5(User Approval) → 6(Merge/Cleanup) |
 | `create-orchestrator-skill` | "이거 skill로", "orchestrator", "<X> skill 만들어줘" | 1(Capture) → 2(skill-creator) → 3(Inject Skeleton) → 4(Verify) |
 | `improve-codebase-architecture` | "아키텍처 개선해줘", "README 만들어줘", "코드 구조 점검" | Preflight → 1(Explore) → 2(Candidates) → 3(Execute, optional) → 4(README) |
 | `ui-design` | UI/UX 컴포넌트, Tailwind, CSS, "디자인 만들어줘", "예쁘게" | 1(Load) → 2(Concept·브리프) → 3(Apply) → 4(Verify floor+ceiling) → 5(Visual QA·실측) |
@@ -182,7 +182,7 @@ start-rpi-cycle skill이 자동 발동:
 1. **Phase R (Research)**: brainstorming → grill-with-docs(design을 도메인 모델에 stress-test, CONTEXT.md/ADR) → explore-strict — 요구사항·접근법·디자인 정리
 2. **Phase P (Plan)**: writing-plans → `docs/superpowers/plans/YYYY-MM-DD-<topic>.md` 생성
 3. **Phase I (Implement)**: subagent-driven-development 또는 executing-plans
-4. **Phase Closeout**: (조건부) `closeout-pr-cycle` → Local Gate → PR → CI → senior review → 사용자 승인 → merge. 이후 review-strict drift 검사 + 자산 갱신 + state.json 업데이트
+4. **Phase Closeout**: (조건부) `closeout-pr-cycle` → Local Gate → PR → CI → 통합 리뷰(senior+drift 합본 — C17) → 사용자 승인 → merge. drift 는 통합 리뷰가 겸함(C-0 미충족/Phase 4 미수행 시 단독 drift 폴백) + 자산 갱신 + state.json 업데이트
 
 이 단계를 건너뛰고 바로 코드 쓰려고 하면 **enforce-rpi-cycle hook이 차단**:
 ```
@@ -231,7 +231,7 @@ create-orchestrator-skill skill이 발동:
 1. **Phase 1 (Local Gate)**: `bash scripts/check.sh` 통과 확인 + uncommitted 없음 확인
 2. **Phase 2 (PR Gate)**: push + `gh pr create` + PR body 검증
 3. **Phase 3 (CI Gate)**: `gh pr checks --watch` — 실패 시 STOP
-4. **Phase 4 (Senior Review)**: review-strict subagent — Critical/Important/Minor/Suggestions 분류
+4. **Phase 4 (통합 리뷰 — senior+drift 합본, C17)**: review-strict subagent(opus) — Critical/Important/Minor/Suggestions 분류 + drift 체크리스트 판정 절 분리 출력
 5. **Phase 5 (User Approval Gate)**: 사용자 명시 승인 없이는 **절대** Phase 6 진행 안 함
 6. **Phase 6 (Merge/Cleanup)**: `gh pr merge --squash --delete-branch` + 로컬 정리
 
@@ -289,7 +289,7 @@ bash ~/.claude/setup/doctor.sh
 │   │   ├── model-window.js                모델→컨텍스트 창 매핑
 │   │   └── workflow-spawns.js             Workflow agent() 스폰 per-spawn 추출 (C13)
 │   └── tests/
-│       ├── cases.tsv                     268 case (run-all과 1:1 정합, 100% 구현)
+│       ├── cases.tsv                     286 case (run-all과 1:1 정합, 100% 구현)
 │       └── run-all.sh                    단위 테스트 러너 (+ cases.tsv 정합 검사)
 │
 ├── tests/statusline/                     statusline.sh 단위 테스트 (run-tests.sh + fixtures)
@@ -527,7 +527,7 @@ git push
 
 - 설계 명세: [`docs/superpowers/specs/2026-05-01-ai-native-orchestration-design.md`](docs/superpowers/specs/2026-05-01-ai-native-orchestration-design.md) (3,000+ 줄)
 - 13단계 빌드 plan: [`docs/superpowers/plans/2026-05-01-ai-native-orchestration.md`](docs/superpowers/plans/2026-05-01-ai-native-orchestration.md)
-- Hook 단위 테스트: `hooks/tests/cases.tsv` (268 케이스, run-all과 1:1 정합, 100% 통과). 원 설계 명세(spec §6.2, 원안 65개)
+- Hook 단위 테스트: `hooks/tests/cases.tsv` (286 케이스, run-all과 1:1 정합, 100% 통과). 원 설계 명세(spec §6.2, 원안 65개)
 
 ---
 
