@@ -11,7 +11,7 @@ description: |
               context_paths=["templates/architecture.md.tpl"],
               success_criteria="placeholder 모두 치환, mermaid 블록 valid")
   </example>
-model: inherit
+model: opus
 tools: Read, Write, Edit, Bash
 skills: ["common-agent-contract"]
 ---

@@ -23,10 +23,12 @@ for a in explore-strict review-strict execute-strict; do
   grep -q 'common-agent-contract' "$HOME/.claude/agents/$a.md" 2>/dev/null && ok "$a has contract" || fail "$a missing contract"
 done
 
-# 5. agents model:inherit — 실행자·검증자만 (explore-strict 는 C11부터 frontmatter sonnet 기본값·C13부터 effort xhigh,
-#    #45 가 별도 봉인 — docs/ai-context/model-policy.md)
+# 5. agents model:opus — 실행자·검증자 frontmatter 물리 기본값 (C17 Option 1, spec §16.1 — 무지정 위임의
+#    안전 기본. 회귀 시 hook 의 "무지정=opus" 평가(§16.2)가 거짓이 된다. frontmatter 블록-스코프 판별
+#    (C17 §16.8 C6 — 본문 코드블록의 model: 라인 오매치 차단). explore-strict 는 #45 가 별도 봉인)
 for a in review-strict execute-strict; do
-  grep -q '^model: inherit$' "$HOME/.claude/agents/$a.md" 2>/dev/null && ok "$a model:inherit" || fail "$a model"
+  FM5=$(awk '/^---$/{n++; next} n==1' "$HOME/.claude/agents/$a.md" 2>/dev/null)
+  printf '%s\n' "$FM5" | grep -q '^model: opus$' && ok "$a model:opus" || fail "$a model"
 done
 
 # 6. 7 tracked global skills (grill-with-docs는 doctor가 upstream에서 auto-install → gitignore라 제외)
@@ -442,8 +444,8 @@ fi
 
 # 45. 역할×모델 매트릭스 물화 봉인 (tri-model C11, spec 2026-07-25 §6): conjunctive —
 #     ① model-policy.md 존재+행 앵커(execute→opus·explore→sonnet) ② explore-strict frontmatter sonnet+xhigh+WebSearch (C13)
-#     ③ execute/review `model: inherit` 유지 + review-strict effort 키 부재(무지정=세션 상속의 물리 앵커
-#        — 기준선은 임무-분리(spec §15.1) — inherit 유지는 wrapper frontmatter 기본값 앵커(Agent 경로 세션 축 보장))
+#     ③ execute/review `model: opus`(C17 Option 1 물리 기본값) + review-strict effort 키 부재
+#        (무지정 위임의 안전 기본 앵커. 토큰-존재 상한 수용 — §16.4-3: frontmatter 블록-스코프 판별은 #5 가 담당)
 #     ④ settings.example 에 Agent 매처+hook 배선(#23 이 live 와 parity) ⑤ start-rpi-cycle 토큰(재생성 소실 표면화).
 #     C12: canonical workflow(rpi-implement.js 앵커)+Workflow 매처 conjunct 확장 (spec §10).
 #     bash grep only (staged-safe).
@@ -453,8 +455,8 @@ MP_OK=1
 grep -qE '^model:[[:space:]]*sonnet' "$HOME/.claude/agents/explore-strict.md" 2>/dev/null || MP_OK=0
 grep -qE '^effort:[[:space:]]*xhigh' "$HOME/.claude/agents/explore-strict.md" 2>/dev/null || MP_OK=0
 grep -qE '^tools:.*WebSearch' "$HOME/.claude/agents/explore-strict.md" 2>/dev/null || MP_OK=0
-grep -qE '^model:[[:space:]]*inherit' "$HOME/.claude/agents/execute-strict.md" 2>/dev/null || MP_OK=0
-grep -qE '^model:[[:space:]]*inherit' "$HOME/.claude/agents/review-strict.md" 2>/dev/null || MP_OK=0
+grep -qE '^model:[[:space:]]*opus' "$HOME/.claude/agents/execute-strict.md" 2>/dev/null || MP_OK=0
+grep -qE '^model:[[:space:]]*opus' "$HOME/.claude/agents/review-strict.md" 2>/dev/null || MP_OK=0
 if grep -qE '^effort:' "$HOME/.claude/agents/review-strict.md" 2>/dev/null; then MP_OK=0; fi
 grep -q 'surface-model-policy' "$HOME/.claude/settings.example.json" 2>/dev/null || MP_OK=0
 grep -A2 "agentType: 'execute-strict'," "$HOME/.claude/workflows/rpi-implement.js" 2>/dev/null | grep -qE "model: 'opus'" || MP_OK=0
@@ -465,7 +467,7 @@ grep -q 'model-policy' "$HOME/.claude/skills/start-rpi-cycle/SKILL.md" 2>/dev/nu
 if [ "$MP_OK" -eq 1 ]; then
   ok "역할×모델 매트릭스 물화 (model-policy.md·frontmatter·Agent 매처·skill 토큰)"
 else
-  fail "역할×모델 매트릭스 봉인 붕괴 (C11): model-policy.md 앵커/explore frontmatter/inherit 유지/review effort 부재/Agent 매처/skill 토큰 중 결손 — spec §6"
+  fail "역할×모델 매트릭스 봉인 붕괴 (C11): model-policy.md 앵커/explore frontmatter/opus 기본값/review effort 부재/Agent 매처/skill 토큰 중 결손 — spec §6"
 fi
 
 # 46. hooks/lib/*.js 매니페스트 자동 봉인 (C14-A, spec §13.8): 디스크가 SSOT.

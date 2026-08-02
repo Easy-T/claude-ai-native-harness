@@ -16,7 +16,7 @@ ok()  { echo "✓ $1"; PASS=$((PASS+1)); }
 bad() { echo "✗ $1"; FAIL=$((FAIL+1)); }
 
 # --- live immutability witnesses: cksum files any mutator could touch, before & after ---
-witness() { local f; for f in state.json README.md settings.json CLAUDE.md hooks/tests/cases.tsv skills/ui-design/design.md opencode-harness/skill/ui-design/design.md agents/explore-strict.md settings.example.json setup/doctor.sh skills/start-rpi-cycle/SKILL.md setup/verify-setup.sh hooks/surface-model-policy.sh docs/ai-context/review-yield.md; do
+witness() { local f; for f in state.json README.md settings.json CLAUDE.md hooks/tests/cases.tsv skills/ui-design/design.md opencode-harness/skill/ui-design/design.md agents/explore-strict.md agents/execute-strict.md agents/review-strict.md settings.example.json setup/doctor.sh skills/start-rpi-cycle/SKILL.md setup/verify-setup.sh hooks/surface-model-policy.sh docs/ai-context/review-yield.md; do
               cksum "$SRC/$f" 2>/dev/null; done; }
 LIVE_BEFORE="$(witness)"
 
@@ -115,6 +115,12 @@ mut_c3_exclude_drop()    { sed -i -E "s/^([[:space:]]*)explore-strict\|execute-s
 # Mutator 14 — seal #49 (C16 §15.3): layer-yield 축적 대장을 삭제하면 발화해야 한다
 #   (필드 parity 만 있고 대장이 없으면 per-layer 수율이 축적되지 않아 floor·배분 재심 데이터가 죽는다).
 mut_yield_ledger_drop() { rm -f "$1/docs/ai-context/review-yield.md"; }
+# Mutator 15/16 — seal #5·#45 conjunct ③ (C17 frontmatter opus): 실행자/검증자 frontmatter 를 inherit 로
+# 되돌리면(Option 1 회귀 = hook "무지정=opus" 평가의 물리 전제 붕괴) #5 와 #45 가 각각 발화해야 한다.
+# 기존 변이에 model 축 커버 0건 실측(C17 Phase R) — 이 변이들이 그 공백의 해소. 단언은 seal 별 분리
+# (§16.8 C5 — "execute-strict model" 은 #5 만의 문자열이라 #45 결손을 못 잡는다).
+mut_exec_model()   { perl -pi -e 's/^model: opus$/model: inherit/' "$1/agents/execute-strict.md"; }
+mut_review_model() { perl -pi -e 's/^model: opus$/model: inherit/' "$1/agents/review-strict.md"; }
 
 assert_seal_fires "state_schema"    mut_state_count_string "state.json schema 위반"
 assert_seal_fires "settings_parity" mut_settings_matcher   "settings/example harness-hook drift"
@@ -130,6 +136,10 @@ assert_seal_fires "skill_conditional" mut_skill_conditional  "skill context_path
 assert_seal_fires "verify_item16_drop" mut_verify_item16_drop "hooks/lib 매니페스트 drift"
 assert_seal_fires "c3_exclude_drop"    mut_c3_exclude_drop    "Rule C3 제외목록 drift"
 assert_seal_fires "seal49_ledger_missing" mut_yield_ledger_drop "layer-yield drift"
+assert_seal_fires "exec_fm_model_s5"    mut_exec_model    "execute-strict model"
+assert_seal_fires "exec_fm_model_s45"   mut_exec_model    "역할×모델 매트릭스 봉인 붕괴"
+assert_seal_fires "review_fm_model_s5"  mut_review_model  "review-strict model"
+assert_seal_fires "review_fm_model_s45" mut_review_model  "역할×모델 매트릭스 봉인 붕괴"
 
 # === Live immutability: witnessed files byte-identical (all mutation stayed in replicas) ===
 LIVE_AFTER="$(witness)"
