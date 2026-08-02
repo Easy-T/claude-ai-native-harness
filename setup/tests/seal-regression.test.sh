@@ -16,7 +16,7 @@ ok()  { echo "✓ $1"; PASS=$((PASS+1)); }
 bad() { echo "✗ $1"; FAIL=$((FAIL+1)); }
 
 # --- live immutability witnesses: cksum files any mutator could touch, before & after ---
-witness() { local f; for f in state.json README.md settings.json CLAUDE.md hooks/tests/cases.tsv skills/ui-design/design.md opencode-harness/skill/ui-design/design.md agents/explore-strict.md settings.example.json setup/doctor.sh skills/start-rpi-cycle/SKILL.md setup/verify-setup.sh hooks/surface-model-policy.sh; do
+witness() { local f; for f in state.json README.md settings.json CLAUDE.md hooks/tests/cases.tsv skills/ui-design/design.md opencode-harness/skill/ui-design/design.md agents/explore-strict.md settings.example.json setup/doctor.sh skills/start-rpi-cycle/SKILL.md setup/verify-setup.sh hooks/surface-model-policy.sh docs/ai-context/review-yield.md; do
               cksum "$SRC/$f" 2>/dev/null; done; }
 LIVE_BEFORE="$(witness)"
 
@@ -112,6 +112,9 @@ mut_skill_conditional() { sed -i 's/실재하는/존재하는/g' "$1/skills/star
 #   *주석은 남기고 실효 라인만* 지우므로, 마스킹이 살아있으면 GREEN(=테스트 실패)이 된다.
 mut_verify_item16_drop() { sed -i -E 's/^(for j in [a-z-]+ [a-z-]+ [a-z-]+ [a-z-]+) workflow-spawns; do/\1; do/' "$1/setup/verify-setup.sh"; }
 mut_c3_exclude_drop()    { sed -i -E "s/^([[:space:]]*)explore-strict\|execute-strict\|review-strict\|'\\*'\\)/\\1execute-strict|review-strict|'*')/" "$1/hooks/surface-model-policy.sh"; }
+# Mutator 14 — seal #49 (C16 §15.3): layer-yield 축적 대장을 삭제하면 발화해야 한다
+#   (필드 parity 만 있고 대장이 없으면 per-layer 수율이 축적되지 않아 floor·배분 재심 데이터가 죽는다).
+mut_yield_ledger_drop() { rm -f "$1/docs/ai-context/review-yield.md"; }
 
 assert_seal_fires "state_schema"    mut_state_count_string "state.json schema 위반"
 assert_seal_fires "settings_parity" mut_settings_matcher   "settings/example harness-hook drift"
@@ -126,6 +129,7 @@ assert_seal_fires "explore_websearch" mut_explore_websearch  "역할×모델 매
 assert_seal_fires "skill_conditional" mut_skill_conditional  "skill context_paths 무조건 지시"
 assert_seal_fires "verify_item16_drop" mut_verify_item16_drop "hooks/lib 매니페스트 drift"
 assert_seal_fires "c3_exclude_drop"    mut_c3_exclude_drop    "Rule C3 제외목록 drift"
+assert_seal_fires "seal49_ledger_missing" mut_yield_ledger_drop "layer-yield drift"
 
 # === Live immutability: witnessed files byte-identical (all mutation stayed in replicas) ===
 LIVE_AFTER="$(witness)"

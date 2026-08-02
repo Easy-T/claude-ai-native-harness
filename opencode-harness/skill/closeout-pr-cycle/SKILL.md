@@ -95,9 +95,17 @@ CI 실패:
 
 # Phase 4 — Senior Review
 
-review-strict subagent를 `task` 도구로 디스패치 — task: "pre-merge senior maintainer review"; read: `docs/ai-context/runbook.md`, `docs/ai-context/architecture.md`, `docs/ai-context/deny-patterns.md`, `docs/ai-context/non-obvious.md`; success:
+review-strict subagent를 `task` 도구로 디스패치 — task: "pre-merge adversarial senior review — refute-by-default"; read: `docs/ai-context/runbook.md`, `docs/ai-context/architecture.md`, `docs/ai-context/deny-patterns.md`, `docs/ai-context/non-obvious.md`; success:
 
 ```
+임무: 준수 확인이 아니라 결함 발견이다 (C16 spec §15.2 — 내부 적대 패스).
+refute-by-default: 각 검사 범주에서 결함을 찾으려 시도하고, 없으면 범주별 'none found' 명시.
+검사 범주: A 계약 정합성(출력 계약·판정식·소비자 동반) · B 소비 로직(경계·폴백·마스킹)
+· C 픽스처 vacuity(구현 되돌려도 GREEN 인 픽스처) · D 문서-실물 드리프트 · E 무회귀(기존 의미 침묵 변경).
+발견은 파일:행 + 원문 인용 필수 — 인용 없는 발견은 무효.
+발견의 처분: 각 발견을 기존 보고 형식(Critical/Important/Minor)으로 분류해 합류 — PASS/FAIL 판정
+기준(FAIL if any Critical)은 불변.
+
 PASS only if ALL of:
 - local check 통과 증거 있음 (Phase 1 결과 참조)
 - PR description이 실제 diff와 일치
@@ -123,7 +131,7 @@ FAIL if any Critical exists.
 
 ```
 Agent(subagent_type="review-strict",
-      task="pre-merge senior maintainer review",
+      task="pre-merge adversarial senior review — refute-by-default",
       context_paths=[
         "docs/ai-context/runbook.md",
         "docs/ai-context/architecture.md",
@@ -140,7 +148,7 @@ review-strict 결과를 사용자에게 구조화해서 전달:
 **교차패밀리 리뷰 분기 (GAP-006 규약 — `docs/ai-context/cross-family-review.md`가 SSOT)**:
 senior review 후, 고-스테이크 사이클(하네스 거버넌스 변경·루브릭 재채점·spec 변경)이면 교차패밀리(GPT) 적대 리뷰를 시도한다:
 1. **probe**: runbook §1 순서(A: `command -v codex`+`codex login status` → B: `claude --model <gpt-모델> -p --output-format json`의 `modelUsage`에 `gpt-*`). 설치/로그인 시도 절대 금지.
-2. **가용 시**: runbook §2 프로토콜로 **사이클당 1회** 실행(stdin 파이프·read-only·refute-by-default·원문 인용 강제) → 발견은 **메인 세션이 원문 실측 대조 후 REAL/기각 트리아지**(그대로 편입 금지) → REAL 발견은 Critical/Important 목록에 병합.
+2. **가용 시**: runbook §2 프로토콜로 **슬롯 2**(Closeout, 코드 diff — 사이클당 2슬롯 상한의 둘째; 슬롯 1은 Gate P 직후 spec delta+plan 대상, cross-family-review.md §2) 실행(stdin 파이프·read-only·refute-by-default·원문 인용 강제) → 발견은 **메인 세션이 원문 실측 대조 후 REAL/기각 트리아지**(그대로 편입 금지) → REAL 발견은 Critical/Important 목록에 병합.
 3. **불가 시**: SKIP + 사유 1줄 기록(비차단 — advisory fail-open).
 
 # Phase 5 — User Approval Gate

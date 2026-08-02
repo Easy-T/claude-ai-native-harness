@@ -1,9 +1,9 @@
 export const meta = {
   name: 'rpi-implement',
-  description: 'RPIC Phase I (d) canonical 2-stage pipeline — execute(opus) → review(inherit)',
+  description: 'RPIC Phase I (d) canonical 2-stage pipeline — execute(opus) → review(opus)',
   phases: [
     { title: 'Implement', detail: 'plan task별 execute-strict (opus, heavy→xhigh/light→high, per-task effort override 허용)' },
-    { title: 'Verify', detail: 'task별 review-strict (모델 무지정=세션 상속 — 검증자 기준선 max(세션,작업자) 유지)' },
+    { title: 'Verify', detail: 'task별 review-strict (model opus 명시 = 작업자 티어 — 준수-확인 floor, spec §15.1)' },
   ],
 }
 // 역할×모델 매트릭스 canonical 캐리어 (spec 2026-07-25 §10, SSOT: docs/ai-context/model-policy.md).
@@ -12,15 +12,14 @@ export const meta = {
 // - heavy: 코드/TDD/다파일=true(effort xhigh), 순수 문서·기계 편집=false(high — 모델 기본 effort;
 //   기본 분기는 이 밑으로 내려가지 않음)
 // - effort: per-task 선언적 override (명시=선언 — 하향은 plan의 DOWNGRADE-DECLARED 규율 대상)
-// 불변식: stage1 model 고정 opus / stage2 model·effort 무지정(상속) / schema 금지(wrapper StructuredOutput 부재)
+// 불변식: stage1 model 고정 opus / stage2 model 'opus' 명시(작업자 티어 — §15.1 임무-분리 floor)·effort 무지정(상속) / schema 금지(wrapper StructuredOutput 부재)
 // / 커밋은 여기서 하지 않는다(병렬 index.lock 경합 — 메인이 그룹 커밋)
 // / isolation:'worktree' 미사용 — Workflow의 worktree는 에이전트별 독립 사본이라 stage2가 stage1의
 //   변경을 볼 수 없음(같은-worktree 공유 API 부재, GPT 교차리뷰 [C]3 REAL). 같은 파일을 공유하는
 //   task가 있으면 전체를 순차 실행해 동일 체크아웃에서 충돌 없이 진행.
-// 적용 범위: **모드 (A) fable + ultracode 전용**(docs/ai-context/model-policy.md §2). stage1 은 opus 고정이고
-//   stage2 는 무지정(상속)이라, fable/opus 세션에선 검증자 기준선 max(세션, 작업자)를 충족한다.
-//   ※sonnet/haiku 세션에서 쓰면 검증자(=세션 티어) < 실행자(opus) 로 기준선 미달이며 **탈출구가 없다**
-//     (stage2 model 을 넘길 args 필드 부재) — 수용 잔여, spec §12.1. 그 세션에선 이 캐리어를 쓰지 말 것.
+// 적용 범위: 주 사용 모드는 (A) fable + ultracode(docs/ai-context/model-policy.md §2) 이나, stage2=opus(작업자
+//   티어)라 어느 세션에서도 준수-확인 floor 를 충족한다(§12.1 '탈출구 부재' 잔여 소멸 — spec §15.1).
+//   판단-게이트가 아닌 준수-확인 경로 전용.
 const EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max']
 if (!Array.isArray(args) || args.length === 0) {
   throw new Error('rpi-implement: args must be a non-empty task array — [{title, promptVerbatim, files, successCriteria, heavy, effort?}]')
@@ -55,6 +54,7 @@ const stage2 = (stage1Report, t) => agent(
   `- 실측 변경이 명시 목록 ${JSON.stringify(t.files)} 밖으로 나가지 않음`,
   {
     agentType: 'review-strict',
+    model: 'opus',
     label: `verify:${t.title}`,
     phase: 'Verify',
   }
