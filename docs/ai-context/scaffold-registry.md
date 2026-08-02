@@ -21,7 +21,7 @@
 | `session-start-audit.sh` | 30일 audit 마커 stale + 스테일 워크트리 마커/고아 브랜치 잔여 + 손상 파서 침묵 — 알림·sweep·fail-open 표면화 | cycle-32(lib 스모크)·cycle-41(self-healing sweep)·**C3(.budget prune)** |
 | `surface-constitution.sh` | 의존성 매니페스트(§5)·UI 확장자(§8) 수정 시 헌법 조항 미인지 — additionalContext 환기 | cycle-16 |
 | `worktree-teardown.sh` | 종료 세션의 링크 워크트리 잔존 — 정션-안전 삭제(데이터손실0) | cycle-38~41 |
-| `surface-model-policy.sh` | fable 실행자 하향 미적용·검증자 기준선(임무-분리 floor, §15.1) 미달을 advisory 환기(역할×모델 매트릭스 L2) | tri-model C11 (2026-07-25), C12/C13 확장 |
+| `surface-model-policy.sh` | 실행자 fable 누출·검증자 기준선(임무-분리 v2 floor, §16) 미달을 advisory 환기(역할×모델 매트릭스 L2) | tri-model C11 (2026-07-25), C12/C13 확장, **C17 v2** |
 | (`_common.sh`) | 위 전 hook의 공유 함수(json 파서·hook_log·plan_status·resolve_project_root·run_log_event·surface_bypass 등) | 지속 진화; **C2 run_log_event 추가** |
 
 ## Skills (10 — `ls skills/*/SKILL.md`; grill-with-docs·ccs-delegation은 비추적 설치 산물)
@@ -29,7 +29,7 @@
 | Skill | 존재 이유 | 추적 |
 |---|---|---|
 | `start-rpi-cycle` | 변경 작업에 R→P→I→Closeout 강제(직접 코딩 금지) — 하네스 중추 | 초기; **C1 Best-Direction Check 필드 추가** |
-| `closeout-pr-cycle` | 구현 완료 브랜치를 PR→CI→senior review→승인→merge로 닫음(AI 머지 결정 금지) | 초기 |
+| `closeout-pr-cycle` | 구현 완료 브랜치를 PR→CI→통합 리뷰(senior+drift)→승인→merge로 닫음(AI 머지 결정 금지) | 초기; **C17 리뷰 통합** |
 | `create-orchestrator-skill` | 새 커스텀 skill을 orchestrator 패턴으로 생성(§2) | 초기 |
 | `improve-codebase-architecture` | 누적 RPIC 후 구조 개선 + README + **스캐폴드 프루닝 후보 보고(C4)** | 초기; **C4 프루닝 단계 추가** |
 | `init-ai-ready-project` | 빈 디렉터리에 AI-Ready 프로젝트 13파일 결정론 부트스트랩 | 초기 |
@@ -80,7 +80,7 @@
 | #42 | settings.example deny 최후방어선 (자격증명·파괴명령) | **C8 (GAP-007a)** |
 | #43 | opencode 미러 design.md byte-sync | ui-design v3 |
 | #44 | design.md §6 anti-slop floor = 18 항목 | ui-design v3 |
-| #45 | 역할×모델 매트릭스 물화 (model-policy.md 앵커·explore frontmatter·execute/review inherit·`Agent\|Workflow` 매처·rpi-implement.js 토큰·skill 토큰) | C11/C12/C13 |
+| #45 | 역할×모델 매트릭스 물화 (model-policy.md 앵커·explore frontmatter·execute/review opus(C17)·`Agent\|Workflow` 매처·rpi-implement.js 토큰·skill 토큰) | C11/C12/C13, **C17** |
 | #46 | hooks/lib 매니페스트 봉인 (디스크=SSOT, 4-way 대조) | C14 (2026-07-28) |
 | #47 | Rule C3 제외목록 봉인 (agents model 선언 ⊆ hook) | C14 (2026-07-28) |
 | #48 | skill context_paths 조건부 선언 봉인 (스캐폴드 산출물 경로) | C14 (2026-07-28) |

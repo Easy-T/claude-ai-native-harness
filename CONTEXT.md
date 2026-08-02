@@ -82,11 +82,11 @@ _Avoid_: "단순화 금지"(스코프 최소주의까지 부정하는 오독), "
 _Avoid_: "타협"(정당한 트레이드오프 선언까지 포함하는 중립어), "간소화"(스코프 축소와 혼동).
 
 ### 실행자 하향 위임 (executor downshift)
-fable 세션이 실행자(execute-strict)·탐색자(explore-strict) 위임을 역할×모델 매트릭스의 하위 모델+effort로 디스패치하는 **정적·문서화** 정책(SSOT=docs/ai-context/model-policy.md). 검증자(review-strict)는 대상 아님 — [[검증자 기준선]](임무-분리 — C16)이 별도 규율. 오케스트레이터의 동적 모델 재량이 아니다.
+fable 세션이 실행자(execute-strict)·탐색자(explore-strict) 위임을 역할×모델 매트릭스의 하위 모델+effort로 디스패치하는 **정적·문서화** 정책(SSOT=docs/ai-context/model-policy.md). 검증자(review-strict)는 대상 아님 — [[검증자 기준선]](임무-분리 v2 — C17, 세션 축 제거)이 별도 규율. 오케스트레이터의 동적 모델 재량이 아니다.
 _Avoid_: "동적 모델 선택"(기각된 재량 — self-pass 우회로), "모델 다운그레이드"(품질 열화 함의 — 이것은 역할 적합 배치).
 
 ### 역할×모델 매트릭스 (role-model matrix)
-(세션 모델, ultracode 여부) 2키로 역할(오케스트레이션/구현/탐색/검증)별 모델·effort를 정하는 정적 표. 상향은 항상 허용, 하향은 검증자가 [[검증자 기준선]](임무별 floor — C16) 미만 금지·실행자는 표 자체가 선언. SSOT=docs/ai-context/model-policy.md.
+(세션 모델, ultracode 여부) 2키로 역할(오케스트레이션/구현/탐색/검증)별 모델·effort를 정하는 정적 표. 상향은 항상 허용, 하향은 검증자가 [[검증자 기준선]](임무-분리 v2 `max(작업자,opus)` — C17) 미만 금지·실행자는 표 자체가 선언. SSOT=docs/ai-context/model-policy.md.
 _Avoid_: "모델 정책"(범위 불명 — ANTHROPIC_* 라우팅 env 설정과 혼동), "모델 라우팅"(CLIProxy 티어 매핑과 혼동).
 
 ### 검증자 기준선 (verifier floor)

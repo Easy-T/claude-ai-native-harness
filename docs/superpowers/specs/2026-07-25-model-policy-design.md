@@ -102,10 +102,10 @@ CC 2.1.220, Windows/MSYS, CLIProxy 라우팅(haiku 티어=gpt-5.6-luna) 환경 �
 | 구현 (heavy: 코드/TDD/다파일) | execute-strict | **opus** (fable 세션 한정 호출 인자 명시 — 비-fable 세션은 모드 C 상속) | ultracode: **xhigh** / 비-ultracode: 상속 | 사용자 확정 "구현은 opus"+effort 품질-우선(§0) |
 | 구현 (light: 기계적 편집/문서 생성) | execute-strict | **opus** (동일 — sonnet 구현은 선언적 override만) | ultracode: **high** / 비-ultracode: 상속 | 동상. per-task `effort` 명시(max 포함)=선언적 override |
 | 탐색 (읽기 전용 발견·전수조사) | explore-strict | **sonnet** (frontmatter 기본) | **medium** (frontmatter 기본) | 기계적 스코프 탐색 — model 상향은 호출 인자로 허용. effort는 frontmatter 고정(§1.5 제약)이므로 **판단-heavy 탐색은 explore-strict가 아니라 builtin Explore(상속 — 단 CC가 Opus 상한을 걸 수 있어 fable 세션은 fable 미보장, GPT 리뷰 지적) 또는 메인 직접**이 탈출구 |
-| 검증 (게이트/드리프트/적대) | review-strict | **상속** (하향 금지 — 상향 명시는 허용) | **상속** (하향 금지) | ⚠**§12.1→§15.1이 supersede**(현행: 임무-분리 — 준수-확인=작업자 티어/판단-게이트=max(세션,작업자))(2026-07-27): 기준선은 세션 단독이 아니라 `max(세션, 작업자)`. 아래 원문은 C11 시점 기록. 검증자 티어 ≥ **세션**(오케스트레이터) 보장. 실행자를 세션 위로 상향한 경우(예: sonnet 세션+opus 실행)는 검증자<실행자 잔여 — 그때는 검증자도 동반 상향 권고(L1, hook 미검출 수용) |
+| 검증 (게이트/드리프트/적대) | review-strict | **상속** (하향 금지 — 상향 명시는 허용) | **상속** (하향 금지) | ⚠**§12.1→§15.1이 supersede**(현행: 임무-분리 — 준수-확인=작업자 티어/판단-게이트=max(세션,작업자))(2026-07-27) → §16(C17)이 재-supersede(판단-게이트 max(작업자,opus) — 세션 축 제거): 기준선은 세션 단독이 아니라 `max(세션, 작업자)`. 아래 원문은 C11 시점 기록. 검증자 티어 ≥ **세션**(오케스트레이터) 보장. 실행자를 세션 위로 상향한 경우(예: sonnet 세션+opus 실행)는 검증자<실행자 잔여 — 그때는 검증자도 동반 상향 권고(L1, hook 미검출 수용) |
 | 교차 검증 (고-스테이크 closeout) | GPT (codex CLI/CCS) | 기존 규약 | — | cross-family-review.md 소비, 신설 금지 |
 
-- **상향은 항상 허용**(사유 불요), **하향은 검증자에 한해 금지**(⚠**§12.1→§15.1이 supersede**(현행: 임무-분리 — 준수-확인=작업자 티어/판단-게이트=max(세션,작업자)): 기준선은 세션 단독이 아니라 `max(세션, 작업자)`)·실행자는 이 표 자체가 선언이다.
+- **상향은 항상 허용**(사유 불요), **하향은 검증자에 한해 금지**(⚠**§12.1→§15.1이 supersede**(현행: 임무-분리 — 준수-확인=작업자 티어/판단-게이트=max(세션,작업자)) → §16(C17)이 재-supersede(판단-게이트 max(작업자,opus) — 세션 축 제거): 기준선은 세션 단독이 아니라 `max(세션, 작업자)`)·실행자는 이 표 자체가 선언이다.
   표 밖 하향(예: 구현을 haiku로)은 DOWNGRADE-DECLARED 동형 선언 필요 — hook Rule A는 부재/fable만
   감지하므로 haiku 명시 등은 L2 미검출(수용 잔여, L1이 담당; "검증자 금지"와 hook 메시지의
   DOWNGRADE-DECLARED 언급은 모순 아님 — 금지의 유일 탈출구가 그 선언+사용자 승인이다).
@@ -391,6 +391,7 @@ U7 `service_tier=priority` 적용 · U8 버전-무관 alias 원칙 유지(sol �
 > 준수-확인 임무(Workflow/Rule C2) = 작업자 티어(실행자 부재 시 세션 폴백) / 판단-필요 게이트
 > (Agent/Rule B) = `max(세션, 작업자)` 유지. 아래 원문은 C13 시점 기록(genesis) — 논증 이력
 > (양 독법 재해결·강제 범위·행 인용 규약)은 여전히 유효한 참조다.
+> **§16(C17)이 판단-게이트 절반을 재-supersede — max(세션,작업자) → max(작업자,opus)**(세션 축 제거, U4).
 
 **문제**: 두 SSOT가 다른 기준을 쓰고 있었다 — `cross-family-review.md:51` "검증자 티어 ≥ **작업자** 티어"
 vs `model-policy.md:19` "검증자 티어 ≥ **세션**". 코드(hook Rule B `:131`, Rule C2 `:89`)는 세션-기준.
@@ -460,6 +461,8 @@ args 스키마(:24-34)는 `title/promptVerbatim/files/successCriteria/heavy/effo
 > **캐리어·hook 편집 시 동반 갱신 대상**이다.
 > **C16 재실측 (2026-08-02)**: stage2 `model:'opus'` 명시(§15.1)로 캐리어 주석·본문이 재편돼 위 인용을
 > `:41`/`:56`/`:55-60`/`:24-34` 로 갱신(직전 C14 값 `:42`/`:57`/`:56-60`/`:25-35`).
+> **※C17 정밀화(§16.7-1)**: 위 인용 `:56` 은 "stage2 model 명시 라인" — C16 이 stage2 를 opus 명시로
+> 바꾼 뒤라 "무지정" 서술은 그 시점에 이미 실물과 어긋났다.
 → **현 상태의 정직한 서술 = "모드 밖 사용 시 탈출구 없음"**. Phase P가 옵셔널 `verifyModel` args 추가를
 task로 판단하되, 채택 시 **fable 세션에서 리터럴이 Rule C2 자기고발을 유발**하므로(2패스 오답 ②와 동형)
 "floor 미달일 때만 삽입"하는 조건부 로직이 필수다.
@@ -1166,6 +1169,8 @@ stage2의 억지 효과(TDD RED 증거 강제 등)는 분리 측정 불가로 �
 
 ### §15.1 ★C16-D — 검증자 floor 임무-분리 (C13 §12.1 일괄 `max(세션,작업자)`의 의식적 supersede)
 
+> ⚠§16(C17)이 판단-게이트 절반을 재-supersede — 준수-확인(작업자 티어)은 존속, 폴백만 세션→opus 상수.
+
 **결정**: floor를 검문의 **임무별로 분리**한다.
 - **준수-확인 임무 (Workflow 경로 = canonical carrier stage2, Rule C2)**: floor = **작업자 티어**
   (실행자 부재/전량-동적 스크립트는 **세션 티어 폴백** — 보수 유지). 근거: §15.0 — stage2는 준수-확인
@@ -1275,6 +1280,8 @@ A~F) + 블라인드 제약(대상 열람은 `git show <pinned>:` 경유만·`_go
 | X15 | "세션 상속" 전칭 단정 자기모순 | **✓** (B-X10/B-X11 — hook 주석층·model-policy 층) |
 | (X7) | Rule C `'*'` arm 무앵커(수용잔여) | ✓ (B-X5/B-X6 — dead-code 판정까지 동일) |
 | (X5) | 혼합 삼항 분기 소실(수용잔여) | ✗ |
+
+※ 정오(C17 §16.7-3): PR#37 body 의 "X1~X13" 라벨은 오기 — GT 는 X1~X15.
 
 **신규 발견 (GT 밖 — HEAD 재현 실측 후 판정)**:
 1. **B-X3**: 빈 리터럴 `model: ''`이 `clean()`의 `|| "-"`로 "키 부재" 기호에 붕괴 — HEAD 재현
