@@ -47,6 +47,9 @@ C. **explore-strict** 서브에이전트를 `task` 도구로 디스패치 —
    ※ C는 B와 병렬·교차 가능 (A 완료 후)
 
 ## Gate R (차단형 — review-strict)
+
+★Gate R 조건부(C17 spec §16.3-1): **spec delta 없는 재진입 사이클**만 서브에이전트 게이트를 생략하고 메인 자기점검 1줄로 대체 — 단 생략 선언은 자기증언이 아니라 **기계 판별**: `git diff <직전 사이클 머지 커밋>..HEAD -- docs/superpowers/specs/` 의 **0-diff 출력을 증거로 동반**해야 하며, diff 가 비어 있지 않으면 no-op 선언 무효(Gate R 필수). **delta 사이클(신설 포함)은 Gate R 필수.** 잔여: 미반영-delta(spec 에 넣었어야 할 것을 안 넣음)는 diff 로 못 잡는다 — 기존 Gate R 과 동일 상한, 수용(§16.3-1).
+
 1. **review-strict** 서브에이전트를 `task` 도구로 디스패치 —
    task: "spec ↔ 도메인 어휘/grill 결과 일관성 검증";
    read: ["CONTEXT.md",
@@ -89,6 +92,8 @@ plan 상단 헤더 주입 (writing-plans 표준 헤더 위에):
   ※ 목적: silent downgrade(무선언 열화) 차단. 스코프 축소(YAGNI)는 열화가 아니다 —
     이 필드가 묻는 건 "같은 스코프를 구현하는 방식 중 최선인가"이지 "기능을 더 넣었는가"가 아니다.
   ※ 난이도·복잡도는 채택 사유가 될 수 없다(사이클 분할 사유는 가능 — 방향 유지 + 단계화는 열화 아님).
+
+※ light-병합(C17 spec §16.3-3): 인접 light task(순수 문서·기계 편집)는 plan 단계에서 하나의 task 로 병합(files 합집합·success 기준 conjunct). 합본 stage1 보고 30k 초과 예상 시 분할 유지(slice 절단=후미 diff 소실=false PASS). heavy(코드/TDD)는 per-task 유지.
 
 ## Gate P
 
@@ -184,7 +189,9 @@ closeout-pr-cycle 결과를 받아:
 
 ## Step C-1: Drift Check
 
-1. **review-strict** 서브에이전트를 `task` 도구로 디스패치 —
+1. **통합 리뷰 소비(포인터 — C17 spec §16.3-2)**: drift 검사는 closeout-pr-cycle Phase 4 의 **단일 적대 통합 리뷰**(senior A~E + drift 체크리스트 합본)가 겸한다 — 이 sub-step 은 그 결과(Critical/Important/Minor + **drift 항목별 판정 절**)를 소비·기록한다. **폴백(사유 불문): Closeout 이 이 지점에 도달했을 때 Phase 4 통합 리뷰가 수행되지 않았으면**(C-0 미충족·local check FAIL·PR/CI 실패·PARTIAL·abandoned 등 원인 무관 — §16.8 D2) **아래 단독 drift 검사를 실행**(리뷰 0회 사이클 방지).
+
+   **폴백 전용** — **review-strict** 서브에이전트를 `task` 도구로 디스패치 —
    task: "사이클 마감 점검 (drift + 자산 갱신 검증)";
    read: ["CONTEXT.md",
           "docs/ai-context/architecture.md",
@@ -210,7 +217,7 @@ closeout-pr-cycle 결과를 받아:
    ※ 전체 스키마: `state.schema.json` (state.json 과 같은 디렉터리 — 프로젝트는 `.claude/`, 전역 하네스는 루트)
    - cycle.count +1 (abandoned 시 +0)
    - cycle.last_completed_at: today
-   - audit.last_drift_check: today (**단, Step C-1 drift review(sub-step 1)가 실제 수행된 경우에만** — abandoned/미수행 사이클은 미갱신. 하네스 사이클은 sub-step 6 harness-verify 결과와 의미적 연동: 점검 안 한 사이클이 "오늘 점검함"으로 위장 불가.)
+   - audit.last_drift_check: today (**단, Phase 4 통합 리뷰(drift 체크리스트 포함 — drift 절 판정이 전항 명시된 보고, §16.8 E3) 또는 폴백 단독 drift 검사가 실제 수행된 경우에만** — abandoned/미수행 사이클은 미갱신. 하네스 사이클은 sub-step 6 harness-verify 결과와 의미적 연동: 점검 안 한 사이클이 "오늘 점검함"으로 위장 불가.)
 
 4. 사용자 승인형 v2/v3 알림:
    - cycle.count == 5 && !v2_enabled && !v2_skipped_permanently → "v2 도입 가능" 묻기
@@ -256,7 +263,7 @@ closeout-pr-cycle 결과를 받아:
 
 9. layer-yield 계량 (Communication Protocol `layer-yield:` 필드로 출력 — C16 spec §15.3):
    - 이번 사이클 검문 층별 1줄: `<층명>: <상태> · 실발견 <N>건 · <발견|확인>` — `<상태>` ∈ {PASS, FAIL→정정,
-     `k PASS/m FAIL` 집계, SKIP(사유), 실행(비판정 층)}. 층 = Gate R/P·stage2·senior·drift·교차패밀리·기타.
+     `k PASS/m FAIL` 집계, SKIP(사유), 실행(비판정 층)}. 층 = Gate R/P·stage2·**통합(senior+drift — 폴백 시 drift 단독)**·교차패밀리·기타(§16.8 E2 — 통합 리뷰는 1층 1행, 2행 분리 기재 금지).
      다회 호출 층은 호출 수 병기(`stage2 ×6`). 실발견 = REAL 판정된 내용 결함(처분 무관).
    - 같은 행을 축적 대장 `docs/ai-context/review-yield.md`(opencode 하네스 저장소 기준 — 정본 하네스의
      글로벌 대장 규약 이식)에 append. append 커밋은 대장이 있는 저장소의 트랜잭션으로(대상 repo 와 분리).
