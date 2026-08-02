@@ -1,6 +1,6 @@
 # C16 — 리뷰 경제성 재설계 Implementation Plan
 
-**Status:** active
+**Status:** completed
 **RPI-Cycle:** 67
 **Started:** 2026-08-02
 
@@ -469,6 +469,6 @@ Expected: seal #40 green + 신값 기재.
 
 ### Task 9 (Closeout 게이트): 전 스위트 + 커밋/PR + GPT 슬롯 2
 
-- [ ] 메인 포그라운드: `bash setup/verify-setup.sh`(87/0) · `bash hooks/tests/run-all.sh`(267/267 — 슬롯2 F4 포함) · `bash setup/tests/seal-regression.test.sh`(16/0 — Mutator 4 포함)
-- [ ] 브랜치 커밋 → PR 생성(MERGE_POLICY wait — 머지는 사용자 승인)
-- [ ] Closeout: drift review + GPT 슬롯 2(코드 diff) + goal §4 항목별 대조 + layer-yield 필드 자기 적용(첫 소비) + review-yield.md C16 행 append
+- [x] 메인 포그라운드: `bash setup/verify-setup.sh`(87/0) · `bash hooks/tests/run-all.sh`(267/267 — 슬롯2 F4 포함) · `bash setup/tests/seal-regression.test.sh`(16/0 — Mutator 4 포함)
+- [x] 브랜치 커밋 → PR 생성(MERGE_POLICY wait — 머지는 사용자 승인)
+- [x] Closeout: drift review + GPT 슬롯 2(코드 diff) + goal §4 항목별 대조 + layer-yield 필드 자기 적용(첫 소비) + review-yield.md C16 행 append
