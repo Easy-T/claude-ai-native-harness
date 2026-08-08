@@ -42,7 +42,7 @@
 - Produces: `집필-위임` · `FABLE-TAKEOVER` · `골격 계약` 토큰(정본 서두) + 미러 `FABLE-TAKEOVER` 토큰 — T4 seal #50 conjunct ①③의 앵커.
 - Consumes: 없음.
 
-- [ ] **Step 1: RED — 신 토큰 부재 + 구 단정 실재 확인**
+- [x] **Step 1: RED — 신 토큰 부재 + 구 단정 실재 확인**
 
 ```bash
 cd ~/.claude
@@ -65,7 +65,7 @@ opencode-harness/skill/start-rpi-cycle/SKILL.md:15:   sub-agent에 위임 X — 
 ```
 마지막 `seal-regression` grep 은 두 파일 모두 `:0`.
 
-- [ ] **Step 2: ① 정본 서두 개정 — §17.1 규범 원문 verbatim 전사**
+- [x] **Step 2: ① 정본 서두 개정 — §17.1 규범 원문 verbatim 전사**
 
 `skills/start-rpi-cycle/SKILL.md` — old (:14-15, 2줄):
 ```
@@ -97,7 +97,7 @@ new (동일 5줄, **1행의 도구 표기만** `` **`skill` 도구로 호출** `
 ```
 미러 :16 도 불변.
 
-- [ ] **Step 3: ② sub-step 6 조건부 규약 + ③ Communication Protocol 1줄**
+- [x] **Step 3: ② sub-step 6 조건부 규약 + ③ Communication Protocol 1줄**
 
 `skills/start-rpi-cycle/SKILL.md` sub-step 6 — 현행 마지막 줄(`   → 하네스 수정 사이클이면 **run-log 요약도 소비**(GAP-003): … 파일 부재 시 생략.`) **바로 뒤에** 1줄 추가:
 ```
@@ -125,7 +125,7 @@ new (동일 5줄, **1행의 도구 표기만** `` **`skill` 도구로 호출** `
 ※ **집필-위임 (C18 spec §17.4)**: Closeout 한국어 보고·PR body 는 구조화 데이터(검증 수치·layer-yield 행·토큰 집계·goal 대조표)를 넘겨 **opus 가 초안을 작성하고 메인이 감수·개정한 뒤 발화**할 수 있다 — 초안은 자재이지 판정이 아니며, 사용자 커뮤니케이션 책임·발화는 메인에서 이전되지 않는다(AGENTS.md §7 한국어 규약 포함).
 ```
 
-- [ ] **Step 4: GREEN — 토큰 존재 + verbatim diff + 스위트**
+- [x] **Step 4: GREEN — 토큰 존재 + verbatim diff + 스위트**
 
 ```bash
 cd ~/.claude
@@ -157,7 +157,7 @@ bash setup/verify-setup.sh 2>&1 | tail -2
 ```
 Expected: `verify-setup: PASS=87 FAIL=0` (δ=0 — seal #50 은 T4 에서 신설).
 
-- [ ] **Step 5: 커밋**
+- [x] **Step 5: 커밋**
 
 ```bash
 cd ~/.claude
@@ -187,7 +187,7 @@ EOF
 - Produces: `정정-위임 미니-사이클` 규약 문안(§17.3) + Phase 1 스위트 조건부 주석(§17.5 ③) + **`2단계 트리아지` 토큰(§17.2 — Phase 4 트리아지 문안)** + **PR body 집필-위임 1줄(§17.4)**.
 - Consumes: T1 이 sub-step 6 에 세운 조건부 규약(Phase 1 주석이 그 SSOT 를 참조). T3 이 착륙시킬 `cross-family-review.md` §2 규범(트리아지 문안이 그 SSOT 를 참조 — 문서 참조이지 실행 의존은 아님).
 
-- [ ] **Step 1: RED — 신 토큰 부재 확인**
+- [x] **Step 1: RED — 신 토큰 부재 확인**
 
 ```bash
 cd ~/.claude
@@ -207,7 +207,7 @@ skills/closeout-pr-cycle/SKILL.md:159:3. **불가 시**: SKIP + 사유 1줄 기�
 opencode-harness/skill/closeout-pr-cycle/SKILL.md:163:3. **불가 시**: SKIP + 사유 1줄 기록(비차단 — advisory fail-open).
 ```
 
-- [ ] **Step 2: Phase 4 — 트리아지 문안 2단계화 + 정정-위임 미니-사이클 규약 삽입**
+- [x] **Step 2: Phase 4 — 트리아지 문안 2단계화 + 정정-위임 미니-사이클 규약 삽입**
 
 **⑴ 트리아지 문안 2단계화 (spec §17.2 — SKILL.md 가 구 1단계 문면을 그대로 들고 있으면 cross-family-review.md 개정과 SSOT 역전)**. `skills/closeout-pr-cycle/SKILL.md` :158 의 부분 문자열만 치환:
 ```
@@ -247,7 +247,7 @@ opencode-harness/skill/closeout-pr-cycle/SKILL.md:163:3. **불가 시**: SKIP + 
 - **예외 — 메인 직접 편집 허용 (편집-주체 축, 시점 무관)**: 위임 왕복 비용이 편집 자체보다 비싼 **선언적 기계 편집** 4건 — ⓐ`AGENTS.md` §3 ⓑlayer-yield append ⓒplan 체크박스·plan Status 헤더 ⓓ`state.json`(spec §17.3). **D5(머지-전 창) 허용 집합은 ⓐⓑ 2건으로 불변** — ⓒⓓ를 그 창의 허용 편집으로 읽는 것은 오독이며, 그 창의 판정은 §16.3-2 D5 가 계속 지배한다.
 ```
 
-- [ ] **Step 3: Phase 1 Local Gate — 스위트 조건부 주석 1줄**
+- [x] **Step 3: Phase 1 Local Gate — 스위트 조건부 주석 1줄**
 
 `skills/closeout-pr-cycle/SKILL.md` — runbook 로드 불릿 마지막 줄(`- 없으면: 사용자에게 "local check 명령을 알려주세요" 확인`) **바로 뒤에** 1줄 추가(빈 줄 앞에):
 ```
@@ -259,7 +259,7 @@ opencode-harness/skill/closeout-pr-cycle/SKILL.md:163:3. **불가 시**: SKIP + 
 ※ **하네스 사이클 스위트 규약 (C18 spec §17.5 ③)**: seal-regression 조건부 스킵은 정본 하네스(`~/.claude`) 전용 — opencode 번들에는 verify-setup seal 도 그 변이 메타-테스트도 대응물이 없어 조건부 스킵 대상이 아니다. 번들 스위트(`node --test tests/*.test.mjs` + `_oracle/`)는 하네스 수정 사이클이면 항상 full 실행.
 ```
 
-- [ ] **Step 3b: Phase 2 — PR body 집필-위임 1줄 (spec §17.4)**
+- [x] **Step 3b: Phase 2 — PR body 집필-위임 1줄 (spec §17.4)**
 
 `skills/closeout-pr-cycle/SKILL.md` :78(`PR body가 자동 생성(`--fill`)으로 부족하면 보완 제안 후 사용자 확인.`) **바로 뒤에** 1줄 추가:
 ```
@@ -267,7 +267,7 @@ opencode-harness/skill/closeout-pr-cycle/SKILL.md:163:3. **불가 시**: SKIP + 
 ```
 `opencode-harness/skill/closeout-pr-cycle/SKILL.md` :78 도 동형 1줄(문안 동일 — 이 문장에는 CLAUDE/AGENTS 명칭이 없어 미러 치환 불요).
 
-- [ ] **Step 4: GREEN — 토큰 존재 + 스위트**
+- [x] **Step 4: GREEN — 토큰 존재 + 스위트**
 
 ```bash
 cd ~/.claude
@@ -297,7 +297,7 @@ bash setup/verify-setup.sh 2>&1 | tail -2
 ```
 Expected: `verify-setup: PASS=87 FAIL=0` (#48 `실재하는` 선언·#29 skill 목록 등 무회귀).
 
-- [ ] **Step 5: 커밋**
+- [x] **Step 5: 커밋**
 
 ```bash
 cd ~/.claude
@@ -329,7 +329,7 @@ EOF
 - Produces: `판정은 메인` · `증거 수집` 토큰(cross-family-review) — T4 seal #50 conjunct ②의 앵커. **`미니-사이클` 포인터(:52 슬롯 1 발견 처리 — §17.3 정정-주체)**. `집필·대조·정정` 행(model-policy §1).
 - Consumes: 없음.
 
-- [ ] **Step 1: RED — 신 토큰 부재 + 구 문안 실재 확인**
+- [x] **Step 1: RED — 신 토큰 부재 + 구 문안 실재 확인**
 
 ```bash
 cd ~/.claude
@@ -349,7 +349,7 @@ Expected (RED): 앞 다섯 grep 전부 `0`. 마지막 두 grep 은 삽입 앵커
 52:- **슬롯 1 발견 처리**: 슬롯 1 발견은 메인 트리아지 후 REAL 이면 spec/plan 정정 → **Gate P 델타 재심**(§15.4)을 Phase I 착수 전에 통과해야 한다 — Gate P PASS 는 슬롯 1 REAL 정정에 의해 잠정화된다.
 ```
 
-- [ ] **Step 2: cross-family-review.md :43 → §17.2 규범 원문 verbatim 전사**
+- [x] **Step 2: cross-family-review.md :43 → §17.2 규범 원문 verbatim 전사**
 
 old (:43, 1줄 — 선행 `- ` 불릿 마커 포함):
 ```
@@ -365,7 +365,7 @@ new (6줄 — spec :1937-1942 blockquote 에서 `  > ` 접두만 제거한 **byt
   아니다(불변).**
 ```
 
-- [ ] **Step 2b: cross-family-review.md :52 — 슬롯 1 발견 처리에 정정-주체 포인터**
+- [x] **Step 2b: cross-family-review.md :52 — 슬롯 1 발견 처리에 정정-주체 포인터**
 
 §17.3 이 정정의 *실행 주체* 를 교체했는데 :52 는 "spec/plan 정정"의 주체를 여전히 무언(=메인 직접 함축)으로 둔다 — 슬롯 1 경로에서 미니-사이클이 우회되는 문면 공백. **부분 문자열만** 치환한다(문장 나머지·`Gate P 델타 재심` 규약 불변):
 
@@ -378,7 +378,7 @@ new:
 REAL 이면 spec/plan 정정(**§17.3 정정-위임 미니-사이클로** — 목록화 메인·실행 opus·검증 opus·승인 메인) → **Gate P 델타 재심**
 ```
 
-- [ ] **Step 3: model-policy.md §1 매트릭스 1행 추가 (CRLF — perl -pi)**
+- [x] **Step 3: model-policy.md §1 매트릭스 1행 추가 (CRLF — perl -pi)**
 
 `| 교차 검증 (고-스테이크 closeout) | …` 행(:20) **바로 뒤**에 새 행 삽입. `sed -i` 금지(CRLF 38/38):
 ```bash
@@ -386,7 +386,7 @@ cd ~/.claude
 perl -pi -e 'BEGIN{ $row = "| 집필·대조·정정 (판단-전용화 3종 — 문서 전문/교차패밀리 증거 수집/리뷰 발견 편집) | execute-strict·review-strict | **opus** (frontmatter 기본) | 상속 | C18 spec §17.1~17.3 — 골격 계약·재작성 ≤2회·FABLE-TAKEOVER 폴백·판정은 메인 불이전 |\r\n" } $_ .= $row if /^\| 교차 검증 \(고-스테이크 closeout\)/;' docs/ai-context/model-policy.md
 ```
 
-- [ ] **Step 4: GREEN — 토큰 존재 + verbatim diff + CRLF 보존 + 스위트**
+- [x] **Step 4: GREEN — 토큰 존재 + verbatim diff + CRLF 보존 + 스위트**
 
 ```bash
 cd ~/.claude
@@ -421,7 +421,7 @@ bash setup/verify-setup.sh 2>&1 | tail -2
 ```
 Expected: `verify-setup: PASS=87 FAIL=0` (#45 conjunct ①이 `model-policy.md` 의 `execute-strict.*opus`/`explore-strict.*sonnet` 앵커를 계속 찾음 — 신규 행은 기존 행 뒤 추가라 무회귀).
 
-- [ ] **Step 5: 커밋**
+- [x] **Step 5: 커밋**
 
 ```bash
 cd ~/.claude
@@ -455,7 +455,7 @@ EOF
 - Produces: seal #50(conjunctive 4항 — ①정본 토큰 3종 ②cross-family 토큰 2종 ③미러 parity ④구 '위임 X' 부정-단언) · 변이 M17 · 카운트 87→88 / 20→21.
 - Consumes: T1 이 세운 `집필-위임`·`FABLE-TAKEOVER` 토큰(정본+미러), T3 이 세운 `판정은 메인`·`증거 수집` 토큰.
 
-- [ ] **Step 1: RED — 변이 M17 을 seal 보다 먼저 넣어 "현재 미탐지"를 실측**
+- [x] **Step 1: RED — 변이 M17 을 seal 보다 먼저 넣어 "현재 미탐지"를 실측**
 
 RED 재현자는 라이브 파일 변이가 아니라 **seal-regression 의 격리 replica**(`mktemp -d` + `HOME=<replica>`)를 쓴다 — 라이브 `~/.claude` 는 witness cksum 으로 불변 증명됨.
 
@@ -496,7 +496,7 @@ seal-regression: PASS=20 FAIL=1
 ```
 판별자는 **위 문자열 Expected** 다 — 이 Step 의 재현자가 `… | tail -4` 파이프라인이라 스위트의 종료코드는 `tail` 이 흡수한다(rc 단언 금지). `rc=0` 이 핵심 — 토큰을 지워도 현행 verify-setup 이 **통과**한다(= 봉인 부재의 실측 증거).
 
-- [ ] **Step 2: GREEN(seal) + RED(카운트) — seal #50 신설**
+- [x] **Step 2: GREEN(seal) + RED(카운트) — seal #50 신설**
 
 `setup/verify-setup.sh` — seal #49 블록 마지막 줄(`fi`, :550)과 seal #36 주석(`# 36. verify-setup 총 체크수 …`, :552) 사이에 삽입(기존 `ok`/`fail` 함수 · `MP_OK` 형 누산 플래그 · `SK49`/`MIR43` 형 경로 변수 명명 준수):
 ```bash
@@ -542,7 +542,7 @@ verify-setup: PASS=87 FAIL=1
 ```
 (`✓ 집필-위임 규약 토큰 봉인 …` 라인이 그 위에 실재해야 한다 — `bash setup/verify-setup.sh 2>&1 | grep '집필-위임'` 로 별도 확인.) 여기서도 판별자는 위 문자열 Expected — `| tail -3` 파이프라인이 스위트 종료코드를 흡수한다.
 
-- [ ] **Step 3: GREEN — 카운트 동기 (README 87→88 · SKILL.md 20/0→21/0)**
+- [x] **Step 3: GREEN — 카운트 동기 (README 87→88 · SKILL.md 20/0→21/0)**
 
 `README.md` 는 CRLF(547/547) — `sed -i` 금지:
 ```bash
@@ -563,7 +563,7 @@ Expected:
 verify-setup: PASS=88 FAIL=0
 ```
 
-- [ ] **Step 4: 세 스위트 + 잔여 카운트 전수 확인**
+- [x] **Step 4: 세 스위트 + 잔여 카운트 전수 확인**
 
 ```bash
 cd ~/.claude
@@ -597,7 +597,7 @@ printf 'lines=%s cr=%s\n' "$(grep -c '' README.md)" "$(tr -cd '\r' < README.md |
 ```
 Expected: `lines=547 cr=547`.
 
-- [ ] **Step 5: 커밋**
+- [x] **Step 5: 커밋**
 
 ```bash
 cd ~/.claude
