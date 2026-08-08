@@ -1874,8 +1874,9 @@ C18 이 겨냥하는 것은 남은 절반 — fable **메인 자신의 소비** 
 기준 세션 아티팩트 합산. 합계 ≈**1,951k** 가 C18 의 비교 기준선이다.)
 
 **핵심 논리**: fable 소비의 약 70% 는 "판단"이 아니라 **집필·대조·편집** — U4 아래에서 opus 와 성능이
-같다고 가정된 부류다. I 단계 84.2k 는 "실작업을 전부 위임했을 때의 fable 하한"의 실측 증거이고, 나머지
-세 단계 수치는 그 하한에서 얼마나 벗어나 있는지의 계량이다.
+같다고 가정된 부류다. I 단계 84.2k 는 "실작업을 전부 위임한 단계"의 관측 최저값(참조 수준)이고 — I
+단계는 5임무 중 ⑤만 수행하는 단계-이질이라 통계적 하한 증명은 아니며(n=1), 나머지 세 단계 수치는 그
+하한에서 얼마나 벗어나 있는지의 계량이다.
 
 **fable 상주 역할 (판단 전용 정의)**: ①설계 결정(골격 확정) ②게이트 해석 ③트리아지 최종 판정
 ④사용자 커뮤니케이션 감수 ⑤오케스트레이션. §16.0-1 이 "메인 세션 오케스트레이션 단 하나"로 둔 상주
@@ -1899,8 +1900,14 @@ C18 이 겨냥하는 것은 남은 절반 — fable **메인 자신의 소비** 
   선언하고 fable 직접 집필로 폴백한다. 상한이 없으면 리뷰-루프 비용이 직접 집필 비용을 넘는 역전이
   발생한다. **발동 자체가 레버 실패 신호** — layer-yield 부기 + Closeout 보고 표면화가 의무이며,
   **2 산출물 연속 발동 = 레버 붕괴**로 보고 사용자에게 판단을 넘긴다(goal §6 정지점 ③).
-- **Gate R/P 불변**: 위임-집필된 spec/plan 도 동일 게이트(opus — §16.1 매트릭스)를 통과해야 한다.
-  품질 바닥을 잡는 것은 위임 여부가 아니라 게이트다.
+  **산출물 단위 = spec 절 1개 또는 plan 1개.** 위임 없는 직접 집필(루프 0회 경로)도 FABLE-TAKEOVER
+  선언 대상 — 무선언 직접 집필은 규약 위반.
+  **TAKEOVER 산출물의 게이트**: 폴백 산출물의 작업자는 fable(메인 직접 집필)이므로 판단-게이트 floor
+  `max(작업자, opus)` = **fable** — 검증자 동반 상향 의무(§16.5 원리의 게이트 적용)로 그 산출물의
+  Gate R/P 검증자는 fable 로 상향한다(하한 불변식의 L1 이행이라 별도 밸브 선언 불요 · TAKEOVER 와
+  함께 layer-yield 부기). opus 게이트로 통과시키는 것은 under-floor 위반.
+- **Gate R/P 불변**: 위임-집필된 spec/plan 도 동일 게이트를 통과해야 한다(통상 opus — §16.1 매트릭스;
+  TAKEOVER 산출물은 위 floor 규칙으로 fable). 품질 바닥을 잡는 것은 위임 여부가 아니라 게이트다.
 - **start-rpi-cycle 서두 개정 (규범 원문 — Phase I 는 이 문안을 그대로 착륙시킨다)**. 현행
   `skills/start-rpi-cycle/SKILL.md:14-15` = "superpowers의 brainstorming / writing-plans /
   executing-plans는 모두 **메인 세션의 skill**. sub-agent에 위임 X — 메인이 **Skill 도구로 호출**해
@@ -1926,7 +1933,8 @@ C18 이 겨냥하는 것은 남은 절반 — fable **메인 자신의 소비** 
 - **1단계 증거 수집 = review-strict(opus) 위임**. 반환 계약 = 발견별 {원문 인용의 실재 여부, 코드/문서
   실측 대조 결과, REAL/기각 **권고** + 근거}. 발견 묶음 단위 **병렬 호출 허용**.
 - **2단계 최종 판정 = fable**. 권고 위에서 판정하며 **권고를 뒤집을 자유가 있다** — 판정 주권은
-  이전되지 않는다.
+  이전되지 않는다. 판정 전 각 발견의 대조 증거(인용 실재·실측 결과)를 열람한다 — 권고 무열람 일괄
+  승인 금지(§17.1 통독 의무 동형).
 - **검증자 floor 정합**: 대조자는 판단-게이트가 아니다(권고만 산출·게이트 판정 아님). 그럼에도
   frontmatter opus(§16.1 Option 1)라 floor 논쟁 자체가 성립하지 않는다.
 - **cross-family-review.md §2 개정 (규범 원문 — Phase I 착륙물)**. 현행
@@ -1944,10 +1952,11 @@ C18 이 겨냥하는 것은 남은 절반 — fable **메인 자신의 소비** 
 ### §17.3 C18-C — 정정-위임 미니-사이클 (레버 3)
 
 **현행 관측**: C17 슬롯 2 정정(hook 메시지·seal·픽스처 5건 — §16.9)을 메인이 직접 편집했고, 그것이
-Closeout 465.1k 의 주성분이다.
+Closeout 465.1k 의 주성분으로 추정된다(단계-총량 계측이라 행위별 분해는 불가 — §17.0 계측 한계).
 
 **개정**: 트리아지 확정 후의 정정은 **task 목록화(fable) → execute-strict(opus) 실행 →
-review-strict(opus) 검증(관련 스위트 재실행 포함) → fable 승인** 의 미니-사이클로 수행한다.
+review-strict(opus) 검증(관련 스위트 재실행 포함 · **원 발견 REAL 목록 전건 대응 대조 — 누락 0**;
+원 목록을 context 로 필수 전달) → fable 승인** 의 미니-사이클로 수행한다.
 `skills/closeout-pr-cycle/SKILL.md` Phase 4 의 발견-처리 절에 규약화한다(Phase I 착륙).
 
 - **델타 재심(§15.4) 스코프 불변**: 미니-사이클은 정정 *실행 주체* 의 교체이지 재심 스코프의 변경이
@@ -1957,16 +1966,18 @@ review-strict(opus) 검증(관련 스위트 재실행 포함) → fable 승인**
   있나"** — 그 허용 집합은 **CLAUDE.md §3 · layer-yield append 2건으로 불변**이며, 리뷰 미대상 창이라
   좁게 유지한다(확장 금지). **§17.3 의 예외 = "무엇을 fable 이 위임 없이 직접 쳐도 되나"** 로
   **편집-주체 축이고 시점과 무관**하다: 위임 왕복 비용이 편집 자체보다 비싼 **선언적 기계 편집** 4건 —
-  ⓐCLAUDE.md §3 ⓑlayer-yield append ⓒplan 체크박스 ⓓstate.json. 이 중 ⓐⓑ는 D5 집합과 우연히
-  겹치는 것이고, **ⓒⓓ는 §17.3 이 신규 선언하는 확장**이다(D5 귀속 아님 — ⓒⓓ를 머지-전 창의 허용
-  편집으로 읽는 것은 오독이며, 그 창의 판정은 D5 2건이 계속 지배한다).
+  ⓐCLAUDE.md §3 ⓑlayer-yield append ⓒplan 체크박스·plan Status 헤더 ⓓstate.json. 이 중 ⓐⓑ는 D5
+  집합과 우연히 겹치는 것이고, **ⓒⓓ는 §17.3 이 신규 선언하는 확장**이다(증인 동반: ⓒ=통합 리뷰
+  drift 절의 plan 체크박스 검사 항목 · ⓓ=state.schema.json 정합+차기 session-start-audit. D5 귀속
+  아님 — ⓒⓓ를 머지-전 창의 허용 편집으로 읽는 것은 오독이며, 그 창의 판정은 D5 2건이 계속 지배한다).
 - Phase I 캐리어 `workflows/rpi-implement.js` 는 **무수정** — 이 레버는 R/P/Closeout 절차 축이고
   캐리어의 2-stage 계약과 무관하다.
 
 ### §17.4 C18-D — 보고·PR body 초안 위임 (레버 4)
 
 Closeout 의 한국어 보고와 PR body 는 **구조화 데이터**(검증 수치 · layer-yield 행 · 토큰 집계 · goal
-대조표)를 넘겨 opus 가 초안을 작성하고, **fable 이 최종 감수·개정한 뒤 발화**한다. 사용자 커뮤니케이션
+대조표)를 넘겨 opus 가 초안을 작성하고, **fable 이 최종 감수·개정한 뒤 발화**한다(**fable 세션 기본
+경로** — 비-fable 세션은 재량). 사용자 커뮤니케이션
 책임은 fable 에서 이전되지 않으며(CLAUDE.md §7 한국어 규약 포함), 초안은 판정이 아니라 자재다.
 착륙 지점 = `skills/start-rpi-cycle/SKILL.md` Communication Protocol 1줄 규약(Phase I).
 
@@ -1979,8 +1990,9 @@ goal §C18-E 가 요구한 감사 1(C17-B 리뷰 통합의 실효) + 잔여 중�
   `통합(senior+drift — C17 §16.3-2 첫 적용): PASS(Critical 0/Important 2/Minor 1) · 실발견 3건` **단일
   1행**으로 기록한다 — C16 절이 senior·drift 를 별도 2행으로 기재한 것과 대비되어 2회→1회 착륙이
   대장에서 확인된다(§16.3-4 E2 의 "1층 1행" 규약 준수). drift 절 5항 분리 출력도 실재하며(§16.8 E3 의
-  강등-우회 차단 조건 충족), `audit.last_drift_check` 스탬프가 그 실수행에 결속되어 있다
-  (start-rpi-cycle Step C-1 sub-step 3). **추가 조치 불요.**
+  강등-우회 차단 조건 충족), `audit.last_drift_check` 스탬프가 그 실수행에 규약상 결속되어 있다
+  (자가-기록 — 1층 1행 포맷이 호출 횟수를 독립 판별하지는 않는다. start-rpi-cycle Step C-1
+  sub-step 3). **추가 조치 불요.**
 - **후보 ① stage2(per-task 준수-확인) vs 통합 리뷰(사이클-수준 판단): 비중복 — 현행 유지.**
   근거 ⑴ 스코프 상이: 통합 리뷰의 검사 범주는 사이클 수준 A~F(`skills/closeout-pr-cycle/SKILL.md`
   :111-115)인 반면 stage2 의 기준은 **plan task별 success_criteria**(`skills/start-rpi-cycle/SKILL.md`
@@ -1995,11 +2007,16 @@ goal §C18-E 가 요구한 감사 1(C17-B 리뷰 통합의 실효) + 잔여 중�
   루프가 그 실례). goal §C18-E 의 "비용<위험이면 현행 유지 판정도 정답"의 적용례다.
 - **후보 ③ seal-regression 실행 시점: 채택 — 조건부 스킵 규약.** 이 스위트는 `setup/verify-setup.sh`
   **자체의 변이-포착력**을 검증한다(mutation testing — 변이 주입 후 seal 이 실제로 FAIL 하는지). 검사
-  *대상* 파일의 회귀는 verify-setup 런타임이 이미 커버하므로, **`setup/verify-setup.sh` 와
-  `setup/tests/` 가 사이클 diff 에 없으면 직전 실측(20/0)이 그대로 유효**하다(입력 무변경 → 멱등).
-  규약: **diff 에 있으면 full 실행 필수 / 없으면 `SKIP(사유: setup/ diff 0 — 직전 20/0 유효)` 허용**,
-  SKIP 사유는 layer-yield 에 기재한다. **탐지력 불변** — 스킵 조건 자체가 "검증 대상의 무변경"이기
-  때문이다(회귀-탐지력을 깎는 최적화 기각 원칙에 저촉되지 않음). 반례 검증: C17 plan Task 1 이
+  *대상* 파일의 회귀는 verify-setup 런타임이 이미 커버하므로, **`setup/verify-setup.sh`·`setup/tests/`
+  및 seal-regression 의 입력 집합**(witness() 목록·뮤테이터 앵커 파일 — SSOT 는
+  `setup/tests/seal-regression.test.sh` 자신; hooks/·agents/·skills/start-rpi-cycle·skills/ui-design·
+  docs/ai-context/review-yield.md 등 비-setup 파일 다수 포함)**이 사이클 diff 에 없으면 직전
+  실측(20/0)이 그대로 유효**하다(입력 무변경 → 멱등).
+  규약: **diff 에 있으면 full 실행 필수 / 없으면 `SKIP(사유: setup/+입력 집합 diff 0 — 직전 20/0
+  유효)` 허용**, SKIP 사유는 layer-yield 에 기재한다. **탐지력 불변은 입력 집합 전체 무변경일 때만
+  성립** — witness/뮤테이터 앵커 16파일 중 setup/ 은 2건뿐이라(슬롯1 #21 실측) setup/-한정 조건은
+  앵커 이동·개명 사이클에서 뮤테이터 no-op(vacuous) 창을 연다. 의심스러우면 full 실행이 기본이다.
+  반례 검증: C17 plan Task 1 이
   `setup/verify-setup.sh`(:36)·`setup/tests/seal-regression.test.sh`(:37)를 Modify 대상에 포함했으므로,
   이 규약이 있었더라도 C17 은 **full 실행 필수 사이클**이었다 — 규약이 실제 회귀 창을 열지 않는다.
 - **후보 ④ 델타 재심 스코프: 준수 확인 — 추가 조치 불요.** C17 의 델타 재심 3회(Gate P 재심 1 ·
