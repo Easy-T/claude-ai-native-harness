@@ -1,7 +1,7 @@
 ---
 name: closeout-pr-cycle
 description: |
-  구현 완료 후 PR 생성, CI 확인, merge 전 senior review, 사용자 승인 요청까지 수행.
+  구현 완료 후 PR 생성, CI 확인, merge 전 통합 리뷰(senior+drift), 사용자 승인 요청까지 수행.
   사용자가 "PR 만들어줘", "merge 준비해줘", "작업 마무리해줘", "CI 확인하고 merge 준비",
   "브랜치 닫아줘" 등을 말하면 사용.
   AI는 merge를 결정하지 않으며 사용자 명시 승인 없이는 merge 금지.
@@ -12,7 +12,7 @@ orchestrator_version: 1.0
 
 # closeout-pr-cycle
 
-구현이 완료된 브랜치를 PR → CI → senior review → 사용자 승인 → merge/cleanup까지 닫는다.
+구현이 완료된 브랜치를 PR → CI → 통합 리뷰(senior+drift) → 사용자 승인 → merge/cleanup까지 닫는다.
 메인이 절차를 직접 따르되, review는 review-strict subagent에 위임.
 
 ※ 이 skill은 start-rpi-cycle의 Phase Closeout에서도 조건부 호출된다.
@@ -93,7 +93,7 @@ CI 실패:
 - 실패 job 이름 + 로그 마지막 20줄 요약
 - **STOP**: "CI 실패. 수정 후 push → CI 재확인 후 재시도하세요."
 
-# Phase 4 — Senior Review
+# Phase 4 — 통합 리뷰 (senior + drift 합본, C17 spec §16.3-2)
 
 Agent(subagent_type="review-strict",
       task="pre-merge adversarial senior review — refute-by-default",
@@ -102,12 +102,23 @@ Agent(subagent_type="review-strict",
         "docs/ai-context/architecture.md",
         "docs/ai-context/deny-patterns.md",
         "docs/ai-context/non-obvious.md",
+        "CONTEXT.md",
+        "docs/superpowers/plans/<active plan>",
       ],
       success_criteria="
         임무: 준수 확인이 아니라 결함 발견이다 (C16 spec §15.2 — 내부 적대 패스).
         refute-by-default: 각 검사 범주에서 결함을 찾으려 시도하고, 없으면 범주별 'none found' 명시.
         검사 범주(C15 교차리뷰 동형): A 계약 정합성(출력 계약·판정식·소비자 동반) · B 소비 로직(경계·폴백·마스킹)
         · C 픽스처 vacuity(구현 되돌려도 GREEN 인 픽스처) · D 문서-실물 드리프트 · E 무회귀(기존 의미 침묵 변경).
+        F drift 체크리스트 (start-rpi-cycle Step C-1 합본 — 이 리뷰가 그 sub-step 1 을 겸한다.
+          ★F 항목의 미충족은 최소 Important 로 분류하고, 보고에 "drift 절"을 분리해 항목별 판정을
+          전항 명시할 것 — 분류 강등으로 PASS 를 얻는 우회 차단(§16.8 E3)):
+        - CONTEXT.md 갱신(신규 용어) 또는 변경 없음 확인
+        - plan 모든 체크박스 [x] 또는 명시적 미완료 사유 기록
+        - 사이클 중 발생한 실패가 5 Whys 통과 후 non-obvious.md 누적 (또는 명시 면제) — §16.8 D4
+        - 사이클 자산(architecture/glossary — 실재하는 것만) 갱신 또는 변경 없음 확인
+        - silent-downgrade 검출: spec/plan 선언 설계 vs 구현 실물 대조 — 미신고 열화 발견 시 FAIL
+          (plan 의 DOWNGRADE-DECLARED 범위는 선언된 결정)
         발견은 파일:행 + 원문 인용 필수 — 인용 없는 발견은 무효.
         발견의 처분: 각 발견을 기존 보고 형식(Critical/Important/Minor)으로 분류해 합류 — PASS/FAIL 판정
         기준(FAIL if any Critical)은 불변.
@@ -134,6 +145,8 @@ Agent(subagent_type="review-strict",
       ")
 
 ※ 실재하는 경로만 전달 — 위 `docs/ai-context/*` 는 대상 프로젝트 스캐폴드 산출물이라 글로벌 하네스에는 부재가 정상(spec §13.4).
+
+※ 판단-게이트 — frontmatter opus 기본(C17). 이 통합 리뷰 수행이 `audit.last_drift_check` 스탬프의 근거(start-rpi-cycle sub-step 3). **통합 리뷰 이후 브랜치 말미 커밋은 plan 최종 task 가 사전 명시한 선언적 기계 편집(CLAUDE.md §3·layer-yield append)에 한정** — 그 외 변경은 통합 리뷰 재실행 대상(§16.3-2 D5). layer-yield 대장에는 `통합(senior+drift)` 1층 1행으로 기재(§16.8 E2); auto-merge 사이클은 통합 리뷰 완료 직후·merge 명령 이전에 append(§16.3-4 E4).
 
 review-strict 결과를 사용자에게 구조화해서 전달:
 - Critical N개 / Important N개 / Minor N개 / Suggestions N개

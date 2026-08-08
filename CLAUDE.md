@@ -22,7 +22,7 @@
 - Research: brainstorming → grill-with-docs → explore-strict
 - Plan: writing-plans
 - Implement: executing-plans 또는 execute-strict
-- Closeout: review-strict drift 검사 + 자산 갱신
+- Closeout: 통합 리뷰(senior+drift 합본 — Phase 4 미수행 시 단독 drift 폴백) + 자산 갱신
 예외: ≤5라인 trivial change. 또는 사용자가 `RPI_SKIP=<reason>` 명시.
 
 ## §4. Non-Obvious 등록 절차

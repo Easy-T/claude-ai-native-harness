@@ -11,7 +11,7 @@ description: |
               context_paths=["docs/ai-context/architecture.md", "docs/ai-context/runbook.md"],
               success_criteria="13개 파일 모두 존재, mermaid blocks valid, placeholder 미치환 0건")
   </example>
-model: inherit
+model: opus
 tools: Read, Grep, Glob, Bash
 skills: ["common-agent-contract"]
 ---

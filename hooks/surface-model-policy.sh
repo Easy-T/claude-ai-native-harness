@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# surface-model-policy.sh — advisory PreToolUse hook (Agent|Workflow 매처; tri-model C11+C12, spec 2026-07-25 §5·§10).
-# 역할×모델 매트릭스(docs/ai-context/model-policy.md)의 L2: Rule A(fable 세션 실행자 하향 미적용)·
-# Rule B(검증자가 기준선 max(세션,작업자) 미만, 전 세션)·Rule C/C3(Workflow 스크립트 경로 — C12·C13)·
-# Rule C2(Workflow 검증자가 작업자 티어 미만 — 임무-분리 floor, spec §15.1)를 additionalContext 로 환기.
+# surface-model-policy.sh — advisory PreToolUse hook (Agent|Workflow 매처; tri-model C11+C12, spec 2026-07-25 §5·§10·§16).
+# 역할×모델 매트릭스(docs/ai-context/model-policy.md)의 L2: Rule A(실행자 fable-누출 — 명시 fable 전 세션·
+# 명시 inherit fable 세션)·Rule B(검증자 opus-floor 전 세션 + fable-누출 — 구 세션-대비-하향 arm 은 C17 제거)·
+# Rule C/C2(무선언=frontmatter opus 추종(C17 실측)·C2 폴백=opus 상수·C2-leak 신설)·Rule C3(불변)를
+# additionalContext 로 환기. C17 재정의 근거·전 arm 표: spec 2026-08-02 §16.
 # 차단하지 않는다(항상 exit 0, fail-open — ERR trap 이 내부 실패도 exit 0 으로 흡수).
 # 세션 모델은 hook stdin 에 없어 transcript 의 assistant 라인 message.model 로 판별(실측 shape).
 # 라인 내 첫 매치만 취해 content 의 모델 id 인용에 면역(assistant JSON 은 model 이 content 앞).
@@ -63,21 +64,22 @@ if [ "$TOOL" = "Workflow" ]; then
     [ -n "$SP_TYPE" ] || continue
     if [ "$SP_TYPE" = "execute-strict" ]; then
       case "$SP_MODEL" in
-        -|inherit|'*') SP_T="$WF_TIER"; SP_T_RAW="$SP_T" ;;   # C16 S1/S2: 상속=세션 평가(검증자와 동일 규칙)·동적=세션 상계(보수)
-        *)             SP_T_RAW=$(tier_of "$SP_MODEL"); SP_T="$SP_T_RAW"
-                       # C16 슬롯2 F4: 미지-티어 리터럴(tier_of=0)도 세션 상계 — 판별-불가 실행자가 floor 를 끌어내리지 못함.
-                       # 상계는 floor(WORKER_TIER) 전용 — Rule C 판정은 원시 SP_T_RAW 사용(senior I1: 누출 시 오발화)
-                       [ "$SP_T" -gt 0 ] 2>/dev/null || SP_T="$WF_TIER" ;;
+        -)       SP_T=3; SP_T_RAW="$SP_T" ;;   # C17 §16.2: 무선언=frontmatter opus (실측 §16.1 ②)
+        inherit) SP_T="$WF_TIER"; SP_T_RAW="$SP_T" ;;   # 명시 inherit=세션 상속 (C13 의미론 존속)
+        '*')     SP_T="$WF_TIER"; SP_T_RAW="$SP_T" ;;   # 동적=세션 평가 (휴리스틱 — 상계 아님, §16.4-4)
+        *)       SP_T_RAW=$(tier_of "$SP_MODEL"); SP_T="$SP_T_RAW"
+                 # C17: 미지-티어 리터럴은 opus 평가 (구: 세션 — fable 세션에서 opus 검증자 오고발.
+                 # 상계 아님(§16.4-4 정직) — floor 를 0 으로 끌어내리지 않게 하는 F4 원리만 유지)
+                 [ "$SP_T" -gt 0 ] 2>/dev/null || SP_T=3 ;;
       esac
       [ "$SP_T" -gt "$WORKER_TIER" ] 2>/dev/null && WORKER_TIER="$SP_T"
-      # Rule C: fable 세션의 실행자가 무선언(-) 또는 inherit/fable 명시 = 하향 미적용
-      if [ "$WF_TIER" = "4" ]; then
-        case "$SP_MODEL" in
-          -|inherit) C_HIT=1 ;;
-          '*') ;;   # C15: 동적 선언 — 하향 미적용을 단언 불가(agentType '*' 면제와 동일 원리, spec §14.1)
-          *) [ "$SP_T_RAW" = "4" ] && C_HIT=1 ;;   # 원시 티어 — F4 세션-상계 누출 차단(senior I1)
-        esac
-      fi
+      # Rule C v2: 실행자 fable-누출 — 명시 fable 리터럴은 전 세션(A6·U4 세션 무관), 명시 inherit 은
+      # fable 세션 한정(=fable 상속). 무선언(-)은 frontmatter opus 추종이라 침묵 전환(C17 §16.2).
+      case "$SP_MODEL" in
+        -|'*') ;;
+        inherit) [ "$WF_TIER" = "4" ] && C_HIT=1 ;;
+        *) [ "$SP_T_RAW" = "4" ] && C_HIT=1 ;;   # 원시 티어 — F4 평가 누출 차단(senior I1) + A6 전 세션
+      esac
     else
       # Rule C3 (spec §13.3, C14 축 재정의): 세션 모델을 상속하는 스폰 = **model 을 선언하지 않는** 스폰.
       # 판정 축은 agentType 의 명시 여부가 아니라 model 선언의 존재다 —
@@ -98,17 +100,24 @@ if [ "$TOOL" = "Workflow" ]; then
 $SPAWNS
 EOF
 
-  # 2패스: 검증자 floor — 임무-분리 (C16 spec §15.1, C13 §12.1 supersede).
-  # Workflow 경로(준수-확인 임무) floor = **작업자 티어** (실행자 부재/전량-동적 스크립트는 세션 티어 폴백 — 보수 유지).
-  # 무지정('-')·inherit 는 **세션 티어로 평가**한다(C13 Closeout 정정 불변 — 폐기 아님).
-  # 하한 불변식: 검증자 < 작업자 는 어떤 임무에서도 위반(goal §5-12). 판단-게이트(Agent 경로 Rule B)는 max(세션,작업자) 유지.
-  FLOOR_TIER="$WORKER_TIER"; [ "$FLOOR_TIER" -gt 0 ] 2>/dev/null || FLOOR_TIER="$WF_TIER"
+  # 2패스: 검증자 floor — 임무-분리 v2 (C17 spec §16.2·§16.8, §15.1 판단-게이트 절반 재-supersede).
+  # floor = 작업자 티어. 실행자-전무 폴백 = opus 정책 상수 3 (구: 세션 — 검증-전용 Workflow 에서 opus
+  # 검증자를 오고발하던 소음원, 2026-08-02 라이브). 검증자 평가: 무선언(-)=frontmatter opus / 명시
+  # inherit=세션(C13 존속) / '*'=면제 / 리터럴=tier_of.
+  # 기타 모델(tier 0)도 면제하지 않는다 — "기타=0" 은 tier 계약이지 판정 면제가 아니다 (GPT [C]2 REAL, C13 — C17 복원).
+  # C2-leak (§16.8 A6): 검증자 fable-리터럴=전 세션 / 명시 inherit=fable 세션 — U4 금지는 floor 와 독립.
+  # 하한 불변식: 검증자 < 작업자 금지. 판단-게이트(Agent 경로 Rule B)는 max(작업자, opus) — §16.
+  FLOOR_TIER="$WORKER_TIER"; [ "$FLOOR_TIER" -gt 0 ] 2>/dev/null || FLOOR_TIER=3
+  C2L_HIT=""
   while IFS="$(printf '\t')" read -r SP_TYPE SP_MODEL; do
     [ "$SP_TYPE" = "review-strict" ] || continue
     case "$SP_MODEL" in
-      '*')       continue ;;   # C15: 동적 선언 — floor 미달 단언 불가(tier 0 오평가 방지, spec §14.1)
-      -|inherit) SP_T="$WF_TIER"; SP_LABEL="상속(세션=$WF_SESSION_MODEL)" ;;
-      *)         SP_T=$(tier_of "$SP_MODEL"); SP_LABEL="$SP_MODEL" ;;
+      '*')     continue ;;   # C15: 동적 선언 — floor 미달 단언 불가(spec §14.1)
+      -)       SP_T=3; SP_LABEL="무지정(frontmatter opus)" ;;   # C17 §16.2
+      inherit) SP_T="$WF_TIER"; SP_LABEL="inherit(세션=$WF_SESSION_MODEL)"
+               [ "$WF_TIER" = "4" ] && C2L_HIT="$SP_LABEL" ;;
+      *)       SP_T=$(tier_of "$SP_MODEL"); SP_LABEL="$SP_MODEL"
+               [ "$SP_T" = "4" ] && C2L_HIT="$SP_LABEL" ;;
     esac
     [ "$SP_T" -lt "$FLOOR_TIER" ] 2>/dev/null && C2_HIT="$SP_LABEL"
   done <<EOF
@@ -129,8 +138,8 @@ EOF
   }
 
   if [ "$C_HIT" = "1" ] && fire_once model-policy-c; then
-    hook_log "surface-model-policy" "workflow:execute-strict-nomodel" "ALERT" "rule-c-workflow-downshift-missing"
-    add_msg "[model-policy] Workflow 스크립트가 execute-strict 스테이지를 model 지정 없이(또는 fable 로) 스폰합니다 — fable 세션의 구현 스테이지는 model:'opus' 고정이 정책. canonical: \$HOME/.claude/workflows/rpi-implement.js 를 절대경로 scriptPath 로 사용 권장(도구는 ~ 미확장). SSOT: docs/ai-context/model-policy.md §2 모드(A)·spec §10 (advisory · 1세션 1회 · 차단 아님)"
+    hook_log "surface-model-policy" "workflow:execute-strict:leak" "ALERT" "rule-c-workflow-fable-leak"
+    add_msg "[model-policy] Workflow 스크립트가 execute-strict 스테이지에 fable 을 소비시킵니다(명시 inherit=세션 상속 또는 fable 리터럴) — 구현 스테이지는 model:'opus' 고정이 정책이며 무선언은 frontmatter opus 라 안전 기본(C17). canonical: \$HOME/.claude/workflows/rpi-implement.js 절대경로 scriptPath 권장. SSOT: docs/ai-context/model-policy.md §2·spec §16 (advisory · 1세션 1회 · 차단 아님)"
   fi
   if [ "$C3_HIT" = "1" ] && fire_once model-policy-c3; then
     hook_log "surface-model-policy" "workflow:agentless-inherit" "ALERT" "rule-c3-workflow-fanout-inherit"
@@ -138,7 +147,11 @@ EOF
   fi
   if [ -n "$C2_HIT" ] && fire_once model-policy-c2; then
     hook_log "surface-model-policy" "workflow:review-strict:$C2_HIT" "ALERT" "rule-c2-workflow-verifier-downshift"
-    add_msg "[model-policy] Workflow 스크립트의 검증자(review-strict)가 기준선 미만입니다(관측='$C2_HIT', 필요 티어=$FLOOR_TIER). 기준선은 작업자 티어(실행자 부재 시 세션 티어)입니다(spec §15.1 임무-분리 — Agent 경로 게이트는 max(세션,작업자) 유지) — **실행자를 세션 위로 상향했다면 model 을 지우는 것(상속)만으로는 해소되지 않습니다**(상속 = 세션 티어). 실행자 티어 이상을 명시하거나 실행자 상향을 되돌리십시오. 의도 하향이면 DOWNGRADE-DECLARED(사유) 선언이 필요합니다. (advisory · 1세션 1회 · 차단 아님)"
+    add_msg "[model-policy] Workflow 스크립트의 검증자(review-strict)가 기준선 미만입니다(관측='$C2_HIT', 필요 티어=$FLOOR_TIER). 기준선은 작업자 티어(실행자 부재 시 opus 정책 상수)입니다(spec §16 임무-분리 v2 — Agent 경로 게이트는 max(작업자, opus)) — 무지정은 frontmatter opus(티어 3) 평가라 floor 가 opus 이하일 때만 충족하며(fable 작업자 floor 4 에는 미달 — C17 슬롯2 D3) **명시 inherit 로는 해소되지 않습니다**(명시 inherit=세션 티어). 실행자 티어 이상을 명시하십시오. 의도 하향이면 DOWNGRADE-DECLARED(사유) 선언 필요. (advisory · 1세션 1회 · 차단 아님)"
+  fi
+  if [ -n "$C2L_HIT" ] && fire_once model-policy-c2l; then
+    hook_log "surface-model-policy" "workflow:review-strict:$C2L_HIT" "ALERT" "rule-c2-fable-verifier"
+    add_msg "[model-policy] Workflow 검증자(review-strict)가 fable 을 소비합니다(관측='$C2L_HIT') — fable 위임은 기본 금지(밸브 V1/V2/V3 + FABLE-ESCALATION 선언만 예외, spec §16.5; 밸브 동반-상향 케이스면 이 환기는 무시 가능). (advisory · 1세션 1회 · 차단 아님)"
   fi
   [ -n "$MSGS" ] && emit_additional_context "$MSGS"
   exit 0
@@ -157,27 +170,54 @@ SESSION_MODEL=$(session_model_of "$TRANSCRIPT")
 
 SESSION_TIER=$(tier_of "$SESSION_MODEL")
 
-# Rule A — fable 세션의 실행자가 하향 미적용(model 부재, 또는 fable/claude-fable-* 명시 = tier 4)
-if [ "$SUB" = "execute-strict" ] && [ "$SESSION_TIER" = "4" ]; then
-  if [ -z "$REQ_MODEL" ] || [ "$REQ_MODEL" = "inherit" ] || [ "$(tier_of "$REQ_MODEL")" = "4" ]; then
+# Rule A v2 — 실행자 fable-누출 (C17 spec §16.2·§16.8 A6): 명시 fable 리터럴=전 세션 · 명시 inherit=
+# fable 세션 한정. 무지정은 frontmatter `model: opus`(Option 1, 실측 §16.1) 추종이라 침묵 — 구 무지정 arm 제거.
+if [ "$SUB" = "execute-strict" ] && [ -n "$REQ_MODEL" ]; then
+  A_HIT=0
+  if [ "$(tier_of "$REQ_MODEL")" = "4" ]; then A_HIT=1
+  elif [ "$REQ_MODEL" = "inherit" ] && [ "$SESSION_TIER" = "4" ]; then A_HIT=1
+  fi
+  if [ "$A_HIT" = "1" ]; then
     MARKER="$(session_marker model-policy-a "$SESSION_ID")"
     [ -f "$MARKER" ] && exit 0
     touch "$MARKER" 2>/dev/null || true
-    hook_log "surface-model-policy" "execute-strict:${REQ_MODEL:-inherit}" "ALERT" "rule-a-downshift-missing"
-    emit_additional_context "[model-policy] fable 세션의 실행자(execute-strict) 위임은 model:'opus' 명시가 정책 기본(구현=opus — 역할×모델 매트릭스). SSOT: docs/ai-context/model-policy.md (advisory · 1세션 1회 · 차단 아님)"
+    hook_log "surface-model-policy" "execute-strict:$REQ_MODEL" "ALERT" "rule-a-fable-leak"
+    emit_additional_context "[model-policy] 실행자(execute-strict)가 fable 을 소비합니다(명시 inherit/fable) — fable 위임은 기본 금지(밸브 V1/V2/V3 + FABLE-ESCALATION 선언만 예외, spec §16.5). 구현은 opus 가 정책이며 무지정이 안전 기본(frontmatter opus — C17 Option 1). SSOT: docs/ai-context/model-policy.md (advisory · 1세션 1회 · 차단 아님)"
     exit 0
   fi
 fi
 
-# Rule B — 검증자 하향 감지(전 세션): 명시 model 티어 < 세션 티어
-if [ "$SUB" = "review-strict" ] && [ -n "$REQ_MODEL" ] && [ "$SESSION_TIER" != "0" ]; then
-  REQ_TIER=$(tier_of "$REQ_MODEL")
-  if [ "$REQ_TIER" != "0" ] && [ "$REQ_TIER" -lt "$SESSION_TIER" ]; then
+# Rule B v2 — 검증자 opus-floor(전 세션 — 미지-티어 세션 포함, §16.8 A1) + fable-누출 (C17 spec §16.2).
+# 구 "세션 대비 하향" arm 제거 — fable 세션 opus 검증자(신 정책 정상 패턴)를 ALERT 하던 소음원.
+# 평가: 무지정=frontmatter opus(침묵·게이트의 -n 이 처리) · 명시 inherit=세션 티어(미지 세션은 skip —
+# 단언 불가) · 리터럴=tier_of(미지 0 비면제 — ≥opus 단언 불가; 세션 티어 불요라 미지 세션에서도 수행).
+OPUS_FLOOR=3
+if [ "$SUB" = "review-strict" ] && [ -n "$REQ_MODEL" ]; then
+  B_SLUG=""; B_MSG=""
+  if [ "$REQ_MODEL" = "inherit" ]; then
+    if [ "$SESSION_TIER" = "4" ]; then
+      B_SLUG="rule-b-fable-leak"
+      B_MSG="[model-policy] 검증자(review-strict)가 명시 inherit 로 위임됩니다 — fable 세션에선 선언 없는 fable 소비(누출). 판단-게이트 기준선은 max(작업자 티어, opus)(spec §16 — U4 세션 축 제거): opus 명시 또는 무지정(frontmatter opus)을 쓰십시오(밸브 fable 작업자의 동반-상향 케이스면 이 환기는 무시 가능 — 단 FABLE-ESCALATION 선언 동반, spec §16.5 — C17 슬롯2 D2). (advisory · 1세션 1회 · 차단 아님)"
+    elif [ "$SESSION_TIER" != "0" ] && [ "$SESSION_TIER" -lt "$OPUS_FLOOR" ] 2>/dev/null; then
+      B_SLUG="rule-b-verifier-below-opus-floor"
+      B_MSG="[model-policy] 검증자(review-strict) 기준선 미달 — 명시 inherit 는 세션($SESSION_MODEL) 평가이고 그 티어가 opus 미만입니다. 판단-게이트 기준선은 max(작업자 티어, opus)(spec §16). 의도 하향이면 DOWNGRADE-DECLARED(사유) 선언 필요. (advisory · 1세션 1회 · 차단 아님)"
+    fi
+  else
+    REQ_TIER=$(tier_of "$REQ_MODEL")
+    if [ "$REQ_TIER" = "4" ]; then
+      B_SLUG="rule-b-fable-leak"
+      B_MSG="[model-policy] 검증자(review-strict)가 명시 fable 로 위임됩니다 — fable 위임은 기본 금지(밸브 V1/V2/V3 + FABLE-ESCALATION 선언만 예외, spec §16.5; 밸브 동반-상향이면 이 환기는 무시 가능). (advisory · 1세션 1회 · 차단 아님)"
+    elif [ "$REQ_TIER" -lt "$OPUS_FLOOR" ] 2>/dev/null; then
+      B_SLUG="rule-b-verifier-below-opus-floor"
+      B_MSG="[model-policy] 검증자(review-strict) 기준선 미달(관측='$REQ_MODEL' — 미지 티어 포함 비면제) — 판단-게이트 기준선은 max(작업자 티어, opus)(spec §16, SSOT: docs/ai-context/model-policy.md). 의도 하향이면 DOWNGRADE-DECLARED(사유) 선언 필요. (advisory · 1세션 1회 · 차단 아님)"
+    fi
+  fi
+  if [ -n "$B_SLUG" ]; then
     MARKER="$(session_marker model-policy-b "$SESSION_ID")"
     [ -f "$MARKER" ] && exit 0
     touch "$MARKER" 2>/dev/null || true
-    hook_log "surface-model-policy" "review-strict:$REQ_MODEL" "ALERT" "rule-b-verifier-downshift"
-    emit_additional_context "[model-policy] 검증자(review-strict) 하향 감지(세션=$SESSION_MODEL > 요청=$REQ_MODEL) — 검증자 기준선은 max(세션 티어, 작업자 티어)입니다(spec §12.1, SSOT: docs/ai-context/model-policy.md). 의도된 하향이면 DOWNGRADE-DECLARED(사유) 선언 필요. (advisory · 1세션 1회 · 차단 아님)"
+    hook_log "surface-model-policy" "review-strict:$REQ_MODEL" "ALERT" "$B_SLUG"
+    emit_additional_context "$B_MSG"
     exit 0
   fi
 fi

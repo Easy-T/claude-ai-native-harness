@@ -35,5 +35,5 @@ DIRTY=$(git -C "$CWD" status --porcelain 2>/dev/null | grep -vE '\.(md|txt|gitig
 
 touch "$MARKER" 2>/dev/null || true
 hook_log "verify-loop-watch" "plan=$(basename "$PLAN")" "ALERT" "dirty=$DIRTY"
-emit_system_message "[verify-loop] 미검증 코드 변경 ${DIRTY}건 + active plan 감지. 마무리 전에 scripts/check.sh 실행 + closeout(review-strict drift + state.json 갱신)을 권장합니다. (1세션 1회 advisory — 차단 아님)"
+emit_system_message "[verify-loop] 미검증 코드 변경 ${DIRTY}건 + active plan 감지. 마무리 전에 scripts/check.sh 실행 + closeout(통합 리뷰[senior+drift] + state.json 갱신)을 권장합니다. (1세션 1회 advisory — 차단 아님)"
 exit 0
