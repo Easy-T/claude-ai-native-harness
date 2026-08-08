@@ -37,6 +37,7 @@ runbook 로드:
 - `docs/ai-context/runbook.md`의 "Local Quality Gate" 섹션 참조
 - 없으면: `bash scripts/check.sh` 실행 (존재 시)
 - 없으면: 사용자에게 "local check 명령을 알려주세요" 확인
+※ **하네스 사이클 스위트 규약 (C18 spec §17.5 ③)**: seal-regression 조건부 스킵은 정본 하네스(`~/.claude`) 전용 — opencode 번들에는 verify-setup seal 도 그 변이 메타-테스트도 대응물이 없어 조건부 스킵 대상이 아니다. 번들 스위트(`node --test tests/*.test.mjs` + `_oracle/`)는 하네스 수정 사이클이면 항상 full 실행.
 
 ```bash
 bash scripts/check.sh
@@ -76,6 +77,7 @@ PR이 새로 생성됐다면 PR body 검증:
 - 위험/rollback 포함 여부
 
 PR body가 자동 생성(`--fill`)으로 부족하면 보완 제안 후 사용자 확인.
+※ PR body 는 집필-위임 가능(구조화 데이터→opus 초안→메인 감수 — spec §17.4; fable 세션 기본 경로).
 
 PR URL을 사용자에게 보고.
 
@@ -159,8 +161,18 @@ review-strict 결과를 사용자에게 구조화해서 전달:
 **교차패밀리 리뷰 분기 (GAP-006 규약 — `docs/ai-context/cross-family-review.md`가 SSOT)**:
 senior review 후, 고-스테이크 사이클(하네스 거버넌스 변경·루브릭 재채점·spec 변경)이면 교차패밀리(GPT) 적대 리뷰를 시도한다:
 1. **probe**: runbook §1 순서(A: `command -v codex`+`codex login status` → B: `claude --model <gpt-모델> -p --output-format json`의 `modelUsage`에 `gpt-*`). 설치/로그인 시도 절대 금지.
-2. **가용 시**: runbook §2 프로토콜로 **슬롯 2**(Closeout, 코드 diff — 사이클당 2슬롯 상한의 둘째; 슬롯 1은 Gate P 직후 spec delta+plan 대상, cross-family-review.md §2) 실행(stdin 파이프·read-only·refute-by-default·원문 인용 강제) → 발견은 **메인 세션이 원문 실측 대조 후 REAL/기각 트리아지**(그대로 편입 금지) → REAL 발견은 Critical/Important 목록에 병합.
+2. **가용 시**: runbook §2 프로토콜로 **슬롯 2**(Closeout, 코드 diff — 사이클당 2슬롯 상한의 둘째; 슬롯 1은 Gate P 직후 spec delta+plan 대상, cross-family-review.md §2) 실행(stdin 파이프·read-only·refute-by-default·원문 인용 강제) → 발견은 **2단계 트리아지**(증거 수집 opus 위임 가능·최종 판정 메인 — cross-family-review.md §2, spec §17.2)(그대로 편입 금지) → REAL 발견은 Critical/Important 목록에 병합.
 3. **불가 시**: SKIP + 사유 1줄 기록(비차단 — advisory fail-open).
+
+**정정-위임 미니-사이클 (C18 spec §17.3)**:
+트리아지(내부 발견·교차패밀리 REAL 판정)가 확정된 뒤의 정정은 메인이 직접 편집하지 않고 미니-사이클로 수행한다:
+1. **task 목록화 — 메인**: 발견별 정정 대상 파일·절·수용 기준을 열거(판정은 이미 확정된 상태로 넘긴다).
+2. **execute-strict(opus) 실행**: 목록 단위 위임 — plan task 본문 TDD-verbatim 전달 규약 동일.
+3. **review-strict(opus) 검증**: 정정 diff + **관련 스위트 재실행 결과**를 근거로 판정.
+4. **메인 승인**: 판정 주권은 이전되지 않는다.
+
+- **델타 재심(§15.4) 스코프 불변**: 미니-사이클은 정정 *실행 주체*의 교체이지 재심 스코프의 변경이 아니다 — 재심은 여전히 "정정이 편집한 파일/절에 한정해 원 기준 재적용".
+- **예외 — 메인 직접 편집 허용 (편집-주체 축, 시점 무관)**: 위임 왕복 비용이 편집 자체보다 비싼 **선언적 기계 편집** 4건 — ⓐ`AGENTS.md` §3 ⓑlayer-yield append ⓒplan 체크박스·plan Status 헤더 ⓓ`state.json`(spec §17.3). **D5(머지-전 창) 허용 집합은 ⓐⓑ 2건으로 불변** — ⓒⓓ를 그 창의 허용 편집으로 읽는 것은 오독이며, 그 창의 판정은 §16.3-2 D5 가 계속 지배한다.
 
 # Phase 5 — User Approval Gate
 
