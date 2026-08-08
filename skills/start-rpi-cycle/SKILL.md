@@ -11,8 +11,11 @@ orchestrator_version: 1.0
 
 # start-rpi-cycle
 
-※ superpowers의 brainstorming / writing-plans / executing-plans는 모두 **메인 세션의 skill**.
-   sub-agent에 위임 X — 메인이 **Skill 도구로 호출**해 절차를 따름("절차 체화"가 아니라 실제 호출 — Closeout `phase-skills:` 로 선언).
+※ superpowers의 brainstorming / writing-plans / executing-plans는 모두 **메인 세션의 skill** —
+메인이 **Skill 도구로 호출**해 **절차를 따르고 결정(골격)을 소유**한다("절차 체화"가 아니라 실제
+호출 — Closeout `phase-skills:` 로 선언). **전문(prose) 집필은 opus 집필-위임 가능**(골격 계약
+필수 · 재작성 ≤2회 · 초과 시 FABLE-TAKEOVER 폴백 — spec §17.1). 위임되는 것은 집필이지 절차
+준수·결정·판정이 아니다.
    sub-agent 위임은 explore-strict / review-strict / execute-strict (우리 wrapper)만.
 
 # Phase R — Research
@@ -240,6 +243,7 @@ closeout-pr-cycle 결과를 받아:
    PASS 확인 (cross-doc drift 게이트 #17: §3↔Phase R, #18: next-cycle-goal, #19: harness-verify 포함). FAIL이면 문서 불일치 수정 후 재실행.
    → 결과는 Communication Protocol `harness-verify:` **전용 필드**로 보고(복합 evidence에 접지 않음 — 누락 시 구조적 불완전).
    → 하네스 수정 사이클이면 **run-log 요약도 소비**(GAP-003): `source ~/.claude/hooks/_common.sh; runlog_summary ~/.claude/hooks/.runlog/$(date +%Y-%m).jsonl` 출력(EVENTS/BLOCK/SKIP/FAILOPEN 카운트)을 사이클 보고에 1줄 포함 — 이번 사이클의 게이트 발화·우회 관측(값 미표시, 카운트만). 파일 부재 시 생략.
+   → **seal-regression 조건부 실행(C18 spec §17.5 ③)**: `setup/verify-setup.sh`·`setup/tests/` **및 seal-regression 입력 집합(witness/뮤테이터 앵커 — SSOT 는 그 스크립트 자신)**이 이번 사이클 diff 에 있으면 `bash ~/.claude/setup/tests/seal-regression.test.sh` **full 실행 필수**, 없으면 `SKIP(사유: setup/+입력 집합 diff 0 — 직전 21/0 유효)` 허용(탐지력 불변은 **입력 집합 전체** 무변경일 때만 성립 — 앵커 파일 다수가 비-setup 이라 setup/-한정 판단은 vacuous 창을 연다. 의심스러우면 full 실행이 기본). **SKIP 시 그 사유를 `layer-yield:` 필드에 기재**.
 
 7. 다음 사이클 goal 초안 (advisory — cycle.count ≥ 1일 때 필수; 출력 = Communication Protocol `next-cycle-goal` **고유 필수 필드**):
    ※ 목적: 1단계처럼 길게 한 사이클을 돈 뒤, 사용자가 다음 사이클을 큰 흐름(goal)으로 제어하고,
@@ -314,4 +318,6 @@ closeout-pr-cycle 결과를 받아:
   무사유 skip 또는 필드 생략 = 자가-표면화(silent-skip 불가). ※ hook 물리 강제는 불가(PreToolUse는 Skill 호출 히스토리·skill명 미제공·`/skill` bypass — claude-code-guide 공식 docs) → advisory 상한 수락. [F12]
 - layer-yield: **고유 필수 필드** (모든 사이클). 검문 층별 `<층명>: <상태> · 실발견 <N>건 · <발견|확인>` 1줄씩
   (상태 enum·호출 수 병기·실발견 정의는 Step C-1 sub-step 9). 동일 행을 글로벌 review-yield.md 대장에 축적.
+  **FABLE-TAKEOVER·FABLE-ESCALATION 발동은 layer-yield 1행 부기 + 보고 표면화 의무**(TAKEOVER 2산출물 연속 = 사용자 보고 — spec §17.1).
   생략 = 구조적 불완전. [C16 spec §15.3]
+※ **집필-위임 (C18 spec §17.4)**: Closeout 한국어 보고·PR body 는 구조화 데이터(검증 수치·layer-yield 행·토큰 집계·goal 대조표)를 넘겨 **opus 가 초안을 작성하고 메인이 감수·개정한 뒤 발화**할 수 있다 — 초안은 자재이지 판정이 아니며, 사용자 커뮤니케이션 책임·발화는 메인에서 이전되지 않는다(CLAUDE.md §7 한국어 규약 포함).
