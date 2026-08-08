@@ -70,6 +70,8 @@ PR 생성 또는 기존 PR 확인:
 gh pr view --json number,title,url 2>/dev/null \
   || gh pr create --fill
 ```
+※ 신규 생성 시 `--fill` 대신 위임 초안을 `--body-file <경로>` 로 전달 가능(§17.4 — 초안이 이미 있으면
+생성-후 보완보다 이 경로가 정합적이다).
 
 PR이 새로 생성됐다면 PR body 검증:
 - 구현 범위 요약 포함 여부
@@ -78,6 +80,7 @@ PR이 새로 생성됐다면 PR body 검증:
 
 PR body가 자동 생성(`--fill`)으로 부족하면 보완 제안 후 사용자 확인.
 ※ PR body 는 집필-위임 가능(구조화 데이터→opus 초안→메인 감수 — spec §17.4; fable 세션 기본 경로).
+※ (번들 주: 'opus' 등 모델 명칭은 CC 하네스 기준 — opencode 환경은 동급 내부 모델로 해석)
 
 PR URL을 사용자에게 보고.
 
@@ -162,6 +165,7 @@ review-strict 결과를 사용자에게 구조화해서 전달:
 senior review 후, 고-스테이크 사이클(하네스 거버넌스 변경·루브릭 재채점·spec 변경)이면 교차패밀리(GPT) 적대 리뷰를 시도한다:
 1. **probe**: runbook §1 순서(A: `command -v codex`+`codex login status` → B: `claude --model <gpt-모델> -p --output-format json`의 `modelUsage`에 `gpt-*`). 설치/로그인 시도 절대 금지.
 2. **가용 시**: runbook §2 프로토콜로 **슬롯 2**(Closeout, 코드 diff — 사이클당 2슬롯 상한의 둘째; 슬롯 1은 Gate P 직후 spec delta+plan 대상, cross-family-review.md §2) 실행(stdin 파이프·read-only·refute-by-default·원문 인용 강제) → 발견은 **2단계 트리아지**(증거 수집 opus 위임 가능·최종 판정 메인 — cross-family-review.md §2, spec §17.2)(그대로 편입 금지) → REAL 발견은 Critical/Important 목록에 병합.
+   ※ **판정 전 각 발견의 대조 증거(원문 인용 실재·실측 결과) 전문 열람 의무** — 권고 무열람 일괄 승인 금지(§17.1 통독 의무 동형). 권고를 뒤집을 자유가 판정 주권의 내용이며, 열람 없이는 그 자유가 행사되지 않는다.
 3. **불가 시**: SKIP + 사유 1줄 기록(비차단 — advisory fail-open).
 
 **정정-위임 미니-사이클 (C18 spec §17.3)**:

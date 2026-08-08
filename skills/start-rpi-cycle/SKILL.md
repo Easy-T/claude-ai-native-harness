@@ -16,6 +16,12 @@ orchestrator_version: 1.0
 호출 — Closeout `phase-skills:` 로 선언). **전문(prose) 집필은 opus 집필-위임 가능**(골격 계약
 필수 · 재작성 ≤2회 · 초과 시 FABLE-TAKEOVER 폴백 — spec §17.1). 위임되는 것은 집필이지 절차
 준수·결정·판정이 아니다.
+※ **위임 없는 직접 집필도 `FABLE-TAKEOVER(<사유>)` 선언 대상** — 장문 산출물(spec 절 1개·plan 1개)의
+  무선언 직접 집필은 규약 위반이다. 반대로 **재작성 0회(초안 무수정 채택)는 정상 경로**이지 미검증이
+  아니다 — 상한이 세는 것은 *지목-정정 루프* 횟수다(spec §17.1).
+※ **감수 = 초안 전문 통독** — 요약 수령 후 승인 금지. 판정 주권은 전문 열람을 전제한다(spec §17.1).
+※ **TAKEOVER 2산출물 연속 = 레버 붕괴** — 그 시점에 진행을 중단하고 사용자 판단을 기다린다(자동 속행
+  금지 — spec §17.1 · goal 정지점).
    sub-agent 위임은 explore-strict / review-strict / execute-strict (우리 wrapper)만.
 
 # Phase R — Research
@@ -74,7 +80,7 @@ C. Agent(subagent_type="explore-strict",
           - spec delta가 있으면 durable spec/ADR에 반영됨; 없으면 "delta 없음(no-op)" 명시
           - CONTEXT.md 갱신됨 또는 신규 용어 없음(no-op) 명시
           FAIL with: 누락 용어·미반영 결정·spec 부재 목록")
-   ※ 게이트 review-strict 는 판단-게이트 — frontmatter opus 기본(무지정=opus, C17 Option 1)이라 model 인자 없이도 기준선(`max(작업자,opus)`) 충족. 상향 명시 허용.
+   ※ 게이트 review-strict 는 판단-게이트 — frontmatter opus 기본(무지정=opus, C17 Option 1)이라 model 인자 없이도 기준선(`max(작업자,opus)`) 충족. 상향 명시 허용. **단 FABLE-TAKEOVER 산출물은 작업자=fable 이라 floor=`max(작업자,opus)`=fable** — 무지정 상속만으로는 미충족이므로 그 산출물의 게이트는 검증자를 fable 로 동반 상향한다(하한 불변식의 L1 이행이라 별도 밸브 선언 불요 — spec §17.1).
    FAIL 시: spec 역류/CONTEXT.md 보강 후 재실행 (또는 사용자가 \"Gate R override: <이유>\" 명시)
    ※ 델타 재심 (C16 spec §15.4): 재실행 review-strict 의 success_criteria 는 "직전 FAIL 이 지목한
      항목 각각의 해소 + 그 정정이 새로 깨뜨린 것 없음(**정정 diff 가 편집한 파일/절에 한정**해 원 기준
@@ -125,7 +131,7 @@ plan 상단 헤더 주입 (writing-plans 표준 헤더 위에):
           - Best-Direction Check 부재/무선언 열화 의심
         ")
 
-   ※ 게이트 review-strict 는 판단-게이트 — frontmatter opus 기본(무지정=opus, C17 Option 1)이라 model 인자 없이도 기준선(`max(작업자,opus)`) 충족. 상향 명시 허용.
+   ※ 게이트 review-strict 는 판단-게이트 — frontmatter opus 기본(무지정=opus, C17 Option 1)이라 model 인자 없이도 기준선(`max(작업자,opus)`) 충족. 상향 명시 허용. **단 FABLE-TAKEOVER 산출물은 작업자=fable 이라 floor=`max(작업자,opus)`=fable** — 무지정 상속만으로는 미충족이므로 그 산출물의 게이트는 검증자를 fable 로 동반 상향한다(하한 불변식의 L1 이행이라 별도 밸브 선언 불요 — spec §17.1).
 
    FAIL 시:
    - 갭 목록을 사용자에게 제시
@@ -243,7 +249,7 @@ closeout-pr-cycle 결과를 받아:
    PASS 확인 (cross-doc drift 게이트 #17: §3↔Phase R, #18: next-cycle-goal, #19: harness-verify 포함). FAIL이면 문서 불일치 수정 후 재실행.
    → 결과는 Communication Protocol `harness-verify:` **전용 필드**로 보고(복합 evidence에 접지 않음 — 누락 시 구조적 불완전).
    → 하네스 수정 사이클이면 **run-log 요약도 소비**(GAP-003): `source ~/.claude/hooks/_common.sh; runlog_summary ~/.claude/hooks/.runlog/$(date +%Y-%m).jsonl` 출력(EVENTS/BLOCK/SKIP/FAILOPEN 카운트)을 사이클 보고에 1줄 포함 — 이번 사이클의 게이트 발화·우회 관측(값 미표시, 카운트만). 파일 부재 시 생략.
-   → **seal-regression 조건부 실행(C18 spec §17.5 ③)**: `setup/verify-setup.sh`·`setup/tests/` **및 seal-regression 입력 집합(witness/뮤테이터 앵커 — SSOT 는 그 스크립트 자신)**이 이번 사이클 diff 에 있으면 `bash ~/.claude/setup/tests/seal-regression.test.sh` **full 실행 필수**, 없으면 `SKIP(사유: setup/+입력 집합 diff 0 — 직전 21/0 유효)` 허용(탐지력 불변은 **입력 집합 전체** 무변경일 때만 성립 — 앵커 파일 다수가 비-setup 이라 setup/-한정 판단은 vacuous 창을 연다. 의심스러우면 full 실행이 기본). **SKIP 시 그 사유를 `layer-yield:` 필드에 기재**.
+   → **seal-regression 조건부 실행(C18 spec §17.5 ③)**: `setup/verify-setup.sh`·`setup/tests/` **및 seal-regression 입력 집합(witness/뮤테이터 앵커 — SSOT 는 그 스크립트 자신)**이 이번 사이클 diff 에 있으면 `bash ~/.claude/setup/tests/seal-regression.test.sh` **full 실행 필수**, 없으면 `SKIP(사유: setup/+입력 집합 diff 0 — 직전 23/0 유효)` 허용(탐지력 불변은 **입력 집합 전체** 무변경일 때만 성립 — 앵커 파일 다수가 비-setup 이라 setup/-한정 판단은 vacuous 창을 연다. 의심스러우면 full 실행이 기본). **SKIP 시 그 사유를 `layer-yield:` 필드에 기재**.
 
 7. 다음 사이클 goal 초안 (advisory — cycle.count ≥ 1일 때 필수; 출력 = Communication Protocol `next-cycle-goal` **고유 필수 필드**):
    ※ 목적: 1단계처럼 길게 한 사이클을 돈 뒤, 사용자가 다음 사이클을 큰 흐름(goal)으로 제어하고,
@@ -320,4 +326,4 @@ closeout-pr-cycle 결과를 받아:
   (상태 enum·호출 수 병기·실발견 정의는 Step C-1 sub-step 9). 동일 행을 글로벌 review-yield.md 대장에 축적.
   **FABLE-TAKEOVER·FABLE-ESCALATION 발동은 layer-yield 1행 부기 + 보고 표면화 의무**(TAKEOVER 2산출물 연속 = 사용자 보고 — spec §17.1).
   생략 = 구조적 불완전. [C16 spec §15.3]
-※ **집필-위임 (C18 spec §17.4)**: Closeout 한국어 보고·PR body 는 구조화 데이터(검증 수치·layer-yield 행·토큰 집계·goal 대조표)를 넘겨 **opus 가 초안을 작성하고 메인이 감수·개정한 뒤 발화**할 수 있다 — 초안은 자재이지 판정이 아니며, 사용자 커뮤니케이션 책임·발화는 메인에서 이전되지 않는다(CLAUDE.md §7 한국어 규약 포함).
+※ **집필-위임 (C18 spec §17.4)**: Closeout 한국어 보고·PR body 는 구조화 데이터(검증 수치·layer-yield 행·토큰 집계·goal 대조표)를 넘겨 **opus 가 초안을 작성하고 메인이 감수·개정한 뒤 발화**한다(**fable 세션 기본 경로** — 비-fable 세션은 재량; closeout-pr-cycle Phase 2 와 정합) — 초안은 자재이지 판정이 아니며, 사용자 커뮤니케이션 책임·발화는 메인에서 이전되지 않는다(CLAUDE.md §7 한국어 규약 포함). 감수는 초안 **전문 통독**(요약-승인 금지 — §17.1 동형).
