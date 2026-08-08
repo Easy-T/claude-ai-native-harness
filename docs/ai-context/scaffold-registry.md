@@ -47,7 +47,7 @@
 |---|---|---|
 | `rpi-implement.js` | RPIC Phase I (d) canonical 2-stage 파이프라인 — stage1 execute(opus·heavy분기) → stage2 review(opus 명시 — 작업자 티어); 역할×모델 매트릭스의 코드 캐리어 | tri-model C12 (2026-07-26) |
 
-## Drift Seals (verify-setup.sh #17~#49, −#26 소각 = 32)
+## Drift Seals (verify-setup.sh #17~#50, −#26 소각 = 33)
 
 거버넌스 사실의 재드리프트를 막는 특정-인스턴스 봉인(안정 앵커 있는 것만; generalized 프레임워크 아님).
 
@@ -85,6 +85,7 @@
 | #47 | Rule C3 제외목록 봉인 (agents model 선언 ⊆ hook) | C14 (2026-07-28) |
 | #48 | skill context_paths 조건부 선언 봉인 (스캐폴드 산출물 경로) | C14 (2026-07-28) |
 | #49 | layer-yield 필드 parity + review-yield.md 대장 존재 | **C16 (2026-08-02)** |
+| #50 | 집필-위임 규약 토큰 봉인 (start-rpi-cycle 토큰 3종 · cross-family-review 토큰 2종 · opencode 미러 parity · 구 단정 '위임 X' 부정-단언) | **C18 (cycle 69)**; 변이 M17 |
 
 ### 거버넌스 문서 (seal이 지키는 대상 — hook/skill 아님)
 
