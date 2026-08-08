@@ -549,6 +549,34 @@ else
   fail "layer-yield drift (C16): SKILL.md 양구간 토큰 또는 review-yield.md 대장/C15 행 결손 — spec §15.3"
 fi
 
+# 50. 집필-위임 규약 토큰 봉인 (C18 spec §17.1~§17.3, #49 동형): §17.7-2 가 재작성 상한·골격 계약의
+#     hook 강제를 수용 잔여로 뒀으므로, 문서-토큰 드리프트 seal 이 이 규약의 **유일한 물리 봉인**이다
+#     (skill 재생성·문면 재작성으로 규약이 소실되면 여기서 표면화 — #45 skill 토큰 parity 선례).
+#     conjunctive: ①정본 start-rpi-cycle 서두 '집필-위임'+'FABLE-TAKEOVER'+'골격 계약' ②cross-family-review §2
+#     '판정은 메인'+'증거 수집' ③opencode 미러 start-rpi-cycle 'FABLE-TAKEOVER'(미러 parity — 미러
+#     부재(설치본/신선-클론) 시 vacuous 로 카운트 결정성 보존, #43 선례) ④**부정-단언**: 구 위임-금지
+#     단정 '위임 X' 가 정본·미러 어디에도 되살아나지 않을 것(#25 선례 — 긍정 토큰만 세면 신·구 문면이
+#     공존하는 half-landing/롤백-혼입을 통과시킨다). bash grep only.
+C18_OK=1
+SK50="$HOME/.claude/skills/start-rpi-cycle/SKILL.md"
+CF50="$HOME/.claude/docs/ai-context/cross-family-review.md"
+MIR50="$HOME/.claude/opencode-harness/skill/start-rpi-cycle/SKILL.md"
+grep -q '집필-위임' "$SK50" 2>/dev/null || C18_OK=0
+grep -q 'FABLE-TAKEOVER' "$SK50" 2>/dev/null || C18_OK=0
+grep -q '골격 계약' "$SK50" 2>/dev/null || C18_OK=0
+if grep -q '위임 X' "$SK50" 2>/dev/null; then C18_OK=0; fi
+grep -q '판정은 메인' "$CF50" 2>/dev/null || C18_OK=0
+grep -q '증거 수집' "$CF50" 2>/dev/null || C18_OK=0
+if [ -f "$MIR50" ]; then
+  grep -q 'FABLE-TAKEOVER' "$MIR50" 2>/dev/null || C18_OK=0
+  if grep -q '위임 X' "$MIR50" 2>/dev/null; then C18_OK=0; fi
+fi
+if [ "$C18_OK" -eq 1 ]; then
+  ok "집필-위임 규약 토큰 봉인 (start-rpi-cycle 집필-위임/FABLE-TAKEOVER/골격 계약 · cross-family 판정은-메인/증거-수집 · 미러 parity · 구 '위임 X' 부활 없음)"
+else
+  fail "집필-위임 규약 토큰 drift (C18): start-rpi-cycle '집필-위임'·'FABLE-TAKEOVER'·'골격 계약' / cross-family-review '판정은 메인'·'증거 수집' / opencode 미러 'FABLE-TAKEOVER' 중 결손, 또는 구 단정 '위임 X' 부활 — spec §17.1~§17.3"
+fi
+
 # 36. verify-setup 총 체크수 <-> README 선언 parity (GAP-009 M1 봉인, 런타임 자기-카운트):
 #     이 시점까지의 PASS+FAIL+1(이 체크 자신) == README "(현재 N PASS)" 선언. 체크 추가 시 README 미동기가 자동 FAIL.
 EXPECTED_TOTAL=$((PASS + FAIL + 1))

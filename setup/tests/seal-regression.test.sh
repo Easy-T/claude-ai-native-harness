@@ -40,6 +40,12 @@ make_replica() {
     mkdir -p "$C/opencode-harness/skill/ui-design"
     cp -p "$SRC/opencode-harness/skill/ui-design/design.md" "$C/opencode-harness/skill/ui-design/design.md"
   fi
+  # C18: seal #50 conjunct ③(미러 parity)이 비교하는 파일 — 미복제 시 그 conjunct 가 replica 에서
+  # vacuous 가 된다(#43 design.md 복제와 동형 이유).
+  if [ -f "$SRC/opencode-harness/skill/start-rpi-cycle/SKILL.md" ]; then
+    mkdir -p "$C/opencode-harness/skill/start-rpi-cycle"
+    cp -p "$SRC/opencode-harness/skill/start-rpi-cycle/SKILL.md" "$C/opencode-harness/skill/start-rpi-cycle/SKILL.md"
+  fi
   mkdir -p "$C/docs/ai-context"   # seal #37 (GAP-005) inspects docs/ai-context/scaffold-registry.md
   cp -a "$SRC/docs/ai-context/." "$C/docs/ai-context/" 2>/dev/null || true
   rm -rf "$C/hooks/.log"   # drop runtime noise the seals never read
@@ -121,6 +127,11 @@ mut_yield_ledger_drop() { rm -f "$1/docs/ai-context/review-yield.md"; }
 # (§16.8 C5 — "execute-strict model" 은 #5 만의 문자열이라 #45 결손을 못 잡는다).
 mut_exec_model()   { perl -pi -e 's/^model: opus(\r?)$/model: inherit$1/' "$1/agents/execute-strict.md"; }
 mut_review_model() { perl -pi -e 's/^model: opus(\r?)$/model: inherit$1/' "$1/agents/review-strict.md"; }
+# Mutator 17 — seal #50 (C18 spec §17.1): start-rpi-cycle 의 FABLE-TAKEOVER 토큰이 소실되면(skill
+# 재생성·문면 재작성 클래스) 발화해야 한다. §17.7-2 가 재작성 상한·골격 계약의 hook 강제를 수용
+# 잔여로 둔 자리라 이 seal 이 유일한 물리 봉인 — 변이 커버가 없으면 그 봉인이 헛돈다(#49/M14 동형).
+# 토큰만 치환해 conjunct ①을 단독 격리한다(다른 conjunct 는 건드리지 않음).
+mut_drafting_token_drop() { perl -pi -e 's/FABLE-TAKEOVER/FABLE-HANDOVER/g' "$1/skills/start-rpi-cycle/SKILL.md"; }
 
 assert_seal_fires "state_schema"    mut_state_count_string "state.json schema 위반"
 assert_seal_fires "settings_parity" mut_settings_matcher   "settings/example harness-hook drift"
@@ -140,6 +151,7 @@ assert_seal_fires "exec_fm_model_s5"    mut_exec_model    "execute-strict model"
 assert_seal_fires "exec_fm_model_s45"   mut_exec_model    "역할×모델 매트릭스 봉인 붕괴"
 assert_seal_fires "review_fm_model_s5"  mut_review_model  "review-strict model"
 assert_seal_fires "review_fm_model_s45" mut_review_model  "역할×모델 매트릭스 봉인 붕괴"
+assert_seal_fires "drafting_delegation_token" mut_drafting_token_drop "집필-위임 규약 토큰 drift"
 
 # === Live immutability: witnessed files byte-identical (all mutation stayed in replicas) ===
 LIVE_AFTER="$(witness)"
