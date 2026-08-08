@@ -278,7 +278,7 @@ surface-model-policy	39-rule-c3-dynamic-model-exempt	0	mk_wf_event
 surface-model-policy	40-c3-hedge-content	0	test_smp_hedge
 surface-model-policy	41-rule-c2-worker-floor-ok	0	mk_wf_event
 surface-model-policy	42-rule-c2-worker-floor-sonnet	0	mk_wf_event
-surface-model-policy	43-rule-c2-mixed-inherit-exec	0	mk_wf_event
+surface-model-policy	43-rule-c2-mixed-nomodel-exec	0	mk_wf_event
 surface-model-policy	44-canonical-fable-silent	0	mk_wf_event
 surface-model-policy	45-canonical-opus-silent	0	mk_wf_event
 surface-model-policy	46-canonical-sonnet-silent	0	mk_wf_event
@@ -303,3 +303,8 @@ surface-model-policy	64-rule-c2-fable-verifier	0	mk_wf_event
 surface-model-policy	65-rule-b-unknown-session-literal	0	mk_agent_event
 surface-model-policy	66-rule-b-message-floor-token	0	test_smp_b_msg
 surface-model-policy	67-rule-c2-fable-inherit-verifier	0	mk_wf_event
+surface-model-policy	68-rule-c2-nomodel-exec-opus-const	0	mk_wf_event
+surface-model-policy	69-rule-a-opus-session-inherit-silent	0	mk_agent_event
+surface-model-policy	70-rule-b-opus-session-inherit-silent	0	mk_agent_event
+surface-model-policy	71-rule-c-opus-session-inherit-silent	0	mk_wf_event
+surface-model-policy	72-rule-c2-leak-opus-session-inherit-silent	0	mk_wf_event

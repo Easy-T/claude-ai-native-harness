@@ -40,7 +40,7 @@
 - Produces: frontmatter `model: opus` 실물(무지정 위임의 물리 기본값 — T2 hook "무지정=opus" 평가의 전제). `^model: opus$` frontmatter-스코프 앵커(#5)·라인 앵커 2건(#45 ③).
 - Consumes: 없음. ※T1 커밋 후 T2 전 창은 "frontmatter opus + 구 hook" — 구 hook 이 무지정에 ALERT 하는 소음-안전 창(§16.8 C3 순서 근거).
 
-- [ ] **Step 1: RED — seal 앵커를 먼저 opus 로 개정하고 현행 frontmatter(inherit)에서 FAIL 관측**
+- [x] **Step 1: RED — seal 앵커를 먼저 opus 로 개정하고 현행 frontmatter(inherit)에서 FAIL 관측**
 
 `setup/verify-setup.sh` seal #5 (:26-30) 교체 — **frontmatter 블록-스코프**(§16.8 C6: 본문 라인 오매치 차단; `---` 구분자 사이만):
 ```bash
@@ -62,14 +62,14 @@ grep -qE '^model:[[:space:]]*opus' "$HOME/.claude/agents/review-strict.md" 2>/de
 Run: `bash setup/verify-setup.sh 2>&1 | tail -2`
 Expected: `PASS=84 FAIL=3` — `✗ review-strict model`·`✗ execute-strict model`·`✗ 역할×모델 매트릭스 봉인 붕괴`(frontmatter 아직 inherit — RED. #36 총계 seal 은 PASS+FAIL 합산이라 87 유지).
 
-- [ ] **Step 2: GREEN — frontmatter 전환**
+- [x] **Step 2: GREEN — frontmatter 전환**
 
 `agents/execute-strict.md:14`·`agents/review-strict.md:14`: `model: inherit` → `model: opus`.
 
 Run: `bash setup/verify-setup.sh 2>&1 | tail -2`
 Expected: `verify-setup: PASS=87 FAIL=0` (δ=0. #47 은 execute/review 가 처음 루프 진입하나 hook case arm 에 매치해 green — Gate P 실측 확인).
 
-- [ ] **Step 3: seal-regression 변이 M15/M16 (각 2 assert — §16.8 C5: 단일 부분문자열은 #5 만 증명)**
+- [x] **Step 3: seal-regression 변이 M15/M16 (각 2 assert — §16.8 C5: 단일 부분문자열은 #5 만 증명)**
 
 `setup/tests/seal-regression.test.sh` 에 M9/M10 패턴 동형으로 추가 — **같은 변이를 #5·#45 각각의 FAIL 라인으로 2회 단언**(assert_seal_fires 는 substring 1개를 받으므로 label 을 나눠 2회 호출):
 ```bash
@@ -89,7 +89,7 @@ assert_seal_fires "review_fm_model_s45" mut_review_model "역할×모델 매트�
 Run: `bash setup/tests/seal-regression.test.sh 2>&1 | tail -25`
 Expected: 기존 전 변이 + 신규 4 assert 전부 `✓`(non-zero exit + 해당 FAIL substring). 종료코드 0.
 
-- [ ] **Step 4: 커밋**
+- [x] **Step 4: 커밋**
 
 ```bash
 git add agents/execute-strict.md agents/review-strict.md setup/verify-setup.sh setup/tests/seal-regression.test.sh
@@ -108,7 +108,7 @@ git commit -m "feat(c17): frontmatter opus 물리 기본값(Option 1) + seal #5 
 - Consumes: T1 frontmatter opus 실물(무지정=opus 평가의 물리 전제). hook 은 agents/*.md 를 런타임에 읽지 않으므로(Gate P #6 실측) 픽스처 판정은 frontmatter 와 독립.
 - Produces: 신 슬러그 `rule-a-fable-leak`·`rule-b-fable-leak`·`rule-b-verifier-below-opus-floor`·`rule-c-workflow-fable-leak`·`rule-c2-fable-verifier`(신설 arm). 구 슬러그 `rule-a-downshift-missing`·`rule-b-verifier-downshift`·`rule-c-workflow-downshift-missing` 소멸. `OPUS_FLOOR=3`.
 
-- [ ] **Step 1: RED — 픽스처를 신 기대값으로 먼저 전환**
+- [x] **Step 1: RED — 픽스처를 신 기대값으로 먼저 전환**
 
 run-all.sh surface-model-policy 구간 편집:
 
@@ -224,12 +224,12 @@ README 카운트 — **양쪽**(§16.8 BLOCKER-2; seal #20 이 cases.tsv 언급 
 perl -pi -e 's/268 case/286 case/; s/268 케이스/286 케이스/' "$HOME/.claude/README.md"
 ```
 
-- [ ] **Step 2: RED 실측 — 구 hook 코드에서 run-all 실행**
+- [x] **Step 2: RED 실측 — 구 hook 코드에서 run-all 실행**
 
 Run: `bash hooks/tests/run-all.sh 2>&1 | tail -25`
 Expected: 요약 `Hook tests: 267 / 286 passed` — **정확히 19 FAIL**: `01·09·16·27·49·52·53·54·55·58·59·60·61·62·63·64·65·66·67`(종료코드가 아니라 요약 텍스트 판정 — pass-rate 게이트 95%. 267/286=93.4% 라 exit 도 non-zero 이나 판정은 텍스트). 트리거-교체 8건 중 49 를 제외한 7건(08/11/19/20/21/30/35)과 신설 가드 4건(50/51/56/57)은 구 코드에서도 PASS — 이 19개 외 FAIL 발생 시 픽스처 편집 오류.
 
-- [ ] **Step 3: hook 재정의 구현**
+- [x] **Step 3: hook 재정의 구현**
 
 `hooks/surface-model-policy.sh` 편집:
 
@@ -353,12 +353,12 @@ fi
 
 (e) 기존 픽스처 주석의 구 산식 표기(15/29 "상속=세션"·43·48 "세션 상계") 신 산식으로 동반 갱신(S11 선례).
 
-- [ ] **Step 4: GREEN — run-all 전량 통과**
+- [x] **Step 4: GREEN — run-all 전량 통과**
 
 Run: `bash hooks/tests/run-all.sh 2>&1 | tail -6`
 Expected: `Hook tests: 286 / 286 passed` + `cases.tsv <-> run-all 정합 OK (286 declared == 286 run…)` + `Pass rate 100%`.
 
-- [ ] **Step 5: 커밋**
+- [x] **Step 5: 커밋**
 
 ```bash
 git add hooks/surface-model-policy.sh hooks/tests/run-all.sh hooks/tests/cases.tsv README.md
@@ -374,7 +374,7 @@ git commit -m "feat(c17): hook Rule A/B v2 + C/C2 재계산 — opus-floor 전�
 - Consumes: T1/T2 실물(hook v2·frontmatter opus) — 서술이 실물을 정확히 반영(드리프트 0).
 - Produces: 구 산식 `max(세션` 현행-규범 서술 잔존 0 (genesis·이력 인용 제외) + 구 2-리뷰 토폴로지 서술 잔존 0.
 
-- [ ] **Step 1: model-policy.md 매트릭스 v2**
+- [x] **Step 1: model-policy.md 매트릭스 v2**
 
 - :16-17 구현 행: "**opus** (fable 세션 한정 호출 인자 명시…)" → "**opus** (frontmatter 기본 — C17 Option 1. 명시는 선택 보강; 무지정도 안전 기본)". 모드 (B) 문구 동기.
 - :19 검증 행: "기준선 = **임무-분리 v2**(C17, spec §16): **준수-확인**(Workflow·Rule C2) = **작업자 티어**(실행자-전무 폴백 = **opus 정책 상수**) / **판단-게이트**(Agent 경로·Rule B) = **`max(작업자 티어, opus)`** — 세션 축 제거(U4). 평가: 무지정=frontmatter opus·명시 inherit=세션 티어·미지-리터럴 비면제. frontmatter opus 가 보장하는 것은 **opus-상수 절반뿐**(작업자 절반은 L1 — §16.4-1). 하한: 검증자 < 작업자 금지."
@@ -383,33 +383,33 @@ git commit -m "feat(c17): hook Rule A/B v2 + C/C2 재계산 — opus-floor 전�
 - §3 L2 서술(:35): Rule A/B v2(fable-누출 전 세션·opus-floor·구 하향 arm 제거·신 슬러그)·Rule C(무선언 침묵·fable-리터럴 전 세션)·C2(폴백 opus 상수·C2-leak) 재서술 + spec §16 포인터.
 - **:36 L3 서술**(델타 재심 unknowns-1 — B3/B4/B5 동일 클래스): "execute/review `model: inherit` 유지+review effort 키 부재" → "execute/review `model: opus`(C17 Option 1 물리 기본값)+review effort 키 부재" (seal #5/#45 서술 동기).
 
-- [ ] **Step 2: cross-family-review.md §3 — 두 곳(§16.8 E1)**
+- [x] **Step 2: cross-family-review.md §3 — 두 곳(§16.8 E1)**
 
 첫 단락 재서술: "검증자(review-strict)의 기준선은 임무-분리 v2 다(C17, spec §16) — 준수-확인(Workflow·Rule C2) = 작업자 티어(실행자-전무 폴백=opus 상수) / 판단-게이트(Agent 경로·Rule B) = `max(작업자 티어, opus)` — 세션 축은 U4 공리로 제거(C13 `max(세션,작업자)`→C16 임무-분리→C17 재-supersede). 하한: 어떤 임무에서도 검증자 < 작업자 금지. frontmatter `model: opus`(C17 Option 1)가 무지정 위임에서 floor 의 opus-상수 절반을 물리 보장한다(작업자 절반은 L1 — 실행자를 opus 위로 상향(밸브 fable 작업자)했다면 검증자도 동반 상향). 기준선 미만 하향은 DOWNGRADE-DECLARED 필수. 오케스트레이터의 동적 모델 선택은 여전히 불채택 — 기준이 **정적 opus 상수**로 바뀌었을 뿐, 가장 신뢰하지 않는 계층에 검증자 선택 재량을 주지 않는 논거는 그대로다."
 :67 내부 적대 패스 단락: "티어=세션 상속(판단-게이트 floor)" → "티어=opus(판단-게이트 floor `max(작업자,opus)` — C17; frontmatter opus 가 무지정을 커버)".
 
-- [ ] **Step 3: CONTEXT.md·README·scaffold-registry·verify-loop-watch**
+- [x] **Step 3: CONTEXT.md·README·scaffold-registry·verify-loop-watch**
 
 - CONTEXT.md :85 「실행자 하향 위임」: "(임무-분리 — C16)" → "(임무-분리 v2 — C17, 세션 축 제거)". :89 「역할×모델 매트릭스」: "(임무별 floor — C16)" → "(임무-분리 v2 `max(작업자,opus)` — C17)".
 - README(perl -pi, CRLF): :39 hook 행 Rule 설명 v2 재서술. :56 검증 행 "**상속** — 기준선(…max(세션 티어, 작업자 티어)…)" → "**opus** (frontmatter 기본) — 기준선(임무-분리 v2, spec §16: 준수-확인=작업자 티어/판단-게이트=max(작업자,opus) — 세션 축 제거) 미만 금지". :59 인접 구 산식 동기. **:69·:185·:234 의 2-리뷰 토폴로지**(§16.8 B3): "senior review" 단독 서술 → "통합 리뷰(senior+drift 합본 — C17)", ":185 이후 review-strict drift 검사" 문장 → "drift 는 통합 리뷰가 겸함(C-0 미충족/Phase 4 미수행 시 단독 drift 폴백)".
 - scaffold-registry: :24 hook 행 "(임무-분리 floor, §15.1)" → "(임무-분리 v2, §16)" + 진화 열 "C17 v2". :32 Closeout 요약 "PR→CI→senior review→승인→merge" → "PR→CI→통합 리뷰(senior+drift)→승인→merge"(B3). :48 carrier 행 불변. :83 #45 행 "execute/review inherit" → "execute/review opus(C17)".
 - verify-loop-watch.sh :38(§16.8 B4): "closeout(review-strict drift + state.json 갱신)" → "closeout(통합 리뷰[senior+drift] + state.json 갱신)".
 
-- [ ] **Step 4: spec 포인터·정오 append**
+- [x] **Step 4: spec 포인터·정오 append**
 
 - §3 :105·:108 기존 ⚠ 문구에 "→ §16(C17)이 재-supersede(판단-게이트 max(작업자,opus) — 세션 축 제거)" 추가.
 - §12.1 헤더 blockquote 에 "§16(C17)이 판단-게이트 절반을 재-supersede — max(세션,작업자) → max(작업자,opus)" 1줄. §12.1 말미 C16 재실측 blockquote 에 "※C17 정밀화(§16.7-1): 위 인용 `:56` 은 'stage2 model 명시 라인' — C16 이 stage2 를 opus 명시로 바꾼 뒤라 '무지정' 서술은 그 시점에 이미 실물과 어긋났다" 1줄.
 - §15.1 서두에 "> ⚠§16(C17)이 판단-게이트 절반을 재-supersede — 준수-확인(작업자 티어)은 존속, 폴백만 세션→opus 상수." 1줄.
 - §15.2 표 인접에 "※ 정오(C17 §16.7-3): PR#37 body 의 'X1~X13' 라벨은 오기 — GT 는 X1~X15." 1줄.
 
-- [ ] **Step 5: review-yield.md C16 정정 행 append**
+- [x] **Step 5: review-yield.md C16 정정 행 append**
 
 C16 절 말미에:
 ```markdown
 - (정정 — C17 §16.7-4, 원행 보존): 위 stage2 행 `×8`·`5 PASS/3 FAIL` 은 오기 — 실측 `×9`(1차 7 + 델타 재심 2)·`7 PASS/2 FAIL`(재심 2 PASS 산입).
 ```
 
-- [ ] **Step 6: 검증 + 커밋**
+- [x] **Step 6: 검증 + 커밋**
 
 Run: `grep -rn "max(세션" --include="*.md" "$HOME/.claude/docs/ai-context/" "$HOME/.claude/CONTEXT.md" "$HOME/.claude/README.md" | grep -v "supersede\|구 \|이력\|genesis\|C13\|C16" || true` → 잔존 각 행이 이력 문맥임을 개별 확인.
 Run: `bash setup/verify-setup.sh 2>&1 | tail -2` → `PASS=87 FAIL=0`.
@@ -429,7 +429,7 @@ git commit -m "docs(c17): L1 매트릭스 v2 전파 — 세션 축 제거·front
 - Consumes: spec §16.3(보강판 — D1 diff 판별자·D2 미수행 술어·D3 입력·D4 5 Whys·D5 말미 창·E2 층 분류·E3 최소 Important)·§16.1 매트릭스.
 - Produces: seal #17/#18/#19/#22/#49 토큰 불변 — verify-setup 이 증인.
 
-- [ ] **Step 1: start-rpi-cycle SKILL.md**
+- [x] **Step 1: start-rpi-cycle SKILL.md**
 
 (a) **Gate R 절 서두**: "★Gate R 조건부(C17 spec §16.3-1): **spec delta 없는 재진입 사이클**만 서브에이전트 게이트를 생략하고 메인 자기점검 1줄로 대체 — 단 생략 선언은 자기증언이 아니라 **기계 판별**: `git diff <직전 사이클 머지 커밋>..HEAD -- docs/superpowers/specs/` 의 **0-diff 출력을 증거로 동반**해야 하며, diff 가 비어 있지 않으면 no-op 선언 무효(Gate R 필수). **delta 사이클(신설 포함)은 Gate R 필수.** 잔여: 미반영-delta(spec 에 넣었어야 할 것을 안 넣음)는 diff 로 못 잡는다 — 기존 Gate R 과 동일 상한, 수용(§16.3-1)."
 (b) Gate R/P Agent 호출 인접에 각 1줄: "※ 게이트 review-strict 는 판단-게이트 — frontmatter opus 기본(무지정=opus, C17 Option 1)이라 model 인자 없이도 기준선(`max(작업자,opus)`) 충족. 상향 명시 허용."
@@ -440,7 +440,7 @@ git commit -m "docs(c17): L1 매트릭스 v2 전파 — 세션 축 제거·front
 (g) sub-step 3: "audit.last_drift_check: today (**단, Phase 4 통합 리뷰(drift 체크리스트 포함 — drift 절 판정이 전항 명시된 보고, §16.8 E3) 또는 폴백 단독 drift 검사가 실제 수행된 경우에만** — abandoned/미수행 사이클은 미갱신 …)".
 (h) sub-step 9: 층 분류 "층 = Gate R/P·stage2·senior·drift·교차패밀리·기타 실행분" → "층 = Gate R/P·stage2·**통합(senior+drift — 폴백 시 drift 단독)**·교차패밀리·기타 실행분"(§16.8 E2 — 통합 리뷰는 1층 1행, 2행 분리 기재 금지). 말미에 "하네스 사이클은 **모델별 산출 토큰 분포**(세션 `subagents/*.jsonl` usage 합산 + 헤드리스 probe 별도 병기)를 함께 보고(C17-D-2). fable 위임 토큰은 밸브 선언분 외 0 실측 병기." 추가.
 
-- [ ] **Step 2: closeout-pr-cycle SKILL.md Phase 4 통합**
+- [x] **Step 2: closeout-pr-cycle SKILL.md Phase 4 통합**
 
 frontmatter description "merge 전 senior review" → "merge 전 통합 리뷰(senior+drift)"(§16.8 B3) + 본문 요약 문장 동기. Phase 4 헤더 → "Phase 4 — 통합 리뷰 (senior + drift 합본, C17 spec §16.3-2)". Agent 호출 context_paths 에 추가(§16.8 D3): `"CONTEXT.md"`, `"docs/superpowers/plans/<active plan>"`, `"docs/ai-context/non-obvious.md"`(실재하는 것만 규약 불변). success_criteria 에 A~E 뒤 추가:
 ```
@@ -456,11 +456,11 @@ frontmatter description "merge 전 senior review" → "merge 전 통합 리뷰(s
 ```
 호출 인접에: "※ 판단-게이트 — frontmatter opus 기본(C17). 이 통합 리뷰 수행이 `audit.last_drift_check` 스탬프의 근거(start-rpi-cycle sub-step 3). **통합 리뷰 이후 브랜치 말미 커밋은 plan 최종 task 가 사전 명시한 선언적 기계 편집(CLAUDE.md §3·layer-yield append)에 한정** — 그 외 변경은 통합 리뷰 재실행 대상(§16.3-2 D5). layer-yield 대장에는 `통합(senior+drift)` 1층 1행으로 기재(§16.8 E2); auto-merge 사이클은 통합 리뷰 완료 직후·merge 명령 이전에 append(§16.3-4 E4)."
 
-- [ ] **Step 3: opencode 미러 2파일 동기**
+- [x] **Step 3: opencode 미러 2파일 동기**
 
 model 축 문구 제외(§16.6 no-op — 미러에 frontmatter model 키 부재), **절차 변경만**: Gate R 조건부+diff 판별자(a)·sub-step 1 포인터+미수행-술어 폴백(f)·sub-step 3 재바인딩(g)·sub-step 9 층 분류(h)·Phase 4 합본(Step 2 동형)·light-병합(e). 절 헤더로 위치 특정해 의미-동형 편집.
 
-- [ ] **Step 4: 검증 + 커밋**
+- [x] **Step 4: 검증 + 커밋**
 
 Run: `bash setup/verify-setup.sh 2>&1 | tail -2` → `PASS=87 FAIL=0` (#17·#18·#19·#22·#49 green).
 Run: `grep -c "통합 리뷰" skills/start-rpi-cycle/SKILL.md skills/closeout-pr-cycle/SKILL.md opencode-harness/skill/start-rpi-cycle/SKILL.md opencode-harness/skill/closeout-pr-cycle/SKILL.md` → 4파일 전부 ≥1.

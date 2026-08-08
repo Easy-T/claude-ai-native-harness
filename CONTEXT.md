@@ -90,7 +90,7 @@ _Avoid_: "동적 모델 선택"(기각된 재량 — self-pass 우회로), "모�
 _Avoid_: "모델 정책"(범위 불명 — ANTHROPIC_* 라우팅 env 설정과 혼동), "모델 라우팅"(CLIProxy 티어 매핑과 혼동).
 
 ### 검증자 기준선 (verifier floor)
-검증자(review-strict)의 모델 티어가 넘어야 하는 하한 — **임무-분리**(검문의 임무별 floor, C16)에 이어 **세션 축이 전면 제거**됐다(C17, 2026-08-02 — U4 공리에 의한 §15.1 판단-게이트 절반의 재-supersede, spec §16). **준수-확인 임무**(Workflow 경로 = canonical carrier stage2): floor = **작업자 티어**(불변 — 실행자 부재 스크립트는 **opus 정책 상수 폴백**, C17이 세션 폴백을 교체). **판단-게이트**(Agent 도구 경로 = Gate·통합 리뷰·델타 재심): floor = **`max(작업자 티어, opus)`** — fable 세션에서도 opus 검증자가 기준 충족. 근거: 판단-게이트 opus 전환은 U4 공리 단독(실측은 준수-확인 층뿐 — C16 stage2 T3·T7; layer-yield 축적이 사후 검증). 하한 불변식: 어떤 임무에서도 검증자 < 작업자 금지. **평가 규칙(C17·Option 1)**: 무지정 = frontmatter opus 추종(tier 3) / **명시 `inherit`만 세션 티어로 평가**(C13 의미론은 이 축에 존속) / 미지-티어 리터럴은 비면제(≥opus 단언 불가 → 위반).
+검증자(review-strict)의 모델 티어가 넘어야 하는 하한 — **임무-분리**(검문의 임무별 floor, C16)에 이어 **세션 축이 전면 제거**됐다(C17, 2026-08-02 — U4 공리에 의한 §15.1 판단-게이트 절반의 재-supersede, spec §16). **준수-확인 임무**(Workflow 경로 = canonical carrier stage2): floor = **작업자 티어**(불변 — 실행자 부재 스크립트는 **opus 정책 상수 폴백**, C17이 세션 폴백을 교체). **판단-게이트**(Agent 도구 경로 = Gate·통합 리뷰·델타 재심): floor = **`max(작업자 티어, opus)`** — fable 세션에서도 opus 검증자가 기준 충족. 근거: 판단-게이트 opus 전환은 U4 공리 단독(실측은 준수-확인 층뿐 — C16 stage2 T3·T7; layer-yield 축적은 사후 관측 신호·GPT 층이 독립 대조군 — §16.0-2). 하한 불변식: 어떤 임무에서도 검증자 < 작업자 금지. **평가 규칙(C17·Option 1)**: 무지정 = frontmatter opus 추종(tier 3) / **명시 `inherit`만 세션 티어로 평가**(C13 의미론은 이 축에 존속) / 미지-티어 리터럴은 비면제(≥opus 단언 불가 → 위반).
 _Avoid_: "검증자 하향 금지"(무엇 대비 하향인지 불명 — 이 모호성이 C13 이전 SSOT 드리프트의 원인), "검증자 상속"(inherit는 구현 수단이지 기준이 아님), "일괄 floor"(C16 이후 임무 축이 선행한다), "세션 floor"(C17이 제거한 축 — U4).
 
 ### 스캐폴드 산출물 경계 (scaffold-output boundary)

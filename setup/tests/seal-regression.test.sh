@@ -119,8 +119,8 @@ mut_yield_ledger_drop() { rm -f "$1/docs/ai-context/review-yield.md"; }
 # 되돌리면(Option 1 회귀 = hook "무지정=opus" 평가의 물리 전제 붕괴) #5 와 #45 가 각각 발화해야 한다.
 # 기존 변이에 model 축 커버 0건 실측(C17 Phase R) — 이 변이들이 그 공백의 해소. 단언은 seal 별 분리
 # (§16.8 C5 — "execute-strict model" 은 #5 만의 문자열이라 #45 결손을 못 잡는다).
-mut_exec_model()   { perl -pi -e 's/^model: opus$/model: inherit/' "$1/agents/execute-strict.md"; }
-mut_review_model() { perl -pi -e 's/^model: opus$/model: inherit/' "$1/agents/review-strict.md"; }
+mut_exec_model()   { perl -pi -e 's/^model: opus(\r?)$/model: inherit$1/' "$1/agents/execute-strict.md"; }
+mut_review_model() { perl -pi -e 's/^model: opus(\r?)$/model: inherit$1/' "$1/agents/review-strict.md"; }
 
 assert_seal_fires "state_schema"    mut_state_count_string "state.json schema 위반"
 assert_seal_fires "settings_parity" mut_settings_matcher   "settings/example harness-hook drift"

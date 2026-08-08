@@ -1822,3 +1822,32 @@ GPT 제기 26건(A1~A6·B1~B5·C1~C7·D1~D6·E1~E4·F1~F4) + Gate P(opus) FAIL 2
 **메타 관측**: 슬롯 1 2회차도 전건이 **코드 작성 전** 도착 — A6(U4 금지의 세션-축 구멍)·C1(fixture
 회귀)·D2(리뷰-0 사이클 잔여 경로) 클래스를 설계 층에서 차단. Gate P(opus) 첫 실측이 산술 BLOCKER 2건
 을 샌드박스 재현으로 잡음(§16.0-2 의 "opus 게이트 첫 실측" 데이터 포인트 — 발견 2건 REAL).
+
+### §16.9 슬롯 2(코드 diff) + 통합 리뷰 트리아지 (2026-08-03 — 착륙 후 정정)
+
+**층 구성**: 통합 리뷰(opus, senior+drift 합본 첫 적용 — §16.3-2) Critical 0/Important 2/Minor 1 ·
+GPT 슬롯 2(sol, ultra·verbosity high, 구현 diff 117KB) 9건(Important 7/Minor 2). 트리아지 전건 REAL
+(기각 0) — 상세 대장: `_goal/c17-slot2-triage.md`.
+
+- **B1(REAL)**: fixture 43 이 opus 세션이라 무선언-실행자 평가(구 세션 vs 신 opus 상수)가 동치 —
+  `-) SP_T=3` 회귀 미봉인 + 명 `mixed-inherit-exec` 오독 → 신설 68(fable 세션 판별 픽스처) + rename
+  `mixed-nomodel-exec`. **B2(REAL)**: 누출 arm "fable 세션 한정" 조건의 SILENT 반쪽 미봉인(53/56 은
+  floor ALERT 라 전-세션 오확장 회귀를 못 가림) → 신설 69~72(opus 세션 명시 inherit, 4 arm SILENT).
+- **C1/C2(REAL)**: seal #5 awk 가 ①CRLF frontmatter 거짓 FAIL ②열림 구분자 1행 미고정·닫힘 미요구
+  (본문 hr+본문 `model: opus` 위양성) → NR==1 열림 고정 + 닫힘 필수(exit/END) + `\r` 스트립 재작성;
+  M15/M16 도 `(\r?)$` 캡처. **C3(REAL, Minor)**: #45 prefix-only(`opus-bogus` 위양성) → 종단 앵커.
+- **D1(REAL — 내부 통합 리뷰 I1 과 교차 일치)**: model-policy.md :19 매트릭스 모델 열 `상속` 잔존
+  (SSOT 가 소비자 README 보다 낡은 역전) + "검증자 상속이 GPT" 귀결문 거짓 → 모델 열 opus·귀결문
+  재서술. **D2(REAL)**: Rule B inherit-leak 메시지가 밸브-fable-작업자(floor 4)에서 하향(opus 3) 유도
+  → 동반-상향 한정어 추가. **D3(REAL)**: C2 메시지 "무지정은 안전" 이 fable 작업자 floor 4 에서 거짓
+  (무지정=3<4) → 조건부 재서술. **D4(REAL, Minor)**: §3 L2 "fable-리터럴 전 세션" 이 Workflow
+  미지-세션 조기 exit(§16.4-5) 예외 미공개 → 병기.
+- **내부 I2(REAL)**: plan 체크박스 미갱신(실물 완료·기록 결함) → T1~T4 [x]. **내부 M1(REAL)**:
+  CONTEXT.md :93 "사후 검증"(F1 기각 표현 재발) → "사후 관측 신호·GPT 층이 독립 대조군".
+
+**카운트 갱신**: run-all 286→**291**(신설 5: 68~72)·README 2곳 동기·verify-setup **87 불변**(#5
+재작성은 ok/fail 호출 수 불변)·seal-regression 20 불변(M15/M16 정규식만 강화).
+
+**메타 관측**: GPT-전속 8건 중 6건이 **판별력 공백**(비판별 픽스처·위양성 seal) — 내부 리뷰가 "문면
+충족"을 확인한 자리에서 GPT 는 "그 검사가 회귀를 못 잡는다"를 봄. D1 교차 일치(두 패밀리 독립 동일
+발견) 1건. 슬롯 2(구현층)의 보완성 재실증 — 슬롯 1 이 전건 설계-층이었던 것과 대칭.

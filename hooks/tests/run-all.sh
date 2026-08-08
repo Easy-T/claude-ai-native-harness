@@ -1261,7 +1261,7 @@ test_smp "42-rule-c2-worker-floor-sonnet" 0 0 "$(mk_wf_event script "$WF_WORKER_
 WF_MIXED_EXEC="await agent('a', {agentType: 'execute-strict'})
 await agent('b', {agentType: 'execute-strict', model: 'sonnet'})
 await agent('v', {agentType: 'review-strict', model: 'sonnet'})"
-test_smp "43-rule-c2-mixed-inherit-exec" 0 1 "$(mk_wf_event script "$WF_MIXED_EXEC" "$SMP_OPUS_T" "smp43-$$")"
+test_smp "43-rule-c2-mixed-nomodel-exec" 0 1 "$(mk_wf_event script "$WF_MIXED_EXEC" "$SMP_OPUS_T" "smp43-$$")"
 # C16 슬롯2 F4 (C17 산식 갱신): 미지-티어 리터럴 실행자(tier_of=0)는 opus 상수(3)로 평가 — 하위 판별-가능 리터럴이 floor 를 끌어내리지 못함.
 WF_UNKNOWN_EXEC="await agent('a', {agentType: 'execute-strict', model: 'gpt-custom'})
 await agent('b', {agentType: 'execute-strict', model: 'sonnet'})
@@ -1344,6 +1344,22 @@ test_smp_b_msg "$(mk_agent_event review-strict sonnet "$SMP_FABLE_T" "smp66-$$")
 WF_C2_INH_FABLE="await agent('impl', {agentType: 'execute-strict', model: 'opus'})
 await agent('v', {agentType: 'review-strict', model: 'inherit'})"
 test_smp "67-rule-c2-fable-inherit-verifier" 0 1 "$(mk_wf_event script "$WF_C2_INH_FABLE" "$SMP_FABLE_T" "smp67-$$")"
+# C17 슬롯2 B1 (68): C2 무지정-실행자 = opus 상수 평가 봉인 — fable 세션 + exec 무지정 + review opus
+#   → 신: worker=frontmatter opus 3, review 3≥3 SILENT / 구(세션 평가) 회귀: worker=4, 3<4 ALERT.
+#   (43 은 opus 세션이라 세션 평가와 opus 상수가 동치 = 비판별 — 이 픽스처가 그 공백의 해소)
+WF_NOMODEL_EXEC_OPUS_V="await agent('a', {agentType: 'execute-strict'})
+await agent('v', {agentType: 'review-strict', model: 'opus'})"
+test_smp "68-rule-c2-nomodel-exec-opus-const" 0 0 "$(mk_wf_event script "$WF_NOMODEL_EXEC_OPUS_V" "$SMP_FABLE_T" "smp68-$$")"
+# C17 슬롯2 B2 (69~72): 누출 arm 의 fable-세션-한정 조건 격리 — 비-fable(opus) 세션의 명시 inherit 은
+#   4 arm(A/B/C/C2-leak) 전부 SILENT 여야 한다(floor 도 opus 세션=3 이라 미발화). 누출 arm 이 전-세션으로
+#   오확장 회귀하면 이 4건이 RED(53/56 은 floor ALERT 라 누출-오확장을 못 가림 — 슬롯2 B2).
+test_smp "69-rule-a-opus-session-inherit-silent" 0 0 "$(mk_agent_event execute-strict inherit "$SMP_OPUS_T" "smp69-$$")"
+test_smp "70-rule-b-opus-session-inherit-silent" 0 0 "$(mk_agent_event review-strict inherit "$SMP_OPUS_T" "smp70-$$")"
+WF_INH_OPUS_S="await agent('do it', {agentType: 'execute-strict', model: 'inherit'})"
+test_smp "71-rule-c-opus-session-inherit-silent" 0 0 "$(mk_wf_event script "$WF_INH_OPUS_S" "$SMP_OPUS_T" "smp71-$$")"
+WF_C2_INH_OPUS_S="await agent('impl', {agentType: 'execute-strict', model: 'opus'})
+await agent('v', {agentType: 'review-strict', model: 'inherit'})"
+test_smp "72-rule-c2-leak-opus-session-inherit-silent" 0 0 "$(mk_wf_event script "$WF_C2_INH_OPUS_S" "$SMP_OPUS_T" "smp72-$$")"
 
 # ==================== Summary ====================
 echo

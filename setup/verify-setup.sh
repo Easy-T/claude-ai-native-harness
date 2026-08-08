@@ -25,10 +25,16 @@ done
 
 # 5. agents model:opus — 실행자·검증자 frontmatter 물리 기본값 (C17 Option 1, spec §16.1 — 무지정 위임의
 #    안전 기본. 회귀 시 hook 의 "무지정=opus" 평가(§16.2)가 거짓이 된다. frontmatter 블록-스코프 판별
-#    (C17 §16.8 C6 — 본문 코드블록의 model: 라인 오매치 차단). explore-strict 는 #45 가 별도 봉인)
+#    (C17 §16.8 C6 — 본문 코드블록의 model: 라인 오매치 차단). 슬롯2 C1/C2 강화: 열림 구분자는 1행
+#    고정 + 닫힘 구분자 필수(부재 시 유효 frontmatter 없음 = FAIL) + CRLF 내성(\r 제거 후 정확 매치).
+#    explore-strict 는 #45 가 별도 봉인)
 for a in review-strict execute-strict; do
-  FM5=$(awk '/^---$/{n++; next} n==1' "$HOME/.claude/agents/$a.md" 2>/dev/null)
-  printf '%s\n' "$FM5" | grep -q '^model: opus$' && ok "$a model:opus" || fail "$a model"
+  if FM5=$(awk 'NR==1{if($0!~/^---\r?$/)exit 1; next} /^---\r?$/{ok=1; exit} {sub(/\r$/,""); print} END{if(!ok) exit 1}' "$HOME/.claude/agents/$a.md" 2>/dev/null) \
+     && printf '%s\n' "$FM5" | grep -q '^model: opus$'; then
+    ok "$a model:opus"
+  else
+    fail "$a model"
+  fi
 done
 
 # 6. 7 tracked global skills (grill-with-docs는 doctor가 upstream에서 auto-install → gitignore라 제외)
@@ -455,8 +461,8 @@ MP_OK=1
 grep -qE '^model:[[:space:]]*sonnet' "$HOME/.claude/agents/explore-strict.md" 2>/dev/null || MP_OK=0
 grep -qE '^effort:[[:space:]]*xhigh' "$HOME/.claude/agents/explore-strict.md" 2>/dev/null || MP_OK=0
 grep -qE '^tools:.*WebSearch' "$HOME/.claude/agents/explore-strict.md" 2>/dev/null || MP_OK=0
-grep -qE '^model:[[:space:]]*opus' "$HOME/.claude/agents/execute-strict.md" 2>/dev/null || MP_OK=0
-grep -qE '^model:[[:space:]]*opus' "$HOME/.claude/agents/review-strict.md" 2>/dev/null || MP_OK=0
+grep -qE '^model:[[:space:]]*opus[[:space:]]*\r?$' "$HOME/.claude/agents/execute-strict.md" 2>/dev/null || MP_OK=0
+grep -qE '^model:[[:space:]]*opus[[:space:]]*\r?$' "$HOME/.claude/agents/review-strict.md" 2>/dev/null || MP_OK=0
 if grep -qE '^effort:' "$HOME/.claude/agents/review-strict.md" 2>/dev/null; then MP_OK=0; fi
 grep -q 'surface-model-policy' "$HOME/.claude/settings.example.json" 2>/dev/null || MP_OK=0
 grep -A2 "agentType: 'execute-strict'," "$HOME/.claude/workflows/rpi-implement.js" 2>/dev/null | grep -qE "model: 'opus'" || MP_OK=0

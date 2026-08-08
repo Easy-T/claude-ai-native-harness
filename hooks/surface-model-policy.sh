@@ -147,7 +147,7 @@ EOF
   fi
   if [ -n "$C2_HIT" ] && fire_once model-policy-c2; then
     hook_log "surface-model-policy" "workflow:review-strict:$C2_HIT" "ALERT" "rule-c2-workflow-verifier-downshift"
-    add_msg "[model-policy] Workflow 스크립트의 검증자(review-strict)가 기준선 미만입니다(관측='$C2_HIT', 필요 티어=$FLOOR_TIER). 기준선은 작업자 티어(실행자 부재 시 opus 정책 상수)입니다(spec §16 임무-분리 v2 — Agent 경로 게이트는 max(작업자, opus)) — 무지정은 frontmatter opus 라 안전하나 **명시 inherit 로는 해소되지 않습니다**(명시 inherit=세션 티어). 실행자 티어 이상을 명시하십시오. 의도 하향이면 DOWNGRADE-DECLARED(사유) 선언 필요. (advisory · 1세션 1회 · 차단 아님)"
+    add_msg "[model-policy] Workflow 스크립트의 검증자(review-strict)가 기준선 미만입니다(관측='$C2_HIT', 필요 티어=$FLOOR_TIER). 기준선은 작업자 티어(실행자 부재 시 opus 정책 상수)입니다(spec §16 임무-분리 v2 — Agent 경로 게이트는 max(작업자, opus)) — 무지정은 frontmatter opus(티어 3) 평가라 floor 가 opus 이하일 때만 충족하며(fable 작업자 floor 4 에는 미달 — C17 슬롯2 D3) **명시 inherit 로는 해소되지 않습니다**(명시 inherit=세션 티어). 실행자 티어 이상을 명시하십시오. 의도 하향이면 DOWNGRADE-DECLARED(사유) 선언 필요. (advisory · 1세션 1회 · 차단 아님)"
   fi
   if [ -n "$C2L_HIT" ] && fire_once model-policy-c2l; then
     hook_log "surface-model-policy" "workflow:review-strict:$C2L_HIT" "ALERT" "rule-c2-fable-verifier"
@@ -197,7 +197,7 @@ if [ "$SUB" = "review-strict" ] && [ -n "$REQ_MODEL" ]; then
   if [ "$REQ_MODEL" = "inherit" ]; then
     if [ "$SESSION_TIER" = "4" ]; then
       B_SLUG="rule-b-fable-leak"
-      B_MSG="[model-policy] 검증자(review-strict)가 명시 inherit 로 위임됩니다 — fable 세션에선 선언 없는 fable 소비(누출). 판단-게이트 기준선은 max(작업자 티어, opus)(spec §16 — U4 세션 축 제거): opus 명시 또는 무지정(frontmatter opus)을 쓰십시오. (advisory · 1세션 1회 · 차단 아님)"
+      B_MSG="[model-policy] 검증자(review-strict)가 명시 inherit 로 위임됩니다 — fable 세션에선 선언 없는 fable 소비(누출). 판단-게이트 기준선은 max(작업자 티어, opus)(spec §16 — U4 세션 축 제거): opus 명시 또는 무지정(frontmatter opus)을 쓰십시오(밸브 fable 작업자의 동반-상향 케이스면 이 환기는 무시 가능 — 단 FABLE-ESCALATION 선언 동반, spec §16.5 — C17 슬롯2 D2). (advisory · 1세션 1회 · 차단 아님)"
     elif [ "$SESSION_TIER" != "0" ] && [ "$SESSION_TIER" -lt "$OPUS_FLOOR" ] 2>/dev/null; then
       B_SLUG="rule-b-verifier-below-opus-floor"
       B_MSG="[model-policy] 검증자(review-strict) 기준선 미달 — 명시 inherit 는 세션($SESSION_MODEL) 평가이고 그 티어가 opus 미만입니다. 판단-게이트 기준선은 max(작업자 티어, opus)(spec §16). 의도 하향이면 DOWNGRADE-DECLARED(사유) 선언 필요. (advisory · 1세션 1회 · 차단 아님)"
