@@ -1226,7 +1226,7 @@ canonical carrier **4세션 각각의 E2E 픽스처**(fable/opus/sonnet/haiku �
 sonnet/haiku가 ALERT; 슬롯1 S12 지적으로 2개→4개 확정)로 포착된다. 신규 RED 픽스처가 이 두 클래스를
 앵커할 것. 기존 26의 주석(`max(2,3)=3`)은 supersede된 산식 표기라 작업자-floor 표기로 동반 갱신(S11).
 ※ 완화 후 티어(opus)에서의 준수-확인 품질 자체는 미실측(S36) — layer-yield 3사이클 축적이 그 재심
-트리거다(§15.3의 존재 이유; 열화 관측 시 floor 원복이 역-supersede 경로).
+트리거다(§15.3의 존재 이유; 열화 관측 시 floor 원복이 역-supersede 경로). ⚠**C19 supersede(§18.1 판정 3 — 슬롯2 M3 정정)**: 이 재심 주기도 정기 3사이클이 아니라 트리거 기반 4종 — 이 재심의 발동 판정은 트리거 대조를 따른다 — C19 시점 대조에서 (b)(GPT 슬롯 Critical 급 2사이클 연속 적발) 성립 → 차기 사이클 floor 한정 재심 1회 예약(§16.0-2 역-supersede 경로). ((c)는 티어를 변경한 사이클의 조항이라 C19 불성립.)
 
 **부수 효과 — canonical carrier "탈출구 부재" 잔여 소멸**: stage2에 `model:'opus'`(=stage1과 동일 티어)
 명시가 새 정답이 되므로, §12.1 수용 잔여 "모드 밖(sonnet/haiku 세션) 사용 시 탈출구 없음"이 해소된다 —
@@ -2197,10 +2197,11 @@ M20 이 커버하는 것은 정본 start-rpi 1개뿐 — 미커버 3개(기존 �
 | `CONTEXT.md` | 「검증자 기준선」에 사후-지지 1구절(§18.1 판정 2 — 한정 표현 포함) · 신규 용어 2건(판별력 공백 · 정정-전파 공백 — Phase R 기등록) | Phase I |
 | `docs/ai-context/model-policy.md` | 검증 행 비고에 "(C19 §18 사후 지지)" 구절 — CRLF 파일이라 `perl -pi` | Phase I |
 | `docs/ai-context/cross-family-review.md` | 등급 어휘 매핑 1줄(§18.1 판정 3(b) — BLOCKER=Critical·MAJOR=Important·MINOR=Minor, G2) | Phase I |
+| 본 spec §15.1 :1229 재심-트리거 문장 | supersede 주석 in-line(§18.1 판정 3 — 슬롯2 M3, 정정-전파 공백 2호) | Closeout 정정 |
 | `skills/closeout-pr-cycle/SKILL.md` + opencode 미러 | Phase 4 미니-사이클 step 3 에 전파-완결성 대조(§18.3 규범 원문) | Phase I |
 | `opencode-harness/skill/{start-rpi-cycle,closeout-pr-cycle}/SKILL.md` | "번들 주" 주석(:19/:83) 1구절 확장(§18.2 #16 — spec §N 참조는 정본 spec 기준·번들 규범은 인라인 완결) | Phase I |
 | `skills/create-orchestrator-skill/SKILL.md` + opencode 미러 | :24 개정(§18.4 두 규범 원문) | Phase I |
-| `setup/verify-setup.sh` | #45 앵커 경화 · #30 스키마 conjunct 추가 · #50 부정-단언 arm 확장 — **ok/fail 호출 수 불변** | Phase I |
+| `setup/verify-setup.sh` | #45 앵커 경화 · #30 스키마 conjunct 추가+crash rc-캡처(Closeout 정정 C1) · #50 부정-단언 arm 확장 — **ok/fail 호출 수 불변** | Phase I |
 | `setup/tests/seal-regression.test.sh` | M20~M22 신설 · witness 에 `state.schema.json`·`docs/ai-context/model-policy.md`(M21 표적 — C18 델타 재심 #2 동일 클래스 예방) 추가 · make_replica 에 미러 create-orchestrator 복제 | Phase I |
 | `docs/ai-context/scaffold-registry.md` | #45·#30·#50 행 갱신(경화 내용 반영) | Phase I |
 
@@ -2215,7 +2216,13 @@ M20 이 커버하는 것은 정본 start-rpi 1개뿐 — 미커버 3개(기존 �
    (§18.3 정직 부기 — 긍정-토큰 arm 결합이 재서술 클래스의 간접 백스톱).
 2. **판정 2 의 주장 강도** — 자기보고·소표본·교란·분모 비대칭(측정 한계 ①②③④ 전항 — G11 정정)이 잔존하므로 "열화 신호 부재의 관측" 이상으로 승격하지 않는다. GPT 층이 계속 독립 대조군이며,
    열화 관측 시 §16.0-2 역-supersede 경로가 그대로 유효하다.
-3. **번들 dangling `spec §` 참조 25건 자체는 존속** — 해소한 것은 참조의 *의미*(주석 1구절)이지 참조 자체가 아니다. self-containment
+3. **번들 dangling `spec §` 참조 25건(착륙-시점 실측 — C19 자신이 참조 2건(미러 closeout §18.3 · 미러 create-orchestrator §17.1)을 추가해 머지 시점 27건, 통합 리뷰 m2) 자체는 존속** — 해소한 것은 참조의 *의미*(주석 1구절)이지 참조 자체가 아니다. self-containment
    전면 재구조(참조 제거 또는 spec 동봉)는 비용 > 실익으로 기각(§18.2 #16).
 4. **stage2 억지 효과의 분리 측정 불가** — 기존 수용을 유지한다(§15.0 · CONTEXT.md 「층별 수율」). 낮은 실발견 카운트만으로는 이 층의 가치를 반증할
    수 없다는 것이 §18.1 판정 1 (iii) 기각의 전제다.
+5. **#30 오라클 잔여 — 비-crash 스키마 약화 축**(통합 리뷰 m1·슬롯2 M1 파생) — crash-swallow 는 C19 Closeout 정정(rc-캡처)이 봉인했으나,
+   crash 없는 스키마 약화(예: count 의 `"type": "integer"` 제거 + state.json 동시 오염)는 ERR30 공백·required-앵커 통과로 여전히 GREEN 이다.
+   required-앵커가 커버하는 것은 required 축뿐 — 전면 봉인은 스키마 cksum 또는 앵커 확대의 비용-실익 재평가 후 차기 처분.
+6. **미러 `[ -f ]` fail-open 클래스 3사이트**(슬롯2 M2 — MIR50·MCO50·#43 동형) — "번들 전체 부재"(의도 정책: 설치본 카운트 결정성)와
+   "번들 실재·단일 추적-미러 소실"을 파일-단위 게이트가 판별하지 못한다. 단일 arm 반쪽 정정은 3사이트 비대칭을 만들므로 기각 —
+   차기 일괄 처분 후보(번들-루트 실재 시 미러 필수화 게이트 등). §18.6-1 의 미커버를 arm-단위로 재계수하면 부정-단언 3 + 긍정-토큰 4 = 7 arm 이다(슬롯2 m2 문언 확장 — 변이 신설 아님).

@@ -254,6 +254,8 @@ done
 
 # 30. state.json ↔ state.schema.json 검증 (dead-spec 활성화 — closeout이 쓴 state 무결성, cycle-28 NEW-state-schema-unverified).
 #     스키마-구동: 스키마 파일을 읽어 사용된 draft-07 부분집합(required/type/minimum/format:date)으로 재귀 검사 → 스키마 변경 자동 추종.
+#     C19 슬롯2 M1: node 오라클 crash(예: state.json 이 JSON primitive "x" — 'in' 연산자 TypeError)가
+#     2>/dev/null+빈 ERR30 으로 false-green 되던 창을 rc-캡처로 봉인. ${ERR30:-} 라 정상 오류 문안은 보존.
 ERR30=$(SCHEMA="$HOME/.claude/state.schema.json" DATA="$HOME/.claude/state.json" node -e '
   const fs=require("fs");
   let sc,d;
@@ -273,7 +275,7 @@ ERR30=$(SCHEMA="$HOME/.claude/state.schema.json" DATA="$HOME/.claude/state.json"
     }
   })(sc,d,"state");
   process.stdout.write(errs.join("; "));
-' 2>/dev/null)
+' 2>/dev/null) || ERR30="${ERR30:-validator crash(rc=$?) — state.json 비객체 등 스크립트 예외를 FAIL 로 표면화(C19 슬롯2 M1)}"
 #     C19 §18.2 #13·G5: 이 검사는 **스키마-구동**이라 스키마가 비면 검사도 빈다 — required-배열 **내용** 앵커
 #     conjunct 를 같은 ok/fail 에 결합해 오라클 침묵을 봉인한다(변이 M22). 리터럴 존재-검사 3종은
 #     '"required": []' 값-약화가 우회(G5 실증 — cycle/count 는 properties 이름으로 잔존)라 배열 내용을 앵커한다.

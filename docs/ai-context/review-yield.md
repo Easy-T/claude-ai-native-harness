@@ -47,3 +47,17 @@
 - 미니-사이클 검증(슬롯2 정정, opus): PASS · 실발견 0건 · 준수 확인 (15/15 전건 대응 대조)
 - seal-regression: full 실행 21→23 (M18·M19 신설 — setup/+입력 집합 diff 있음 = SKIP 불가 창; §17.5 ③ 첫 적용 사이클)
 - (부기) FABLE-TAKEOVER·FABLE-ESCALATION 발동 0회 · 수용 잔여: seal #50 부정-단언 conjunct 변이 미커버 존속 · 슬롯2 #13(state.schema 오라클)/#14(#45 vacuity)/#16(번들 self-containment) 차기 후보
+
+## C19 (cycle 70, 2026-08-09~10 — 배분 재심 1호 소비·seal 판별력 경화·§18 착륙)
+- Gate R: FAIL→정정/델타 재심 1 PASS · 실발견 5건 · 발견 (§18.5 착륙물 2건 누락[전파-공백 자기-재발]·M21 표적 witness 미등재[C18 #2 동일 클래스]·교차참조·귀속·순서 제약 — 코드 전 차단)
+- Gate P ×3: 1 FAIL→정정 / 델타 재심 #1 발견 1 / #2 PASS · 실발견 3건 · 발견 (BLOCKER 2[골격 계약 GREEN 기대 :1 거짓·CONTEXT grep 부분문자열 불성립] + 재심이 stale ordinal 모순 1건 적발)
+- 교차패밀리 슬롯 1(GPT, Gate P 직후): 실행 · 실발견 11건 · 발견 (REAL 9+부분 2/전면 기각 0, 제기 11 — BLOCKER 2 = G1 비용 conjunct 판정-불가·G2 어휘 불일치: 특화 축 "재심 판정이 탐지 거버넌스를 깎는 방향" 적중. G4/G5 = 판별력-공백 계보 4연속[C15 X6·C17·C18 #12])
+- 미니-사이클 검증(슬롯1 정정, opus): FAIL→정정 라운드2 · 실발견 4건 · 발견 (F1 개행-기준선 스테일 ×5사이트·F2 행-선두 미전파 ×5·F3 사전-실측 스테일·D① G2 cross-family 전파 누락 — 전파-완결성 대조 첫 적용이 공백 즉시 적발)
+- Gate P 델타 재심(라운드2 결합): PASS · 실발견 0건 · 확인
+- stage2 ×3 (T1~T3, Workflow d 순차): 3 PASS · 실발견 0건 · 준수 확인
+- 통합(senior+drift 합본): FAIL→정정 · 실발견 4건 · 발견 (I1 F3 non-obvious 미등록/면제 부재[Important — drift 게이트 실효]·m1 #30 비-crash 잔여·m2 §18.6-3 수치 자기-스테일·m3 Status enum)
+- 교차패밀리 슬롯 2(GPT, Closeout 코드 diff): 실행 · 실발견 4건 · 발견 (REAL 4/기각 1, 제기 5 — M1 #30 validator crash false-green[기존-클래스 cycle-28, rc-캡처로 봉인]·M2 미러 [ -f ] fail-open 3사이트[§18.6-6 수용]·M3 §15.1 :1229 supersede 전파 누락[정정-전파 공백 2호]·m1 registry 긍정-conjunct 누락)
+- 미니-사이클 검증(Closeout 정정, opus): FAIL→정정 라운드2 · 실발견 3건 · 발견 (R1 트리거 귀속 오류[(c)→(b) — fable 지시문 자체 결함을 독립 검증이 차단]·R2 수치 26→27 재검산·R3/R4 rc-캡처 기재 누락)
+- seal-regression: full 실행 23→26 (M20~M22 — setup/+입력 집합 diff 있음 = SKIP 불가 창; RED 실측 PASS=24 FAIL=2[M21/M22 구 seal 미탐 실증] → GREEN 26/0)
+- **트리거 대조(§18.1 판정 3 — 1호)**: (a) 불성립 · **(b) 성립**[C18 슬롯1 Critical 2 + C19 슬롯1 BLOCKER 2 = 2사이클 연속] → **차기 사이클 floor 한정 재심 1회 예약**(§16.0-2 역-supersede 경로) · (c) 불성립 · (d) N/A
+- (부기) FABLE-TAKEOVER 0회 · 토큰: fable 메인 out 1,208k/352턴(C18 288k 대비 — 셧다운 재개 재독·슬롯1 11건 2라운드 정정 포함이라 방법론 비교 불가, 관찰만) · opus 위임 out 1,877k/2,122턴 · sonnet 47k · GPT 헤드리스 out 1,278k · **I1 처분: Edit 혼합-개행 파괴 = non-obvious 등록 후보(재현 픽스처 제작 가능 — C18-형 "5 Whys 불가" 면제 불성립) → §4 1단계 사용자 확인을 머지 정지점 질문에 동반, 확인 시 차기 초입 5 Whys+픽스처 등록** · 수용 잔여: §18.6-5(#30 비-crash 축)·§18.6-6(미러 fail-open 3사이트)·§18.6-1(arm 7 재계수)
