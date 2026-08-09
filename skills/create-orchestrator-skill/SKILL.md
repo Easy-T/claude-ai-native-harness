@@ -21,7 +21,9 @@ orchestrator_version: 1.0
 4. 사이클이 필요한가, 단발성 작업인가?
 
 # Phase 2 — Follow skill-creator procedure (메인 세션이 직접)
-※ skill-creator는 메인 세션의 skill (플러그인 제공). sub-agent에 위임 X — 메인이 절차를 따름.
+※ skill-creator는 메인 세션의 skill (플러그인 제공) — 메인이 **Skill 도구로 호출**해 절차를 따르고
+결정(골격)을 소유한다. **전문(SKILL.md 본문) 집필은 opus 집필-위임 가능**(골격 계약 필수 ·
+재작성 ≤2회 · 초과 시 FABLE-TAKEOVER 폴백 — spec §17.1). 위임되는 것은 집필이지 절차·결정이 아니다.
 1. 메인이 skill-creator skill의 절차 호출 (Skill 도구로 명시 invoke)
 2. Phase 1에서 캡처한 의도를 입력으로 skill-creator의 SOP 진행:
    - description 작성 (트리거 정확도)
