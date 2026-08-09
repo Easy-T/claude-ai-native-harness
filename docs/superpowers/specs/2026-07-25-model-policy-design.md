@@ -2085,7 +2085,7 @@ goal §C18-E 가 요구한 감사 1(C17-B 리뷰 통합의 실효) + 잔여 중�
 | 교차패밀리 슬롯2 | N/A | 8 | 9 | 18 | 코드 diff 축 |
 
 ※ 델타 재심은 **횡단 층**이라 다른 행과 배타적이지 않다(C16 의 3 은 Gate P 행 7 에 산입 — 세로 합산 금지). †통합 행의 C16 은 대장의 senior 2
-+ drift 1 이고 C17 부터는 합본 1행 그대로다(§16.3-2 "1층 1행" 규약).
++ drift 1 이고 C17 부터는 합본 1행 그대로다(§16.3-4 E2 "1층 1행" 규약).
 
 **GPT REAL 밀도 추이**: C15 13/15 → 슬롯1 26/37(C16) · 24/26·기각 0(C17) · 19·기각 6(C18) / 슬롯2 8/9(C16) ·
 9/9·기각 0(C17) · 18·기각 0[부분 기각 3](C18). 내부 전 층을 통과한 뒤 도달하는 층인데도 밀도가 가장 높다.
@@ -2103,7 +2103,7 @@ goal §C18-E 가 요구한 감사 1(C17-B 리뷰 통합의 실효) + 잔여 중�
   40-66k vs C15 전체 재리뷰 83k).
 - **stage2(준수-확인)**: **존치 — 현행 형태(작업자-floor opus + light-배칭 + 델타 재심) 불변.** 4사이클 실발견 5건(0/3/2/0)으로 층
   중 최저지만 축소 대안 3종을 전부 기각한다: (i) sonnet 강등 = 하한 불변식(어떤 임무에서도 검증자 < 작업자 금지) 위반 — 기각. (ii) light task
-  stage2 생략 = C16 T3(light 문서 task)에서 사실 오류 2건을 stage2 가 실차단한 실측이 반증 — 기각. (iii) sampling = TDD
+  stage2 생략 = C16 T3·T7(light 문서 task)에서 사실 오류 2건을 stage2 가 실차단한 실측이 반증(원장 C16 절 — T3 CONTEXT:93 표기·T7 주석 오기재) — 기각. (iii) sampling = TDD
   RED/GREEN 증거 규약에 무검증 task 창을 여는 것(false-PASS 클래스) — 기각. 억지 효과의 분리 측정 불가는 수용한다(§15.0 기존 판정 유지 — 낮은
   실발견이 곧 낮은 가치가 아니다).
 - **통합(senior+drift)**: 유지. C16 §15.2 적대 전환 이후 2~3건/사이클 안정 산출(C17 3 · C18 3).
@@ -2179,18 +2179,20 @@ arm 은 이번 사이클에 변이로 실증되지 않는다. arm 자체는 회�
 | 파일 | 갱신 내용 | 착륙 시점 |
 |---|---|---|
 | 본 spec `2026-07-25-model-policy-design.md` | §15.3 에 1차-소비 포인터 1줄(→ §18.0/§18.1) | Phase I |
-| `docs/ai-context/review-yield.md` | 헤더에 소비-이력(C19 §18 이 C15~C18 4행 소비 · append 는 필수 불변) | Phase I |
-| `skills/start-rpi-cycle/SKILL.md` | :288 소비-이력 구절 · :252 seal-regression 카운트 23→26 | Phase I |
+| `docs/ai-context/review-yield.md` | 헤더에 소비-이력(C19 §18 이 C15~C18 4행 소비) + 소비 규약 갱신(정기 "3사이클 축적 후"→§18.1 판정 3 트리거 기반 — append 는 필수 불변) | Phase I |
+| `skills/start-rpi-cycle/SKILL.md` | :288 소비 규약 갱신(정기→트리거 기반, §18.1 판정 3) · :252 seal-regression 카운트 23→26 | Phase I |
 | `CONTEXT.md` | 「검증자 기준선」에 사후-지지 1구절(§18.1 판정 2 — 한정 표현 포함) · 신규 용어 2건(판별력 공백 · 정정-전파 공백 — Phase R 기등록) | Phase I |
 | `docs/ai-context/model-policy.md` | 검증 행 비고에 "(C19 §18 사후 지지)" 구절 — CRLF 파일이라 `perl -pi` | Phase I |
 | `skills/closeout-pr-cycle/SKILL.md` + opencode 미러 | Phase 4 미니-사이클 step 3 에 전파-완결성 대조(§18.3 규범 원문) | Phase I |
+| `opencode-harness/skill/{start-rpi-cycle,closeout-pr-cycle}/SKILL.md` | "번들 주" 주석(:19/:83) 1구절 확장(§18.2 #16 — spec §N 참조는 정본 spec 기준·번들 규범은 인라인 완결) | Phase I |
 | `skills/create-orchestrator-skill/SKILL.md` + opencode 미러 | :24 개정(§18.4 두 규범 원문) | Phase I |
 | `setup/verify-setup.sh` | #45 앵커 경화 · #30 스키마 conjunct 추가 · #50 부정-단언 arm 확장 — **ok/fail 호출 수 불변** | Phase I |
-| `setup/tests/seal-regression.test.sh` | M20~M22 신설 · witness 에 `state.schema.json` 추가 · make_replica 에 미러 create-orchestrator 복제 | Phase I |
+| `setup/tests/seal-regression.test.sh` | M20~M22 신설 · witness 에 `state.schema.json`·`docs/ai-context/model-policy.md`(M21 표적 — C18 델타 재심 #2 동일 클래스 예방) 추가 · make_replica 에 미러 create-orchestrator 복제 | Phase I |
 | `docs/ai-context/scaffold-registry.md` | #45·#30·#50 행 갱신(경화 내용 반영) | Phase I |
 
 **카운트 계약**: verify-setup **88 불변**(전부 in-place 경화 — 신규 seal 번호 발급 없음) · seal-regression
 **23→26**(M20~M22) · run-all **291 불변**(`hooks/**`·`workflows/rpi-implement.js` 무터치 — goal §4).
+**Phase I 순서 제약**: §18.4(:24 개정 — '위임 X' 소멸)가 seal #50 확장 arm 착륙보다 선행해야 한다 — 역순이면 확장 arm 이 현행 '위임 X' 실재에 즉시 FAIL 하여 88 유지가 깨진다.
 
 ### §18.6 수용 잔여
 
