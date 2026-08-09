@@ -16,7 +16,7 @@ ok()  { echo "✓ $1"; PASS=$((PASS+1)); }
 bad() { echo "✗ $1"; FAIL=$((FAIL+1)); }
 
 # --- live immutability witnesses: cksum files any mutator could touch, before & after ---
-witness() { local f; for f in state.json README.md settings.json CLAUDE.md hooks/tests/cases.tsv skills/ui-design/design.md opencode-harness/skill/ui-design/design.md agents/explore-strict.md agents/execute-strict.md agents/review-strict.md settings.example.json setup/doctor.sh skills/start-rpi-cycle/SKILL.md setup/verify-setup.sh hooks/surface-model-policy.sh docs/ai-context/review-yield.md; do
+witness() { local f; for f in state.json README.md settings.json CLAUDE.md hooks/tests/cases.tsv skills/ui-design/design.md opencode-harness/skill/ui-design/design.md agents/explore-strict.md agents/execute-strict.md agents/review-strict.md settings.example.json setup/doctor.sh skills/start-rpi-cycle/SKILL.md setup/verify-setup.sh hooks/surface-model-policy.sh docs/ai-context/review-yield.md docs/ai-context/cross-family-review.md; do
               cksum "$SRC/$f" 2>/dev/null; done; }
 LIVE_BEFORE="$(witness)"
 
@@ -39,6 +39,12 @@ make_replica() {
   if [ -f "$SRC/opencode-harness/skill/ui-design/design.md" ]; then
     mkdir -p "$C/opencode-harness/skill/ui-design"
     cp -p "$SRC/opencode-harness/skill/ui-design/design.md" "$C/opencode-harness/skill/ui-design/design.md"
+  fi
+  # C18: seal #50 conjunct ③(미러 parity)이 비교하는 파일 — 미복제 시 그 conjunct 가 replica 에서
+  # vacuous 가 된다(#43 design.md 복제와 동형 이유).
+  if [ -f "$SRC/opencode-harness/skill/start-rpi-cycle/SKILL.md" ]; then
+    mkdir -p "$C/opencode-harness/skill/start-rpi-cycle"
+    cp -p "$SRC/opencode-harness/skill/start-rpi-cycle/SKILL.md" "$C/opencode-harness/skill/start-rpi-cycle/SKILL.md"
   fi
   mkdir -p "$C/docs/ai-context"   # seal #37 (GAP-005) inspects docs/ai-context/scaffold-registry.md
   cp -a "$SRC/docs/ai-context/." "$C/docs/ai-context/" 2>/dev/null || true
@@ -121,6 +127,20 @@ mut_yield_ledger_drop() { rm -f "$1/docs/ai-context/review-yield.md"; }
 # (§16.8 C5 — "execute-strict model" 은 #5 만의 문자열이라 #45 결손을 못 잡는다).
 mut_exec_model()   { perl -pi -e 's/^model: opus(\r?)$/model: inherit$1/' "$1/agents/execute-strict.md"; }
 mut_review_model() { perl -pi -e 's/^model: opus(\r?)$/model: inherit$1/' "$1/agents/review-strict.md"; }
+# Mutator 17 — seal #50 (C18 spec §17.1): start-rpi-cycle 의 FABLE-TAKEOVER 토큰이 소실되면(skill
+# 재생성·문면 재작성 클래스) 발화해야 한다. §17.7-2 가 재작성 상한·골격 계약의 hook 강제를 수용
+# 잔여로 둔 자리라 이 seal 이 유일한 물리 봉인 — 변이 커버가 없으면 그 봉인이 헛돈다(#49/M14 동형).
+# 토큰만 치환해 conjunct ①을 단독 격리한다(다른 conjunct 는 건드리지 않음).
+mut_drafting_token_drop() { perl -pi -e 's/FABLE-TAKEOVER/FABLE-HANDOVER/g' "$1/skills/start-rpi-cycle/SKILL.md"; }
+# Mutator 18 — seal #50 conjunct ②(cross-family-review §2) 커버: M17 이 conjunct ① 만 격리하므로 ②는
+# 변이 커버 0건이었다. 규범 문구를 **부정-반전**(위임 가능→위임 금지)해 "긍정-구절 앵커"가 실제로
+# 발화하는지 증명한다 — bare '증거 수집' 토큰은 반전 후에도 잔존하므로, 이 변이는 앵커가 실물
+# 긍정-구절로 확장돼 있을 때만 RED 가 된다(#3 경화의 증인).
+mut_crossfamily_norm_flip() { perl -pi -e 's/증거 수집은 위임 가능/증거 수집은 위임 금지/g' "$1/docs/ai-context/cross-family-review.md"; }
+# Mutator 19 — seal #49 (C16 §15.3) 마스킹 봉인: Communication Protocol 의 `layer-yield:` **필드 정의행**만
+# 삭제하고 다른 언급(C18 신규 2곳)은 남긴다. bare 토큰 존재 검사였던 시절엔 그 잔존 언급이 정의행
+# 삭제를 가려 GREEN 이었다(격리-사본 실험 확정) — 필드 계약이 죽어도 seal 이 침묵하는 vacuity.
+mut_yield_cp_field_drop() { perl -ni -e 'print unless /^- layer-yield: \*\*고유 필수 필드\*\*/' "$1/skills/start-rpi-cycle/SKILL.md"; }
 
 assert_seal_fires "state_schema"    mut_state_count_string "state.json schema 위반"
 assert_seal_fires "settings_parity" mut_settings_matcher   "settings/example harness-hook drift"
@@ -140,6 +160,9 @@ assert_seal_fires "exec_fm_model_s5"    mut_exec_model    "execute-strict model"
 assert_seal_fires "exec_fm_model_s45"   mut_exec_model    "역할×모델 매트릭스 봉인 붕괴"
 assert_seal_fires "review_fm_model_s5"  mut_review_model  "review-strict model"
 assert_seal_fires "review_fm_model_s45" mut_review_model  "역할×모델 매트릭스 봉인 붕괴"
+assert_seal_fires "drafting_delegation_token" mut_drafting_token_drop "집필-위임 규약 토큰 drift"
+assert_seal_fires "crossfamily_norm_flip"     mut_crossfamily_norm_flip "집필-위임 규약 토큰 drift"
+assert_seal_fires "yield_cp_field_drop"       mut_yield_cp_field_drop   "layer-yield drift"
 
 # === Live immutability: witnessed files byte-identical (all mutation stayed in replicas) ===
 LIVE_AFTER="$(witness)"

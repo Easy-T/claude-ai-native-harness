@@ -11,8 +11,18 @@ orchestrator_version: 1.0
 
 # start-rpi-cycle
 
-※ superpowers의 brainstorming / writing-plans / executing-plans는 모두 **메인 세션의 skill**.
-   sub-agent에 위임 X — 메인이 **`skill` 도구로 호출**해 절차를 따름("절차 체화"가 아니라 실제 호출 — Closeout `phase-skills:` 로 선언).
+※ superpowers의 brainstorming / writing-plans / executing-plans는 모두 **메인 세션의 skill** —
+메인이 **`skill` 도구로 호출**해 **절차를 따르고 결정(골격)을 소유**한다("절차 체화"가 아니라 실제
+호출 — Closeout `phase-skills:` 로 선언). **전문(prose) 집필은 opus 집필-위임 가능**(골격 계약
+필수 · 재작성 ≤2회 · 초과 시 FABLE-TAKEOVER 폴백 — spec §17.1). 위임되는 것은 집필이지 절차
+준수·결정·판정이 아니다.
+※ (번들 주: 'opus' 등 모델 명칭은 CC 하네스 기준 — opencode 환경은 동급 내부 모델로 해석)
+※ **위임 없는 직접 집필도 `FABLE-TAKEOVER(<사유>)` 선언 대상** — 장문 산출물(spec 절 1개·plan 1개)의
+  무선언 직접 집필은 규약 위반이다. 반대로 **재작성 0회(초안 무수정 채택)는 정상 경로**이지 미검증이
+  아니다 — 상한이 세는 것은 *지목-정정 루프* 횟수다(spec §17.1).
+※ **감수 = 초안 전문 통독** — 요약 수령 후 승인 금지. 판정 주권은 전문 열람을 전제한다(spec §17.1).
+※ **TAKEOVER 2산출물 연속 = 레버 붕괴** — 그 시점에 진행을 중단하고 사용자 판단을 기다린다(자동 속행
+  금지 — spec §17.1 · goal 정지점).
    sub-agent 위임은 explore-strict / review-strict / execute-strict (우리 wrapper)만.
 
 # Phase R — Research
@@ -70,6 +80,9 @@ C. **explore-strict** 서브에이전트를 `task` 도구로 디스패치 —
                         "<재사용 중인 subsystem spec>"],
          success_criteria="PASS only if ALL ... FAIL with ...")
    ```
+   ※ 게이트 review-strict 는 판단-게이트 — 기준선 `max(작업자, opus)`. **단 FABLE-TAKEOVER 산출물은
+     작업자=fable 이라 floor=fable** — 무지정 상속만으로는 미충족이므로 그 산출물의 게이트는 검증자를
+     fable 로 동반 상향한다(하한 불변식의 L1 이행 — spec §17.1).
    FAIL 시: spec 역류/CONTEXT.md 보강 후 재실행 (또는 사용자가 \"Gate R override: <이유>\" 명시)
    ※ 델타 재심 (C16 spec §15.4): 재실행 review-strict 의 success 기준은 "직전 FAIL 이 지목한 항목 각각의
      해소 + 그 정정이 새로 깨뜨린 것 없음(정정 diff 가 편집한 파일/절에 한정해 원 기준 재적용)"으로 한정 —
@@ -120,6 +133,10 @@ plan 상단 헤더 주입 (writing-plans 표준 헤더 위에):
      - Best-Direction Check 부재/무선언 열화 의심
    ".
 
+   ※ 게이트 review-strict 는 판단-게이트 — 기준선 `max(작업자, opus)`. **단 FABLE-TAKEOVER 산출물은
+     작업자=fable 이라 floor=fable** — 무지정 상속만으로는 미충족이므로 그 산출물의 게이트는 검증자를
+     fable 로 동반 상향한다(하한 불변식의 L1 이행 — spec §17.1).
+
    FAIL 시:
    - 갭 목록을 사용자에게 제시
    - scope creep이 정당하지 않으면 → plan을 spec 범위로 축소
@@ -130,7 +147,10 @@ plan 상단 헤더 주입 (writing-plans 표준 헤더 위에):
    - override 문구 예시: "Gate P override: <이유>" 명시 시 Phase I 진행 허용
 
    ※ 고-스테이크 사이클은 Gate P PASS 직후 교차패밀리 슬롯 1(spec delta+plan 적대 리뷰) 시도 — 탐지·프로토콜은
-     cross-family-review 규약(§2) 동형: probe → 본호출 → 메인 트리아지 → REAL 이면 spec/plan 정정 후
+     cross-family-review 규약(§2) 동형: probe → 본호출 → **2단계 트리아지**(1단계 증거 수집 = review-strict
+     위임 가능[발견 묶음 단위 병렬 허용] · 2단계 최종 판정 = 메인, 권고 뒤집기 자유 — spec §17.2;
+     판정 전 대조 증거 전문 열람 의무, 무열람 일괄 승인 금지) → REAL 이면 spec/plan 정정(정정-위임
+     미니-사이클 — 목록화 메인·실행/검증 위임·승인 메인, spec §17.3) 후
      **Gate P 델타 재심** 통과 후 Phase I 착수 (Gate P PASS 는 슬롯 1 REAL 정정에 의해 잠정화).
 
 # Phase I — Implement
@@ -233,6 +253,7 @@ closeout-pr-cycle 결과를 받아:
 6. opencode 하네스(`~/.config/opencode`) 자체를 수정한 사이클이면: 하네스 검증 실행 →
    `cd ~/.config/opencode && node --test tests/*.test.mjs && node _oracle/diff-parsers.mjs && node _oracle/skill-discovery.mjs` (테스트 스위트 + 차등 파서·skill discovery 오라클) 전부 PASS 확인. FAIL이면 불일치 수정 후 재실행. (통합 cross-doc drift 게이트는 Plan 5 verify 하네스가 제공.)
    → 결과는 Communication Protocol `harness-verify:` **전용 필드**로 보고(복합 evidence에 접지 않음 — 누락 시 구조적 불완전).
+   → **seal-regression 조건부 스킵(C18 spec §17.5 ③)은 정본 하네스(`~/.claude`) 전용** — opencode 번들에는 verify-setup seal 도, 그 변이 메타-테스트(seal-regression)도 대응물이 없다. 위 스위트는 1차 검증이라 조건부 스킵 대상이 아니며 하네스 수정 사이클이면 항상 full 실행.
 
 7. 다음 사이클 goal 초안 (advisory — cycle.count ≥ 1일 때 필수; 출력 = Communication Protocol `next-cycle-goal` **고유 필수 필드**):
    ※ 목적: 1단계처럼 길게 한 사이클을 돈 뒤, 사용자가 다음 사이클을 큰 흐름(goal)으로 제어하고,
@@ -301,4 +322,6 @@ closeout-pr-cycle 결과를 받아:
   무사유 skip 또는 필드 생략 = 자가-표면화(silent-skip 불가). ※ hook 물리 강제는 불가(`tool.execute.before`는 Skill 호출 히스토리·skill명 미제공·`/skill` bypass) → advisory 상한 수락. [F12]
 - layer-yield: **고유 필수 필드** (모든 사이클). 검문 층별 `<층명>: <상태> · 실발견 <N>건 · <발견|확인>` 1줄씩
   (상태 enum·호출 수 병기·실발견 정의는 Step C-1 sub-step 9). 동일 행을 review-yield.md 대장에 축적.
+  **FABLE-TAKEOVER·FABLE-ESCALATION 발동은 layer-yield 1행 부기 + 보고 표면화 의무**(TAKEOVER 2산출물 연속 = 사용자 보고 — spec §17.1).
   생략 = 구조적 불완전. [C16 spec §15.3]
+※ **집필-위임 (C18 spec §17.4)**: Closeout 한국어 보고·PR body 는 구조화 데이터(검증 수치·layer-yield 행·토큰 집계·goal 대조표)를 넘겨 **opus 가 초안을 작성하고 메인이 감수·개정한 뒤 발화**한다(**fable 세션 기본 경로** — 비-fable 세션은 재량; closeout-pr-cycle Phase 2 와 정합) — 초안은 자재이지 판정이 아니며, 사용자 커뮤니케이션 책임·발화는 메인에서 이전되지 않는다(AGENTS.md §7 한국어 규약 포함). 감수는 초안 **전문 통독**(요약-승인 금지 — §17.1 동형).

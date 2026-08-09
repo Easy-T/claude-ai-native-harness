@@ -536,17 +536,52 @@ else
 fi
 
 # 49. layer-yield 필드 parity + 대장 존재 (C16 spec §15.3, #19 동형): Step C-1 절차와 Communication
-#     Protocol 출력 계약이 같은 'layer-yield' 토큰을 갖고, 축적 대장 review-yield.md 가 실재해야.
-#     누락 시 per-layer 수율이 복합 evidence 에 접혀 축적이 죽는다. bash grep only.
+#     Protocol 출력 계약이 layer-yield 를 각각 **절차 단계**와 **필수 필드**로 갖고, 축적 대장
+#     review-yield.md 가 실재해야. 누락 시 per-layer 수율이 복합 evidence 에 접혀 축적이 죽는다.
+#     ★앵커는 bare 'layer-yield' 토큰이 아니라 **구별 리터럴 2종**(C18 슬롯2 #12): C18 이 같은 파일에
+#     layer-yield 언급을 2곳 추가(sub-step 6 SKIP 사유·§17.4 초안-위임)한 뒤로는, bare 토큰 존재만 세면
+#     그 언급들이 **sub-step 9 본문·CP 필드 정의행의 삭제를 마스킹**한다(격리-사본 실험으로 확정 —
+#     정의행만 지운 변이가 GREEN 이었다). #46/#47 주석-마스킹 봉인과 동형 클래스. bash grep only.
 SK49="$HOME/.claude/skills/start-rpi-cycle/SKILL.md"
 C1_49=$(awk '/^## Step C-1/{f=1;next} /^## Sub-cycle states/{f=0} f' "$SK49" 2>/dev/null)
 CP_49=$(awk '/^## Communication Protocol/{f=1} f' "$SK49" 2>/dev/null)
-if printf '%s' "$C1_49" | grep -q 'layer-yield' && printf '%s' "$CP_49" | grep -q 'layer-yield' \
+if printf '%s' "$C1_49" | grep -qF 'layer-yield 계량' \
+   && printf '%s' "$CP_49" | grep -qF -- '- layer-yield: **고유 필수 필드**' \
    && [ -f "$HOME/.claude/docs/ai-context/review-yield.md" ] \
    && grep -q 'C15' "$HOME/.claude/docs/ai-context/review-yield.md"; then
-  ok "layer-yield 필드 parity + review-yield.md 대장 (C16 §15.3)"
+  ok "layer-yield 절차/필드 앵커 (sub-step 9 'layer-yield 계량' · CP '고유 필수 필드' 정의행) + review-yield.md 대장 (C16 §15.3)"
 else
-  fail "layer-yield drift (C16): SKILL.md 양구간 토큰 또는 review-yield.md 대장/C15 행 결손 — spec §15.3"
+  fail "layer-yield drift (C16): Step C-1 'layer-yield 계량' 또는 Communication Protocol '- layer-yield: **고유 필수 필드**' 정의행 결손, 또는 review-yield.md 대장/C15 행 결손 — spec §15.3"
+fi
+
+# 50. 집필-위임 규약 토큰 봉인 (C18 spec §17.1~§17.3, #49 동형): §17.7-2 가 재작성 상한·골격 계약의
+#     hook 강제를 수용 잔여로 뒀으므로, 문서-토큰 드리프트 seal 이 이 규약의 **유일한 물리 봉인**이다
+#     (skill 재생성·문면 재작성으로 규약이 소실되면 여기서 표면화 — #45 skill 토큰 parity 선례).
+#     conjunctive: ①정본 start-rpi-cycle 서두 '집필은 opus 집필-위임 가능'+'재작성 ≤2회'+'FABLE-TAKEOVER'
+#     +'골격 계약' ②cross-family-review §2 '판정은 메인, 증거 수집은 위임 가능'(★긍정-구절 전체 —
+#     bare '증거 수집' 은 '위임 금지' 로 반전돼도 잔존해 GREEN 을 남긴다: 금지-반전 마스킹, 슬롯2 #3)
+#     ③opencode 미러 start-rpi-cycle 'FABLE-TAKEOVER'(미러 **토큰** 존재 — 정본과의 diff-parity 검사가
+#     아니다; 미러 부재(설치본/신선-클론) 시 vacuous 로 카운트 결정성 보존, #43 선례) ④**부정-단언**:
+#     구 위임-금지 단정 '위임 X' 가 정본·미러 어디에도 되살아나지 않을 것(#25 선례 — 긍정 토큰만 세면
+#     신·구 문면이 공존하는 half-landing/롤백-혼입을 통과시킨다). bash grep only.
+C18_OK=1
+SK50="$HOME/.claude/skills/start-rpi-cycle/SKILL.md"
+CF50="$HOME/.claude/docs/ai-context/cross-family-review.md"
+MIR50="$HOME/.claude/opencode-harness/skill/start-rpi-cycle/SKILL.md"
+grep -qF '집필은 opus 집필-위임 가능' "$SK50" 2>/dev/null || C18_OK=0
+grep -qF '재작성 ≤2회' "$SK50" 2>/dev/null || C18_OK=0
+grep -q 'FABLE-TAKEOVER' "$SK50" 2>/dev/null || C18_OK=0
+grep -q '골격 계약' "$SK50" 2>/dev/null || C18_OK=0
+if grep -q '위임 X' "$SK50" 2>/dev/null; then C18_OK=0; fi
+grep -qF '판정은 메인, 증거 수집은 위임 가능' "$CF50" 2>/dev/null || C18_OK=0
+if [ -f "$MIR50" ]; then
+  grep -q 'FABLE-TAKEOVER' "$MIR50" 2>/dev/null || C18_OK=0
+  if grep -q '위임 X' "$MIR50" 2>/dev/null; then C18_OK=0; fi
+fi
+if [ "$C18_OK" -eq 1 ]; then
+  ok "집필-위임 규약 토큰 봉인 (start-rpi-cycle 집필-위임-가능/재작성-상한/FABLE-TAKEOVER/골격 계약 · cross-family '판정은 메인, 증거 수집은 위임 가능' · 미러 토큰 · 구 '위임 X' 부활 없음)"
+else
+  fail "집필-위임 규약 토큰 drift (C18): start-rpi-cycle '집필은 opus 집필-위임 가능'·'재작성 ≤2회'·'FABLE-TAKEOVER'·'골격 계약' / cross-family-review '판정은 메인, 증거 수집은 위임 가능' / opencode 미러 'FABLE-TAKEOVER' 중 결손, 또는 구 단정 '위임 X' 부활 — spec §17.1~§17.3"
 fi
 
 # 36. verify-setup 총 체크수 <-> README 선언 parity (GAP-009 M1 봉인, 런타임 자기-카운트):

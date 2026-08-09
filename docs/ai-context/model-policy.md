@@ -18,6 +18,7 @@
 | 탐색 (읽기 전용 발견·전수조사·**웹 근거 조달**) | explore-strict | **sonnet** (frontmatter 기본) | **xhigh** (frontmatter 기본 — C13) | `WebSearch`+`WebFetch` 보유(웹 근거는 이 경로로 — 규약 밖 builtin 사용 금지). model 상향은 호출 인자로 자유. WebSearch는 세션당 200회를 전 서브에이전트가 공유 |
 | 검증 (게이트·드리프트·적대) | review-strict | **opus** (frontmatter 기본 — C17. 기준선 미만 금지·상향 명시는 허용) | **상속 — 하향 금지** | 기준선 = **임무-분리 v2**(C17, spec §16): **준수-확인**(Workflow·Rule C2) = **작업자 티어**(실행자-전무 폴백 = **opus 정책 상수**) / **판단-게이트**(Agent 경로·Rule B) = **`max(작업자 티어, opus)`** — 세션 축 제거(U4). 평가: 무지정=frontmatter opus·명시 inherit=세션 티어·미지-리터럴 비면제. frontmatter opus 가 보장하는 것은 **opus-상수 절반뿐**(작업자 절반은 L1 — §16.4-1). 하한: 검증자 < 작업자 금지 |
 | 교차 검증 (고-스테이크 closeout) | GPT | cross-family-review.md 규약 그대로 | — | 슬롯 2회(C16 §15.5) quota — stage별 GPT 검증 기각 |
+| 집필·대조·정정 (판단-전용화 3종 — 문서 전문/교차패밀리 증거 수집/리뷰 발견 편집) | execute-strict·review-strict | **opus** (frontmatter 기본) | 상속 | C18 spec §17.1~17.3 — 골격 계약·재작성 ≤2회·FABLE-TAKEOVER 폴백·판정은 메인 불이전 |
 
 - **상향은 항상 허용**(사유 불요). **하향**: 검증자는 **기준선(임무-분리 v2 — 준수-확인=작업자 티어 / 판단-게이트=`max(작업자, opus)`, spec §16) 미만 금지**(유일 탈출구 = DOWNGRADE-DECLARED(사유)+사용자 승인) / 실행자·탐색자는 이 표 자체가 선언 — 표 밖 하향(예: 구현을 haiku로)은 DOWNGRADE-DECLARED(사유) 필요. hook(L2) Rule A는 `inherit`/`fable`/`claude-fable-*` 명시 표기를 감지 — 변수 조립 등 그 외 표기·builtin 에이전트는 L1/L3 몫(수용 잔여).
 - **fable 서브에이전트 위임 기본 금지**(U4). 예외 = 밸브 V1(사용자 요청)/V2(판정충돌 tie-break ≤1회)/V3(goal 명시 실험) + `FABLE-ESCALATION(사유)` 선언 + 검증자 동반 상향(spec §16.5). hook 은 명시 fable/inherit 를 전·조건 세션에서 환기(Rule A/B/C/C2-leak — 밸브-정당 호출에도 발화, advisory 오탐 수용).
