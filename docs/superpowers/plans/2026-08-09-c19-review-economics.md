@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Status:** active
+**Status:** complete
 **RPI-Cycle:** 70
 **Started:** 2026-08-09
 
@@ -71,7 +71,7 @@
 - Produces: create-orchestrator 정본·미러의 `집필-위임 가능`·`FABLE-TAKEOVER`·`골격 계약` 토큰 + **`위임 X` 소멸**(T3 의 seal #50 확장 arm 이 요구하는 전제 — 이 task 가 선행하지 않으면 T3 GREEN 이 성립 불가) · closeout 정본·미러의 `전파-완결성` 토큰 · 번들 주의 `spec §N` 구절.
 - Consumes: 없음.
 
-- [ ] **Step 1: RED — 구 단정 실재 + 신 토큰 부재 실측**
+- [x] **Step 1: RED — 구 단정 실재 + 신 토큰 부재 실측**
 
 ```bash
 cd ~/.claude
@@ -96,7 +96,7 @@ skills/closeout-pr-cycle/SKILL.md:171:4. **메인 승인**: 판정 주권은 이
 opencode-harness/skill/closeout-pr-cycle/SKILL.md:176:4. **메인 승인**: 판정 주권은 이전되지 않는다.
 ```
 
-- [ ] **Step 2: create-orchestrator :24 개정 (정본 + 미러) — §18.4 규범 원문 verbatim 전사**
+- [x] **Step 2: create-orchestrator :24 개정 (정본 + 미러) — §18.4 규범 원문 verbatim 전사**
 
 `skills/create-orchestrator-skill/SKILL.md` — old (:24, 1줄):
 ```
@@ -123,7 +123,7 @@ FABLE-TAKEOVER 폴백 — spec §17.1). 위임되는 것은 집필이지 절차�
 ```
 미러 :23 헤딩(`# Phase 2 — Follow writing-skills procedure (메인 세션이 직접)`)과 :25(`1. 메인이 \`writing-skills\` 스킬을 \`skill\` 도구로 호출`)도 **불변**.
 
-- [ ] **Step 3: closeout 미니-사이클 step 3 뒤 — §18.3 전파-완결성 blockquote 3줄 삽입 (정본 + 미러)**
+- [x] **Step 3: closeout 미니-사이클 step 3 뒤 — §18.3 전파-완결성 blockquote 3줄 삽입 (정본 + 미러)**
 
 `skills/closeout-pr-cycle/SKILL.md` — :170(`3. **review-strict(opus) 검증**: … 근거로 판정.`)과 :171(`4. **메인 승인**: 판정 주권은 이전되지 않는다.`) **사이**에 아래 3줄을 삽입(앞뒤 빈 줄 **추가 없음** — 번호 목록의 연속성 유지, 삽입 3줄은 **열 0** 시작으로 spec blockquote 와 byte-동일):
 ```
@@ -134,7 +134,7 @@ FABLE-TAKEOVER 폴백 — spec §17.1). 위임되는 것은 집필이지 절차�
 
 `opencode-harness/skill/closeout-pr-cycle/SKILL.md` — :175(정본 :170 과 byte-동일한 step 3 행)과 :176(`4. **메인 승인**: …`) **사이**에 **위와 동일한 3줄**을 삽입(이 문안에는 `CLAUDE.md`/`AGENTS.md` 명칭이 없어 미러 치환 불요 — C18 T2 Step 3b 선례와 동형).
 
-- [ ] **Step 4: 번들 주 확장 2곳 (§18.2 #16)**
+- [x] **Step 4: 번들 주 확장 2곳 (§18.2 #16)**
 
 `opencode-harness/skill/start-rpi-cycle/SKILL.md` :19 · `opencode-harness/skill/closeout-pr-cycle/SKILL.md` :83 — **두 곳의 old 는 byte-동일**(각 파일 내 유일 — 실측 `grep -c` 각 1):
 ```
@@ -146,7 +146,7 @@ new (**두 곳 동일**):
 ```
 ※ §18.6-3 대로 dangling `spec §` 참조 25건 **자체는 존속**한다 — 이 확장이 해소하는 것은 참조의 *의미*(주석 1구절)이지 참조 자체가 아니다. 참조 제거·spec 동봉은 **금지**(비용 > 실익으로 기각됨).
 
-- [ ] **Step 5: GREEN — 토큰 + verbatim diff + 스위트**
+- [x] **Step 5: GREEN — 토큰 + verbatim diff + 스위트**
 
 ```bash
 cd ~/.claude
@@ -195,7 +195,7 @@ bash setup/verify-setup.sh 2>&1 | tail -2
 Expected: `verify-setup: PASS=88 FAIL=0`.
 ※ **δ=0 인 이유(실측 근거)**: 현행 seal #50 은 `위임 X` 부정-단언을 `skills/start-rpi-cycle/SKILL.md`(:575)와 `opencode-harness/skill/start-rpi-cycle/SKILL.md`(:579) **두 파일에서만** 검사한다 — create-orchestrator 2파일은 아직 어떤 seal 의 검사 표면도 아니므로(`grep -rn 'create-orchestrator' setup/verify-setup.sh` → :41/:46/:250 의 skill **목록 존재** 검사뿐) 이 task 의 편집은 카운트에 무영향이다. 그 확장은 T3 Step 2 에서 착륙한다.
 
-- [ ] **Step 6: 커밋**
+- [x] **Step 6: 커밋**
 
 ```bash
 cd ~/.claude
@@ -232,7 +232,7 @@ EOF
 - Produces: `§18.1 판정 3` · `C19 §18` · `사후 지지` 토큰(5사이트) + `등급 어휘 매핑`·`BLOCKER=Critical`(cross-family-review) — §18.5 표의 소비-규약 supersede 전파 + G2 어휘 매핑 완결.
 - Consumes: 없음(spec §18 은 R 단계 산출물로 이미 존재).
 
-- [ ] **Step 1: RED — 신 토큰 부재 + old 앵커 실재·유일성 실측**
+- [x] **Step 1: RED — 신 토큰 부재 + old 앵커 실재·유일성 실측**
 
 ```bash
 cd ~/.claude
@@ -261,7 +261,7 @@ Expected (RED):
 - Step 6b 삽입 앵커 `^- **슬롯 1 프롬프트 계약**: ` = `1`(파일 내 유일)
 - 개행 기준선: `spec lines=2219 cr=1821` · `mp   lines=39 cr=39` · `cfr  lines=82 cr=0`
 
-- [ ] **Step 2: spec §15.3 — supersede 포인터 1줄 삽입 (혼합 개행 — perl 필수)**
+- [x] **Step 2: spec §15.3 — supersede 포인터 1줄 삽입 (혼합 개행 — perl 필수)**
 
 `docs/superpowers/specs/2026-07-25-model-policy-design.md` — §15.3 헤딩 행(`### §15.3 C16-A …`) **바로 뒤**에 빈 CRLF 행 + 포인터 1줄을 삽입. **Edit/Write 도구 금지**(C19 Gate R 정정 세션 실증: Edit 가 :1766 이후 LF 꼬리를 CRLF 로 재작성해 §17 전체 diff 오염):
 ```bash
@@ -274,7 +274,7 @@ perl -pi -e '$_ .= "\r\n> ⚠**§18.1 판정 3(C19)이 소비 주기를 supersed
 ```
 ※ §15.3 **본문은 한 글자도 고치지 않는다** — 이 1줄이 Global Constraints 가 허용한 유일한 spec §0~§17 예외이며, "아래 원문은 C16 시점 기록"이 원문 보존을 선언한다.
 
-- [ ] **Step 3: review-yield.md :3 — 소비 규약 갱신 + 소비-이력 (LF, Edit 가능)**
+- [x] **Step 3: review-yield.md :3 — 소비 규약 갱신 + 소비-이력 (LF, Edit 가능)**
 
 old (:3, 1줄 전문):
 ```
@@ -286,7 +286,7 @@ new (1줄):
 ```
 :4(`> 실발견 = REAL 판정된 내용 결함…`) 및 대장 표 전체는 **불변**.
 
-- [ ] **Step 4: start-rpi-cycle :288 — 소비 규약 부분 문자열 치환 (LF, Edit 가능)**
+- [x] **Step 4: start-rpi-cycle :288 — 소비 규약 부분 문자열 치환 (LF, Edit 가능)**
 
 `skills/start-rpi-cycle/SKILL.md` :288 의 **부분 문자열만** 치환한다(행 나머지·`layer-yield 계량`(:281)·CP 필드 정의행은 **비접촉** — seal #49 앵커 2종 보존).
 
@@ -304,7 +304,7 @@ new:
 ```
 ※ 위 전문의 닫는 괄호 2개는 **정상**이다 — 원문의 `…(대상-프로젝트 사이클도 — 리뷰 배분 재심은 … 소비처)` 괄호가 :287 에서 열려 :288 에서 닫히고, 신 문안이 자체 괄호를 하나 더 갖기 때문. 괄호 정리 목적의 추가 편집 **금지**(부분-문자열 치환 범위 밖).
 
-- [ ] **Step 5: CONTEXT.md :93 — 사후-지지 1문장 append (LF, Edit 가능)**
+- [x] **Step 5: CONTEXT.md :93 — 사후-지지 1문장 append (LF, Edit 가능)**
 
 `CONTEXT.md` :93(「검증자 기준선」 본문)의 **행 말미**에 1문장을 append 한다. :94 `_Avoid_:` 행 **앞에 새 행을 만들지 않는다** — :93 같은 행 끝에 이어 붙인다.
 
@@ -319,7 +319,7 @@ new:
 ※ "열화의 반증 아님"은 §18.1 판정 2 의 **주장 강도 한정(필수)** 이자 §18.6-2 수용 잔여다 — 이 한정 표현을 빼고 "열화 없음"으로 요약하는 것은 **금지**.
 ※ `CONTEXT.md` 는 이 1문장 append 외 **무터치**(신규 용어 2건 「판별력 공백」·「정정-전파 공백」은 Phase R 에서 기등록 — 실측 각 `1`).
 
-- [ ] **Step 6: model-policy.md :19 — 검증 행 비고에 사후-지지 구절 (CRLF — perl -pi 필수)**
+- [x] **Step 6: model-policy.md :19 — 검증 행 비고에 사후-지지 구절 (CRLF — perl -pi 필수)**
 
 `sed -i` · Edit 도구 **금지**(39/39 CRLF):
 ```bash
@@ -328,7 +328,7 @@ perl -pi -e 's/세션 축 제거\(U4\)\. 평가:/세션 축 제거(U4 — C19 §
 ```
 ※ old 앵커 `세션 축 제거(U4). 평가:` 는 파일 내 **유일**(Step 1 RED 에서 `1` 실측) — 전역 치환이 안전한 전제.
 
-- [ ] **Step 6b: cross-family-review.md — 등급 어휘 매핑 1줄 (G2·§18.5)**
+- [x] **Step 6b: cross-family-review.md — 등급 어휘 매핑 1줄 (G2·§18.5)**
 
 `docs/ai-context/cross-family-review.md` 는 **LF(2026-08-09 실측: lines=82 · cr=0)** 이므로 **Edit 도구 사용 가능**.
 삽입 앵커 = `- **슬롯 1 프롬프트 계약**: ` 로 시작하는 행(:61) — 파일 내 **유일**(`grep -c '^- \*\*슬롯 1 프롬프트 계약\*\*: '` → `1` 실측). 그 행 **바로 다음 행**에 아래 1줄을 삽입한다(:61 본문은 무수정).
@@ -353,7 +353,7 @@ printf 'cfr  lines=%s cr=%s\n' "$(grep -c '' docs/ai-context/cross-family-review
 Expected: `1` · `1` · `cfr  lines=83 cr=0`(82+1 · LF 파일이라 cr 은 **0 불변**).
 ※ 이 파일은 seal #50 의 **긍정-구절 arm** 표적이자 seal-regression `witness()` 목록 항목이다 — 1줄 append 는 기존 구절을 건드리지 않으므로 두 검사 모두 비접촉(Step 7 의 verify-setup 88 이 기계 확인).
 
-- [ ] **Step 7: GREEN — 토큰 + 개행 보존 + 스위트**
+- [x] **Step 7: GREEN — 토큰 + 개행 보존 + 스위트**
 
 ```bash
 cd ~/.claude
@@ -404,7 +404,7 @@ bash setup/verify-setup.sh 2>&1 | tail -2
 Expected: `verify-setup: PASS=88 FAIL=0`.
 ※ **무회귀 근거**: #45 의 현행 광역 앵커(`execute-strict.*opus` / `explore-strict.*sonnet`)는 :19 검증 행이 아니라 :16/:17/:21/:29/:30/:37 · :18/:31/:37 에 매칭하므로 :19 in-place 치환은 비접촉. #49 는 위 두 앵커 grep 으로 직접 확인했다. 그 밖의 seal 은 편집 구간 밖.
 
-- [ ] **Step 8: 커밋**
+- [x] **Step 8: 커밋**
 
 ```bash
 cd ~/.claude
@@ -442,7 +442,7 @@ EOF
 - Produces: 변이 M20~M22 · #45 열-스코프 앵커 · #30 스키마 골격 conjunct · #50 create-orchestrator 확장 arm · 카운트 23→26 동기 · registry 3행 갱신.
 - Consumes: **T1 이 소멸시킨 create-orchestrator 2파일의 `위임 X`**(#50 확장 arm 의 전제 — T1 미완 상태에서 이 task 를 실행하면 verify-setup 이 즉시 `PASS=87 FAIL=1`). T2 가 착륙시킨 model-policy :19 치환(#45 경화 앵커와 비접촉임을 재확인).
 
-- [ ] **Step 1: RED — witness·make_replica 선행 보강 후 변이 3건 추가, 구 seal 미탐 실측**
+- [x] **Step 1: RED — witness·make_replica 선행 보강 후 변이 3건 추가, 구 seal 미탐 실측**
 
 RED 재현자는 라이브 파일 변이가 아니라 **seal-regression 의 격리 replica**(`mktemp -d` + `HOME=<replica>`)를 쓴다 — 라이브 `~/.claude` 는 witness cksum 으로 불변 증명된다.
 
@@ -508,7 +508,7 @@ seal-regression: PASS=24 FAIL=2
 - **M20 은 RED 가 아니라 ✓ 다 — 커버 백필임을 여기 명시한다.** 기존 #50 의 부정-단언 arm(`verify-setup.sh:575` — `if grep -q '위임 X' "$SK50" …; then C18_OK=0; fi`)이 이미 이 변이를 검출하므로, M20 은 "미탐 → 탐지"의 RED→GREEN 전이를 만들 수 없다. M20 이 해소하는 것은 **탐지력 공백이 아니라 변이-커버 공백**(C18 plan :484 정직 부기: "그 conjunct 자체의 회귀-탐지력은 이 사이클에서 실증되지 않는다")이다. 따라서 이 Step 의 Expected 는 **M20 ✓ / M21 ✗ / M22 ✗ = `PASS=24 FAIL=2`** 이며, `FAIL=3` 을 기대하면 거짓 실패가 난다.
 - 판별자는 **위 문자열 Expected** 다 — 재현자가 `… | tail -6` 파이프라인이라 스위트의 종료코드는 `tail` 이 흡수한다(rc 단언 금지).
 
-- [ ] **Step 2: GREEN — verify-setup 경화 3건 (#45 · #30 · #50)**
+- [x] **Step 2: GREEN — verify-setup 경화 3건 (#45 · #30 · #50)**
 
 **⑴ seal #45 conjunct ① 열-스코프 경화** (`setup/verify-setup.sh` :460). old (1줄):
 ```
@@ -584,7 +584,7 @@ verify-setup: PASS=88 FAIL=0
 ```
 ※ 88 불변 확인 보조(호출 수 회귀 방지): `grep -cE '^\s*(ok|fail) "' setup/verify-setup.sh` → `67`(착수 기준선과 동일).
 
-- [ ] **Step 3: 카운트 리터럴 · scaffold-registry 3행 동기**
+- [x] **Step 3: 카운트 리터럴 · scaffold-registry 3행 동기**
 
 **⑴ start-rpi-cycle :252 SKIP 예시 카운트** (LF — 파일 내 유일, 실측 `1`):
 ```bash
@@ -607,7 +607,7 @@ perl -pi -e "s/부정-단언\)/부정-단언(C19 create-orchestrator 정본+미�
 | #50 | 집필-위임 규약 토큰 봉인 (start-rpi-cycle 토큰 4종 · cross-family-review 긍정-구절 · opencode 미러 토큰 · 구 단정 '위임 X' 부정-단언(C19 create-orchestrator 정본+미러 확장)) | **C18 (cycle 69)**; 변이 M17·M18·M20 |
 ```
 
-- [ ] **Step 4: 전수 검증 — 세 스위트 + 잔여 카운트 + 개행 보존**
+- [x] **Step 4: 전수 검증 — 세 스위트 + 잔여 카운트 + 개행 보존**
 
 ```bash
 cd ~/.claude
@@ -645,7 +645,7 @@ printf 'seal     lines=%s cr=%s\n' "$(grep -c '' setup/tests/seal-regression.tes
 ```
 Expected: `registry lines=110 cr=110`(행 추가 없는 in-place 치환) · `readme   lines=547 cr=547`(무변경) · `seal     lines=198 cr=0`(LF 유지 — 증가분은 witness 1줄 in-place(+0) + make_replica 블록 6줄 + 뮤테이터 12줄(주석 3×3 + 함수 3) + 단언 3줄 = 177+21). lines=198 은 뮤테이터 주석 줄 수(3×3) 가정에 결합된 참고치 — 실질 게이트는 cr=0(LF 유지)뿐이며 주석 줄 수 변경 시 산술만 갱신한다.
 
-- [ ] **Step 5: 커밋**
+- [x] **Step 5: 커밋**
 
 ```bash
 cd ~/.claude
