@@ -1,6 +1,6 @@
 # review-yield.md — per-layer 리뷰 수율 축적 대장 (C16 spec §15.3)
 
-> 사이클마다 Closeout `layer-yield:` 필드와 같은 행을 append. 소비처: 3사이클 축적 후 floor·리뷰 배분 재심.
+> 사이클마다 Closeout `layer-yield:` 필드와 같은 행을 append(필수 불변). 소비 = 트리거 기반 재심(spec §18.1 판정 3, C19 supersede). 소비-이력: C19 §18 이 C15~C18 4행 소비(1호).
 > 실발견 = REAL 판정된 내용 결함(정정/수용잔여 처분 무관 — 판정이 기준). 토큰 수치는 가용 시 부기(필수는 발견 카운트).
 
 ## C15 (cycle 66, 2026-08-01 — 축적 1호, spec §15.0 실측)

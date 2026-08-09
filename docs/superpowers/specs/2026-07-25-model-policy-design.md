@@ -1318,6 +1318,8 @@ senior review 프롬프트를 refute-by-default 적대 템플릿(C15 프롬프�
 
 ### §15.3 C16-A — per-layer 수율 계량 표준화 (`layer-yield`)
 
+> ⚠**§18.1 판정 3(C19)이 소비 주기를 supersede** — 정기(3사이클 축적 후)가 아니라 트리거 기반 4종((a)~(c)+백스톱 (d)). ledger append 필수는 불변. 아래 원문은 C16 시점 기록.
+
 start-rpi-cycle Closeout Communication Protocol에 **고유 필수 필드 `layer-yield:`** 신설(harness-verify·
 phase-skills 선례 동형 — 누락 = 구조적 불완전으로 자가-표면화). **최소 계약**(슬롯1 S17 정정 — 문법을
 현실 케이스로 확장) = 검문 층별 1줄: `<층명>: <상태> · 실발견 <N>건 · <발견|확인>` — `<상태>` ∈
