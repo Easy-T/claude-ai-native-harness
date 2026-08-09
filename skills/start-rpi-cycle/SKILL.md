@@ -249,7 +249,7 @@ closeout-pr-cycle 결과를 받아:
    PASS 확인 (cross-doc drift 게이트 #17: §3↔Phase R, #18: next-cycle-goal, #19: harness-verify 포함). FAIL이면 문서 불일치 수정 후 재실행.
    → 결과는 Communication Protocol `harness-verify:` **전용 필드**로 보고(복합 evidence에 접지 않음 — 누락 시 구조적 불완전).
    → 하네스 수정 사이클이면 **run-log 요약도 소비**(GAP-003): `source ~/.claude/hooks/_common.sh; runlog_summary ~/.claude/hooks/.runlog/$(date +%Y-%m).jsonl` 출력(EVENTS/BLOCK/SKIP/FAILOPEN 카운트)을 사이클 보고에 1줄 포함 — 이번 사이클의 게이트 발화·우회 관측(값 미표시, 카운트만). 파일 부재 시 생략.
-   → **seal-regression 조건부 실행(C18 spec §17.5 ③)**: `setup/verify-setup.sh`·`setup/tests/` **및 seal-regression 입력 집합(witness/뮤테이터 앵커 — SSOT 는 그 스크립트 자신)**이 이번 사이클 diff 에 있으면 `bash ~/.claude/setup/tests/seal-regression.test.sh` **full 실행 필수**, 없으면 `SKIP(사유: setup/+입력 집합 diff 0 — 직전 23/0 유효)` 허용(탐지력 불변은 **입력 집합 전체** 무변경일 때만 성립 — 앵커 파일 다수가 비-setup 이라 setup/-한정 판단은 vacuous 창을 연다. 의심스러우면 full 실행이 기본). **SKIP 시 그 사유를 `layer-yield:` 필드에 기재**.
+   → **seal-regression 조건부 실행(C18 spec §17.5 ③)**: `setup/verify-setup.sh`·`setup/tests/` **및 seal-regression 입력 집합(witness/뮤테이터 앵커 — SSOT 는 그 스크립트 자신)**이 이번 사이클 diff 에 있으면 `bash ~/.claude/setup/tests/seal-regression.test.sh` **full 실행 필수**, 없으면 `SKIP(사유: setup/+입력 집합 diff 0 — 직전 26/0 유효)` 허용(탐지력 불변은 **입력 집합 전체** 무변경일 때만 성립 — 앵커 파일 다수가 비-setup 이라 setup/-한정 판단은 vacuous 창을 연다. 의심스러우면 full 실행이 기본). **SKIP 시 그 사유를 `layer-yield:` 필드에 기재**.
 
 7. 다음 사이클 goal 초안 (advisory — cycle.count ≥ 1일 때 필수; 출력 = Communication Protocol `next-cycle-goal` **고유 필수 필드**):
    ※ 목적: 1단계처럼 길게 한 사이클을 돈 뒤, 사용자가 다음 사이클을 큰 흐름(goal)으로 제어하고,
@@ -285,7 +285,7 @@ closeout-pr-cycle 결과를 받아:
    - 실발견 = REAL 판정된 내용 결함(정정/수용잔여 처분 무관 — 판정이 기준). 토큰 수치는 세션 아티팩트 가용 시
      부기(필수 아님 — 최소 계약은 발견 카운트).
    - 같은 행을 **글로벌 대장** `~/.claude/docs/ai-context/review-yield.md` 에 append(대상-프로젝트 사이클도 —
-     리뷰 배분 재심은 하네스 거버넌스 결정. 3사이클 축적 후 floor·배분 재심이 소비처). append 시점 = Closeout
+     리뷰 배분 재심은 하네스 거버넌스 결정. 소비는 트리거 기반 재심(spec §18.1 판정 3 — C19 첫 소비, 정기 아님; append 시 트리거 (a)(b)(c)(d) 성립 여부 1줄 대조)). append 시점 = Closeout
      보고 직전(말미 층 실측 후 — spec §15.3 S19). **커밋 소유권(슬롯2 F1)**: 하네스 사이클은 머지 전 브랜치
      마지막 커밋에 포함(C-0 PR 생성 후에도 브랜치 추가 커밋 가능); 대상-프로젝트 사이클은 대장이 ~/.claude
      저장소에 있으므로 **별도 하네스-repo 커밋**(대상 repo 트랜잭션과 분리 — cross-repo staging 불가).

@@ -59,6 +59,7 @@
 - **probe 규약**: "슬롯당 1회"는 본호출 기준 — probe 스모크는 별도이며 같은 사이클에서 슬롯 1 probe 성공 시 슬롯 2 probe 생략 가능.
 - **슬롯 1 발견 처리**: 슬롯 1 발견은 메인 트리아지 후 REAL 이면 spec/plan 정정(**§17.3 정정-위임 미니-사이클로** — 목록화 메인·실행 opus·검증 opus·승인 메인) → **Gate P 델타 재심**(§15.4)을 Phase I 착수 전에 통과해야 한다 — Gate P PASS 는 슬롯 1 REAL 정정에 의해 잠정화된다.
 - **슬롯 1 프롬프트 계약**: 슬롯 1 프롬프트 = refute-by-default 공통 규율 + 검사 범주 최소 세트{floor/판정식 건전성·소비자 동반-갱신 완결성·plan 내부 정합·신설 규약 우회 가능성·기존 문서 모순·근거 과잉 주장} — C16 첫 실행 프롬프트가 준거 템플릿.
+- **등급 어휘 매핑 (C19 spec §18.1 판정 3(b), G2)**: 층간 등급 비교·트리거 (b) 판정은 GPT 슬롯 산출물의 실제 라벨 기준 **BLOCKER=Critical · MAJOR=Important · MINOR=Minor** 매핑으로 대조한다("Critical 급 2사이클 연속 적발" = BLOCKER 2사이클 연속).
 - **호출 지점 = 고-스테이크만**: closeout senior review·루브릭 재채점·적대 리뷰. 일상 검증(verify-setup·run-all)은 모델 무관 bash라 대상 아님.
 - **컨텍스트 무공유가 원칙**: 리뷰 대상 문서만 stdin으로 전달 — 세션 컨텍스트·작업 이력 이관 금지(fresh-context 독립성이 이 규약의 존재 이유; §3 참조).
 

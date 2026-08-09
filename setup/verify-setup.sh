@@ -254,6 +254,8 @@ done
 
 # 30. state.json ↔ state.schema.json 검증 (dead-spec 활성화 — closeout이 쓴 state 무결성, cycle-28 NEW-state-schema-unverified).
 #     스키마-구동: 스키마 파일을 읽어 사용된 draft-07 부분집합(required/type/minimum/format:date)으로 재귀 검사 → 스키마 변경 자동 추종.
+#     C19 슬롯2 M1: node 오라클 crash(예: state.json 이 JSON primitive "x" — 'in' 연산자 TypeError)가
+#     2>/dev/null+빈 ERR30 으로 false-green 되던 창을 rc-캡처로 봉인. ${ERR30:-} 라 정상 오류 문안은 보존.
 ERR30=$(SCHEMA="$HOME/.claude/state.schema.json" DATA="$HOME/.claude/state.json" node -e '
   const fs=require("fs");
   let sc,d;
@@ -273,8 +275,16 @@ ERR30=$(SCHEMA="$HOME/.claude/state.schema.json" DATA="$HOME/.claude/state.json"
     }
   })(sc,d,"state");
   process.stdout.write(errs.join("; "));
-' 2>/dev/null)
-[ -z "$ERR30" ] && ok "state.json ↔ schema 검증" || fail "state.json schema 위반: $ERR30"
+' 2>/dev/null) || ERR30="${ERR30:-validator crash(rc=$?) — state.json 비객체 등 스크립트 예외를 FAIL 로 표면화(C19 슬롯2 M1)}"
+#     C19 §18.2 #13·G5: 이 검사는 **스키마-구동**이라 스키마가 비면 검사도 빈다 — required-배열 **내용** 앵커
+#     conjunct 를 같은 ok/fail 에 결합해 오라클 침묵을 봉인한다(변이 M22). 리터럴 존재-검사 3종은
+#     '"required": []' 값-약화가 우회(G5 실증 — cycle/count 는 properties 이름으로 잔존)라 배열 내용을 앵커한다.
+#     새 ok/fail 을 만들지 않으므로 카운트 불변.
+SCH30="$HOME/.claude/state.schema.json"
+SCHEMA30_OK=1
+grep -qE '"required":[[:space:]]*\[[^]]*"cycle"' "$SCH30" 2>/dev/null || SCHEMA30_OK=0
+grep -qE '"required":[[:space:]]*\[[^]]*"count"' "$SCH30" 2>/dev/null || SCHEMA30_OK=0
+if [ -z "$ERR30" ] && [ "$SCHEMA30_OK" -eq 1 ]; then ok "state.json ↔ schema 검증"; else fail "state.json schema 위반: ${ERR30:-required-배열 앵커 결손(cycle·count — C19 #13)}"; fi
 
 # 31. cwd-drift 앵커 (item①·non-obvious:152 재발3): 공유 루트해소가 git rev-parse --show-toplevel 앵커 사용 +
 #     enforce-rpi-cycle 이 그 앵커(resolve_project_root)를 소비. 미이행 시 즉시 RED(cwd-상대 단일레벨 회귀).
@@ -457,7 +467,10 @@ fi
 #     bash grep only (staged-safe).
 MP_DOC="$HOME/.claude/docs/ai-context/model-policy.md"
 MP_OK=1
-{ [ -f "$MP_DOC" ] && grep -qE 'execute-strict.*opus' "$MP_DOC" && grep -qE 'explore-strict.*sonnet' "$MP_DOC"; } || MP_OK=0
+#     C19 §18.2 #14·G4: conjunct ① 앵커를 **열-스코프**로 구체화 — 광역 grep 은 'execute-strict.*opus' 6행
+#     (:16/:17/:21/:29/:30/:37)·'explore-strict.*sonnet' 3행(:18/:31/:37)에 매칭해 표적 행 삭제에도 GREEN 이었고,
+#     행-선두만으로는 비고 셀의 opus 리터럴이 모델-셀 변조(opus→sonnet)를 가렸다(슬롯1 G4 실증). 변이 M21 이 RED 실증.
+{ [ -f "$MP_DOC" ] && grep -qE '^\| 구현 heavy [^|]*\| *execute-strict *\| *\*\*opus\*\*' "$MP_DOC" && grep -qE '^\| 탐색 [^|]*\| *explore-strict *\| *\*\*sonnet\*\*' "$MP_DOC"; } || MP_OK=0
 grep -qE '^model:[[:space:]]*sonnet' "$HOME/.claude/agents/explore-strict.md" 2>/dev/null || MP_OK=0
 grep -qE '^effort:[[:space:]]*xhigh' "$HOME/.claude/agents/explore-strict.md" 2>/dev/null || MP_OK=0
 grep -qE '^tools:.*WebSearch' "$HOME/.claude/agents/explore-strict.md" 2>/dev/null || MP_OK=0
@@ -578,10 +591,24 @@ if [ -f "$MIR50" ]; then
   grep -q 'FABLE-TAKEOVER' "$MIR50" 2>/dev/null || C18_OK=0
   if grep -q '위임 X' "$MIR50" 2>/dev/null; then C18_OK=0; fi
 fi
+# C19 §18.3·G6: §18.4 가 create-orchestrator :24 의 위임-금지 단정을 소멸시킨 이후로는, 그 2파일에서의
+# '위임 X' 부활도 start-rpi 와 **동일한 회귀**다 — 부정-단언 arm 을 정본+미러로 확장하고, 리터럴 부정-단언의
+# 재서술 미탐(#19 클래스 상한)을 긍정-토큰 arm('집필-위임 가능'·'FABLE-TAKEOVER')으로 간접 백스톱한다
+# (재서술 시 긍정 토큰이 함께 소실될 개연 — start-rpi 의 긍정 4토큰과 보호 수준 정렬).
+CO50="$HOME/.claude/skills/create-orchestrator-skill/SKILL.md"
+MCO50="$HOME/.claude/opencode-harness/skill/create-orchestrator-skill/SKILL.md"
+if grep -q '위임 X' "$CO50" 2>/dev/null; then C18_OK=0; fi
+grep -qF '집필-위임 가능' "$CO50" 2>/dev/null || C18_OK=0
+grep -q 'FABLE-TAKEOVER' "$CO50" 2>/dev/null || C18_OK=0
+if [ -f "$MCO50" ]; then
+  if grep -q '위임 X' "$MCO50" 2>/dev/null; then C18_OK=0; fi
+  grep -qF '집필-위임 가능' "$MCO50" 2>/dev/null || C18_OK=0
+  grep -q 'FABLE-TAKEOVER' "$MCO50" 2>/dev/null || C18_OK=0
+fi
 if [ "$C18_OK" -eq 1 ]; then
   ok "집필-위임 규약 토큰 봉인 (start-rpi-cycle 집필-위임-가능/재작성-상한/FABLE-TAKEOVER/골격 계약 · cross-family '판정은 메인, 증거 수집은 위임 가능' · 미러 토큰 · 구 '위임 X' 부활 없음)"
 else
-  fail "집필-위임 규약 토큰 drift (C18): start-rpi-cycle '집필은 opus 집필-위임 가능'·'재작성 ≤2회'·'FABLE-TAKEOVER'·'골격 계약' / cross-family-review '판정은 메인, 증거 수집은 위임 가능' / opencode 미러 'FABLE-TAKEOVER' 중 결손, 또는 구 단정 '위임 X' 부활 — spec §17.1~§17.3"
+  fail "집필-위임 규약 토큰 drift (C18): start-rpi-cycle '집필은 opus 집필-위임 가능'·'재작성 ≤2회'·'FABLE-TAKEOVER'·'골격 계약' / cross-family-review '판정은 메인, 증거 수집은 위임 가능' / opencode 미러 'FABLE-TAKEOVER' 중 결손, 또는 구 단정 '위임 X' 부활·create-orchestrator 긍정-토큰 결손(정본+미러) — spec §17.1~§17.3, §18.3"
 fi
 
 # 36. verify-setup 총 체크수 <-> README 선언 parity (GAP-009 M1 봉인, 런타임 자기-카운트):

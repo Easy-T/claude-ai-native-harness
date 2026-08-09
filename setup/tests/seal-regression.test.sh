@@ -16,7 +16,7 @@ ok()  { echo "✓ $1"; PASS=$((PASS+1)); }
 bad() { echo "✗ $1"; FAIL=$((FAIL+1)); }
 
 # --- live immutability witnesses: cksum files any mutator could touch, before & after ---
-witness() { local f; for f in state.json README.md settings.json CLAUDE.md hooks/tests/cases.tsv skills/ui-design/design.md opencode-harness/skill/ui-design/design.md agents/explore-strict.md agents/execute-strict.md agents/review-strict.md settings.example.json setup/doctor.sh skills/start-rpi-cycle/SKILL.md setup/verify-setup.sh hooks/surface-model-policy.sh docs/ai-context/review-yield.md docs/ai-context/cross-family-review.md; do
+witness() { local f; for f in state.json state.schema.json README.md settings.json CLAUDE.md hooks/tests/cases.tsv skills/ui-design/design.md opencode-harness/skill/ui-design/design.md agents/explore-strict.md agents/execute-strict.md agents/review-strict.md settings.example.json setup/doctor.sh skills/start-rpi-cycle/SKILL.md setup/verify-setup.sh hooks/surface-model-policy.sh docs/ai-context/review-yield.md docs/ai-context/cross-family-review.md docs/ai-context/model-policy.md; do
               cksum "$SRC/$f" 2>/dev/null; done; }
 LIVE_BEFORE="$(witness)"
 
@@ -45,6 +45,12 @@ make_replica() {
   if [ -f "$SRC/opencode-harness/skill/start-rpi-cycle/SKILL.md" ]; then
     mkdir -p "$C/opencode-harness/skill/start-rpi-cycle"
     cp -p "$SRC/opencode-harness/skill/start-rpi-cycle/SKILL.md" "$C/opencode-harness/skill/start-rpi-cycle/SKILL.md"
+  fi
+  # C19: seal #50 확장 arm(§18.3)이 검사하는 미러 create-orchestrator — 미복제 시 그 arm 이 replica
+  # 에서 vacuous 가 된다(#43 design.md · C18 미러 start-rpi 복제와 동형 이유).
+  if [ -f "$SRC/opencode-harness/skill/create-orchestrator-skill/SKILL.md" ]; then
+    mkdir -p "$C/opencode-harness/skill/create-orchestrator-skill"
+    cp -p "$SRC/opencode-harness/skill/create-orchestrator-skill/SKILL.md" "$C/opencode-harness/skill/create-orchestrator-skill/SKILL.md"
   fi
   mkdir -p "$C/docs/ai-context"   # seal #37 (GAP-005) inspects docs/ai-context/scaffold-registry.md
   cp -a "$SRC/docs/ai-context/." "$C/docs/ai-context/" 2>/dev/null || true
@@ -141,6 +147,18 @@ mut_crossfamily_norm_flip() { perl -pi -e 's/증거 수집은 위임 가능/증�
 # 삭제하고 다른 언급(C18 신규 2곳)은 남긴다. bare 토큰 존재 검사였던 시절엔 그 잔존 언급이 정의행
 # 삭제를 가려 GREEN 이었다(격리-사본 실험 확정) — 필드 계약이 죽어도 seal 이 침묵하는 vacuity.
 mut_yield_cp_field_drop() { perl -ni -e 'print unless /^- layer-yield: \*\*고유 필수 필드\*\*/' "$1/skills/start-rpi-cycle/SKILL.md"; }
+# Mutator 20 — seal #50 **부정-단언 arm** 커버 (C19 spec §18.3): C18 은 이 arm 을 변이 미커버로 남겼다
+# (C18 plan :484 정직 부기). replica 정본 start-rpi-cycle 에 구 단정 '위임 X' 를 주입해 half-landing
+# /롤백-혼입 클래스를 재현한다 — 긍정 토큰은 전부 살아있으므로 부정-단언 arm 만이 이 변이를 잡는다.
+mut_old_assertion_revival() { printf '\n   sub-agent에 위임 X — 메인이 직접.\n' >> "$1/skills/start-rpi-cycle/SKILL.md"; }
+# Mutator 21 — seal #45 conjunct ① 앵커 경화의 RED (C19 spec §18.2 #14·G4): 광역 grep 은 표적 행 삭제를,
+# 행-선두 앵커는 모델-셀 변조(비고 셀의 opus 가 .* 을 타고 가림)를 각각 미탐했다(슬롯1 G4 재현).
+# 열-스코프 앵커로 경화된 뒤에만 이 변이(더 미묘한 쪽 = 모델-셀 opus→sonnet 변조)가 RED 가 된다.
+mut_mp_model_flip() { perl -pi -e 's/^(\| 구현 heavy [^|]*\| *execute-strict *\| *)\*\*opus\*\*/${1}**sonnet**/' "$1/docs/ai-context/model-policy.md"; }
+# Mutator 22 — seal #30 스키마 골격 conjunct 의 RED (C19 spec §18.2 #13·G5): #30 의 node 검사는
+# **스키마-구동**이라 required 배열을 [] 로 값-약화하면 state.json 이 무엇이든 통과한다(오라클 침묵 —
+# 라인 삭제보다 강한 변이: 리터럴 존재-검사까지 함께 우회). 내용-앵커 conjunct 결합 후에만 RED.
+mut_schema_required_empty() { perl -pi -e 's/"required":\s*\[[^\]]*\]/"required": []/g' "$1/state.schema.json"; }
 
 assert_seal_fires "state_schema"    mut_state_count_string "state.json schema 위반"
 assert_seal_fires "settings_parity" mut_settings_matcher   "settings/example harness-hook drift"
@@ -163,6 +181,9 @@ assert_seal_fires "review_fm_model_s45" mut_review_model  "역할×모델 매트
 assert_seal_fires "drafting_delegation_token" mut_drafting_token_drop "집필-위임 규약 토큰 drift"
 assert_seal_fires "crossfamily_norm_flip"     mut_crossfamily_norm_flip "집필-위임 규약 토큰 drift"
 assert_seal_fires "yield_cp_field_drop"       mut_yield_cp_field_drop   "layer-yield drift"
+assert_seal_fires "old_assertion_revival" mut_old_assertion_revival "집필-위임 규약 토큰 drift"
+assert_seal_fires "mp_model_flip"        mut_mp_model_flip        "역할×모델 매트릭스 봉인 붕괴"
+assert_seal_fires "schema_required_empty" mut_schema_required_empty "state.json schema 위반"
 
 # === Live immutability: witnessed files byte-identical (all mutation stayed in replicas) ===
 LIVE_AFTER="$(witness)"
