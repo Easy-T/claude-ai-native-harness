@@ -519,7 +519,7 @@ git push
 이 하네스는 `defaultMode: "bypassPermissions"` + `skipDangerousModePermissionPrompt: true`로 동작합니다 — **권한 프롬프트 없이 모든 안전장치를 커스텀 hook에 집중**시킨 단일-운영자(single trusted operator) 가정의 **의도된 트레이드오프**입니다(이 *운영본* `settings.json` 기준). 단, 배포 템플릿 `settings.example.json`은 `defaultMode: default`(프롬프트 ON)로 출하되고 install.sh가 이를 복사하므로 **신규 설치자는 default 자세로 시작** — bypass는 의식적 전환입니다.
 
 - 완화: `enforce-secret-scan`(시크릿 유출 차단) + `enforce-rpi-bash`(셸 코드작성 게이트).
-- 잔여 위험·CCS 프록시 의존·자격증명 처리·secret-scan 한계 → **[`SECURITY.md`](SECURITY.md)** 참조.
+- 잔여 위험·모델 트래픽 경로(네이티브 직결·브리지 실행)·자격증명 처리·secret-scan 한계 → **[`SECURITY.md`](SECURITY.md)** 참조.
 
 ---
 

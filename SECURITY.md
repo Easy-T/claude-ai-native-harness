@@ -27,8 +27,12 @@
   - git-ignore 처리되어 커밋되지 않음.
   - POSIX: `chmod 600`(소유자 전용) 적용. Windows(NTFS): chmod는 사실상 no-op → ACL/EFS로 별도 보호 권장.
   - `doctor.sh`가 권한이 느슨하면(POSIX) 경고한다.
-- 모델 트래픽은 로컬 CCS 프록시(`127.0.0.1:8317`) 경유. 이 프록시는 신뢰·가용성 단일 의존성이며
-  하네스 범위 밖에서 관리된다(키는 `ccs-internal-managed` placeholder, 실제 키는 프록시가 보유).
+- 모델 트래픽은 **Anthropic API 직결**이다(C20 컷오버, 2026-08-11 — `settings.json` `env` 에
+  `ANTHROPIC_BASE_URL` 부재로 확인). 과거의 로컬 CCS 프록시(`127.0.0.1:8317`) 경유는 **종료**됐다.
+  CCS 프로세스는 생존하나 모델 트래픽 경로가 아니며 statusline 의 rate-limit 조회에만 쓰인다.
+- **브리지 실행**(`bin/claude-ocx`)을 쓰는 경우에 한해 트래픽이 로컬 opencodex 프록시
+  (`127.0.0.1:10100`) 경유가 된다 — 그 경로의 신뢰·가용성은 하네스 범위 밖에서 관리되며,
+  프록시 미가동 시 `/healthz` 프로브가 **exit 1 로 실패**해 네이티브로 조용히 새지 않는다.
 
 ## `enforce-secret-scan` 가드
 - Write/Edit/NotebookEdit 콘텐츠와 Bash 명령에서 고-특이도 시크릿 패턴
