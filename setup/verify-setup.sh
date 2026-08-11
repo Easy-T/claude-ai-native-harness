@@ -612,6 +612,26 @@ else
 fi
 
 # 36. verify-setup 총 체크수 <-> README 선언 parity (GAP-009 M1 봉인, 런타임 자기-카운트):
+# 51. 모드팩 L3 정책 오라클 (C20 spec §19.3) — 프로세스-경계 정책 공백의 유일한 정적 지점.
+#     모델-정책 매처(Rule A/B/C)는 Agent|Workflow 한정이라 Orca 워커의 CLI --model 을 못 본다.
+MP_ORACLE="$HOME/.claude/setup/lib/modepack-oracle.sh"
+if [ -f "$MP_ORACLE" ]; then
+  # shellcheck source=/dev/null
+  . "$MP_ORACLE"
+  MP_OUT=$(modepack_oracle_scan "$HOME/.claude/modes" 2>/dev/null); MP_RC=$?
+  MP_TOTAL=$(printf '%s' "$MP_OUT" | grep -oE 'TOTAL=[0-9]+' | cut -d= -f2)
+  MP_DYN=$(printf '%s' "$MP_OUT" | grep -oE 'DYNAMIC=[0-9]+' | cut -d= -f2)
+  if [ "$MP_RC" -eq 0 ] && [ "${MP_TOTAL:-0}" -gt 0 ]; then
+    ok "모드팩 오라클: 워커 ${MP_TOTAL} (동적/면제 ${MP_DYN:-0} — 계수됨) 위반 0"
+  elif [ "${MP_TOTAL:-0}" -eq 0 ]; then
+    fail "모드팩 오라클: 검사 대상 0 (modes/*.json 부재 — vacuous seal 방지, spec §19.3)"
+  else
+    fail "모드팩 오라클: 정책 위반 검출 — review-only 워커가 floor max(작업자,opus) 미만"
+  fi
+else
+  fail "모드팩 오라클 스크립트 부재: setup/lib/modepack-oracle.sh"
+fi
+
 #     이 시점까지의 PASS+FAIL+1(이 체크 자신) == README "(현재 N PASS)" 선언. 체크 추가 시 README 미동기가 자동 FAIL.
 EXPECTED_TOTAL=$((PASS + FAIL + 1))
 README_DECL=$(grep -oE '현재 [0-9]+ PASS' "$HOME/.claude/README.md" 2>/dev/null | grep -oE '[0-9]+' | tail -1)
