@@ -144,7 +144,8 @@ case "$MID" in
        *Opus*|*Fable*)               CW=1000000 ;;  # CC under-reports both (Fable: live 368k/200k, v2.1)
        *GPT-5.6*|*gpt-5.6*)          CW=372000  ;;  # v2.2 Sol/Luna slots (CLIProxy 7.2.62-5 catalog)
        *GPT-5.5*|*gpt-5.5*)          CW=272000  ;;  # legacy custom slot (OpenAI std tier)
-       *Haiku*|*mini*|*Mini*)        CW=272000  ;;  # legacy haiku slot -> gpt-5.4-mini
+       *Haiku*)                      CW=0       ;;  # native Haiku 4.5 reports correctly (C20: CCS mini alias retired)
+       *mini*|*Mini*)                CW=272000  ;;  # legacy CCS custom slot -> gpt-5.4-mini
        *)                            CW=0       ;;  # real Sonnet reports correctly
      esac ;;
 esac
