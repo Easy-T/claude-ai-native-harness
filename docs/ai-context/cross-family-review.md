@@ -9,8 +9,8 @@
 교차 리뷰가 걸린 사이클의 Verify 단계에서:
 
 1. **경로 A — Codex CLI (우선; CCS 불필요·이식성 높음)**: `command -v codex` 존재 **+** `codex login status`가 로그인 표시 → 가용. 스모크 1회(저비용): `echo probe | codex exec --sandbox read-only --skip-git-repo-check "Reply: OK"`.
-2. **경로 B — CCS/CLIProxy 라우팅 (폴백; CCS 있는 PC만)**: A 불가 시 `claude --model "${ANTHROPIC_CUSTOM_MODEL_OPTION:-gpt-5.6-sol}" -p "Reply: OK" --output-format json` 1회 → **`modelUsage`에 `gpt-*` 키 존재 = 가용**. 모델명은 custom 슬롯 env가 SSOT(버전-무관 — GPT 세대 교체 시 settings.json env만 갱신; 폴백 리터럴은 env 부재 머신용). ★판별은 modelUsage만 — 응답 텍스트의 자가보고("나는 GPT다")는 불인정.
-3. **둘 다 불가 → SKIP + 사유 1줄** 기록("이 머신 GPT 경로 부재(codex CLI 미설치/미로그인·CCS 라우팅 없음)") — 기존 자가-표면화 관행.
+2. **경로 B — opencodex 브리지 (폴백; ocx 프록시 있는 PC만)**: A 불가 시 `OCX_MODEL=gpt-5.6-sol ~/.claude/bin/claude-ocx -p "Reply: OK" --output-format json` 1회 → **`modelUsage`에 `gpt-*` 키 존재 = 가용**. 모델명은 `OCX_MODEL` env가 SSOT(버전-무관 — GPT 세대 교체 시 이 값만 갱신; 무지정 시 `claude-ocx` 기본값 `gpt-5.6-sol`). ★A·B 인증 공통모드: ocx `openai` provider 는 `authMode=forward` 라 codex CLI 인증(`~/.codex/auth.json`)을 전달한다 — codex 로그인 만료 시 A·B 가 동시에 불가해지며, 그때 SKIP 사유는 "GPT 경로 부재"가 아니라 **"codex 인증 만료"** 여야 정직하다. ★판별은 modelUsage만 — 응답 텍스트의 자가보고("나는 GPT다")는 불인정.
+3. **둘 다 불가 → SKIP + 사유 1줄** 기록("이 머신 GPT 경로 부재(codex CLI 미설치/미로그인·opencodex 프록시 미가동)" 또는 "codex 인증 만료") — 기존 자가-표면화 관행.
 
 **★설치·로그인·인증·업데이트 시도 절대 금지** — 탐지는 read-only 확인만. 근거: ChatGPT OAuth 공유 시 reuse-detection 토큰 패밀리 전체 revoke 사고 이력·블라인드 `--update`/`--latest` 금지(바이너리 삭제 위험). codex-plugin-cc류의 자동 설치 제안(`/codex:setup`)도 이 금지에 걸린다.
 
@@ -27,7 +27,7 @@
     -o "$REVIEW_OUT" \
     "<refute-by-default 프롬프트>"
   ```
-  경로 B는 `cat <대상문서> | claude --model <gpt-모델> -p "<프롬프트>"` (제어 지점 없음 — 세션 effort 상속).
+  경로 B는 `cat <대상문서> | OCX_MODEL=<gpt-모델> ~/.claude/bin/claude-ocx -p "<프롬프트>"` (제어 지점 없음 — 세션 effort 상속).
 
 - **플래그별 근거 (전부 2026-07-27 라이브 실측 — 조합 완주 확인, 14,854 토큰)**:
   · `-m gpt-5.6-sol` — **사용자 확정(2026-07-27): codex GPT는 앞으로도 최상위 sol 고정**(codex 토큰 여유). 이 고정이 아래 `ultra`/`max` 계열의 모델별 비호환 리스크를 소멸시키는 전제다. **sol 이외 슬롯으로 바꾸려면 이 절 전체 재검증 필수**(luna=ultra 침묵 강등·5.5/5.4=max/ultra 400).
@@ -78,6 +78,6 @@
 ## 4. 실증 근거 (2026-07-18, 원 검증 머신 실측 — goal 문서는 gitignored라 여기 영구화)
 
 - **경로 A**: `codex` 0.144.1 npm 전역 + `codex login status`="Logged in using ChatGPT". `codex exec --sandbox read-only --skip-git-repo-check` stdin 파이프 정상 응답. 첫 시도가 신뢰 디렉터리 밖 거부 → `--skip-git-repo-check`로 해소(실측).
-- **경로 B**: `claude --model gpt-5.6-sol -p` 헤드리스가 CLIProxy Plus(핀 7.2.62-5) 경유 GPT 응답, `modelUsage`에 `gpt-*` 확인. 과거 실패 모드 2종 소멸: E2BIG(→stdin)·CLIProxy 400 "reasoning"(→현 핀).
+- **경로 B**: (C11 당시) `claude --model gpt-5.6-sol -p` 헤드리스가 CLIProxy Plus(핀 7.2.62-5) 경유 GPT 응답, `modelUsage`에 `gpt-*` 확인. **C20(2026-08-11) 캐리어 이관 후 실측**: `OCX_MODEL=gpt-5.6-sol claude-ocx -p --output-format json` → `modelUsage` 키 `gpt-5.6-sol`·`is_error:false`(판별자 불변). 과거 실패 모드 2종 소멸: E2BIG(→stdin)·CLIProxy 400 "reasoning"(→현 핀).
 - **가치 실증**: design.md v4에 대한 GPT-5.6 Sol 1회 리뷰(경로 B)가 Claude 검증 패스 4회(v2 Distill·v3 Gate R/P·v4 Fable 재감사)가 전부 놓친 **진짜 결함 10건** 적발 + 오독 4건 트리아지 기각 — 자기채점 편향 중화 목적 달성 실증.
 - C0(2026-07-13) 시점 "ccs 3프로필 전패 → 교차패밀리 불가" 인식은 이 실증으로 **소멸** — 당시 실패는 프로필 부재/구 핀 400/대화형 인증이었고, 현 규약은 그 3개를 전부 우회한다(codex CLI 직접·현 핀·비대화형).

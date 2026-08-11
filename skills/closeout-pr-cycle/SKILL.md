@@ -158,7 +158,7 @@ review-strict 결과를 사용자에게 구조화해서 전달:
 
 **교차패밀리 리뷰 분기 (GAP-006 규약 — `docs/ai-context/cross-family-review.md`가 SSOT)**:
 senior review 후, 고-스테이크 사이클(하네스 거버넌스 변경·루브릭 재채점·spec 변경)이면 교차패밀리(GPT) 적대 리뷰를 시도한다:
-1. **probe**: runbook §1 순서(A: `command -v codex`+`codex login status` → B: `claude --model <gpt-모델> -p --output-format json`의 `modelUsage`에 `gpt-*`). 설치/로그인 시도 절대 금지.
+1. **probe**: runbook §1 순서(A: `command -v codex`+`codex login status` → B: `OCX_MODEL=<gpt-모델> ~/.claude/bin/claude-ocx -p --output-format json`의 `modelUsage`에 `gpt-*`). 설치/로그인 시도 절대 금지.
 2. **가용 시**: runbook §2 프로토콜로 **슬롯 2**(Closeout, 코드 diff — 사이클당 2슬롯 상한의 둘째; 슬롯 1은 Gate P 직후 spec delta+plan 대상, cross-family-review.md §2) 실행(stdin 파이프·read-only·refute-by-default·원문 인용 강제) → 발견은 **2단계 트리아지**(증거 수집 opus 위임 가능·최종 판정 메인 — cross-family-review.md §2, spec §17.2)(그대로 편입 금지) → REAL 발견은 Critical/Important 목록에 병합.
    ※ **판정 전 각 발견의 대조 증거(원문 인용 실재·실측 결과) 전문 열람 의무** — 권고 무열람 일괄 승인 금지(§17.1 통독 의무 동형). 권고를 뒤집을 자유가 판정 주권의 내용이며, 열람 없이는 그 자유가 행사되지 않는다.
 3. **불가 시**: SKIP + 사유 1줄 기록(비차단 — advisory fail-open).
