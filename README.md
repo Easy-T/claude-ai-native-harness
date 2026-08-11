@@ -317,7 +317,7 @@ bash ~/.claude/setup/doctor.sh
 │       ├── SKILL.md                      5-Phase (Load→Concept→Apply→Verify→Visual QA)
 │       └── design.md                     디자인 토큰 + Anti-Slop floor(§6) + Craft Ceiling(§9–§15)
 │   ※ 디스크에는 git-미추적 skill 2종이 추가로 존재 가능: grill-with-docs(doctor 자동설치·gitignored),
-│      ccs-delegation(로컬 정션·비추적 — CCS CLI 위임용, 하네스 게이트와 무관)
+│      ccs-delegation(git 추적 심링크 mode 120000 — CCS CLI 위임용, 하네스 게이트와 무관)
 │
 │
 │ (생성된 프로젝트 내)
@@ -519,6 +519,35 @@ git push
 이 하네스는 `defaultMode: "bypassPermissions"` + `skipDangerousModePermissionPrompt: true`로 동작합니다 — **권한 프롬프트 없이 모든 안전장치를 커스텀 hook에 집중**시킨 단일-운영자(single trusted operator) 가정의 **의도된 트레이드오프**입니다(이 *운영본* `settings.json` 기준). 단, 배포 템플릿 `settings.example.json`은 `defaultMode: default`(프롬프트 ON)로 출하되고 install.sh가 이를 복사하므로 **신규 설치자는 default 자세로 시작** — bypass는 의식적 전환입니다.
 
 - 완화: `enforce-secret-scan`(시크릿 유출 차단) + `enforce-rpi-bash`(셸 코드작성 게이트).
+## 브리지 실행 (선택) — 하네스는 유지, 추론만 다른 모델
+
+`bin/claude-ocx` 는 **Claude Code 프로세스로 실행하되 추론만 비-Anthropic 모델에 위임**한다.
+훅·CLAUDE.md·RPI 게이트가 그대로 발화하므로, 교차패밀리 리뷰(독립성 목적으로 하네스 *밖*에서
+별도 CLI 를 부르는 것)와는 목적이 반대다.
+
+**하네스는 외부 도구를 설치하지 않는다**(의식적 정책 — 인증 공유 사고 이력, `SECURITY.md`).
+아래는 *권고 순서*이며 각 단계는 사용자가 직접 수행한다.
+
+1. **codex CLI 로그인** — opencodex 의 `openai` provider 는 `authMode=forward` 라
+   codex 인증(`~/.codex/auth.json`)을 전달한다. **이 순서를 뒤집으면** provider 가
+   설정된 것처럼 보이는데 401 이 난다.
+2. **opencodex 설치 + 서비스 등록** — 재부팅 생존이 필요하면 서비스로 등록한다.
+3. **확인** — `ocx status` 로 포트(기본 10100)와 provider 를 본다.
+4. **사용** — `~/.claude/bin/claude-ocx -p "Reply: OK"` · 모델은 `OCX_MODEL` 로 지정
+   (기본 `gpt-5.6-sol`).
+
+**설계 불변식 3가지**
+
+| # | 불변식 | 왜 |
+|---|---|---|
+| ① | CC **프로세스**로 실행 | 훅·게이트가 그대로 적용된다 |
+| ② | 네이티브 별칭 `unset`(`ANTHROPIC_MODEL`·`ANTHROPIC_DEFAULT_*`) | 프록시가 모르는 별칭이 남으면 라우팅이 깨진다 |
+| ③ | `/healthz` 실패 시 **exit 1** | 조용히 네이티브로 새면 "GPT 로 돌렸다"가 거짓이 된다 |
+
+**Windows 런처**(`bin/claude-ocx.cmd`) 주의 3가지 — PowerShell/cmd 의 bare `bash` 는 WSL 런처로
+해석되므로 Git Bash 절대경로를 쓰고, npm `claude` shim 이 coreutils 를 필요로 하므로 **로그인 셸
+`-lc`** 로 부르며, `.cmd` 주석은 **영문만**(한글은 mojibake 로 깨져 명령으로 실행된다).
+
 - 잔여 위험·모델 트래픽 경로(네이티브 직결·브리지 실행)·자격증명 처리·secret-scan 한계 → **[`SECURITY.md`](SECURITY.md)** 참조.
 
 ---

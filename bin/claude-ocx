@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# claude-ocx: Claude Code 프로세스로 실행하되 추론은 opencodex 경유 모델에 위임.
+#   목적 = 하네스(훅·CLAUDE.md·RPI 게이트)는 그대로 적용하면서 모델만 교체한다.
+#   사용: claude-ocx [claude args...]        # OCX_MODEL 로 모델 지정, 기본 gpt-5.6-sol
+#   전제: opencodex 프록시(127.0.0.1:10100)가 살아 있어야 함 (ocx status 로 확인).
+set -u
+
+: "${OCX_BASE_URL:=http://127.0.0.1:10100}"
+: "${OCX_MODEL:=gpt-5.6-sol}"
+
+# 프록시 생존 확인 — 죽어 있으면 조용히 네이티브로 새는 것보다 즉시 실패가 낫다.
+if ! curl -s --max-time 5 "$OCX_BASE_URL/healthz" >/dev/null 2>&1; then
+  echo "claude-ocx: opencodex 프록시에 도달 불가 ($OCX_BASE_URL) — 'ocx status' 확인" >&2
+  exit 1
+fi
+
+# 네이티브 Claude 전용 변수는 비운다 — 프록시가 모르는 별칭이 섞이면 라우팅이 깨진다.
+export ANTHROPIC_BASE_URL="$OCX_BASE_URL"
+export ANTHROPIC_AUTH_TOKEN="ocx-bridge"
+unset ANTHROPIC_MODEL ANTHROPIC_DEFAULT_OPUS_MODEL ANTHROPIC_DEFAULT_SONNET_MODEL \
+      ANTHROPIC_DEFAULT_HAIKU_MODEL ANTHROPIC_DEFAULT_FABLE_MODEL \
+      ANTHROPIC_CUSTOM_MODEL_OPTION
+
+exec claude --model "$OCX_MODEL" "$@"
