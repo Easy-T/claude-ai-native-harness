@@ -57,7 +57,7 @@
 
 **배경:** `:147` 이 `*Haiku*` 를 CW=272000 으로 잡는다. 이는 CCS 시절 `gpt-5.4-mini` 슬롯 별칭 때문이었다. 네이티브 전환 후 `ANTHROPIC_DEFAULT_HAIKU_MODEL=claude-haiku-4-5-20251001` 의 실제 창은 **200k** 이고, `statusline.sh` 의 FLOOR 로직(`if (( CW > 0 && SIZE < CW )); then SIZE=$CW`)이 표기를 272k 로 부풀린다.
 
-- [ ] **Step 1: RED — 현재 오표기 재현**
+- [x] **Step 1: RED — 현재 오표기 재현**
 
 ```bash
 cd ~/.claude
@@ -66,7 +66,7 @@ printf '{"model":{"display_name":"Haiku 4.5"},"workspace":{"current_dir":"%s"},"
 ```
 Expected: `0k/272k` 를 포함(결함 재현). `272k` 가 안 나오면 이미 정정된 것이니 중단하고 보고.
 
-- [ ] **Step 2: 정정 — `*Haiku*` 를 별도 분기로 분리**
+- [x] **Step 2: 정정 — `*Haiku*` 를 별도 분기로 분리**
 
 `:147` 을 아래로 치환(python 바이트 치환):
 
@@ -84,7 +84,7 @@ print('ok')
 "
 ```
 
-- [ ] **Step 3: GREEN — 재실행**
+- [x] **Step 3: GREEN — 재실행**
 
 ```bash
 printf '{"model":{"display_name":"Haiku 4.5"},"workspace":{"current_dir":"%s"},"session_id":"t1"}' "$HOME/.claude" \
@@ -92,18 +92,18 @@ printf '{"model":{"display_name":"Haiku 4.5"},"workspace":{"current_dir":"%s"},"
 ```
 Expected: `272k` **미포함**(CW=0 → CC 자체 보고값 사용).
 
-- [ ] **Step 4: 무회귀 — GPT/Opus 분기 불변 확인**
+- [x] **Step 4: 무회귀 — GPT/Opus 분기 불변 확인**
 
 ```bash
 for m in "GPT-5.6 Sol" "Opus 5" "gpt-5.4-mini"; do
   printf '{"model":{"display_name":"%s"},"workspace":{"current_dir":"%s"},"session_id":"t1"}' "$m" "$HOME/.claude" \
-    | bash statusline.sh | grep -oE '[0-9]+k/[0-9]+k' | sed "s/^/  $m → /"
+    | bash statusline.sh | grep -oE '[0-9]+[kM]/[0-9]+[kM]' | sed "s/^/  $m → /"
 done
 bash setup/verify-setup.sh 2>&1 | tail -1
 ```
 Expected: GPT-5.6→`372k`, Opus→`1000k`(=1m 표기 가능), mini→`272k` 유지. verify-setup `FAIL=0`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add statusline.sh
