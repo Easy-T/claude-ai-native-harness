@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Status:** active
+**Status:** completed
 **RPI-Cycle:** 71
 **Started:** 2026-08-11
 
@@ -124,7 +124,7 @@ git commit -m "fix(c20): statusline Haiku 창 272k→네이티브 자체보고 (
 
 **배경:** 두 사이트가 "모델 트래픽은 CCS 프록시 경유"를 **현행 사실**로 기술한다. 컷오버 후 거짓이다(`settings.json` env 에 `ANTHROPIC_BASE_URL` 부재 — spec §19.0 ⓐ). CCS 프로세스 자체는 생존하나 **모델 트래픽 경로가 아니다**(statusline rate-limit 조회 용도로만 남음).
 
-- [ ] **Step 1: RED — 거짓 서술 실재 확인**
+- [x] **Step 1: RED — 거짓 서술 실재 확인**
 
 ```bash
 cd ~/.claude
@@ -134,7 +134,7 @@ node -e 'const j=require(process.env.HOME+"/.claude/settings.json"); console.log
 ```
 Expected: SECURITY.md·README.md 각 1건 매칭 + `false`(env 부재 = 서술이 거짓임의 근거).
 
-- [ ] **Step 2: SECURITY.md 정정**
+- [x] **Step 2: SECURITY.md 정정**
 
 ```bash
 python -c "
@@ -153,7 +153,7 @@ io.open(p,'wb').write(b.replace(old,new)); print('ok')
 "
 ```
 
-- [ ] **Step 3: README.md:522 정정**
+- [x] **Step 3: README.md:522 정정**
 
 ```bash
 python -c "
@@ -167,7 +167,7 @@ io.open(p,'wb').write(b.replace(old,new)); print('ok')
 "
 ```
 
-- [ ] **Step 4: GREEN — 잔존 0 확인 + 무회귀**
+- [x] **Step 4: GREEN — 잔존 0 확인 + 무회귀**
 
 ```bash
 grep -n "CCS 프록시 의존" README.md; echo "README 잔존: $(grep -c 'CCS 프록시 의존' README.md)"
@@ -176,7 +176,7 @@ bash setup/verify-setup.sh 2>&1 | tail -1
 ```
 Expected: 둘 다 `0`. verify-setup `FAIL=0`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add SECURITY.md README.md
@@ -198,7 +198,7 @@ git commit -m "docs(c20): 모델 트래픽 경로 서술을 네이티브 직결�
 
 **배경:** spec §19.2. 경로 B 는 `claude --model "${ANTHROPIC_CUSTOM_MODEL_OPTION:-gpt-5.6-sol}"` 로 CCS 라우팅을 전제하는데 env 가 부재해 **다음 세션부터 무효**다. 캐리어를 opencodex 브리지로 이관한다. **판별자(`modelUsage` 에 `gpt-*`)는 불변.**
 
-- [ ] **Step 1: RED — 전파 대상 5사이트 실재 확인**
+- [x] **Step 1: RED — 전파 대상 5사이트 실재 확인**
 
 ```bash
 cd ~/.claude
@@ -209,7 +209,7 @@ grep -rn -e ANTHROPIC_CUSTOM_MODEL_OPTION -e 'claude --model' \
 ```
 Expected: 정확히 5행(`cross-family-review.md` :12/:30/:81 · `SKILL.md` :161 · 미러 :166).
 
-- [ ] **Step 2: cross-family-review.md :12 이관**
+- [x] **Step 2: cross-family-review.md :12 이관**
 
 ```bash
 python -c "
@@ -223,7 +223,7 @@ io.open(p,'wb').write(b.replace(old,new)); print('ok :12')
 "
 ```
 
-- [ ] **Step 3: :12 잔여 문언(캐리어 설명)·:30·:81 이관**
+- [x] **Step 3: :12 잔여 문언(캐리어 설명)·:30·:81 이관**
 
 ```bash
 python - <<'PY'
@@ -252,7 +252,7 @@ io.open(p,'wb').write(b); print('ok 4 subs')
 PY
 ```
 
-- [ ] **Step 4: SKILL.md 정본 + 미러 이관 (동일 문자열 — 2파일)**
+- [x] **Step 4: SKILL.md 정본 + 미러 이관 (동일 문자열 — 2파일)**
 
 ```bash
 python - <<'PY'
@@ -266,7 +266,7 @@ for p in ['skills/closeout-pr-cycle/SKILL.md','opencode-harness/skill/closeout-p
 PY
 ```
 
-- [ ] **Step 5: GREEN — 전파 완결 확인**
+- [x] **Step 5: GREEN — 전파 완결 확인**
 
 ```bash
 # 기계 판정: 허용 사이트(:81 역사 인용 1건)를 제외한 잔존이 0 이어야 한다.
@@ -283,7 +283,7 @@ bash setup/verify-setup.sh 2>&1 | tail -1
 ```
 Expected: `허용분 제외 잔존: 0` · `:81 역사 인용: 1` · verify-setup `FAIL=0`. 어느 하나라도 어긋나면 FAIL(눈 판정 아님).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add docs/ai-context/cross-family-review.md skills/closeout-pr-cycle/SKILL.md opencode-harness/skill/closeout-pr-cycle/SKILL.md
@@ -306,7 +306,7 @@ git commit -m "fix(c20): 교차패밀리 경로 B 캐리어 CCS→opencodex 이�
 
 **배경:** spec §19.1. 브리지는 현재 미추적이라 신규 환경에서 재현 불가. 자동 설치는 금지(`cross-family-review.md:15`)이므로 **자산 동봉 + 안내 문서**로 정규화한다. 또 `README.md:320` 이 ccs-delegation 을 "비추적"이라 하는데 실제로는 추적 심링크(mode 120000)다.
 
-- [ ] **Step 1: RED — 현재 미추적/거짓 서술 확인**
+- [x] **Step 1: RED — 현재 미추적/거짓 서술 확인**
 
 ```bash
 cd ~/.claude
@@ -316,7 +316,7 @@ grep -n "비추적" README.md | head -3
 ```
 Expected: `0` / `120000 … skills/ccs-delegation` / `:320` 매칭(둘이 모순 = T10).
 
-- [ ] **Step 2: 브리지 자산 추적 + 실행권한**
+- [x] **Step 2: 브리지 자산 추적 + 실행권한**
 
 ```bash
 chmod +x bin/claude-ocx
@@ -325,7 +325,7 @@ git ls-files -s bin/
 ```
 Expected: 2행. `bin/claude-ocx` 는 `100755`.
 
-- [ ] **Step 3: install.sh — REQUIRED 배열에 브리지 추가 + STEP 안내**
+- [x] **Step 3: install.sh — REQUIRED 배열에 브리지 추가 + STEP 안내**
 
 ```bash
 python - <<'PY'
@@ -353,7 +353,7 @@ PY
 bash -n setup/install.sh && echo "syntax OK"
 ```
 
-- [ ] **Step 4: README — T10 정정 + 브리지 절 신설**
+- [x] **Step 4: README — T10 정정 + 브리지 절 신설**
 
 ```bash
 python - <<'PY'
@@ -401,7 +401,7 @@ io.open(p,'wb').write(b.replace(anchor, section+anchor)); print('ok')
 PY
 ```
 
-- [ ] **Step 5: GREEN — 추적·구문·서술 확인**
+- [x] **Step 5: GREEN — 추적·구문·서술 확인**
 
 ```bash
 echo "추적 자산: $(git ls-files bin/ | wc -l)"                    # 2 기대
@@ -416,7 +416,7 @@ bash setup/verify-setup.sh 2>&1 | tail -1
 ```
 Expected: `추적 자산: 2` · `T10 잔존: 0` · `브리지 절: 1` · syntax OK · **`외부도구 실행 줄: 0`** · verify-setup `FAIL=0`. 모두 기계 판정이며 하나라도 어긋나면 FAIL.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add bin/claude-ocx bin/claude-ocx.cmd setup/install.sh README.md
@@ -436,7 +436,7 @@ git commit -m "feat(c20): 브리지 실행 자산 git 추적 + 설치 안내 정
 
 **배경:** spec §19.3. 오라클만 착륙하면 검사 대상 0 = vacuous. 모드팩 1개를 동시 착륙시킨다. 워커 커맨드의 모델 티어가 오라클 검사 표적이다.
 
-- [ ] **Step 1: 모드팩 작성**
+- [x] **Step 1: 모드팩 작성**
 
 ```bash
 mkdir -p modes
@@ -471,7 +471,7 @@ JSON
 node -e 'JSON.parse(require("fs").readFileSync("modes/orca-rpi-implement.json","utf8")); console.log("JSON valid")'
 ```
 
-- [ ] **Step 2: 스키마 required 충족 확인**
+- [x] **Step 2: 스키마 required 충족 확인**
 
 ```bash
 node - <<'JS'
@@ -488,7 +488,7 @@ JS
 ```
 Expected: `none` / `none`, exit 0.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add modes/orca-rpi-implement.json
@@ -510,7 +510,7 @@ git commit -m "feat(c20): Orca 모드팩 rpi-implement 착륙 (오라클 검사 
 
 **정책:** `ownership: "review-only"` 워커는 판단-게이트이므로 floor = `max(작업자, opus)`. 이 모드팩에선 작업자가 opus 이므로 검증자도 opus 이상이어야 한다. sonnet/haiku/fable 이면 위반.
 
-- [ ] **Step 1: RED — 오라클 부재 확인 후 위반 픽스처 준비**
+- [x] **Step 1: RED — 오라클 부재 확인 후 위반 픽스처 준비**
 
 ```bash
 cd ~/.claude
@@ -518,7 +518,7 @@ cd ~/.claude
 mkdir -p /tmp/mp-red && cp modes/orca-rpi-implement.json /tmp/mp-red/ 2>/dev/null || true
 ```
 
-- [ ] **Step 2: 오라클 구현**
+- [x] **Step 2: 오라클 구현**
 
 ```bash
 mkdir -p setup/lib
@@ -591,7 +591,7 @@ SH
 bash -n setup/lib/modepack-oracle.sh && echo "syntax OK"
 ```
 
-- [ ] **Step 3: GREEN — 정상 모드팩은 위반 0**
+- [x] **Step 3: GREEN — 정상 모드팩은 위반 0**
 
 ```bash
 source setup/lib/modepack-oracle.sh
@@ -599,7 +599,7 @@ modepack_oracle_scan "$HOME/.claude/modes"; echo "exit=$?"
 ```
 Expected: `TOTAL=2 LITERAL=2 DYNAMIC=0 VIOLATION=0`, `exit=0`.
 
-- [ ] **Step 4: RED 실증 — 판별력 확인(위반 픽스처)**
+- [x] **Step 4: RED 실증 — 판별력 확인(위반 픽스처)**
 
 ```bash
 mkdir -p /tmp/mp-bad && python -c "
@@ -614,7 +614,7 @@ modepack_oracle_scan /tmp/mp-bad; echo "exit=$?"
 Expected: `VIOLATION=1`, `exit=1`, stderr 에 `review-only 인데 sonnet(tier 2) < floor 3`.
 **이 RED 가 안 나오면 오라클이 vacuous 하다 — 중단하고 보고.**
 
-- [ ] **Step 5: 동적 계수 확인(면제=침묵 아님)**
+- [x] **Step 5: 동적 계수 확인(면제=침묵 아님)**
 
 ```bash
 mkdir -p /tmp/mp-dyn && python -c "
@@ -628,7 +628,7 @@ rm -rf /tmp/mp-bad /tmp/mp-dyn /tmp/mp-red
 ```
 Expected: `DYNAMIC=1`(계수됨), `VIOLATION=0`, `exit=0`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add setup/lib/modepack-oracle.sh
@@ -649,7 +649,7 @@ git commit -m "feat(c20): 모드팩 L3 정책 오라클 (3값 계약·review-onl
 
 **배경:** 카운트 seal(`verify-setup.sh` 말미)이 `README "현재 N PASS"` 와 런타임 실측 일치를 강제한다. seal 추가 시 README 동기가 필수다.
 
-- [ ] **Step 1: 신규 seal 번호 실측 발급**
+- [x] **Step 1: 신규 seal 번호 실측 발급**
 
 ```bash
 cd ~/.claude
@@ -658,7 +658,7 @@ grep -oE '^# [0-9]+\.' setup/verify-setup.sh | grep -oE '[0-9]+' | sort -n | tai
 ```
 → 출력값 +1 이 신규 번호. 아래 `<N>` 을 그 값으로 치환한다(spec §6: closeout 직전 실측 발급).
 
-- [ ] **Step 2: seal 추가**
+- [x] **Step 2: seal 추가**
 
 ```bash
 python - <<'PY'
@@ -695,14 +695,14 @@ PY
 bash -n setup/verify-setup.sh && echo "syntax OK"
 ```
 
-- [ ] **Step 3: RED — README 미동기로 카운트 seal 발화 확인**
+- [x] **Step 3: RED — README 미동기로 카운트 seal 발화 확인**
 
 ```bash
 bash setup/verify-setup.sh 2>&1 | tail -3
 ```
 Expected: **카운트 drift FAIL** 1건(`README 선언(88) != 런타임 실측(89)`) — 이것이 seal 이 살아있다는 증거. FAIL=1.
 
-- [ ] **Step 4: GREEN — README 동기**
+- [x] **Step 4: GREEN — README 동기**
 
 ```bash
 python - <<'PY'
@@ -721,7 +721,7 @@ bash setup/verify-setup.sh 2>&1 | tail -1
 ```
 Expected: `verify-setup: PASS=89 FAIL=0`(정확한 수는 Step 1 실측에 따름).
 
-- [ ] **Step 5: 전 스위트 회귀 검증**
+- [x] **Step 5: 전 스위트 회귀 검증**
 
 ```bash
 bash hooks/tests/run-all.sh 2>&1 | tail -3
@@ -730,7 +730,7 @@ bash setup/tests/seal-regression.test.sh 2>&1 | tail -3
 Expected: run-all `291/291`(불변 — hooks/ 무터치) · seal-regression `26/0`.
 ※ seal-regression 은 `setup/` diff 가 있으므로 **full 실행 필수**(spec §17.5 ③).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add setup/verify-setup.sh README.md
