@@ -8,6 +8,13 @@
 #
 # 3값 계약(hooks/lib/workflow-spawns.js 승계): 리터럴 / `-`=부재 / `*`=동적.
 # 면제는 안전 인증이 아니라 판정 불가의 정직 표기 → 계수해서 보고한다.
+#
+# ★소비자 의무: 이 함수는 **검사 대상 0(TOTAL=0)에도 exit 0** 을 낸다 — 계수기이지
+#   판정자가 아니기 때문이다. 따라서 "위반 0"과 "대상 0"이 exit code 로는 구분되지 않는다.
+#   **호출자가 TOTAL=0 을 반드시 처분해야 한다**(vacuous 방지). verify-setup seal 이 그
+#   의무를 이행하는 선례다(`MP_TOTAL -eq 0 → fail`). 이 구분을 빠뜨리면 픽스처 생성 실패·
+#   디렉터리 오인이 "통과"로 읽힌다 — C20 T6 실사고(bash 가 만든 /tmp 를 네이티브 python 이
+#   C:	mp 로 해석 → 빈 디렉터리 스캔 → VIOLATION=0 exit=0).
 
 modepack_oracle_scan() {
   local dir="${1:-$HOME/.claude/modes}"
