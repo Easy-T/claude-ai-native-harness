@@ -19,6 +19,21 @@ export ANTHROPIC_BASE_URL="$OCX_BASE_URL"
 export ANTHROPIC_AUTH_TOKEN="ocx-bridge"
 unset ANTHROPIC_MODEL ANTHROPIC_DEFAULT_OPUS_MODEL ANTHROPIC_DEFAULT_SONNET_MODEL \
       ANTHROPIC_DEFAULT_HAIKU_MODEL ANTHROPIC_DEFAULT_FABLE_MODEL \
-      ANTHROPIC_CUSTOM_MODEL_OPTION
+      ANTHROPIC_CUSTOM_MODEL_OPTION ANTHROPIC_API_KEY
+# ★API_KEY 도 비운다 — BASE_URL 이 로컬 프록시를 가리키는 상태에서 진짜 Anthropic 키를
+#   들고 가면 그 키가 서드파티 프로세스로 전송된다(C20 senior I6). 브리지는
+#   ANTHROPIC_AUTH_TOKEN 만으로 충분하다.
+
+# ★인자 축 차단 — claude CLI 는 --model 이 여러 번이면 마지막을 채택한다(C20 실측).
+#   "$@" 가 뒤에 붙으므로 사용자가 --model 을 주면 OCX_MODEL 이 조용히 무력화되고
+#   프록시가 모르는 네이티브 별칭이 실려 라우팅이 깨진다 — env 축만 막고 인자 축을
+#   열어두면 브리지 계약이 반쪽이다(senior I5).
+for a in "$@"; do
+  case "$a" in
+    --model|--model=*)
+      echo "claude-ocx: --model 은 인자로 줄 수 없습니다 — OCX_MODEL 로 지정하십시오" >&2
+      exit 2 ;;
+  esac
+done
 
 exec claude --model "$OCX_MODEL" "$@"

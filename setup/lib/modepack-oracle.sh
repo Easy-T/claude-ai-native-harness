@@ -57,9 +57,13 @@ function tierOf(cmd){
   if(!cmd.trim()) return {kind:'absent'};
   // 문자 클래스에 $ { } % 포함 — 없으면 `--model $VAR` 가 매칭 자체에 실패해
   // absent 로 떨어지고 아래 동적 판정이 죽은 코드가 된다(3값 계약 붕괴).
-  const mm=cmd.match(/--model[= ]+"?([A-Za-z0-9._${}%()-]+)"?/);
-  if(!mm) return {kind:'absent'};                       // `-` : 선언 부재(상속)
-  const raw=mm[1].toLowerCase();
+  // ★last-wins: claude CLI 는 --model 이 여러 번이면 **마지막**을 채택한다(C20 실측).
+  //   첫 매치를 읽으면 `--model opus --model haiku` 가 opus 로 판정돼 실제 haiku 실행을
+  //   통과시킨다 — 면제가 아니라 *틀린 양성*이라 3값 계약으로 방어되지 않는다.
+  //   체이닝(`A && B`·`;`·`||`)도 같은 근원이라 마지막 선언을 채택해 보수적으로 본다.
+  const all=[...cmd.matchAll(/--model[= ]+"?([A-Za-z0-9._${}%()-]+)"?/g)];
+  if(!all.length) return {kind:'absent'};               // `-` : 선언 부재(상속)
+  const raw=all[all.length-1][1].toLowerCase();
   if(/[${}%]/.test(raw)) return {kind:'dynamic'};       // `*` : 셸/env 확장
   for(const k of Object.keys(TIER)) if(raw.includes(k)) return {kind:'literal', model:k};
   return {kind:'dynamic'};                              // 미지 리터럴 = 판정 불가

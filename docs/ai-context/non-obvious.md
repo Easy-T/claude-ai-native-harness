@@ -62,3 +62,58 @@
 - **재현 픽스처**: `bash -c 'cd ~/.claude && git ls-tree HEAD skills/ | grep ccs'` →
   `120000 blob …` (모드 120000 = 심링크)가 나오면 그 경로의 파일 grep 은 리포 증거가 아니다.
   대조군: `git ls-files skills/ccs-delegation/` → **빈 출력**(추적 파일 0개).
+
+## 3. bash 가 만든 경로를 네이티브 인터프리터에 **소스 보간**하면 조용히 다른 위치를 가리킨다
+
+- **관측 (2026-08-11, C20 Task 6)**: 오라클 판별력 실증(RED)을 위해
+  `mkdir -p /tmp/mp-bad && python -c "... io.open('/tmp/mp-bad/bad.json','w') ..."` 를 실행했다.
+  bash 는 MSYS 경로 공간에 디렉터리를 만들었고 **네이티브 python 은 같은 문자열을 `C:	mp\...` 로
+  해석**해 `FileNotFoundError` 로 죽었다. 그런데 다음 줄의 오라클이 **빈 디렉터리**를 스캔해
+  `TOTAL=0 LITERAL=0 DYNAMIC=0 VIOLATION=0` + `exit=0` 을 냈다 —
+  **검사가 실패했는데 출력은 "위반 없음 통과"** 였다(plan 의 기대값 `VIOLATION=1` 이 포착).
+- **판별자는 디렉터리 선택이 아니라 경로 전달 방식이다** (실측):
+  `mktemp -d` 를 써도 소스 보간하면 깨진다. `$HOME/.claude/` 하위도 `/c/Users/...` 로 보간되면 동일.
+  ```
+  T=$(mktemp -d)                          # /tmp/tmp.7KIQD1czqn
+  python -c "...isdir('$T')"    → False   abspath=C:	mp	mp.7KIQD1czqn   # 소스 보간
+  python -c "...sys.argv[1]" "$T" → True                                    # argv 전달
+  ```
+- **5 Whys**:
+  1. 왜 RED 실증이 거짓 통과로 보였나? → "대상 0"과 "위반 0"이 **같은 exit code(0)** 라 형태적으로
+     구분되지 않았다.
+  2. 왜 픽스처가 생성되지 않았나? → 경로 문자열을 bash 가 만들고 **네이티브 python 에 소스 보간**했다.
+  3. 왜 그 형태가 plan 에 들어갔나? → 이 기전의 선행 기록(spec §13.10 C14-G · `setup/doctor.sh:361` ·
+     다수 plan 의 "node 금지 — MSYS 미독" 보일러플레이트)을 **참조하지 않았다**. 규약은 존재했으나
+     읽히지 않았다.
+  4. 왜 존재하는 규약이 읽히지 않았나? → 그 규약이 사는 위치가 전부 **비강제 표면**이다 — 코드 주석
+     1줄·spec 산문 1개 절·개별 plan 보일러플레이트. 셋 다 새 plan 을 쓸 때 자동으로 눈에 들어오는
+     자리가 아니며, **Phase R 이 로드하는 이 파일에는 없었다**.
+  5. 왜 비강제 표면에만 있었나? → **실측된 환경 제약을 강제 표면으로 승격시키는 경로가 하네스에
+     없다.** C14-G 는 제약을 발견하고 그 자리에서 고쳤지만(doctor.sh 주석), 발견을 *다음 사이클이
+     반드시 마주치는 자리*로 옮기는 단계가 절차에 없다 — C14-G 가 **코드 버그 수정**으로 처리돼
+     §4 등록 경로를 타지 않았기 때문이다. ← **시스템 원인**.
+  - *반대 심문*: "승격 경로가 있었어도 실패했을 것"은 성립하지 않는다 — 이 파일은
+    `start-rpi-cycle` Phase R 의 `explore-strict` context_paths 에 **실제로 포함**되며
+    (SKILL.md:53·:59 하네스 실재 SSOT 명시) plan 작성 전에 읽힌다.
+- **SMART action item**:
+  1. **경로 전달 규약** — bash 가 만든 경로를 네이티브 인터프리터(python/node)에 **소스 보간하지 말고
+     argv/stdin 으로 전달**한다. 측정 = `setup/tests/`·`hooks/tests/` 의 `python -c`/`node -e` 인라인
+     소스에 리터럴 `/tmp/` 또는 셸 변수 보간 경로가 있으면 FAIL 하는 seal 1건 추가 + **RED→GREEN 증명**.
+     기한 = **C21 초입**.
+  2. **오라클 "대상 0" 처분 의무** — 계수기형 오라클은 검사 대상 0 에도 exit 0 을 내므로 호출자가
+     `TOTAL=0` 을 반드시 처분한다. 착륙 완료(C20, `setup/lib/modepack-oracle.sh` 헤더).
+     측정 = `grep -c '반드시 처분' setup/lib/modepack-oracle.sh` = **1**, 주석 제거 시 **0**(음성 대조군).
+- **재현 픽스처**:
+  ① *기전* — 판별자가 전달 방식임을 보인다:
+  ```bash
+  bash -c 'T=$(mktemp -d); python -c "import os;print(\"interp:\",os.path.isdir(\"$T\"))"; python -c "import os,sys;print(\"argv  :\",os.path.isdir(sys.argv[1]))" "$T"; rm -rf "$T"'
+  ```
+  → MSYS 에서 `interp: False` / `argv  : True`. 경로 공간이 일치하는 환경에서는 둘 다 `True`.
+
+  ② *증상* — 조용한 거짓-GREEN:
+  ```bash
+  bash -c 'source ~/.claude/setup/lib/modepack-oracle.sh; D=$(mktemp -d); modepack_oracle_scan "$D"; echo "exit=$?"; rm -rf "$D"'
+  ```
+  → `TOTAL=0 LITERAL=0 DYNAMIC=0 VIOLATION=0` + `exit=0` — 검사 대상 부재가 "위반 없음"과 동형.
+- **관계**: spec §13.10(C14-G)과 **동일 기전**이며 이 등록은 그것의 **일반화·승격**이다(중복 아님).
+  C14-G 는 `doctor.sh` 단일 사이트의 코드 수정이었고, 이 항목은 그 제약을 Phase R 이 읽는 자리로 옮긴다.
