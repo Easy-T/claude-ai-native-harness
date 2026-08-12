@@ -2226,3 +2226,170 @@ M20 이 커버하는 것은 정본 start-rpi 1개뿐 — 미커버 3개(기존 �
 6. **미러 `[ -f ]` fail-open 클래스 3사이트**(슬롯2 M2 — MIR50·MCO50·#43 동형) — "번들 전체 부재"(의도 정책: 설치본 카운트 결정성)와
    "번들 실재·단일 추적-미러 소실"을 파일-단위 게이트가 판별하지 못한다. 단일 arm 반쪽 정정은 3사이트 비대칭을 만들므로 기각 —
    차기 일괄 처분 후보(번들-루트 실재 시 미러 필수화 게이트 등). §18.6-1 의 미커버를 arm-단위로 재계수하면 부정-단언 3 + 긍정-토큰 4 = 7 arm 이다(슬롯2 m2 문언 확장 — 변이 신설 아님).
+
+## §19. C20 설계 결정 (in-place 개정, 2026-08-11 — ADE 적합화 + 브리지 실행 자산화)
+
+> C20 goal 원문 = `_goal/c20-latency-optimization-goal.md`(비추적 · rev1) · 골격 계약 = `_goal/c20-skeleton-spec19.md`.
+> 아래는 goal 없이 재현 가능하도록 근거를 영구화한 것(§11·§13~§18 선례). 주제 = **ADE(Orca) 적합화 5규범(N1~N5) +
+> C19 §18.1 판정 3(b) 예약분(판단-게이트 floor 한정 재심) 소비**. goal ⑴ 지연 최적화 축은 이 절의 스코프
+> 밖이다(별도 판정문 소관 — 교차-오염 금지, §19.5). 사이클 71.
+
+### §19.0 근거 — 컷오버 실측 (C20 기준선)
+
+CCS(`127.0.0.1:8317`) → api.anthropic.com 직결 컷오버(`docs/ai-context/ade-cutover-handoff.md`)의 착륙 상태를 4축으로 고정한다. 전건 2026-08-11 실측.
+
+| # | 축 | 실측값 | 측정 |
+|---|---|---|---|
+| ⓐ | `settings.json` `env` 전수 | 19키 중 `ANTHROPIC_BASE_URL`·`ANTHROPIC_CUSTOM_MODEL_OPTION`·`ANTHROPIC_AUTH_TOKEN` **전부 부재** | `node -e` JSON.parse 후 `Object.keys(j.env)`(length=19) |
+| ⓑ | 현 세션 프로세스 env | `ANTHROPIC_BASE_URL=http://127.0.0.1:8317` · `ANTHROPIC_CUSTOM_MODEL_OPTION=gpt-5.6-sol` **존재** | 셸 파라미터 확장 |
+| ⓒ | 경로 A(codex CLI) | `codex-cli 0.145.0` · `codex login status`=`Logged in using ChatGPT` | 두 커맨드 직접 실행 |
+| ⓓ | opencodex 프록시 | `opencodex 2.11.0` · `port: 10100` · `openai.authMode=forward` · `codexAccountMode=pool` · `GET /healthz` **HTTP 200** | `~/.opencodex/config.json` + `curl -o /dev/null -w %{http_code}` |
+
+ⓐ↔ⓑ 불일치가 **세션-동결 env**(session-frozen env)다 — CC 는 세션 시작 시점의 `settings.json` 을 읽어 자식에 주입하고 그 값은 세션 수명 동안 고정된다.
+**결론: 컷오버는 파일에서 완료, 런타임 검증은 신규 세션 필요** — 이 세션의 모든 "네이티브 전환 확인"은 파일 기준 진술이다(§19.6 N3 행 · §19.7-1).
+
+### §19.1 C20-A — 브리지 실행 자산화 (N1·N2)
+
+**N1 — `bin/claude-ocx`(+`.cmd`)를 git 추적 하네스 자산으로 승격.** 미추적 실측: `git ls-files --error-unmatch bin/claude-ocx` → `error: pathspec … did not match any file(s) known to git`. 로컬-전용 유지 = **기각**(신규 환경 재현 불가 — 사용자 명시 결정).
+
+**N2 — 안내는 권고 문서 + 자산 동봉. 자동 설치·로그인·인증·업데이트는 기각.** 근거 원문:
+
+  > `docs/ai-context/cross-family-review.md:15` — **★설치·로그인·인증·업데이트 시도 절대 금지** — 탐지는 read-only 확인만.
+  > 근거: ChatGPT OAuth 공유 시 reuse-detection 토큰 패밀리 전체 revoke 사고 이력 · 블라인드 `--update`/`--latest` 금지(바이너리 삭제 위험).
+
+정합 실측: 현행 `install.sh` 는 `node/bash/git/claude` **존재만** 확인한다(`[1/6] 사전 도구 확인`). seal #29 의 `REQUIRED ⊇ tracked skills` 계약은 **하네스 내부 파일 전용**이라 브리지 자산을 REQUIRED 에 넣어도 외부 설치 의무는 발생하지 않는다.
+
+| # | `claude-ocx` 설계 불변식 | 왜 |
+|---|---|---|
+| ① | **브리지 실행** = CC **프로세스**로 실행하되 추론만 비-Anthropic 모델에 위임 | 훅·CLAUDE.md·RPI 게이트가 그대로 발화. 교차패밀리 리뷰(별도 CLI·컨텍스트 무공유)와 **다른 형태** — 그쪽은 독립 검증자, 이쪽은 하네스 규율 아래의 실행자 |
+| ② | 네이티브 별칭 **unset**(`ANTHROPIC_MODEL`·`ANTHROPIC_DEFAULT_{OPUS,SONNET,HAIKU,FABLE}_MODEL`·`ANTHROPIC_CUSTOM_MODEL_OPTION` — `:20-22`) | 프록시가 모르는 별칭이 남으면 라우팅이 깨진다. 별칭 집합은 네이티브 축의 계약이고 프록시 축엔 의미가 없다 |
+| ③ | `/healthz` 실패 시 **exit 1**(fail-closed — `:12-15`) | 조용히 네이티브로 새면 "GPT 로 실행했다"는 자기증언이 거짓이 된다. advisory fail-open 교리는 **탐지** 축이고 **캐리어 선택**은 fail-closed 가 맞다 |
+
+| Windows 런처 3함정(실측) | 증상 | 대응 |
+|---|---|---|
+| PowerShell/cmd 의 bare `bash` | **WSL 런처로 해석** → `Bash/Service/E_UNEXPECTED` | Git Bash 절대경로 `C:\Program Files\Git\bin\bash.exe` |
+| 비-로그인 셸 | PATH 에 coreutils 부재 → npm `claude` shim 이 `sed: command not found` | **로그인 셸 `-lc`**(`claude-ocx.cmd:7`) |
+| `.cmd` 의 한글 주석 | mojibake 로 깨져 **명령으로 실행**됨 | `.cmd` 주석 **영문 강제**(현행 파일 준수 실측) |
+
+### §19.2 C20-B — 교차패밀리 경로 B 캐리어 이관 (N3)
+
+**이관 전 (`docs/ai-context/cross-family-review.md:12` 현행 — 정정 대상)**:
+
+```bash
+claude --model "${ANTHROPIC_CUSTOM_MODEL_OPTION:-gpt-5.6-sol}" -p "Reply: OK" --output-format json
+```
+
+**이관 후 (규범 원문 — Phase I 착륙물)**:
+
+```bash
+OCX_MODEL=gpt-5.6-sol claude-ocx -p "Reply: OK" --output-format json
+```
+
+**판별자 불변**: `modelUsage` 에 `gpt-*` 키 존재 = 가용, 응답 텍스트의 자가보고는 불인정(§1.2 불변). 실측(2026-08-11 현 세션): `modelUsage` 키=`gpt-5.6-sol` · `result`=`OK` · `is_error`=`false`.
+
+**왜 이관인가**: ⓐ(env 부재) 아래에서 이관-전 커맨드의 폴백 리터럴 `gpt-5.6-sol` 은 **네이티브 Anthropic API 로** 가고 그런 모델은 없으므로 실패한다 — 현행 :12 는 **다음 세션에 거짓이 되는 절**이며 지금은 세션-동결 env(ⓑ)가 그것을 가리고 있다. **경로 B 의 기능은 살아 있고 캐리어만 CCS→opencodex 로 바뀐다.**
+
+**A·B 인증 공통모드(정직 부기)**: ocx `openai` provider 는 `authMode=forward`+`codexAccountMode=pool` 이라 **codex CLI 인증을 전달**한다(`~/.codex/auth.json` 실측 존재). 과거 A=codex·B=CCS 로 분리돼 있던 인증원이 이관 후 **공통**이 된다. 교차패밀리가 요구하는 독립성은 **모델-패밀리 독립**(자기채점 편향 중화)이지 인증 독립이 아니라 목적은 훼손되지 않으나, **codex 로그인 만료 시 A·B 동시 사멸**이라는 공통 모드가 새로 생긴다 — 그 경우 SKIP 사유는 "이 머신 GPT 경로 부재"가 아니라 **"codex 인증 만료"** 여야 정직하다.
+
+**전파-완결성 대조 (§18.3 의무 — 4범주 전수)**:
+
+| 범주 | 사이트 | 처분 |
+|---|---|---|
+| spec 본문 | 본 §19.2(신설) · **§3 매트릭스 :106 「교차 검증 … GPT (codex CLI/CCS)」** | :106 의 `CCS` 는 C11 시점 캐리어 기술 — **§3 의 그 서술은 C20 이전 캐리어에 한해 유효**하며 §19.2 가 opencodex 로 정밀화한다(기존 절 무편집 · §17.0 선례의 의식적 정밀화) |
+| spec 내 착륙-verbatim | 위 이관-후 코드블록 | Phase I 가 그대로 전사 |
+| L1 소비자 문서 | `cross-family-review.md` **:12**(probe) · **:30**(본호출) · **:81**(§4 실증의 CLIProxy provenance) | Phase I 정정 |
+| L1 소비자 skill | `skills/closeout-pr-cycle/SKILL.md` **:161** — probe 절에 경로 B 리터럴 `claude --model <gpt-모델> -p --output-format json` 실재(grep 실측) | Phase I 정정 |
+| L1 소비자(포인터 전용) | `skills/start-rpi-cycle/SKILL.md` | **N/A** — 캐리어 리터럴 부재·SSOT 포인터만(grep 실측 0건) |
+| opencode 미러 | 번들에 `cross-family-review.md` 사본 **부재**(`find opencode-harness -iname '*cross-family*'`=0건) → 규약 문서 자체는 **N/A**. 단 **미러 skill `opencode-harness/skill/closeout-pr-cycle/SKILL.md` :166** 에 정본 :161 과 동일한 경로 B 리터럴 실재(grep 실측) | :166 은 **Phase I 정정**(사본 부재와 별건) |
+
+**CCS 제거는 지시하지 않는다**(사용자 명시 보류). CCS 프로세스는 생존(8317)이며 statusline rate-limit 조회에 계속 쓰인다 — 이 이관은 **문서 캐리어 축**이고 CCS 프로세스 처분과 독립이다.
+
+### §19.3 C20-C — 모드팩 오라클의 L3 배치 (N4)
+
+**프로세스-경계 정책 공백(process-boundary policy gap)**: 공백은 **훅 일반**이 아니라 **모델-정책 매처** 축에서 성립한다 — 두 층이 갈린다.
+
+| 층 | Orca 워커 도달 | 실측 근거 |
+|---|---|---|
+| 하네스 훅 **일반**(enforce-rpi-cycle 등) | **도달함 — 차단까지 함** | `grep -c "orca/workspaces" hooks/.log/2026-08.log`=**13**(enforce-rpi-cycle 9·worktree-teardown 4). 예: `…/impl-parse/src/parse.js  BLOCK  no-plans-dir`. 별도 프로세스 `claude` 도 글로벌 `~/.claude/settings.json` 을 로드하기 때문 |
+| **모델-정책 매처**(Rule A/B/C/C2/C3) | **도달 못 함** | `hooks/surface-model-policy.sh:18` = `case "$TOOL" in Agent\|Workflow) ;; *) exit 0 ;; esac` — 위 13건 중 `surface-model-policy` 항목 **0건**(grep 실측) |
+
+즉 Orca 워커의 **모델 티어 선언은 CLI `--model` 인자에 있어 `Agent|Workflow` 매처의 관측 범위 밖**이다(원 사료 `docs/ai-context/ade-migration-research.md:1002-1004` — "Orca가 띄운 독립 `claude` 프로세스는 그 매처에 걸리지 않는다"). 그 선언을 잡을 수 있는 유일한 정적 지점은 **모드팩 JSON 이 git 에 들어오는 시점**이다 → **L3 오라클**(L3 결론은 불변 · 근거만 "훅 도달-불가"에서 "매처 관측-범위 밖"으로 교체).
+
+※ **정직 부기(Gate R 정정)**: 이 절의 초안은 위 매처-사각을 "훅이 도달하지 못한다"로 **과잉 일반화**했고, Gate R 이 훅 로그 13건 실측으로 반증했다 — §19.5 가 지목한 결함 클래스(자기 산출물의 전제를 실측 없이 단언)의 **자기 재발**이며, 게이트가 그것을 잡은 사례로 남긴다.
+
+| 오라클 계약 | 내용 | | `command` 형태 | 판정(3값 계약 승계) |
+|---|---|---|---|---|
+| 입력 | 모드팩 JSON(선언 파일) | | `claude --model opus`/`--model sonnet` | 리터럴 티어 — 문자열 직접 판독 |
+| 검사 | `workers[].command` 의 **티어 판정** + `ownership: review-only` 워커의 floor 대조(Rule B 동형) | | `…\bin\claude-ocx.cmd` | `*`(동적) — 모델이 `OCX_MODEL` env, 커맨드 문자열로 단언 불가 |
+| 출력 | PASS / FAIL (verify-setup seal 로 배선) | | 인자 없는 `claude` | `-`(부재) — `ANTHROPIC_MODEL` 상속, `*` 와 같은 취급 |
+| 근거 | `hooks/lib/workflow-spawns.js` 3값 계약(리터럴 / `-`=부재 / `*`=동적) | | `codex` 등 비-claude | 하네스 규율 밖 — 별도 계수 |
+
+**면제는 침묵이 아니다** — `*`/`-` 는 "동적 N건"으로 **계수해 보고**한다. 판정 불가를 "안전"으로 읽으면 C15 X6 마스킹이 재발한다(CONTEXT.md 「동적-model 스폰」: 면제는 안전 인증이 아니라 판정 불가의 정직 표기).
+
+**스키마의 지위(정직 부기)**: 참조 스키마는 서드파티 `reallygood83/orca`(비공식·**라이선스 없음**) 산출물이며 `_goal/orca-mode-pack.schema.json` 에 참조 사료로만 보관한다. 함의 = **스키마 변경 추종 불가** → 오라클은 **우리 규약**(워커 티어·review-only floor)을 검사하지 **스키마 적합성**을 검사하지 않는다. 이 분리가 있어야 상류 스키마 개정이 오라클의 GREEN 을 거짓으로 만들지 않는다.
+
+**판별력 전제**: 모드팩 0개 상태에서 오라클만 착륙하면 검사 대상 없는 vacuous seal 이 된다(C19 §18.2 가 경화한 클래스) → **모드팩 1개 + 오라클 동시 착륙**이 기본. **신규 seal 번호는 이 절에서 배정하지 않는다** — closeout 직전 origin/master 실측 발급(§6).
+
+### §19.4 C20-D — Orca 훅 공존: 신규 seal 불요 판정 (N5)
+
+**seal #23 이 봉인하는 것** = `settings.json` ↔ `settings.example.json` 의 **하네스 hook** `(phase|matcher|basename)` parity. 필터 `isHarness = h => /\.claude\/hooks\/[^/]+\.sh/`(`setup/verify-setup.sh:188`)의 한정은 cycle-24 의 **의도적 승격**이다(:183-184 — "isHarness 한정(cycle-24 승격) … 사용자 커스텀 hook 오탐 제거").
+
+| 위협 시나리오 | #23 | | Orca 훅 실측 |
+|---|---|---|---|
+| ① 하네스 훅 삭제 | **발화** | 소스 | `~/.orca/agent-hooks/claude-hook.cmd` **전 경로 `exit /b 0`** · `exit 2` 부재 |
+| ② 비-하네스 훅 추가 | 침묵(설계된 무시) | 종료코드 | 정상 stdin=0 · 빈 stdin=0 · 깨진 stdin=0 |
+| ③ 하네스 훅 command 바꿔치기(경로 유지) | **발화** | 차단 능력 | PreToolUse 계약상 차단은 exit 2 → **구조적 불가** |
+| ④ matcher 축소 | **발화** | 공존 | 배열 append · 라이브 감시 13(하네스)/제외 11(Orca) · example 13/0 → parity PASS |
+
+**Orca 훅이 #23 의 표적이 아닌 이유**: ⓐ 하네스 자산이 아니다(#23 은 하네스 자산 무결성 seal) ⓑ 차단 능력이 구조적으로 없다.
+
+**판정 — 신규 seal 불요.** 정직한 표현은 "**공백이 없다**"가 아니라 "**이 seal 의 표적이 아니다**"이다. Orca 훅의 실재 잔여는 차단이 아니라 **지연**이며(§19.7-5) 그것은 seal 이 아니라 관측 대상이다. 이 실측을 durable 로 남겨 다음 사이클이 "#23 이 Orca 를 못 봐 위험"이라는 (실측으로 전제가 무너진) 가설을 재발명하지 않게 한다.
+
+### §19.5 C20-E — floor 재심 판정 (C19 트리거 (b) 예약분 소비)
+
+C19 §18.1 판정 3 (b)(GPT 슬롯이 내부-통과 결함을 BLOCKER 로 2사이클 연속 적발) 성립분 소비 — §16.0-2 **역-supersede 경로의 첫 실발동**이며 범위는 **판단-게이트 floor 한정**이다.
+
+| 사이클 | # | 결함 | 내부 게이트가 놓친 이유 |
+|---|---|---|---|
+| C18 | S1 | §17.1:1902 "동일 게이트(opus)" — TAKEOVER 산출물은 작업자=fable 인데 검증자 opus = under-floor | 하한 불변식의 *새 조합*(TAKEOVER×floor)이 규정 공백 |
+| C18 | S21 | seal-regression 앵커 16파일 중 `setup/` 은 2건뿐인데 "setup/ diff 0 = 입력 무변경" 전제 → "탐지력 불변" 문면이 거짓 | 자기 산출물의 *전제*를 실측 없이 단언 |
+| C19 | G1 | (a) 트리거의 비용 conjunct 가 판정 불가(대장에 비용 필드 부재 — C16~C18 부기 0건) | 자기 산출물의 *실행 가능성*을 실측 없이 단언 |
+| C19 | G2 | 「Critical 급」이 GPT 실제 어휘(BLOCKER/MAJOR) 밖 → 매핑 부재로 트리거 판정 불가 | 어휘 정합을 외부 산출물과 미대조 |
+
+**공통 클래스**: 넷 다 **"자기가 방금 쓴 규약이 실제로 작동한다"를 실측 없이 단언**했다 — 코드 결함이 아니라 **자기-산출물의 실행 가능성·전제 검증 부재**다.
+
+**판정 — floor 축 무변경**(판단-게이트 = `max(작업자 티어, opus)` · 준수-확인 = 작업자 티어, 둘 다 유지).
+
+1. **결함 클래스가 티어 축이 아니라 게이트 *지시문* 축이다.** 4건 전건이 "산출물 문면 ↔ 그 문면이 참조하는 실물"의 대조 부재이고, 그 대조는 게이트 `success_criteria` 에 **조항이 없어서** 수행되지 않았다. 티어를 올려도 **지시받지 않은 대조는 수행되지 않는다** — 4건 중 "더 높은 티어였다면 잡혔을" 종류임을 보이는 실측은 **0건**이다.
+2. **floor 상향은 이미 효과를 낸 축이다.** C19 §18.1 판정 2 의 관측(슬롯1 REAL 26[C16, fable 게이트] → 24[C17, opus 게이트] → 19[C18])에 급증이 없다. ※**주장 강도 한정**: C19 측정 한계 ①~④(자기보고·소표본·슬롯 구조 교란·분모 비대칭) 승계 — 이것은 **"열화 신호 부재의 관측"이지 열화의 반증이 아니다**.
+
+**기각안 — floor 상향(opus→상위 티어)**: 기각. 근거 1(티어-무관 클래스)에 더해 §17 fable 판단-전용화와 정면 충돌하며, 그 상향이 위 4건을 잡았으리라는 실측은 **0건**이다(미측정 단언 금지).
+
+**처분**: floor 무변경 · 보강은 **게이트 지시문 축**(검증 임무 success_criteria 에 "자기 산출물의 전제·실행 가능성을 실측으로 확인했는가" 조항 신설). **구체 문안은 Phase P 소관**이며 이 절은 판정 축만 고정한다.
+
+**반증 조건**: 지시문 보강 착륙 후 (i) **같은 클래스**(자기-산출물 전제 미실측)의 GPT BLOCKER 재발 → 지시문-축 가설 반증·floor 상향 재후보 / (ii) **다른 클래스**의 BLOCKER 만 → 이 판정 유지. 재대조 시점 = 매 Closeout 의 ledger append 트리거 대조(§18.1 판정 3).
+
+**교차-오염 금지(재확인)**: 이 재심은 **탐지력 축**이다. §19.1~§19.4 의 ADE 적합화와 goal ⑴ 지연 최적화 축은 이 판정에 어떤 입력도 제공하지 않으며, 역으로 이 판정이 그 축들의 스코프를 넓히거나 좁히는 근거가 되어서도 안 된다. **속도 근거로 floor 를 깎는 것은 금지**한다.
+
+### §19.6 검증 계획
+
+| 결정 | 검증 수단 | 기대 |
+|---|---|---|
+| N1 브리지 자산화 | `git ls-files bin/claude-ocx bin/claude-ocx.cmd` | 2행(현재 **0행** 실측 — 착륙 후 재측정) |
+| N2 안내-only | `grep -nE 'opencodex|ocx |codex login' setup/install.sh` — **외부 도구** 한정 표적(구 패턴 `npm i -g|service install|login` 은 :132 의 `claude /login` **자체 인증 안내**를 오탐해 1건 — N2 금지 대상 아님) | **0건**(실행 확인) · seal #29 REQUIRED 계약 불변 |
+| N3 캐리어 이관 | **신규 세션**에서 `OCX_MODEL=gpt-5.6-sol claude-ocx -p "Reply: OK" --output-format json` → `modelUsage` 에 `gpt-*` | 현 세션 실측 확보(§19.2) · **신규 세션 재검증 미수행**(§19.7-1) |
+| N3 전파 | 정정 후 3파일(`cross-family-review.md` · `skills/closeout-pr-cycle/SKILL.md` · `opencode-harness/skill/closeout-pr-cycle/SKILL.md`)에 `grep -n -e ANTHROPIC_CUSTOM_MODEL_OPTION -e 'claude --model'` — :161/:166 리터럴은 후자 패턴으로만 잡힌다 | 0건 |
+| N4 seal 불요 | `setup/verify-setup.sh` #23 | PASS · **신규 seal 0** |
+| N5 floor 무변경 | `hooks/surface-model-policy.sh` Rule B/C2 diff 0 | `hooks/tests/run-all.sh` 카운트 불변 |
+
+**카운트 기대**: `verify-setup` **88/0**(2026-08-11 재실측 — 착륙 전 기준선) · `seal-regression` **26/0** · `run-all` **291/291**(뒤 둘은 C19 머지 후 실측의 승계 — **본 절 집필 시점 재실행 미수행**). §19.3 오라클 착륙 시 verify-setup 이 +n 되며 **증분·번호 확정은 Phase P 계약**, 신규 번호는 closeout 직전 실측 발급(§6).
+
+### §19.7 수용 잔여
+
+1. **신규 세션 런타임 검증 미수행** — 세션-동결 env(ⓑ) 때문에 이 세션의 컷오버·캐리어 판정은 전부 **파일 기준**이다. 런타임 판정(네이티브 직결 · 이관 후 경로 B)은 신규 세션에서만 가능하며 뒤집힐 수 있다.
+2. **CCS 미제거로 인한 dangling symlink 3건 예정** — `skills/ccs-delegation`·`commands/ccs`·`commands/ccs.md` 는 **git 추적된 심링크**(mode 120000 실측)이고 대상은 현재 생존. CCS 제거 시 3건이 dangling 된다(clone 한 새 머신 동일 — 심링크는 대상 경로만 저장). CCS 제거는 **사용자 명시 보류**.
+3. **모드팩 오라클의 스키마-추종 불가** — 참조 스키마가 서드파티·무라이선스라 상류 개정 추종 권리·수단이 없다. 오라클은 우리 규약만 검사하며 스키마 적합성은 범위 밖(§19.3).
+4. **오라클 상한 = 선언된 모드팩만** — `orca worktree create --agent claude --model sonnet` 을 손으로 치면 정적 오라클은 보지 못한다. `RPI_SKIP` 동형의 **의식적 우회**이며 L1 규범 소관.
+5. **Orca 훅 타임아웃 누적** — `timeout: 10`. 차단은 불가하나(§19.4) Orca **안**에서는 `curl --connect-timeout 0.5 --max-time 1.5` 라 워커 세션의 도구 호출마다 최대 1.5s 가 붙을 수 있다. Orca 밖은 `more.com` 즉시 종료로 실측 지연 무시 수준. **관측 대상이지 차단 아님.**
+6. **§19.5 판정의 강도** — 입력이 자기보고 4건이라 C19 측정 한계 ①~④가 그대로 걸린다. "티어 축 무관"은 **관측 기반 판단**이지 증명이 아니며, 반증 조건(§19.5)이 그 상한을 표시한다.
+7. **I1(Edit 혼합-개행) 픽스처·non-obvious 등록은 이 절 스코프 밖** — C19 예약분·Phase I 착륙 대상. 다만 실측 방향이 **CRLF→LF**(혼합이면 전 파일 LF 통일 · 순수 CRLF 는 보존)로 C19 layer-yield 기록의 서술과 **반대**이므로, 등록 시 실측 방향으로 기재하고 원 기록을 정정 부기할 것(`_goal/c20-i1-repro-measured.md`).

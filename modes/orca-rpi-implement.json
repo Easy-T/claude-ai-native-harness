@@ -1,0 +1,26 @@
+{
+  "modeName": "rpi-implement",
+  "displayName": "RPI Implement (harness-governed)",
+  "coordination": "coordinator-workers",
+  "coordinator": {
+    "role": "orchestrator",
+    "agent": "claude",
+    "command": "claude --model opus"
+  },
+  "workers": [
+    {
+      "role": "implementer",
+      "agent": "claude",
+      "model": "opus",
+      "command": "claude --model opus"
+    },
+    {
+      "role": "verifier",
+      "agent": "claude",
+      "model": "opus",
+      "ownership": "review-only",
+      "command": "claude --model opus"
+    }
+  ],
+  "worktreePolicy": "per-worker"
+}
