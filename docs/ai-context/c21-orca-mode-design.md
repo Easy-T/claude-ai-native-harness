@@ -727,3 +727,28 @@ cat <대상> | OCX_MODEL=gpt-5.6-sol ~/.claude/bin/claude-ocx -p "<프롬프트>
 1. 본 조사는 `orca` 를 **0회 실행**했다. §3 의 모든 명령은 문서상 계약이며 런타임 실측이 아니다.
 2. C20 지연 최적화 이득은 **주장하지 않는다**(§8-E25). 구조적 논거이지 측정이 아니다.
 3. "Orca 워커에서 모델 정책이 봉인된다"고 쓰지 않는다. 정확한 범위는 **Claude 세션=5규칙 / 비-Claude 세션=리터럴 축만(T4 후) / 상속 축=계약(advisory)** 이다.
+---
+
+## 부록 Z — Orca 버전 드리프트 (2026-08-13, 본 설계 작성 직후)
+
+본 설계의 Orca 관련 사실은 **1.4.179 시점 캐시**에서 추출됐다. 작성 직후 사용자가 **1.4.181** 로
+수동 업데이트했다(업데이트는 하네스 규약상 AI 금지 — `cross-family-review.md:15`).
+
+| 항목 | 상태 |
+|---|---|
+| `Orca.exe` FileVersion | **1.4.181** (실측, 2026-08-13) |
+| `AppData/Local/Temp/orca-schema.json` | 8/10 23:13 — **1.4.179 시점** |
+| `AppData/Local/Temp/orca-guides/*.md` | 8/10 22:32 — **1.4.179 시점** |
+| `resources/app.asar` | 8/13 07:35 — 신 번들 |
+
+**함의**: §3 실행 흐름·§6 오라클 검사 항목이 인용하는 CLI 계약(228 명령·플래그·NOTE)은
+**구버전 근거**다. asar 문자열 검색은 부분적이라(`worker-start` 6건 매치하나 `coordinator-start` 0건)
+계약 생존 여부를 이것만으로 판정할 수 없다.
+
+**조치**: §7 Phase 0 프로브를 **1.4.181 에서 재수행**하고, 그 산출을 `docs/ai-context/orca-pins.md`
+핀의 기준선으로 삼는다. 설계에 이미 그 핀 장치(seal #52-ⓐ)를 넣어둔 이유가 정확히 이 드리프트다 —
+가이드가 CLI 번들에서 나오므로(`skills get` NOTE: "Reads bundled guide content locally") **업그레이드가
+계약을 조용히 바꾼다**.
+
+**C21 주축은 이 드리프트의 영향을 받지 않는다** — GAP 정정(`surface-model-policy.sh`)은 하네스 내부
+결함이라 Orca 버전과 독립이다.
