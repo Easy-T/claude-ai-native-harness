@@ -121,9 +121,10 @@ for f in projects/C--Users-12132-orca-workspaces-orca-lab-*/*.jsonl; do
       if (pre !~ /"input":[[:space:]]*\{/) { pick=substr($0,abs,RLENGTH); break }
       off=abs+RLENGTH-1; s=substr($0,off+1) }
     if (pick=="") e++; else g++ } END { printf "%d %d\n", g+0, e+0 }'
-done | awk '{G+=$1; E+=$2} END{ printf "pick_ok=%d pick_empty=%d\n", G, E; exit (E>0) }'
+done | awk '{G+=$1; E+=$2} END{ printf "pick_ok=%d pick_empty=%d\n", G, E; exit (E>0 || G==0) }'
 ```
 Expected: `pick_ok=40 pick_empty=0` — 60자 윈도우가 실 GPT 라인의 정상 세션 모델을 삼키지 않음 [메인·Gate P 각각 독립 실측 ✓]. `pick_empty>0` 이면 앵커가 과잉 차단하는 것이므로 **중단·보고**.
+★`G==0` 도 실패로 잡는다(`exit` 조건) — 글롭이 매치되지 않으면 `pick_ok=0 pick_empty=0` 이 나오는데 그것은 **vacuous PASS** 이지 검증이 아니다(델타 재심 참고 지적).
 - [ ] **Step 6: Commit**
 ```bash
 cd ~/.claude && git add hooks/surface-model-policy.sh \
@@ -273,7 +274,7 @@ echo "--- 원본(GREEN) ---"; awk -f "$R/seal.awk" hooks/tests/*.sh setup/tests/
 echo "--- 주입본(RED) ---"; awk -f "$R/seal.awk" "$R"/hooks/tests/*.sh "$R"/setup/tests/*.sh | tail -1
 ```
 Expected: 원본 `TOTAL=16 VIOLATION=0` · 주입본 `TOTAL=17 VIOLATION=1` [메인 실측 ✓].
-**`$R` 은 Step 4 의 자기-오염 단언이 재사용하므로 이 시점에 지우지 말 것** — Step 4 말미에 `rm -rf "$R"; unset RPI_SKIP`.
+**★Step 3 과 Step 4 는 동일 셸 세션에서 실행한다** — `$R` 은 Step 4 의 자기-오염 단언이 재사용하므로 이 시점에 지우지 않고, Step 4 말미에서 `rm -rf "$R"; unset R RPI_SKIP` 로 정리한다. 세션이 끊겼으면 이 블록(`R=$(mktemp -d)` + heredoc)부터 재실행할 것. Step 3 만 실행하고 중단하면 임시 디렉터리가 남으므로 그때는 수동으로 `rm -rf "$R"`.
 ※ 이 블록의 `printf` 주입 문자열은 **임시 사본에만** 들어가고(`$R/...`), 라이브 트리와 plan 파일은 seal 스캔 대상에서 이 형태를 갖지 않는다(plan 은 `docs/` 아래라 스캔 범위 밖 — 실측 확인).
 - [ ] **Step 4: seal-regression 변이 1개 추가** — `mut_schema_required_empty` 정의 다음:
 ```bash
@@ -290,13 +291,16 @@ mut_pathpass_interp() {
 }
 ```
 
-**자기-오염 방지 단언(필수)** — 변이 착륙 직후 실행. Step 3 의 `$R/seal.awk` 를 재사용한다:
+**자기-오염 방지 단언(필수)** — 변이 착륙 직후 실행. **Step 3 과 반드시 같은 셸 세션**이어야 한다(`$R` 재사용). 세션이 끊겼으면 Step 3 의 `R=$(mktemp -d)` + heredoc 블록부터 다시 실행할 것:
 ```bash
 cd ~/.claude
-awk -f "$R/seal.awk" hooks/tests/*.sh setup/tests/*.sh 2>/dev/null | tail -1
-rm -rf "$R"; unset RPI_SKIP                       # ★Step 3 이 만든 임시 디렉터리 정리
+[ -n "${R:-}" ] && [ -f "$R/seal.awk" ] || { echo "ABORT: \$R 미정의 — Step 3 과 같은 셸에서 실행하거나 Step 3 을 재실행할 것"; exit 1; }
+awk -f "$R/seal.awk" hooks/tests/*.sh setup/tests/*.sh | tail -1
+rm -rf "$R"; unset R RPI_SKIP                     # ★Step 3 이 만든 임시 디렉터리 정리
 ```
-Expected: `TOTAL=16 VIOLATION=0` — **정의행 추가 후에도 위반 0**. `VIOLATION=1` 이면 조립이 풀린 것이니 즉시 되돌리고 보고(그 상태로 진행하면 verify-setup FAIL=1 · control replica 동반 오염 · `assert_seal_fires` 24건 vacuous PASS 로 3스위트가 동시에 붕괴한다 — Gate P F1).
+Expected: **`TOTAL=17 VIOLATION=0`** — 착륙 전 16 에서 **+1** 은 Mutator 23 정의행 자신이 `node -e` 토큰을 포함해 **대상으로 계수**되기 때문이다(따옴표가 `${q}` 변수라 스캐너의 else-arm 으로 떨어져 **계수만 되고 위반 판정은 안 된다** — 이것이 런타임 조립의 의도된 결과다). 실측 확인: 착륙 전 `TOTAL=16 VIOLATION=0` / 착륙 후 `TOTAL=17 VIOLATION=0` [메인 실측 ✓ · 델타 재심 N1].
+★**`VIOLATION=1` 이면 조립이 풀린 것**이니 즉시 되돌리고 보고 — 그 상태로 진행하면 verify-setup FAIL=1 · control replica 동반 오염 · `assert_seal_fires` 24건 vacuous PASS 로 3스위트가 동시에 붕괴한다(Gate P F1).
+※ `2>/dev/null` 을 붙이지 말 것 — 붙이면 `$R` 미정의 시 `awk: fatal` 이 삼켜져 **단언이 빈 출력으로 침묵 no-op** 한다(델타 재심 N2 실측: 출력 길이 0 · rc=0).
 
 `assert_seal_fires` 마지막 행(`schema_required_empty`) 다음: `assert_seal_fires "pathpass_interp" mut_pathpass_interp "경로-전달 규약 위반"`
 ※ 기대 FAIL 문자열은 Step 2 의 `fail` 메시지에서 따왔다(`assert_seal_fires` 는 `grep -qF` 부분일치 — `:81`).
