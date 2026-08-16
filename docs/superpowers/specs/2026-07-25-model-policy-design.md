@@ -2445,7 +2445,18 @@ C17 슬롯1 A1 은 이 상태를 **알고 남겼다**. 자기-인용 2건:
 
 ### §20.2 C21-B — 정정 수단의 최소성 (N2)
 
-**채택 = `session_model_of()` 정규식 1개의 패밀리-중립화.** `"claude-[a-z0-9.-]+"` → `"[A-Za-z0-9._-]+"` (문자클래스만 교체 — `"model":[[:space:]]*` 앵커 · 라인-내 첫 매치 · `/"type":"assistant"/` 게이트 · `tail -c 1000000` 창은 전부 불변).
+**채택 = `session_model_of()` 판별식의 패밀리-중립화 + 구조 앵커(후보 E).** 문자클래스 교체(`"claude-[a-z0-9.-]+"` → `"[A-Za-z0-9._-]+"`)만으로는 부족하다 — 매치 직전 60자에 `"input":[[:space:]]*{` 가 있으면 그 매치를 건너뛰고 다음 매치를 본다(툴콜 `input` 블록의 `model` **인자**를 세션 모델로 오인하지 않기 위해):
+
+```awk
+while (match(s, /"model":[[:space:]]*"[A-Za-z0-9._-]+"/)) {
+  abs = off + RSTART
+  pre = substr($0, (abs>60 ? abs-60 : 1), (abs>60 ? 60 : abs-1))
+  if (pre !~ /"input":[[:space:]]*\{/) { pick = substr($0, abs, RLENGTH); break }   # 첫 비-input 매치 채택
+  off = abs + RLENGTH - 1; s = substr($0, off+1)
+}
+```
+
+**불변**: `"model":[[:space:]]*` 앵커 · `/"type":"assistant"/` 게이트 · `tail -c 1000000` 창 · **마지막 assistant 라인 채택**(`END` 블록 출력 의미론). **변경은 1축뿐**: 「라인-내 첫 매치」 → 「라인-내 **첫 비-`input` 매치**」(라인의 매치가 전부 `input` 소속이면 빈 값 → `:169` fail-open).
 
 **실측 ① — 3종 입력 대비**(현행 정규식 vs 중립 정규식, 동일 `awk` 골격):
 
@@ -2455,12 +2466,46 @@ C17 슬롯1 A1 은 이 상태를 **알고 남겼다**. 자기-인용 2건:
 | Claude `12b8cf20-….jsonl` | `claude-opus-5` | `claude-opus-5`(**무회귀**) |
 | 빈 입력 | (빈 값) | (빈 값) — `:169` 유효 |
 
-**실측 ② — content 인용 면역 유지**(`:9` 주석의 계약 "라인 내 첫 매치만 취해 content 의 모델 id 인용에 면역"):
+**실측 ② — content 인용 면역: 유지되나 전제가 좁다.** `:9` 주석은 계약과 **그 전제를 함께** 적어 두었다 — verbatim: "라인 내 첫 매치만 취해 content 의 모델 id 인용에 면역**(assistant JSON 은 model 이 content 앞)**". 괄호 안이 전제이고, 패밀리-중립화는 그 전제 **밖**으로 나간다.
 
-| 입력 라인(assistant, model 이 content 앞) | 중립 정규식 출력 |
-|---|---|
-| `…"model":"claude-opus-5",…"text":"model: gpt-4 참고"…` | `claude-opus-5` |
-| `…"model":"claude-opus-5",…"text":"{\"model\":\"gpt-4\"} 인용"…` | `claude-opus-5` |
+**전제 반증 — 키 순서 실측**:
+
+| 세션 패밀리 | assistant 라인 `model` vs `content` 순서 | 실측 (model-first / content-first) |
+|---|---|---|
+| Claude | `model` 선행 | **3851** / 3 (최근 세션 20개) |
+| GPT(Orca) | **`content` 선행** | **0** / **40** (GPT `model` 라인 전건) |
+
+측정: `awk '/"type":"assistant"/ { ci=index($0,"\"content\""); mi=index($0,"\"model\""); if(mi>0&&ci>0){ if(mi<ci) ok++; else bad++ } } END{print ok+0" "bad+0}'` 를 `ls -t projects/C--Users-12132--claude/*.jsonl | head -20` 과 Orca 워크스페이스 5파일에 적용(Orca 전체 117/40 — 그중 GPT 라인분이 0/40).
+
+`:9` 가 틀렸다는 뜻이 **아니다**. 그것은 Claude shape 의 정확한 서술이고 Claude 라인에서 지금도 참이다 — 무효화되는 것은 서술이 아니라 **판별 대상 모집단이 그 shape 를 벗어났다**는 상태다(§20.4 형식의 정밀화 — 서술의 당시 정확성과 서술된 상태의 구분). GPT 라인에서 「라인-내 첫 매치」는 content 안 툴콜의 `input.model` **인자**일 수 있다.
+
+**면역 픽스처 — 구 2행 유지 + 적대 2행 확장**(A = 단순 중립화 · E = 구조 앵커(채택)):
+
+| 입력 라인(assistant) | A | **E (채택)** |
+|---|---|---|
+| `…"model":"claude-opus-5",…"text":"model: gpt-4 참고"…`(model 선행) | `claude-opus-5` | **`claude-opus-5`** |
+| `…"model":"claude-opus-5",…"text":"{\"model\":\"gpt-4\"} 인용"…`(model 선행) | `claude-opus-5` | **`claude-opus-5`** |
+| ⓐ adv-GPT — content 안 툴콜 `input.model:"haiku"` · `"model":"gpt-5.6-sol"` **후행** | `haiku` ✗ | **(빈 값) → `:169` fail-open** |
+| ⓑ adv-CLA — `"model":"claude-opus-5"` 선행 · 툴콜 `input.model:"haiku"` 후행 | `claude-opus-5` | `haiku` 가 아님 → **`claude-opus-5`** |
+
+구 2행이 A 에서도 통과하는 이유는 그 2행이 전부 **model 선행**이기 때문이고, 그것이 곧 전제다. 적대 2행이 전제 밖을 찌른다.
+
+**후보 4종 × 6입력**(A · B = 라인-내 마지막 매치 · **E = 구조 앵커(채택)** · D = node 로 JSON 파싱해 `message.model` 추출):
+
+| 입력 | A | B | **E** | D |
+|---|---|---|---|---|
+| ⓐ adv-GPT 픽스처 | `haiku` ✗ | `gpt-5.6-sol` | **(빈 값) fail-open** | `gpt-5.6-sol` |
+| ⓑ adv-CLA 픽스처 | `claude-opus-5` | `haiku` ✗ | **`claude-opus-5`** | `claude-opus-5` |
+| ⓒ 실 GPT transcript | `gpt-5.6-sol` | `gpt-5.6-sol` | **`gpt-5.6-sol`** | `gpt-5.6-sol` |
+| ⓓ 실 Claude 세션 | `claude-opus-5` | `claude-opus-5` | **`claude-opus-5`** | `claude-opus-5` |
+| ⓔ 실 dual-model 라인 파일 | `claude-haiku-4-5-20251001` | 〃 | 〃 | 〃 |
+| ⓕ 인용-면역 픽스처(`claude-fable-5` 라인 · 위 표 동형 model 선행) | `claude-fable-5` | — | **`claude-fable-5`** | `claude-fable-5` |
+
+**기각 2건**: **B(마지막 매치)** = Claude shape 를 깨뜨린다(ⓑ 에서 `haiku` 오판별) — 무회귀 위반이라 즉시 탈락. **D(node JSON 파싱)** = 6입력 전부 정확하나 훅 핫패스에 node 프로세스가 추가돼 **2.1배 지연**(동일 대형 Claude 세션 5회 평균 — 현행 awk 134ms · **E 120ms** · D 276ms). 이 훅은 Agent/Workflow 호출마다 발화하고 E 대비 정확도 이득은 ⓐ 1케이스뿐이라 비용-편익 불성립 → 폐기가 아니라 **§20.6-8 로 재판정 여지 보존**.
+
+**오판별의 하류 귀결 — A 를 기각하는 이유는 지연이 아니라 규범이다.** ⓐ 에서 A 가 뱉는 `haiku` 는 `tier_of`=**1** 이라 `SESSION_TIER != 0` 가드(`:201`)를 **통과**한다 → §20.3 이 "계속 skip" 으로 확정한 **상속 축이 발화**하고, 이는 N4 가 금지한 "미지 세션에 임의 티어 부여"의 실현이다. **후보 A 는 N4 를 조건부 위반한다.**
+
+**모집단 정직 부기** — 실 GPT transcript 5개에 다중-`model` assistant 라인은 **0건**이다(`awk '/"type":"assistant"/ { c=gsub(/"model":/,"&"); if(c>1) t++ } END{print t+0}'`). 즉 라이브 오발화 실적은 없으며 이 정정은 **클래스 차단**이지 실사고 대응이 아니다 — ⓐ·ⓑ 는 적대 픽스처다.
 
 **실측 ③ — 리터럴 분기는 세션을 참조하지 않는다(코드 사실).** `grep -n -o 'SESSION_TIER'` → `171·178·198·201·201`(5회, `:201` 은 한 줄에 2회). **할당부 `:171` 을 제외한 참조 4회가 전부 `inherit` 분기 안**이다:
 
@@ -2528,8 +2573,9 @@ C17 슬롯1 A1 은 이 상태를 **알고 남겼다**. 자기-인용 2건:
 | 결정 | 검증 수단 | 기대 |
 |---|---|---|
 | N2 RED→GREEN | 실 GPT transcript + `mk_agent_event review-strict haiku` → `additionalContext` 유무 | **RED**(현행) 출력 없음 [실측 ✓] → **GREEN**(중립화) `rule-b-verifier-below-opus-floor` [실측 ✓ · 프로세스 치환 수정본] |
-| N2 판별 무회귀 | 중립 정규식을 Claude transcript·빈 입력에 적용 | `claude-opus-5` / (빈 값) — §20.2 표 ① [실측 ✓] |
-| N2 면역 유지 | content 에 타 패밀리 model id 를 인용한 2종 | 둘 다 `claude-opus-5` [실측 ✓] |
+| N2 판별 무회귀 | 중립화+앵커 판별식을 Claude transcript·빈 입력에 적용 | `claude-opus-5` / (빈 값) — §20.2 표 ① [실측 ✓] |
+| N2 앵커 거짓-건너뜀 없음 | 실 GPT transcript 5파일의 전 assistant 라인에 앵커 적용 → pick 성공/빈 값 집계 | **40/0**(2+22+4+1+11 전건 pick · 빈 값 0) — 60자 윈도우가 정상 세션 모델을 삼키지 않음 [실측 ✓ · §20.6-9 의 실측 하한] |
+| N2 면역 유지 | content 인용 2종 + **GPT 툴콜 적대 픽스처**(`content` 안 `input.model:"haiku"` · `model` 이 뒤) + Claude 툴콜 적대 픽스처 | 인용 2종 → `claude-opus-5` · GPT 툴콜 → **(빈 값)** = `:169` fail-open(오판별 `haiku` 가 **아닐 것**) · Claude 툴콜 → `claude-opus-5` [실측 ✓ · §20.2 실측 ②] |
 | N4 상속 축 skip | GPT transcript + `review-strict model:"inherit"` | **SILENT** [실측 ✓] |
 | N3 Workflow 불변 | `hooks/surface-model-policy.sh` `:42-158` diff **0** | Rule C/C2/C3 픽스처 전건 판정 불변 |
 | Claude 세션 무회귀 | `bash hooks/tests/run-all.sh` | **291/291 불변** + 신규분(2026-08-16 기준선 재실측 ✓ · `cases.tsv` 선언 291 == 실행 291) |
@@ -2547,3 +2593,5 @@ C17 슬롯1 A1 은 이 상태를 **알고 남겼다**. 자기-인용 2건:
 5. **복원 후 관측 커버리지 미측정** — 훅 로그에 세션 패밀리 필드가 없어 "GPT 세션에서 실제 몇 건이 발화하는가"는 착륙 후 슬러그 대조로만 확인 가능한 사후 관측 대상이다(§20.0 상한 3).
 6. **GAP 원 기록의 미정정 — 정정-전파 공백** — `docs/ai-context/c21-gap-nonclaude-session-blindness.md`(추적, `d7491e3`)는 `:21-22` 에서 `:169`/`:54` 를 결함으로 단정하고 `:81-83`(F2)이 조기 종료 분리를 처방한다. §20.2 가 `:169` 지목을 실측으로 **기각**하고 §20.3 N3 가 `:54` 를 (결함이 아니라) §16.4-5 의식적 수용으로 판정했으므로 추적 사이트 2곳이 spec 과 모순 상태다 — 「정정-전파 공백」(CONTEXT.md canonical · §18.3 대조 의무)에 해당한다. §19.7-7 선례("원 기록을 정정 부기할 것")를 따라 **Phase I 에서 원 기록에 정정 부기**한다(삭제 아님 — 오판정의 이력도 근거다).
 7. **§20.0 ⓓ 의 표본 = 1픽스처** — 클래스 존재 증명이며 arm 커버리지가 아니다. 전 arm RED 수열은 Phase I 소관(§20.0 상한 1).
+8. **GPT 툴콜 라인은 판별-불가로 처분된다** — 후보 E 는 라인의 매치가 전부 `input` 소속일 때 빈 값을 반환해 `:169` fail-open 으로 떨어진다(§20.2 실측 ② ⓐ). 세션이 GPT 임을 *알 수 있는데도* 판별을 포기하는 것이며, 후보 D(node JSON 파싱)가 그 1케이스를 해소하나 핫패스 **2.1배 지연**(276ms vs 현행 134ms) 비용이라 기각했다. 재판정 조건 = 지연 예산이 바뀌거나 그 라인 클래스의 모집단이 실측으로 커질 때(현재 0건).
+9. **앵커는 60자 윈도우의 텍스트 휴리스틱이다** — `"input":{` 와 `"model"` 사이에 60자를 넘는 키가 끼면 앵커가 빗나간다(구조 파서가 아님 — §20.6-4 `tier_of` 상한과 동류). 현 실측 shape 에서 그 거리는 60자 이내이나 shape 변경 내성은 없고, 빗나갈 때의 방향은 A 와 동형(툴콜 인자 채택)이다. 방어선 = Phase I 픽스처가 실 shape 를 고정한다(§20.5 「신규 픽스처는 실 shape 를 쓴다」).
