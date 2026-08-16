@@ -1,0 +1,51 @@
+C21(cycle 72) 재개 — 끝까지 실행. Phase R·Gate R 은 완료·커밋됐다(재수행 금지). Phase P 부터 시작.
+
+■ 먼저 읽을 것
+docs/ai-context/c21-resume-goal.md 전문 → 그 안 read-before 9건. 특히
+specs/2026-07-25-model-policy-design.md §20(:2397-2549)=확정 설계, hooks/surface-model-policy.sh, CONTEXT.md, docs/ai-context/c21-gap-nonclaude-session-blindness.md, non-obvious.md(#1·#3), c20-carryover-recovery.md.
+루트=C:\Users\12132\.claude, 브랜치=cycle-72-nonclaude-policy-gap(clean).
+
+■ 문제
+session_model_of() 정규식이 "claude-" 접두만 매치 → 비-Claude 세션에서 SESSION_MODEL 이 비고 :169 에서 Agent 경로 전체가 조기 종료 → Rule A/B 가 리터럴 위반조차 침묵. 실측: GPT transcript+review-strict:haiku → SILENT / Claude 세션 동일 위반 → ALERT. 모집단 실재(Orca 워크스페이스 GPT 세션 5개).
+
+■ 확정 설계(spec §20 — 재논의·재설계 금지)
+N1 이것은 C17 A1 정정의 미완결분이다. A1 은 티어 축(SESSION_TIER!=0 skip)을 열었고 판별 축(정규식)은 :1551 이 명시적으로 남겼다. "신규 결함"·"C17 이 놓쳤다" 프레이밍 금지 — 전제를 바꾼 건 C20 §19.1 브리지 자산화다.
+N2 수단은 정규식 1개 중립화뿐: claude-[a-z0-9.-]+ → [A-Za-z0-9._-]+. :169 제거는 기각(판별 실패 ≠ 미지 티어. claude 세션 transcript 50개 중 12개가 assistant 라인 0건이라 모집단이 크다).
+N3 범위는 Agent 리터럴 축만. Workflow(:54·:56)는 §16.4-5 의식적 수용으로 존속 — 건드리지 말 것.
+N4 inherit(상속 축)은 계속 skip. 미지 세션에 임의 티어 부여는 §16.4-4 "평가≠상계" 후퇴의 재발.
+
+■ ★I1 — 이 사이클에서 실재 재현됨(어기면 파일 파손)
+spec md 는 CRLF 1823 + LF 572 혼합. Edit 도구가 전량 CRLF 로 정규화해 기존 절 723줄을 훼손한다(실측). 또한 grep -c $'\r$' 는 이 파일에서 0 을 반환하니 계수에 쓰지 말 것.
+→ 계수는 perl -ne '$n++ if /\r/; END{print "$n\n"}' <file>
+→ 혼합-개행 파일 편집은 perl -0777 -i -pe 바이트 편집(RPI_SKIP 선언 동반)
+→ 편집 후 매번 CR 계수 + git diff --numstat 로 무결성 확인
+
+■ success criteria (전부 충족해야 완료)
+S1 정규식 중립화 + RED→GREEN 증거. RED=정정 전 SILENT, GREEN=정정 후 rule-b-verifier-below-opus-floor ALERT.
+S1 상세 — RED 재현부터: 실 GPT transcript(projects/C--Users-12132-orca-workspaces-orca-lab-impl-parse/3a8731e6-*.jsonl)와 mk_agent_event 로 stdin 을 만들어 현행 코드에 넣고 SILENT 를 먼저 확인하라. 그 다음 정규식을 고쳐 ALERT 확인. 마커(/tmp/model-policy-*)가 1세션 1회 억제를 하니 케이스마다 고유 session_id 를 쓰고 전후로 정리하라 — 놓치면 CONTROL 조차 침묵해 RED 를 오판한다.
+S2 cases.tsv 에 비-Claude 케이스 ≥4(리터럴 haiku/fable, execute fable, inherit=SILENT). 실 shape 필수(run-all.sh:1042 mk_agent_event 계열). 합성 shape 금지(cycle-40 교훈, non-obvious #1).
+S3 무회귀: run-all 291/291+신규, verify-setup 89/0+신규, seal-regression 26/0.
+S4 surface-model-policy.sh :42-158 diff 0 (N3 증명).
+S5 c21-gap-nonclaude-session-blindness.md :21-22·:81-83 에 §20.2/§20.3 판정 정정 부기(삭제 아님 — §19.7-7 선례, §20.6-6).
+S6 I1 non-obvious 등록: review-strict 5 Whys + 재현 픽스처. root cause 는 시스템/프로세스여야 함(사람/AI 불가). 사용자 승인은 C19 에서 이미 받음.
+S7 C20 이월 처분: I2(ownership 오타가 floor 검사를 통째로 skip — review_only vs review-only), I3(verify-setup.sh:621 의 2>/dev/null 이 위반 상세 폐기), .gitignore:25 가 하이픈 접미만 덮어 베어 settings.json.bak 사각. 각각 정정 또는 수용 잔여로 명문화.
+S8 신규 seal ≥1 + seal-regression 변이 동반(§18.3). seal 번호는 closeout 직전 origin/master 실측 발급(§6) — 임의 배정 금지.
+
+■ 절차
+1 writing-plans skill 호출 → docs/superpowers/plans/2026-08-16-c21-nonclaude-policy-gap.md (헤더 Status: active, RPI-Cycle: 72). Best-Direction Check 필수 필드. S1~S8 을 task 로 분해, light-병합(§16.3-3) 적용.
+2 Gate P(review-strict). FAIL 시 델타 재심(§15.4 — 지목 항목 + 정정이 깨뜨린 것만).
+3 Phase I: S1 은 heavy(TDD verbatim 전달 필수), S5/S7 은 light. ultracode ON.
+4 Closeout: closeout-pr-cycle → 통합 리뷰 소비 → plan completed → state.json(count 72·last_completed_at·audit.last_drift_check) → verify-setup → seal-regression full 필수 → layer-yield 대장 append(review-yield.md) → PR 생성.
+
+■ 검증 규율(이 사이클이 정정하려는 결함 클래스를 재발하지 말 것)
+무측정 단언 금지 — 인과·처방 주장에 실행 명령+출력 또는 파일:줄+verbatim 을 동반한다. 근거 없으면 "미검증"이라 쓴다. C20 §19.5 가 지목하고 C21 Gate R 이 실제로 잡은 클래스가 "자기가 쓴 규약이 작동한다고 무측정 단언"이다. 서브에이전트 보고를 그대로 믿지 말고 핵심 수치는 메인이 독립 재실행해 대조하라(Gate R 이 §20.2 의 SESSION_TIER 열거 오류를 그렇게 잡았다).
+
+■ autonomy
+선택 분기는 멈추지 말고 best-practice 로 진행. 픽스처 개수·seal 형태·커밋 분할·task 순서·이월분 처분 방식은 자율.
+멈추는 경우는 넷뿐: ①PR 머지 승인 ②N1~N4 를 뒤집을 근거 발견 ③외부도구 설치·로그인·인증·업데이트(절대 금지) ④CCS 제거(사용자 보류).
+FABLE-TAKEOVER 2산출물 연속 시 중단하고 대기.
+
+■ 보고 형식(Closeout)
+result·evidence·unknowns·next-cycle-goal(goal·read-before·autonomy 3라벨)·harness-verify(PASS=N FAIL=0)·phase-skills(Phase 별 invoked|skipped:사유)·layer-yield(층별 "상태·실발견 N건·발견|확인" 1줄, 동일 행을 review-yield.md 에 append). 필드 누락=구조적 불완전.
+
+PR 생성까지 하고 머지 전에 한국어로 보고할 것. 중간에 막히면 추측으로 메우지 말고 무엇이 막혔는지 실측과 함께 보고하라.
