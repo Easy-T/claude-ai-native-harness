@@ -640,23 +640,65 @@ fi
 #     있으면 FAIL. MSYS 에서 bash 가 만든 경로를 네이티브 python/node 가 C:\tmp\x 로 오해석해 픽스처가
 #     조용히 미생성되고, 계수기형 오라클이 그 빈 입력을 "위반 없음"으로 보고하던 클래스(C20 T6 라이브 재현).
 #     ★vacuous 방지: 대상 0(TOTAL=0)이면 FAIL — #51 선례(계수기형은 "대상 0"과 "위반 0"이 동형).
+#     ★C21 슬롯2(GPT #12·#13·#15) 정정 — 3종 부정확을 봉인:
+#       #13 우회: 겹따옴표 소스 안의 `\"` 는 **JS/py 문자열 구문**이지 소스 종결이 아니다. 구 스캐너는
+#          첫 `\"` 에서 잘라 뒤쪽 `$VAR` 를 못 봤다(실측 VIOLATION=0). → 이스케이프-인식 종결자 탐색.
+#       #15 거짓 FAIL: ⓐ `\$` 는 겹따옴표 안에서 **리터럴 $** 라 보간이 아니다 ⓑ 인라인 주석(`# …`)
+#          안의 호출은 실행되지 않는다 ⓒ 소스 끝을 건너뛰지 않아 소스 *내부* 텍스트를 2차 호출로 재계수.
+#       #12 TOTAL 오염: 계수는 유지하되, 위 ⓐ~ⓒ 제거로 TOTAL 이 실제 호출에 근접한다.
+#     ★수용 잔여(정직 공개 — 이 seal 은 셸 파서가 아니라 어휘 스캐너다):
+#       ① TOTAL 은 **실행되는 호출 수가 아니라 어휘 출현 수**다. 문자열을 *조립*하기만 하는 줄
+#          (예: seal-regression 의 mut_pathpass_interp 정의행 — 실측 TOTAL=1 VIOLATION=0)도 계수된다.
+#          따라서 "TOTAL>0" 은 "실제 인라인 호출이 존재한다"의 **상계**이며, vacuous 가드의 강도는
+#          그만큼 약하다(GPT #12 REAL — 완전 봉인은 셸 파싱을 요구하므로 이번 사이클 범위 밖).
+#       ② 미탐: 줄-연속(`\` 개행)·멀티라인 소스·`--eval=`/`-c"…"`(공백 없는 형태)·따옴표 씌운 실행
+#          파일명(`"node" -e`)·`node.exe`·`$1`/`$@` 등 위치 매개변수·backtick 명령 치환(GPT #14 REAL,
+#          미정정). 글롭도 `*/tests/*.sh` 직계만 본다(하위 디렉터리 미포함 — 의도).
+#       ③ awk 종료 상태 미확인(GPT #16) — summary 출력 후 nonzero 종료하는 환경 오류는 감지 못 한다.
 PP_OUT=$(awk '
+  # ★순서 주의: awk 정규식 /\\\\/ 는 **단일 백슬래시**를 매치한다. 백슬래시 규칙을 먼저 돌리면
+  #   `\$`·`\"` 의 백슬래시를 먼저 먹어 뒤 규칙이 매치할 대상을 없앤다(실측). 2문자 시퀀스가 먼저다.
+  function unesc(s) { gsub(/\\\$/, "\002", s); gsub(/\\"/, "\003", s); gsub(/\\\\/, "\001", s); return s }
   /^[[:space:]]*#/ { next }
-  { line = $0; pos = 1
+  { line = $0
+    # ⓑ 인라인 주석 절단: 따옴표 밖의 " #" 이후는 실행되지 않는다(따옴표 상태를 추적해 오절단 방지)
+    inq = ""; cut = 0
+    for (k = 1; k <= length(line); k++) {
+      ch = substr(line, k, 1); prev = (k > 1) ? substr(line, k-1, 1) : ""
+      if (prev == "\\") continue
+      if (inq == "") { if (ch == "\047" || ch == "\"") inq = ch
+                       else if (ch == "#" && (k == 1 || substr(line, k-1, 1) ~ /[[:space:]]/)) { cut = k; break } }
+      else if (ch == inq) inq = ""
+    }
+    if (cut > 0) line = substr(line, 1, cut - 1)
+    pos = 1
     while (match(substr(line, pos), /(python3?|node)[ \t]+-[ce][ \t]+/)) {
       st = pos + RSTART - 1; pos = st + RLENGTH; rest = substr(line, pos); q = substr(rest, 1, 1)
-      if (q == "\047") { i = index(substr(rest, 2), "\047"); src = (i > 0) ? substr(rest, 2, i - 1) : substr(rest, 2); interp = 0 }
-      else if (q == "\"") { i = index(substr(rest, 2), "\""); src = (i > 0) ? substr(rest, 2, i - 1) : substr(rest, 2); interp = 1 }
-      else { src = rest; interp = 0 }
+      if (q == "\047") { i = index(substr(rest, 2), "\047"); src = (i > 0) ? substr(rest, 2, i - 1) : substr(rest, 2); interp = 0
+                         pos += (i > 0) ? i + 1 : length(rest) }        # ⓒ 소스 끝으로 전진
+      else if (q == "\"") {                                              # #13: \" 를 건너뛰며 종결자 탐색
+        body = substr(rest, 2); e = 0
+        for (j = 1; j <= length(body); j++) {
+          c = substr(body, j, 1)
+          if (c == "\\") { j++; continue }
+          if (c == "\"") { e = j; break }
+        }
+        src = (e > 0) ? substr(body, 1, e - 1) : body; interp = 1
+        pos += (e > 0) ? e + 1 : length(rest) }
+      else { src = rest; interp = 0; pos += length(rest) }
       TOTAL++
-      if (index(src, "/tmp/") > 0 || (interp && src ~ /\$[A-Za-z_{(]/)) { V++; printf "%s:%d ", FILENAME, FNR }
+      probe = unesc(src)                                                 # ⓐ \$ → \002 로 중화(리터럴 $)
+      if (index(probe, "/tmp/") > 0 || (interp && probe ~ /\$[A-Za-z_{(]/)) { V++; printf "%s:%d ", FILENAME, FNR }
     } }
   END { printf "\nTOTAL=%d VIOLATION=%d\n", TOTAL + 0, V + 0 }
 ' "$HOME/.claude/hooks/tests"/*.sh "$HOME/.claude/setup/tests"/*.sh 2>/dev/null)
+PP_RC=$?   # GPT #16: summary 를 출력하고도 nonzero 로 죽는 awk/환경 오류를 OK 로 넘기지 않는다
 PP_TOTAL=$(printf '%s' "$PP_OUT" | tail -1 | grep -oE 'TOTAL=[0-9]+' | cut -d= -f2)
 PP_VIOL=$(printf '%s' "$PP_OUT" | tail -1 | grep -oE 'VIOLATION=[0-9]+' | cut -d= -f2)
 PP_SITES=$(printf '%s' "$PP_OUT" | head -1)
-if [ "${PP_TOTAL:-0}" -eq 0 ]; then
+if [ "$PP_RC" -ne 0 ]; then
+  fail "경로-전달 seal: 스캐너 비정상 종료 (awk rc=$PP_RC) — 판정 불가를 PASS 로 위장하지 않는다 (GPT #16)"
+elif [ "${PP_TOTAL:-0}" -eq 0 ]; then
   fail "경로-전달 seal: 검사 대상 0 (인라인 인터프리터 호출 부재 — vacuous seal 방지, #51 선례)"
 elif [ "${PP_VIOL:-0}" -eq 0 ]; then
   ok "경로-전달 규약: 인라인 인터프리터 ${PP_TOTAL}건 위반 0 (non-obvious #3 SMART ①)"
