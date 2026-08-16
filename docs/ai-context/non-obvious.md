@@ -120,7 +120,7 @@
 
 ---
 
-## 4. Edit 도구는 **혼합-개행** 파일을 전량 LF 로 통일해 편집 범위 밖을 파괴한다
+## 4. Edit 도구는 **혼합-개행** 파일의 개행을 한쪽으로 통일해 편집 범위 밖을 파괴한다
 
 - **관측 (2026-08-10 C19 최초 · 2026-08-16 C21 재발)**: C19 Gate R 정정 세션에서 Edit 이 혼합-개행
   spec 파일의 LF 꼬리를 CRLF 로 재작성해 §17 전체가 diff 오염됐다
@@ -174,20 +174,23 @@
      `git diff --numstat` 의 deletions 가 의도한 교체분과 일치. **기한 = 즉시 적용**(C21 이 이미 이행 —
      C21 의 spec 파일 커밋 **4건**(`89624bf`·`ff6e967`·`9eb409e`·`9b84de6`) 전부 CR **1823** 불변 실측).
 - **재현 픽스처**:
+  실파일 사고와 **같은 구성**(CRLF 다수 + LF 소수)에서, 개행 통일이 동반되면 편집 범위 밖이 번지는 것을 보인다:
   ```bash
   D=$(mktemp -d)
-  printf 'alpha\r\nbravo\r\ncharlie\r\ndelta\r\necho\nfoxtrot\n' > "$D/orig.txt"   # CRLF 4 / LF 2
-  cp "$D/orig.txt" "$D/edit.txt"; cp "$D/orig.txt" "$D/perl.txt"
-  perl -i    -pe 's/\r\n/\n/g; s/^charlie$/charlie-EDITED/' "$D/edit.txt"   # 개행-통일 동반 편집(전량 LF)
-  perl -0777 -i -pe 's/charlie/charlie-EDITED/'             "$D/perl.txt"   # 바이트 편집(개행 보존)
+  # 실파일과 동형: CRLF 다수(4) + LF 소수(2). 실사고에서는 소수(LF 723)가 다수(CRLF 1823)로 흡수됐다.
+  printf 'alpha\r\nbravo\r\ncharlie\r\ndelta\r\necho\nfoxtrot\n' > "$D/orig.txt"
+  cp "$D/orig.txt" "$D/uni.txt"; cp "$D/orig.txt" "$D/byte.txt"
+  perl -i -pe 's/^charlie(\r?)$/charlie-EDITED$1/; s/\n$/\r\n/ unless /\r\n$/' "$D/uni.txt"  # 1줄 편집 + 다수(CRLF)로 통일
+  perl -0777 -i -pe 's/charlie/charlie-EDITED/'                                "$D/byte.txt" # 바이트 편집(개행 보존)
   crlf() { perl -ne '$n++ if /\r/; END{print $n+0}' "$1"; }
-  printf 'BEFORE   CRLF=%s\n' "$(crlf "$D/orig.txt")"
-  printf 'EDIT상당 CRLF=%s  changed=%s\n' "$(crlf "$D/edit.txt")" "$(diff "$D/orig.txt" "$D/edit.txt" | grep -c '^<')"
-  printf 'perl     CRLF=%s  changed=%s\n' "$(crlf "$D/perl.txt")" "$(diff "$D/orig.txt" "$D/perl.txt" | grep -c '^<')"
+  chg()  { diff "$D/orig.txt" "$1" | grep -c '^<'; }
+  printf 'BEFORE     CRLF=%s / 총 6\n' "$(crlf "$D/orig.txt")"
+  printf '개행통일   CRLF=%s  changed=%s   ← 1줄 편집 의도가 번진다\n' "$(crlf "$D/uni.txt")"  "$(chg "$D/uni.txt")"
+  printf '바이트편집 CRLF=%s  changed=%s   ← 의도한 1줄만\n'          "$(crlf "$D/byte.txt")" "$(chg "$D/byte.txt")"
   rm -rf "$D"
   ```
-  → 실행 확인(2026-08-16): `BEFORE CRLF=4` · `EDIT상당 CRLF=0 changed=4` · `perl CRLF=4 changed=1`.
-  **1줄 편집 의도가 4줄 diff 로 번진다.**
+  → 실행 확인(2026-08-16): `BEFORE CRLF=4` · `개행통일 CRLF=6 changed=3` · `바이트편집 CRLF=4 changed=1`.
+  **소수 개행 2줄이 다수(CRLF)로 흡수돼, 1줄 편집이 3줄 diff 가 된다** — 실파일 723 과 같은 기전이다.
   **자동화 상한(정직 부기)**: Edit 은 모델 도구라 셸이 호출할 수 없다 — 위 픽스처는 Edit 자체가 아니라
   **기전**(혼합 파일에 개행 통일이 동반되면 무관 줄이 diff 에 잡힘)을 재현하며, 방향은 픽스처 구성상
   LF 쪽이다(실파일 사고의 방향과 반대 — 기전은 같고 방향은 다수 쪽을 따른다). Edit 의 실제 동작 근거는

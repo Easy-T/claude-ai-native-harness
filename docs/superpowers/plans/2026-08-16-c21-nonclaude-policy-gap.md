@@ -334,17 +334,18 @@ cd ~/.claude; export RPI_SKIP="C21 T4 — I1 재현 픽스처 실행"
 D=$(mktemp -d)
 printf 'alpha\r\nbravo\r\ncharlie\r\ndelta\r\necho\nfoxtrot\n' > "$D/orig.txt"
 cp "$D/orig.txt" "$D/edit.txt"; cp "$D/orig.txt" "$D/perl.txt"
-perl -i    -pe 's/\r\n/\n/g; s/^charlie$/charlie-EDITED/' "$D/edit.txt"   # Edit 도구 상당(혼합→전량 LF)
-perl -0777 -i -pe 's/charlie/charlie-EDITED/'             "$D/perl.txt"   # 바이트 편집(개행 보존)
+perl -i    -pe 's/^charlie(\r?)$/charlie-EDITED$1/; s/\n$/\r\n/ unless /\r\n$/' "$D/edit.txt"  # 1줄 편집 + 다수(CRLF)로 통일
+perl -0777 -i -pe 's/charlie/charlie-EDITED/'                                   "$D/perl.txt"  # 바이트 편집(개행 보존)
 crlf() { perl -ne '$n++ if /\r/; END{print $n+0}' "$1"; }
-printf 'BEFORE   CRLF=%s\n' "$(crlf "$D/orig.txt")"
+printf 'BEFORE   CRLF=%s / 총 6\n' "$(crlf "$D/orig.txt")"
 printf 'EDIT상당 CRLF=%s  changed=%s\n' "$(crlf "$D/edit.txt")" "$(diff "$D/orig.txt" "$D/edit.txt" | grep -c '^<')"
 printf 'perl     CRLF=%s  changed=%s\n' "$(crlf "$D/perl.txt")" "$(diff "$D/orig.txt" "$D/perl.txt" | grep -c '^<')"
 rm -rf "$D"; unset RPI_SKIP
 ```
-Expected [메인 실측 ✓]: `BEFORE CRLF=4` · `EDIT상당 CRLF=0 changed=4` · `perl CRLF=4 changed=1` — **1줄 편집 의도가 4줄 diff 로 번진다.**
+Expected [메인 실측 ✓]: `BEFORE CRLF=4` · `EDIT상당 CRLF=6 changed=3` · `perl CRLF=4 changed=1` — **1줄 편집 의도가 3줄 diff 로 번진다**(소수 LF 2줄이 다수 CRLF 로 흡수).
+※ 픽스처는 실파일 사고와 **같은 구성**(CRLF 다수+LF 소수)을 쓴다. 통일 *방향*은 이 명령이 지정하므로 픽스처는 방향 가설의 증거가 아니다 — 증거는 실파일 산술(아래 Step 3).
 - [ ] **Step 3: 항목 4 작성** — 기존 항목 1~3 의 5필드(**관측 / 5 Whys / SMART / 재현 픽스처 / 관계**)를 따르고 아래를 반드시 포함:
-- **관측**: C19(2026-08-10) 리뷰 정정 중 Edit 이 혼합-개행 파일 전체를 LF 로 통일해 편집 범위 밖 줄이 diff 에 잡힘. C20 Phase R 3케이스(`_goal/c20-i1-repro-measured.md`): A(CRLF 머리+LF 꼬리)=**파괴** · B(LF 다수+CRLF 1)=**파괴** · C(순수 CRLF)=**보존**. **★방향은 CRLF→LF** — C19 layer-yield `:63` 의 "LF 꼬리를 CRLF 재작성"은 방향이 반대이며 이 등록이 실측 방향으로 정정한다(실패 *클래스*는 동일).
+- **관측**: C19(2026-08-10) 리뷰 정정 중 Edit 이 혼합-개행 파일의 개행을 한쪽으로 통일해 편집 범위 밖 줄이 diff 에 잡힘. C20 Phase R 3케이스(`_goal/c20-i1-repro-measured.md`): A(CRLF 2/LF 2, 동수)=**파괴** · B(LF 다수+CRLF 1)=**파괴** · C(순수 CRLF)=**보존**. **★방향은 다수결**(소수 개행이 다수 쪽으로 흡수) — C21 실파일 산술이 판별한다: 변경 줄 **723 = 편집 시점 LF 줄 수**(`git show 89624bf:<spec>` → CRLF 1823/LF 723/총 2546)이므로 이 사고는 **LF→CRLF**. CRLF→LF 였다면 변경 줄 = 1823 이어야 한다. 따라서 **C19 원 기록(`plans/2026-08-09-c19-review-economics.md:48`)의 "LF 꼬리를 CRLF 재작성"이 옳았고**, C20 Phase R 이 합성 케이스만 보고 내린 "C19 는 방향이 반대" 판정(`_goal/c20-i1-repro-measured.md:21-23`)이 오판이다 — 이 등록이 그것을 정정한다(실패 *클래스*는 세 기록 모두 동일).
 - **5 Whys**: root cause 는 **시스템/프로세스**여야 한다(사람/AI 불가 — CLAUDE.md §4-3). 권고 종착지 = 「**파일의 개행 상태가 편집 전에 조회되는 자리가 절차에 없다** — 도구 선택(Edit vs 바이트 편집)이 파일 속성에 의존하는데 그 확인 단계가 어느 skill 에도 배치돼 있지 않고, `grep -c $'\r'` 가 이 클래스 파일에서 **0 을 반환**해 확인을 시도해도 오답이 나온다」.
 - **SMART**: **측정 가능한 지표 + 기한**. 최소 1건은 「plan/skill 의 편집 지시가 대상 파일의 개행 상태를 명시하게 한다 — 측정 = 혼합-개행 파일을 편집하는 task 의 Files 블록에 개행 실측 줄 존재(`perl -ne` 계수 인용), 기한 = **C22 Phase P**」 형태.
 - **재현 픽스처**: Step 2 명령 블록을 그대로 싣고 기대 출력 3줄 병기. **자동화 상한 명시**(Edit 은 모델 도구라 셸 재현 불가 → 기전 재현) — 침묵 잔여 금지(항목 1 선례).
@@ -362,7 +363,8 @@ Agent(subagent_type="review-strict",
         - 각 Why 가 직전 Why 의 답을 실제로 파고듦 (동어반복·건너뜀 없음)
         - SMART 에 **측정 가능한 지표**와 **기한**이 둘 다 존재
         - 재현 픽스처가 실행 가능한 명령이고 자동화 상한이 명시됨
-        - 관측 서술의 개행 방향이 CRLF→LF (C19 기록과 반대라는 정정 부기 포함)
+        - 관측 서술의 개행 방향이 **다수결**(소수→다수 흡수)이고, C21 사고는 산술(변경 723 = LF 줄 수)로 LF→CRLF 로 판별될 것
+          — 즉 C19 원 기록이 옳고 C20 의 "방향 반대" 판정이 오판이라는 정정 부기 포함
         FAIL with: 위반 항목별 지적 + 요구 정정")
 ```
 FAIL 이면 지적 항목만 정정 후 **델타 재심**(직전 FAIL 지목 항목의 해소 + 정정이 편집한 절에 한정한 원 기준 재적용 — C16 §15.4).
@@ -373,7 +375,7 @@ grep -c '^## 4\.' docs/ai-context/non-obvious.md      # Expected: 1
 grep -c '재현 픽스처' docs/ai-context/non-obvious.md  # Expected: 기준 6(2026-08-16 실측: :8·:10·:18·:40·:62·:106) + 1 = 7
 bash setup/verify-setup.sh 2>&1 | tail -1             # Expected: PASS=90 FAIL=0
 git add docs/ai-context/non-obvious.md \
- && git commit -m "docs(c21): non-obvious #4 등록 — Edit 혼합-개행 파괴(CRLF→LF) 5 Whys+픽스처 (T4)"
+ && git commit -m "docs(c21): non-obvious #4 등록 — Edit 혼합-개행 파괴(다수결 통일) 5 Whys+픽스처 (T4)"
 ```
 ---
 ### Task 5: GAP 원 기록 정정 부기 + C20 이월 3건 처분 (S5·S7 — light-병합)
