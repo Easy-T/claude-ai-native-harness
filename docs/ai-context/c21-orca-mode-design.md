@@ -752,3 +752,76 @@ cat <대상> | OCX_MODEL=gpt-5.6-sol ~/.claude/bin/claude-ocx -p "<프롬프트>
 
 **C21 주축은 이 드리프트의 영향을 받지 않는다** — GAP 정정(`surface-model-policy.sh`)은 하네스 내부
 결함이라 Orca 버전과 독립이다.
+
+---
+
+## 11. 2026-08-17 실측 갱신 — §8 미확인 3건 해소 + 반증 2건
+
+C21 머지 직후 사용자 질문("jmode 로 orca 에서 claude 부르면 동작하나")에 답하기 위해 4축 병렬 프로브 + 적대 검증을 돌렸고, 아래가 실측으로 확정됐다. **원문(§0~§10)은 수정하지 않는다** — 아래가 supersede 부기다.
+
+### 11.1 해소 — orchestration 은 이미 도달 가능하다 (§8-A2 · §9-A2)
+
+`orca-data.json` 에 experimental 키가 없어 "활성 여부 미확인"으로 남겼던 항목:
+
+```
+$ C:/Users/12132/AppData/Local/Programs/orca/resources/bin/orca.exe orchestration run-list --json
+{ "id":"a00c89df-…", "ok": true, "result": { "runs":[ { "id":"run_legacy_local", … } ] } }
+```
+
+**`ok: true`** — orchestration RPC 가 응답한다. §9-A 의 "Settings > Experimental 에서 육안 확인 필요"는 **불요**로 판정한다(런타임이 이미 받아들인다). 단 `runs` 는 여전히 툼스톤 1건이라 **실행 전례 0** 은 불변.
+
+### 11.2 해소 — orca 는 PATH 에 등록돼 있다 (§3.0 함정① 정밀화)
+
+§3.0 은 `command -v orca → rc=1` 을 근거로 "PATH 에 없다"고 적었다. **이는 이 bash 세션에 한정된 사실이다.**
+
+```
+$ powershell -NoProfile -Command "[Environment]::GetEnvironmentVariable('PATH','User')" | tr ';' '\n' | grep -i orca
+C:\Users\12132\AppData\Local\Programs\orca\resources\bin
+```
+
+Windows *사용자* PATH 9번째 항목에 등록돼 있다. 현 셸 PATH 가 Orca 설치(2026-08-10) 이전 스냅샷이라 낡은 것뿐이다 — **새 셸에서는 `orca` 가 그냥 잡힌다.** 절대경로 폴백(`ORCA_CLI_COMMAND`)은 유지하되, 사유는 "미등록"이 아니라 **"세션 PATH 스냅샷 staleness + orca.cmd 의 send/reply 거부"** 로 정정한다.
+
+### 11.3 해소 — `--worktree` 셀렉터 문법 확정 (§8-C13)
+
+`worker-start --help` verbatim:
+
+```
+--worktree <selector>  Worktree selector such as id:<repo-id>::<path>, name:<displayName>,
+                       branch:<branch>, issue:<number>, path:<path>, or active/current
+```
+
+`current` 는 유효한 리터럴이다. 다만 **`repo list` 는 여전히 `orca-lab` 1건뿐**이고 `C:/Users/12132/.claude` 는 미등록 — §9-A1(사용자 액션)은 **유효**하다. 등록 없이 `--worktree current` 가 하네스 repo 를 가리킬 근거는 없다.
+
+### 11.4 ★반증 — "모드팩은 100% 네이티브 Claude 경로" 는 틀렸다
+
+§0.3 계열 서술이 `claude` 를 "네이티브 Anthropic" 으로 전제했으나, **프로세스 env 가 이미 프록시를 가리킨다**:
+
+```
+$ env | grep -i anthropic
+ANTHROPIC_BASE_URL=http://127.0.0.1:8317        ← CCS cliproxy
+ANTHROPIC_DEFAULT_OPUS_MODEL=claude-opus-5[1m]
+ANTHROPIC_CUSTOM_MODEL_OPTION=gpt-5.6-sol
+```
+
+즉 `claude --model opus` 는 **CCS(8317) 경유**이고, `claude-ocx` 는 **opencodex(10100) 경유**다. 둘의 차이는 "네이티브 vs 프록시" 가 아니라 **"어느 프록시냐"** 다. 정정된 3층 라우팅:
+
+| 층 | 진입 | 경유 | 도달 모델 |
+|---|---|---|---|
+| 기본 | `claude` | CCS `127.0.0.1:8317` | Claude 패밀리(별칭 SSOT = settings env) |
+| 부분 위임 A | `codex exec` | codex CLI 직결 | GPT (하네스 밖·제어점 있음) |
+| 부분 위임 B | `claude-ocx` | opencodex `127.0.0.1:10100` | GPT (하네스 안) |
+
+### 11.5 프록시 healthz 의 거짓 음성 (운영 주의)
+
+`curl --max-time 5 …/healthz` 1차 호출이 **rc=28(timeout)** 로 실패했다가 재시도에서 200 을 냈다. TCP 연결은 성립(`Connected to 127.0.0.1 port 10100`)하고 HTTP 바이트만 0이었다 — 즉 **프록시 사망이 아니라 일시 지연**이다(uptime 실측 557,163s ≈ 6.45일 무중단). `bin/claude-ocx:12` 의 healthz 가드가 이 창에서 **거짓 사망 판정**을 낼 수 있다. 재시도 1회를 두는 것이 옳으나, 이번 사이클 범위 밖 → **차기 후보**로 이월.
+
+### 11.6 불변 — 미착륙 자산 (§9 시나리오의 전제)
+
+| 자산 | 상태 |
+|---|---|
+| `skills/orca-rpi-cycle` | **부재** |
+| `bin/orca-rpi.sh` (캐리어) | **부재** |
+| `start-rpi-cycle` Phase I 옵션 (e) | **부재** (SKILL.md 내 orca 언급 0건) |
+| `modes/orca-rpi-implement.json` + `setup/lib/modepack-oracle.sh` | 실재하나 **§4-4 폐기 대상** |
+
+**결론: Orca 오케스트레이션은 "설계 완료 · 배선 미착륙"이다.** 런타임(11.1)과 문법(11.3)이 확인됐으므로 남은 것은 캐리어 구현 + repo 등록 1회다.
