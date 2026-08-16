@@ -2462,14 +2462,16 @@ C17 슬롯1 A1 은 이 상태를 **알고 남겼다**. 자기-인용 2건:
 | `…"model":"claude-opus-5",…"text":"model: gpt-4 참고"…` | `claude-opus-5` |
 | `…"model":"claude-opus-5",…"text":"{\"model\":\"gpt-4\"} 인용"…` | `claude-opus-5` |
 
-**실측 ③ — 리터럴 분기는 세션을 참조하지 않는다(코드 사실).** `SESSION_TIER` 사용처는 **4곳이고 전부 `inherit` 분기 안**이다:
+**실측 ③ — 리터럴 분기는 세션을 참조하지 않는다(코드 사실).** `grep -n -o 'SESSION_TIER'` → `171·178·198·201·201`(5회, `:201` 은 한 줄에 2회). **할당부 `:171` 을 제외한 참조 4회가 전부 `inherit` 분기 안**이다:
 
 | 위치 | 코드 | 소속 분기 |
 |---|---|---|
+| `:171` | `SESSION_TIER=$(tier_of "$SESSION_MODEL")` | **할당부 — 분기 밖**(무조건 실행 · 참조 아님) |
 | `:178` | `elif [ "$REQ_MODEL" = "inherit" ] && [ "$SESSION_TIER" = "4" ]` | Rule A 누출 arm — inherit |
 | `:198` | `if [ "$SESSION_TIER" = "4" ]` (`:197` `if [ "$REQ_MODEL" = "inherit" ]` 내부) | Rule B 누출 arm — inherit |
-| `:201` | `elif [ "$SESSION_TIER" != "0" ] && [ "$SESSION_TIER" -lt "$OPUS_FLOOR" ]` | Rule B floor arm — inherit |
-| `:203` | `…명시 inherit 는 세션($SESSION_MODEL) 평가이고…` | `:201` 분기 내부 메시지 보간 |
+| `:201` | `elif [ "$SESSION_TIER" != "0" ] && [ "$SESSION_TIER" -lt "$OPUS_FLOOR" ]` (2회) | Rule B floor arm — inherit |
+
+※ 인접 `:203` 은 `SESSION_TIER` 가 아니라 **`SESSION_MODEL`** 보간이다(`sed -n 203p | grep -o` → `SESSION_MODEL`) — `:201` 분기 내부의 메시지 문자열이라 소속 분기는 같으나 변수는 다르다. **C21 Gate R 정정**: 초안이 이 행을 `SESSION_TIER` 사용처로 계수하고 할당부 `:171` 을 누락해 "4곳 전부 inherit 분기 안"이 열거로서 거짓이었다 — 결론(리터럴 분기는 세션 무참조)은 독립 재현으로 불변.
 
 리터럴 분기(`:177` `tier_of "$REQ_MODEL"` · `:206-213` `REQ_TIER`)는 `SESSION_TIER` 를 읽지 않는다 → **`SESSION_MODEL` 이 채워지기만 하면 리터럴 축은 세션 티어와 무관하게 동작**하고, 비-Claude 세션(`SESSION_TIER=0`)의 상속 축은 기존 `!= "0"` 가드(`:201`)와 `= "4"` 비교(`:178`·`:198`)로 **자동 skip** 된다 — 새 가드 불요. GPT transcript + 중립 정규식(프로세스 치환으로 수정본 실행) 실측:
 
@@ -2516,7 +2518,7 @@ C17 슬롯1 A1 은 이 상태를 **알고 남겼다**. 자기-인용 2건:
 
 | 대상 | 구 문면 | C21 후 유효 범위 |
 |---|---|---|
-| `§16.2 :1551` | "transcript 부재/**비-claude 세션**은 세션 판별 자체가 실패해 기존 fail-open 그대로" | **`transcript 부재` 에 한해 유효**로 좁혀진다. `비-claude 세션` 절반은 **Agent 경로 리터럴 축에 한해 무효** — 상속 축과 Workflow 경로에서는 계속 유효하다. |
+| `§16.2 :1551` | "transcript 부재/비-claude 세션은 세션 판별 자체가 실패해 기존 fail-open 그대로" | **`transcript 부재` 에 한해 유효**로 좁혀진다. `비-claude 세션` 절반은 **Agent 경로 리터럴 축에 한해 무효** — 상속 축과 Workflow 경로에서는 계속 유효하다. |
 | `§16.4-5` | "Agent 경로 Rule B 는 리터럴-평가를 세션 무관 수행하도록 개정되나 Workflow 경로는 유지 … 비대칭 정직 부기" | **판정 불변**(Workflow 축 유지). 비대칭의 *내용*이 넓어진다 — 구: Agent 는 **미지-티어(claude-미지)** 세션에서 리터럴 수행 / 신: Agent 는 **미지-티어 및 비-Claude** 세션에서 리터럴 수행. |
 
 `:1551` 의 문면은 C17 시점에 참이었고 그 절의 기록으로서 지금도 참이다 — 무효화되는 것은 그것이 서술한 *상태*이지 그 서술의 당시 정확성이 아니다.
@@ -2543,4 +2545,5 @@ C17 슬롯1 A1 은 이 상태를 **알고 남겼다**. 자기-인용 2건:
 3. **advisory 상한** — 복원분은 `additionalContext` 환기이고 차단이 아니다(`:7` fail-open 불변식). 워커가 무시할 수 있으며 L2 는 관측 층이지 강제 층이 아니다.
 4. **`tier_of` 가 비-Claude 를 전부 0 으로 뭉갠다** — `gpt-5.6-sol`·`gpt-5.6-luna` 등 **gpt 모델 간 상대 티어는 미표현**이다(ⓒ). 따라서 복원되는 판정은 **Claude 패밀리 리터럴**(fable/opus/sonnet/haiku) 축이고, 비-Claude 리터럴 선언은 `tier_of`=0 → Rule B floor arm 의 **미지-티어 비면제 ALERT**(C17 규약, `:212`)로 계수된다 — 정확한 티어 판정이 아니라 정직한 과분류다.
 5. **복원 후 관측 커버리지 미측정** — 훅 로그에 세션 패밀리 필드가 없어 "GPT 세션에서 실제 몇 건이 발화하는가"는 착륙 후 슬러그 대조로만 확인 가능한 사후 관측 대상이다(§20.0 상한 3).
-6. **§20.0 ⓓ 의 표본 = 1픽스처** — 클래스 존재 증명이며 arm 커버리지가 아니다. 전 arm RED 수열은 Phase I 소관(§20.0 상한 1).
+6. **GAP 원 기록의 미정정 — 정정-전파 공백** — `docs/ai-context/c21-gap-nonclaude-session-blindness.md`(추적, `d7491e3`)는 `:21-22` 에서 `:169`/`:54` 를 결함으로 단정하고 `:81-83`(F2)이 조기 종료 분리를 처방한다. §20.2 가 그 지목을 실측으로 **기각**했으므로 추적 사이트 2곳이 spec 과 모순 상태다 — 「정정-전파 공백」(CONTEXT.md canonical · §18.3 대조 의무)에 해당한다. §19.7-7 선례("원 기록을 정정 부기할 것")를 따라 **Phase I 에서 원 기록에 정정 부기**한다(삭제 아님 — 오판정의 이력도 근거다).
+7. **§20.0 ⓓ 의 표본 = 1픽스처** — 클래스 존재 증명이며 arm 커버리지가 아니다. 전 arm RED 수열은 Phase I 소관(§20.0 상한 1).
