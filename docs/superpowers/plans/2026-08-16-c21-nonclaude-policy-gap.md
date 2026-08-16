@@ -109,6 +109,21 @@ git diff -U0 hooks/surface-model-policy.sh | grep -oE '^@@ -[0-9]+' | tr -d '@ -
 bash hooks/tests/run-all.sh 2>&1 | tail -3
 ```
 Expected: `N3 OK` — 기준 cksum **816060560 9101**(117줄, 2026-08-16 실측) · `Workflow-구역 hunk=0` · `291 / 291 passed` + `정합 OK (291 declared == 291 run)`.
+
+**앵커 거짓-건너뜀 sweep**(§20.5 「N2 앵커 거짓-건너뜀 없음」 행 이행 — §20.6-9 의 유일한 실측 하한):
+```bash
+cd ~/.claude
+for f in projects/C--Users-12132-orca-workspaces-orca-lab-*/*.jsonl; do
+  grep -q '"model":"gpt-' "$f" || continue
+  grep '"type":"assistant"' "$f" | awk '{ s=$0; off=0; pick=""
+    while (match(s, /"model":[[:space:]]*"[A-Za-z0-9._-]+"/)) { abs=off+RSTART
+      pre=substr($0,(abs>60?abs-60:1),(abs>60?60:abs-1))
+      if (pre !~ /"input":[[:space:]]*\{/) { pick=substr($0,abs,RLENGTH); break }
+      off=abs+RLENGTH-1; s=substr($0,off+1) }
+    if (pick=="") e++; else g++ } END { printf "%d %d\n", g+0, e+0 }'
+done | awk '{G+=$1; E+=$2} END{ printf "pick_ok=%d pick_empty=%d\n", G, E; exit (E>0) }'
+```
+Expected: `pick_ok=40 pick_empty=0` — 60자 윈도우가 실 GPT 라인의 정상 세션 모델을 삼키지 않음 [메인·Gate P 각각 독립 실측 ✓]. `pick_empty>0` 이면 앵커가 과잉 차단하는 것이므로 **중단·보고**.
 - [ ] **Step 6: Commit**
 ```bash
 cd ~/.claude && git add hooks/surface-model-policy.sh \
@@ -156,15 +171,24 @@ surface-model-policy	78-anchor-claude-toolcall-nonregress	0	mk_agent_event
 ```
 - [ ] **Step 3: RED 실증 — 판별식만 되돌려 73~75 FAIL 확인**
 
-T1 이 선행하므로 픽스처만으로는 RED 를 볼 수 없다. **판별식만** 일시 되돌린다(복구 필수):
+T1 이 선행하므로 픽스처만으로는 RED 를 볼 수 없다. **판별식만** 일시 되돌린다(복구 필수).
+
+★`git stash push -- <path>` 를 쓰지 말 것 — T1 Step 6 이 정정을 **커밋**했으므로 그 시점에 워킹트리 변경이 없어 `No local changes to save` 로 **무동작**하고, 파일은 정정본 그대로 남아 73~75 가 그냥 PASS 한다. 게다가 `git diff --stat` 은 그 상태에서도 비어 있어 **복구 확인이 사고를 못 잡는다**(Gate P F3 실측). T1 **직전** 커밋에서 파일을 꺼내는 방식으로 되돌린다:
 ```bash
 cd ~/.claude
-git stash push -- hooks/surface-model-policy.sh
+PRE=$(git log --format=%H -1 -- hooks/surface-model-policy.sh)^   # T1 커밋의 부모 = 정정 전
+git show "$PRE:hooks/surface-model-policy.sh" > /tmp/c21-smp-old.sh
+cp hooks/surface-model-policy.sh /tmp/c21-smp-new.sh              # 복구 원본 보관
+cp /tmp/c21-smp-old.sh hooks/surface-model-policy.sh
+grep -c 'pick' hooks/surface-model-policy.sh                      # Expected: 0 (구 코드 확인 — 되돌림 성립)
 bash hooks/tests/run-all.sh 2>&1 | grep -E 'surface-model-policy/7[3-8]|passed' | head -10
-git stash pop                                  # ★복구 — 반드시 실행
-git diff --stat hooks/surface-model-policy.sh  # 복구 확인: T1 정정이 워킹트리에 존재
+cp /tmp/c21-smp-new.sh hooks/surface-model-policy.sh              # ★복구 — 반드시 실행
+grep -c 'pick' hooks/surface-model-policy.sh                      # Expected: ≥3 (정정본 복귀 확인)
+git diff HEAD --stat hooks/surface-model-policy.sh                # Expected: (빈 출력 = 커밋 상태와 동일)
+rm -f /tmp/c21-smp-old.sh /tmp/c21-smp-new.sh
 ```
-Expected(stash 중): `73`·`74`·`75` 가 `FAILED_LIST` 에 `ctx=0` 으로 등장 · `76`·`77`·`78` 은 PASS(현행 코드에서도 각각 ctx=0/0/1 — 메인 실측 ✓). `stash pop` 후 297/297.
+Expected(되돌린 상태): `73`·`74`·`75` 가 `FAILED_LIST` 에 `ctx=0` 으로 등장 · `76`·`77`·`78` 은 PASS(현행 코드에서도 각각 ctx=0/0/1 — 메인 실측 ✓). 복구 후 297/297.
+★**`grep -c 'pick'` 두 단언이 되돌림/복구의 실효 판정자다** — `git diff` 만으로는 무동작을 정상과 구분할 수 없다(F3).
 ※ **77 은 이 RED 수열에서 판별력을 보이지 않는다**(현행·정정 후 둘 다 SILENT). 판별 대상은 「후보 A 로의 회귀」이며 함수 단위로는 A→`haiku` / E→빈 값이 실측됐다. **훅 E2E 로 A 변종을 돌린 실측은 없다(미검증)** — 77 은 회귀 센티널로 착륙시키고 그 상한을 여기 명기한다.
 - [ ] **Step 4: GREEN + reconciliation + README 동기**
 ```bash
@@ -223,25 +247,56 @@ else
   fail "경로-전달 규약 위반 ${PP_VIOL}건 — 인라인 소스의 리터럴 /tmp/ 또는 변수 보간 경로: ${PP_SITES}. argv/stdin 으로 전달할 것 (non-obvious #3)"
 fi
 ```
-- [ ] **Step 3: RED→GREEN 증명 (격리 사본 · 라이브 무편집)** — Step 2 의 awk 프로그램(`PP_OUT=$(awk '` 다음 줄부터 `' "$HOME/...` 직전까지)을 `$R/seal.awk` 로 복사한 뒤:
+- [ ] **Step 3: RED→GREEN 증명 (격리 사본 · 라이브 무편집)**
+
+스캐너를 `$R/seal.awk` 로 **실물 생성**한다(Step 2 본체와 동일 로직 — 수동 복사 금지):
 ```bash
 cd ~/.claude
 export RPI_SKIP="C21 T3 — seal 판별력 RED 실증(임시 사본)"
 R=$(mktemp -d); mkdir -p "$R/hooks/tests" "$R/setup/tests"
+cat > "$R/seal.awk" <<'AWKEOF'
+/^[[:space:]]*#/ { next }
+{ line = $0; pos = 1
+  while (match(substr(line, pos), /(python3?|node)[ \t]+-[ce][ \t]+/)) {
+    st = pos + RSTART - 1; pos = st + RLENGTH; rest = substr(line, pos); q = substr(rest, 1, 1)
+    if (q == "\047") { i = index(substr(rest, 2), "\047"); src = (i > 0) ? substr(rest, 2, i - 1) : substr(rest, 2); interp = 0 }
+    else if (q == "\"") { i = index(substr(rest, 2), "\""); src = (i > 0) ? substr(rest, 2, i - 1) : substr(rest, 2); interp = 1 }
+    else { src = rest; interp = 0 }
+    TOTAL++
+    if (index(src, "/tmp/") > 0 || (interp && src ~ /\$[A-Za-z_{(]/)) { V++; printf "%s:%d ", FILENAME, FNR }
+  } }
+END { printf "\nTOTAL=%d VIOLATION=%d\n", TOTAL + 0, V + 0 }
+AWKEOF
 cp hooks/tests/*.sh "$R/hooks/tests/"; cp setup/tests/*.sh "$R/setup/tests/"
 printf '%s\n' 'PPV=$(mktemp -d); node -e "console.log($PPV)"' >> "$R/hooks/tests/run-all.sh"
 echo "--- 원본(GREEN) ---"; awk -f "$R/seal.awk" hooks/tests/*.sh setup/tests/*.sh | tail -1
 echo "--- 주입본(RED) ---"; awk -f "$R/seal.awk" "$R"/hooks/tests/*.sh "$R"/setup/tests/*.sh | tail -1
-rm -rf "$R"; unset RPI_SKIP
 ```
-Expected: 원본 `TOTAL=16 VIOLATION=0` · 주입본 `TOTAL=17 VIOLATION=1` [메인 실측 ✓ — 동일 주입 문자열로 확인].
+Expected: 원본 `TOTAL=16 VIOLATION=0` · 주입본 `TOTAL=17 VIOLATION=1` [메인 실측 ✓].
+**`$R` 은 Step 4 의 자기-오염 단언이 재사용하므로 이 시점에 지우지 말 것** — Step 4 말미에 `rm -rf "$R"; unset RPI_SKIP`.
+※ 이 블록의 `printf` 주입 문자열은 **임시 사본에만** 들어가고(`$R/...`), 라이브 트리와 plan 파일은 seal 스캔 대상에서 이 형태를 갖지 않는다(plan 은 `docs/` 아래라 스캔 범위 밖 — 실측 확인).
 - [ ] **Step 4: seal-regression 변이 1개 추가** — `mut_schema_required_empty` 정의 다음:
 ```bash
 # Mutator 23 — seal #<NEXT>(경로-전달 규약)의 RED: replica 의 테스트 파일에 겹따옴표 인라인 소스 +
 # 셸 변수 보간을 1건 주입한다. non-obvious #3 이 기술한 실패 형태 그 자체이며, seal 이 대상 계수만
 # 하고 위반 판정을 안 하면(vacuous) GREEN 으로 새어 나간다.
-mut_pathpass_interp() { printf '%s\n' 'PPV=$(mktemp -d); node -e "console.log($PPV)"' >> "$1/hooks/tests/run-all.sh"; }
+# ★위반 문자열은 **런타임 조립**한다 — 소스에 `node -e "…$VAR…"` 를 리터럴로 적으면 이 파일 자신이
+#   seal 스캔 대상(setup/tests/*.sh)에 걸려 **seal 이 자기 자신을 위반으로 계수**한다(Gate P F1 실측:
+#   리터럴형 정의행 1줄 추가 → verify-setup FAIL=1 · control replica 도 동반 오염 → assert_seal_fires
+#   24건이 전부 vacuous PASS). 아래 형태는 정의행 스캔 시 VIOLATION=0, 주입 결과는 VIOLATION=1 [실측 ✓].
+mut_pathpass_interp() {
+  local q='"'
+  printf '%s\n' "PPV=\$(mktemp -d); node -e ${q}console.log(\$PPV)${q}" >> "$1/hooks/tests/run-all.sh"
+}
 ```
+
+**자기-오염 방지 단언(필수)** — 변이 착륙 직후 실행. Step 3 의 `$R/seal.awk` 를 재사용한다:
+```bash
+cd ~/.claude
+awk -f "$R/seal.awk" hooks/tests/*.sh setup/tests/*.sh 2>/dev/null | tail -1
+rm -rf "$R"; unset RPI_SKIP                       # ★Step 3 이 만든 임시 디렉터리 정리
+```
+Expected: `TOTAL=16 VIOLATION=0` — **정의행 추가 후에도 위반 0**. `VIOLATION=1` 이면 조립이 풀린 것이니 즉시 되돌리고 보고(그 상태로 진행하면 verify-setup FAIL=1 · control replica 동반 오염 · `assert_seal_fires` 24건 vacuous PASS 로 3스위트가 동시에 붕괴한다 — Gate P F1).
 
 `assert_seal_fires` 마지막 행(`schema_required_empty`) 다음: `assert_seal_fires "pathpass_interp" mut_pathpass_interp "경로-전달 규약 위반"`
 ※ 기대 FAIL 문자열은 Step 2 의 `fail` 메시지에서 따왔다(`assert_seal_fires` 는 `grep -qF` 부분일치 — `:81`).
@@ -311,7 +366,7 @@ FAIL 이면 지적 항목만 정정 후 **델타 재심**(직전 FAIL 지목 항
 ```bash
 cd ~/.claude
 grep -c '^## 4\.' docs/ai-context/non-obvious.md      # Expected: 1
-grep -c '재현 픽스처' docs/ai-context/non-obvious.md  # Expected: 기준 4(항목1~3+헤더 규약) + 1 = 5
+grep -c '재현 픽스처' docs/ai-context/non-obvious.md  # Expected: 기준 6(2026-08-16 실측: :8·:10·:18·:40·:62·:106) + 1 = 7
 bash setup/verify-setup.sh 2>&1 | tail -1             # Expected: PASS=90 FAIL=0
 git add docs/ai-context/non-obvious.md \
  && git commit -m "docs(c21): non-obvious #4 등록 — Edit 혼합-개행 파괴(CRLF→LF) 5 Whys+픽스처 (T4)"
@@ -336,10 +391,19 @@ rm -rf "$D"; unset RPI_SKIP
 ```
 Expected: `TOTAL=1 LITERAL=1 DYNAMIC=0 VIOLATION=0` + `exit=0`(오타 = 검사 면제, 침묵 통과).
 
-**판정을 § I2 말미에 부기한다**(둘 중 하나 · **어느 쪽이든 근거를 적는다**):
-- **정정** — 미지 `ownership` 값을 계수해 표면화(3값 계약 동형 · "모르는 값 = 판정 불가, 표면화"). `modepack-oracle.sh` 에 `UNKNOWN=` 카운터 + #51 처분 arm + seal-regression 변이가 동반돼 **범위가 T3 급으로 커진다**.
-- **수용 잔여** — 주축(Agent 리터럴 축)이 아니고 T3 가 이미 seal 예산 1건을 소비했으므로 미루되 **재판정 조건**(모드팩 파일 수 > 1 또는 ownership 값 집합 확장 시)과 **기한**(C22)을 명시한다.
-- 권고 = **정정**이나 스코프상 **수용 잔여도 정당**.
+**처분 = 수용 잔여로 확정**(Gate P F6 — 택일 잔류는 placeholder다. 정정 경로는 `modepack-oracle.sh` 의 `UNKNOWN=` 카운터 + #51 처분 arm + seal-regression 변이를 동반해 **범위가 T3 급으로 커지고**, 그러면 Gate P 가 검증한 스코프가 무의미해진다). `c20-carryover-recovery.md` 의 「### ① I2 …」 절 말미에 아래를 **verbatim 부기**:
+
+```markdown
+> **C21 판정**: **수용 잔여**(차기 이월 — C22 후보). 재현은 유효하다(2026-08-16 재실행:
+> `TOTAL=1 LITERAL=1 DYNAMIC=0 VIOLATION=0` + `exit=0`). 정정하지 않은 사유 = 처분안(미지
+> `ownership` 값을 계수해 표면화 — 3값 계약 동형)이 `setup/lib/modepack-oracle.sh` 카운터 신설 +
+> seal #51 처분 arm 확장 + seal-regression 변이를 동반하는 **독립 task 규모**이며, C21 의 주축은
+> Agent 리터럴 축 복원이고 이번 사이클 seal 예산 1건은 기한 있는 항목(non-obvious #3 SMART ①,
+> 기한 "C21 초입")이 선점했다. **재판정 조건** = `modes/*.json` 파일 수 > 1 이 되거나 `ownership`
+> 값 집합이 확장될 때(현재 파일 1개·값 1종 `review-only` — 실측). **기한** = C22.
+> **현 위험 노출** = 0 (라이브 모드팩에 오타 없음 — `grep -oh '"ownership"[^,}]*' modes/*.json` → `review-only` 1건).
+```
+부기 전 노출 실측을 재확인: `grep -oh '"ownership"[^,}]*' modes/*.json | sort | uniq -c` → `1 "ownership": "review-only"`.
 - [ ] **Step 3: (b)-I3 — 오라클 stderr 폐기 정정 (권고 = 정정)**
 `setup/verify-setup.sh:621` 의 `2>/dev/null` 이 위반 상세를 버린다. 상세는 stderr 로만 나온다:
 ```bash
@@ -357,6 +421,15 @@ MP_ERR=$(mktemp); MP_OUT=$(modepack_oracle_scan "$HOME/.claude/modes" 2>"$MP_ERR
 MP_DETAIL=$(cat "$MP_ERR" 2>/dev/null); rm -f "$MP_ERR"
 ```
 `2>/dev/null` 의 원 목적(오라클 부재 시 소음 억제)은 `[ -f "$MP_ORACLE" ]` 가드(`:618`)가 이미 담당 → 회귀 없음. 검증: `bash setup/verify-setup.sh 2>&1 | tail -1` → `PASS=90 FAIL=0` · `bash setup/tests/seal-regression.test.sh 2>&1 | tail -1` → `PASS=27 FAIL=0`.
+
+`c20-carryover-recovery.md` 의 「### ② I3 …」 절 말미에 아래를 **verbatim 부기**:
+```markdown
+> **C21 판정**: **정정 완료**. `setup/verify-setup.sh:621` 을 stderr 포획형으로 교체하고 `:629` FAIL
+> 문구에 ` — 상세: ${MP_DETAIL:-없음}` 을 덧붙였다. 상세 유실 실측(정정 전): 오라클 stderr 에만
+> `typo.json: workers[0] (role=verifier) review-only 인데 haiku(tier 1) < floor 3` 이 나오고
+> verify-setup 사용자는 일반 문구만 봤다. 원 목적(오라클 부재 시 소음 억제)은 `:618`
+> `[ -f "$MP_ORACLE" ]` 가드가 담당하므로 회귀 없음.
+```
 - [ ] **Step 4: (b)-`.gitignore` 베어 `.bak` 정정 (권고 = 정정)**
 ```bash
 cd ~/.claude
@@ -367,15 +440,19 @@ sed -n '25p' .gitignore                                          # Expected: set
 git check-ignore -v settings.json.bak; echo "after rc=$?"        # Expected: .gitignore:25 매치, rc=0
 git check-ignore -q settings.json.bak-test; echo "legacy rc=$?"  # Expected: rc=0 (무회귀)
 ```
-`c20-carryover-recovery.md:109-121` 말미에 rc 전후 대비(1 → 0)를 부기한다.
+`c20-carryover-recovery.md:109-121`(「## 부수 발견 — `.gitignore` 베어 `.bak` 사각」 절) 말미에 아래를 **verbatim 부기**:
+```markdown
+> **C21 판정**: **정정 완료**. `.gitignore:25` 를 `settings.json.bak-*` → `settings.json.bak*` 로 확장.
+> 실측 `git check-ignore -v settings.json.bak` rc **1 → 0** · 레거시 `settings.json.bak-test` rc 0 유지(무회귀).
+```
 - [ ] **Step 5: (c) 이월 수취 규약 판정 부기** — `c20-carryover-recovery.md:99-107` 의 「ledger 이월 선언 ↔ 수취 절 등재」 기계 검사는 **이번 사이클 범위 밖**(seal 1건은 T3 가 소비했고 이 검사는 ledger 파싱 계약을 새로 정의해야 한다). 그 절에 1줄 부기:
 
 > **C21 판정**: 차기 이월(C22 후보). 사유 = 이번 사이클 seal 예산 1건은 non-obvious #3 SMART ①(기한 "C21 초입")이 선점 — 기한 있는 항목이 우선한다. 재판정 조건 = C22 Phase R 에서 ledger 이월 선언의 레이블 추출 규칙이 결정될 때.
 - [ ] **Step 6: 검증 + Commit**
 ```bash
 cd ~/.claude
-grep -c 'C21 판정' docs/ai-context/c21-gap-nonclaude-session-blindness.md   # Expected: 3 (표·F1·F2)
-grep -c 'C21 판정' docs/ai-context/c20-carryover-recovery.md                # Expected: ≥4 (I2·I3·.bak·(c))
+grep -c 'C21 판정' docs/ai-context/c21-gap-nonclaude-session-blindness.md   # Expected: 3 (표·F1·F2 — Step1 이 3사이트)
+grep -c 'C21 판정' docs/ai-context/c20-carryover-recovery.md                # Expected: 4 (I2 Step2·I3 Step3·.bak Step4·이월규약 Step5 — 각 1건)
 bash setup/verify-setup.sh 2>&1 | tail -1
 git add docs/ai-context/c21-gap-nonclaude-session-blindness.md \
         docs/ai-context/c20-carryover-recovery.md .gitignore setup/verify-setup.sh \
