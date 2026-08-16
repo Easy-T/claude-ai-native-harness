@@ -308,3 +308,17 @@ surface-model-policy	69-rule-a-opus-session-inherit-silent	0	mk_agent_event
 surface-model-policy	70-rule-b-opus-session-inherit-silent	0	mk_agent_event
 surface-model-policy	71-rule-c-opus-session-inherit-silent	0	mk_wf_event
 surface-model-policy	72-rule-c2-leak-opus-session-inherit-silent	0	mk_wf_event
+surface-model-policy	73-nonclaude-rule-b-literal-haiku	0	mk_agent_event
+surface-model-policy	74-nonclaude-rule-b-fable-leak	0	mk_agent_event
+surface-model-policy	75-nonclaude-rule-a-fable-leak	0	mk_agent_event
+surface-model-policy	76-nonclaude-inherit-silent	0	mk_agent_event
+surface-model-policy	77-gpt-toolcall-inherit-silent	0	mk_agent_event
+surface-model-policy	77b-gpt-toolcall-literal-fires	0	mk_agent_event
+surface-model-policy	78-anchor-claude-toolcall-nonregress	0	mk_agent_event
+surface-model-policy	79-extract-gpt-toolcall-outer-model	0	test_extract
+surface-model-policy	80-extract-long-input-no-lookback-flip	0	test_extract
+surface-model-policy	81-extract-nested-metadata-not-picked	0	test_extract
+surface-model-policy	82-extract-truncated-line-excluded	0	test_extract
+surface-model-policy	83-extract-user-record-not-assistant	0	test_extract
+surface-model-policy	84-extract-claude-nonregress	0	test_extract
+surface-model-policy	85-extract-multiline-takes-last	0	test_extract

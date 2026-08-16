@@ -2392,4 +2392,227 @@ C19 §18.1 판정 3 (b)(GPT 슬롯이 내부-통과 결함을 BLOCKER 로 2사�
 4. **오라클 상한 = 선언된 모드팩만** — `orca worktree create --agent claude --model sonnet` 을 손으로 치면 정적 오라클은 보지 못한다. `RPI_SKIP` 동형의 **의식적 우회**이며 L1 규범 소관.
 5. **Orca 훅 타임아웃 누적** — `timeout: 10`. 차단은 불가하나(§19.4) Orca **안**에서는 `curl --connect-timeout 0.5 --max-time 1.5` 라 워커 세션의 도구 호출마다 최대 1.5s 가 붙을 수 있다. Orca 밖은 `more.com` 즉시 종료로 실측 지연 무시 수준. **관측 대상이지 차단 아님.**
 6. **§19.5 판정의 강도** — 입력이 자기보고 4건이라 C19 측정 한계 ①~④가 그대로 걸린다. "티어 축 무관"은 **관측 기반 판단**이지 증명이 아니며, 반증 조건(§19.5)이 그 상한을 표시한다.
-7. **I1(Edit 혼합-개행) 픽스처·non-obvious 등록은 이 절 스코프 밖** — C19 예약분·Phase I 착륙 대상. 다만 실측 방향이 **CRLF→LF**(혼합이면 전 파일 LF 통일 · 순수 CRLF 는 보존)로 C19 layer-yield 기록의 서술과 **반대**이므로, 등록 시 실측 방향으로 기재하고 원 기록을 정정 부기할 것(`_goal/c20-i1-repro-measured.md`).
+7. **I1(Edit 혼합-개행) 픽스처·non-obvious 등록은 이 절 스코프 밖** — C19 예약분·Phase I 착륙 대상. 다만 이 절이 기재한 방향 **CRLF→LF** 는 C21 Phase I 실측으로 **폐기**됐다 — 실제 방향은 **다수결**(소수 개행이 다수 쪽으로 흡수)이고, C21 사고는 변경 줄 723 = 편집 시점 LF 줄 수라는 산술로 **LF→CRLF** 로 판별된다. 따라서 C19 원 기록이 옳았고 `_goal/c20-i1-repro-measured.md:21-23` 의 "C19 는 방향이 반대" 판정이 오판이다(정정 착륙: `docs/ai-context/non-obvious.md` 항목 4). 실패 *클래스*(편집 범위 밖 개행의 전-파일 통일)는 불변.
+
+## §20. C21 설계 결정 (in-place 개정, 2026-08-13 — 비-Claude 세션 리터럴-축 복원)
+
+> C21 골격 계약 = `_goal/c21-skeleton-spec20.md`(비추적) · GAP 원 기록 = `docs/ai-context/c21-gap-nonclaude-session-blindness.md`.
+> 아래는 goal 없이 재현 가능하도록 근거를 영구화한 것(§11·§13~§19 선례). 주제 = **비-Claude 세션에서 Agent 경로
+> 리터럴 축 복원 4규범(N1~N4)**. 사이클 72.
+
+### §20.0 근거 — 관측과 그 상한
+
+ⓐ~ⓒ = 2026-08-13 최초 실측 · 본 절 집필 시점(2026-08-16) 재실행 동일. ⓓ = 집필 시점 실측.
+
+| # | 축 | 실측값 | 측정 |
+|---|---|---|---|
+| ⓐ | `session_model_of()`(`:30-35`)의 패밀리 편향 | GPT transcript → **빈 값** / Claude transcript → `claude-opus-5` | 함수 본문 verbatim 을 `awk` 로 전사 적용. GPT=`projects/…orca-lab-impl-parse/3a8731e6-….jsonl` · CLA=`projects/C--Users-12132--claude/12b8cf20-….jsonl` |
+| ⓑ | 비-Claude 세션 모집단 | **5파일**(model 라인 2·22·4·1·11) | `grep -c '"model":"gpt-' projects/C--Users-12132-orca-workspaces-orca-lab-*/*.jsonl` |
+| ⓒ | 하류 티어 계약 | `tier_of("gpt-5.6-sol")` = **0** | `tier_of`(`:20-28`) case 문 전사 실행 |
+| ⓓ | 훅 E2E(실 transcript · 실 stdin shape) | PROBE(GPT transcript + `Agent{review-strict, model:"haiku"}`) → **출력 없음**·exit 0 / CONTROL(동일 위반 · Claude transcript) → `rule-b-verifier-below-opus-floor` ALERT | `run-all.sh:1042 mk_agent_event` 와 동일 JSON shape 를 `hooks/surface-model-policy.sh` 에 stdin 주입 |
+
+**결론**: 비-Claude 세션의 Agent 경로는 `:169` 에서 전량 조기 종료하며 그 원인은 판별 정규식의 `claude-` 접두다(ⓐ·ⓓ) — 모집단은 가설이 아니라 실재한다(ⓑ).
+
+**상한(정직 부기)**:
+1. ⓓ 는 **위반 1종(리터럴 haiku 검증자)의 1픽스처**다 — 클래스 존재 증명이지 arm 커버리지가 아니다. 전 arm RED 수열은 Phase I 소관.
+2. GAP 원 기록 `:93-96` 은 "합성 stdin 시도는 `trap 'exit 0' ERR EXIT`(fail-open 불변식)와 「1세션 1회」 마커에 흡수돼 CONTROL 조차 침묵했다"고 적었다 — 그 상한은 **transcript 까지 합성했을 때** 성립하며, ⓓ 는 실 transcript 파일 + 실 shape + 미사용 `session_id` 로 CONTROL 발화를 확보해 해소했다. Phase I 픽스처도 실 shape 를 써야 한다(non-obvious #1 「합성-cwd 테스트 마스킹」 동형).
+3. 훅 로그에 세션 패밀리 필드가 없다 — "GPT 세션에서 ALERT 0건"은 **직접 확인되지 않았다**(ⓐ·ⓓ 로부터의 연역).
+
+### §20.1 C21-A — 결함의 정체: A1 의 두 축 (N1)
+
+C17 슬롯1 A1 은 이 상태를 **알고 남겼다**. 자기-인용 2건:
+
+  > `:1776-1778` — **A1(REAL)**: Rule B 의 `SESSION_TIER != 0` 전체-skip 이 미지-세션에서 리터럴 검증자 평가까지
+  > 삼킴 — 리터럴 평가는 세션 불요 → floor arm 을 세션-무관으로 개정(§16.2). Workflow 조기 exit 은
+  > 비대칭 수용(§16.4-5).
+
+  > `:1549-1551` — **리터럴 평가는 세션 티어가 불필요하므로
+  > 미지-티어(claude-미지) 세션에서도 수행**(슬롯1 A1 — 구 `SESSION_TIER != 0` 전체-skip 가드 제거;
+  > transcript 부재/비-claude 세션은 세션 판별 자체가 실패해 기존 fail-open 그대로).
+
+| 축 | 질문 | 담당 | A1 처분 |
+|---|---|---|---|
+| **티어 축** | 뽑은 모델 문자열을 어떻게 계수하는가 | `tier_of()` 출력(`:171` `SESSION_TIER`) | **개정** — `SESSION_TIER != 0` 전체-skip 제거, floor arm 세션-무관화 |
+| **판별 축** | 그 문자열을 뽑을 수 있는가 | `session_model_of()` 입력 인식(`:32` 정규식) | **유지** — `:1551` 이 verbatim 으로 "기존 fail-open 그대로"를 명시 |
+
+두 축이 분리 가능한 이유는 **코드상 지점이 다르다**는 사실이다: A1 이 제거한 가드는 `:171` **이후**의 티어 처분이고, 판별 실패는 그보다 앞선 `:169` 에서 종료한다 — A1 의 개정은 구조적으로 그 앞단에 도달할 수 없었다. 당시 전제(비-Claude=예외 경로)에서 fail-open 은 합리적 선택이었고 `:1551` 이 그것을 명문으로 남겼다.
+
+**전제를 바꾼 것은 C20 §19.1 이다.**
+
+  > `§19.1` — **N1 — `bin/claude-ocx`(+`.cmd`)를 git 추적 하네스 자산으로 승격.** 미추적 실측: `git ls-files --error-unmatch bin/claude-ocx` → `error: pathspec … did not match any file(s) known to git`. 로컬-전용 유지 = **기각**(신규 환경 재현 불가 — 사용자 명시 결정).
+
+브리지가 자산이 되면 비-Claude 세션은 예외가 아니라 **정규 경로**다. C21 이 재판정하는 것은 A1 의 정오가 아니라 **그 수용 잔여를 유지할 근거의 소멸**이다.
+
+### §20.2 C21-B — 정정 수단의 최소성 (N2)
+
+**채택 = `session_model_of()` 판별식의 패밀리-중립화 + 구조 앵커(후보 E).** 문자클래스 교체(`"claude-[a-z0-9.-]+"` → `"[A-Za-z0-9._-]+"`)만으로는 부족하다 — 매치 직전 60자에 `"input":[[:space:]]*{` 가 있으면 그 매치를 건너뛰고 다음 매치를 본다(툴콜 `input` 블록의 `model` **인자**를 세션 모델로 오인하지 않기 위해):
+
+```awk
+while (match(s, /"model":[[:space:]]*"[A-Za-z0-9._-]+"/)) {
+  abs = off + RSTART
+  pre = substr($0, (abs>60 ? abs-60 : 1), (abs>60 ? 60 : abs-1))
+  if (pre !~ /"input":[[:space:]]*\{/) { pick = substr($0, abs, RLENGTH); break }   # 첫 비-input 매치 채택
+  off = abs + RLENGTH - 1; s = substr($0, off+1)
+}
+```
+
+**불변**: `"model":[[:space:]]*` 앵커 · `/"type":"assistant"/` 게이트 · `tail -c 1000000` 창 · **마지막 assistant 라인 채택**(`END` 블록 출력 의미론). **변경은 1축뿐**: 「라인-내 첫 매치」 → 「라인-내 **첫 비-`input` 매치**」(라인의 매치가 전부 `input` 소속이면 빈 값 → `:169` fail-open).
+
+**실측 ① — 3종 입력 대비**(현행 정규식 vs 중립 정규식, 동일 `awk` 골격):
+
+| 입력 | 현행 | 중립 |
+|---|---|---|
+| GPT `3a8731e6-….jsonl` | (빈 값) → `:169` 조기 종료 | `gpt-5.6-sol` |
+| Claude `12b8cf20-….jsonl` | `claude-opus-5` | `claude-opus-5`(**무회귀**) |
+| 빈 입력 | (빈 값) | (빈 값) — `:169` 유효 |
+
+**실측 ② — content 인용 면역: 유지되나 전제가 좁다.** `:9` 주석은 계약과 **그 전제를 함께** 적어 두었다 — verbatim: "라인 내 첫 매치만 취해 content 의 모델 id 인용에 면역**(assistant JSON 은 model 이 content 앞)**". 괄호 안이 전제이고, 패밀리-중립화는 그 전제 **밖**으로 나간다.
+
+**전제 반증 — 키 순서 실측**:
+
+| 세션 패밀리 | assistant 라인 `model` vs `content` 순서 | 실측 (model-first / content-first) |
+|---|---|---|
+| Claude | `model` 선행 | **3851** / 3 (최근 세션 20개) |
+| GPT(Orca) | **`content` 선행** | **0** / **40** (GPT `model` 라인 전건) |
+
+측정: `awk '/"type":"assistant"/ { ci=index($0,"\"content\""); mi=index($0,"\"model\""); if(mi>0&&ci>0){ if(mi<ci) ok++; else bad++ } } END{print ok+0" "bad+0}'` 를 `ls -t projects/C--Users-12132--claude/*.jsonl | head -20` 과 Orca 워크스페이스 5파일에 적용(Orca 전체 117/40 — 그중 GPT 라인분이 0/40).
+
+`:9` 가 틀렸다는 뜻이 **아니다**. 그것은 Claude shape 의 정확한 서술이고 Claude 라인에서 지금도 참이다 — 무효화되는 것은 서술이 아니라 **판별 대상 모집단이 그 shape 를 벗어났다**는 상태다(§20.4 형식의 정밀화 — 서술의 당시 정확성과 서술된 상태의 구분). GPT 라인에서 「라인-내 첫 매치」는 content 안 툴콜의 `input.model` **인자**일 수 있다.
+
+**면역 픽스처 — 구 2행 유지 + 적대 2행 확장**(A = 단순 중립화 · E = 구조 앵커(채택)):
+
+| 입력 라인(assistant) | A | **E (채택)** |
+|---|---|---|
+| `…"model":"claude-opus-5",…"text":"model: gpt-4 참고"…`(model 선행) | `claude-opus-5` | **`claude-opus-5`** |
+| `…"model":"claude-opus-5",…"text":"{\"model\":\"gpt-4\"} 인용"…`(model 선행) | `claude-opus-5` | **`claude-opus-5`** |
+| ⓐ adv-GPT — content 안 툴콜 `input.model:"haiku"` · `"model":"gpt-5.6-sol"` **후행** | `haiku` ✗ | **(빈 값) → `:169` fail-open** |
+| ⓑ adv-CLA — `"model":"claude-opus-5"` 선행 · 툴콜 `input.model:"haiku"` 후행 | `claude-opus-5` | `haiku` 가 아님 → **`claude-opus-5`** |
+
+구 2행이 A 에서도 통과하는 이유는 그 2행이 전부 **model 선행**이기 때문이고, 그것이 곧 전제다. 적대 2행이 전제 밖을 찌른다.
+
+**후보 4종 × 6입력**(A · B = 라인-내 마지막 매치 · **E = 구조 앵커(채택)** · D = node 로 JSON 파싱해 `message.model` 추출):
+
+| 입력 | A | B | **E** | D |
+|---|---|---|---|---|
+| ⓐ adv-GPT 픽스처 | `haiku` ✗ | `gpt-5.6-sol` | **(빈 값) fail-open** | `gpt-5.6-sol` |
+| ⓑ adv-CLA 픽스처 | `claude-opus-5` | `haiku` ✗ | **`claude-opus-5`** | `claude-opus-5` |
+| ⓒ 실 GPT transcript | `gpt-5.6-sol` | `gpt-5.6-sol` | **`gpt-5.6-sol`** | `gpt-5.6-sol` |
+| ⓓ 실 Claude 세션 | `claude-opus-5` | `claude-opus-5` | **`claude-opus-5`** | `claude-opus-5` |
+| ⓔ 실 dual-model 라인 파일 | `claude-haiku-4-5-20251001` | 〃 | 〃 | 〃 |
+| ⓕ 인용-면역 픽스처(`claude-fable-5` 라인 · 위 표 동형 model 선행) | `claude-fable-5` | — | **`claude-fable-5`** | `claude-fable-5` |
+
+**기각 2건**: **B(마지막 매치)** = Claude shape 를 깨뜨린다(ⓑ 에서 `haiku` 오판별) — 무회귀 위반이라 즉시 탈락. **D(node JSON 파싱)** = 6입력 전부 정확하나 훅 핫패스에 node 프로세스가 추가돼 **2.1배 지연**(동일 대형 Claude 세션 5회 평균 — 현행 awk 134ms · **E 120ms** · D 276ms). 이 훅은 Agent/Workflow 호출마다 발화하고 E 대비 정확도 이득은 ⓐ 1케이스뿐이라 비용-편익 불성립 → 폐기가 아니라 **§20.6-8 로 재판정 여지 보존**.
+
+**오판별의 하류 귀결 — A 를 기각하는 이유는 지연이 아니라 규범이다.** ⓐ 에서 A 가 뱉는 `haiku` 는 `tier_of`=**1** 이라 `SESSION_TIER != 0` 가드(`:201`)를 **통과**한다 → §20.3 이 "계속 skip" 으로 확정한 **상속 축이 발화**하고, 이는 N4 가 금지한 "미지 세션에 임의 티어 부여"의 실현이다. **후보 A 는 N4 를 조건부 위반한다.**
+
+**모집단 정직 부기** — 실 GPT transcript 5개에 다중-`model` assistant 라인은 **0건**이다(`awk '/"type":"assistant"/ { c=gsub(/"model":/,"&"); if(c>1) t++ } END{print t+0}'`). 즉 라이브 오발화 실적은 없으며 이 정정은 **클래스 차단**이지 실사고 대응이 아니다 — ⓐ·ⓑ 는 적대 픽스처다.
+
+**실측 ③ — 리터럴 분기는 세션을 참조하지 않는다(코드 사실).** `grep -n -o 'SESSION_TIER'` → `171·178·198·201·201`(5회, `:201` 은 한 줄에 2회). **할당부 `:171` 을 제외한 참조 4회가 전부 `inherit` 분기 안**이다:
+
+| 위치 | 코드 | 소속 분기 |
+|---|---|---|
+| `:171` | `SESSION_TIER=$(tier_of "$SESSION_MODEL")` | **할당부 — 분기 밖**(무조건 실행 · 참조 아님) |
+| `:178` | `elif [ "$REQ_MODEL" = "inherit" ] && [ "$SESSION_TIER" = "4" ]` | Rule A 누출 arm — inherit |
+| `:198` | `if [ "$SESSION_TIER" = "4" ]` (`:197` `if [ "$REQ_MODEL" = "inherit" ]` 내부) | Rule B 누출 arm — inherit |
+| `:201` | `elif [ "$SESSION_TIER" != "0" ] && [ "$SESSION_TIER" -lt "$OPUS_FLOOR" ]` (2회) | Rule B floor arm — inherit |
+
+※ 인접 `:203` 은 `SESSION_TIER` 가 아니라 **`SESSION_MODEL`** 보간이다(`sed -n 203p | grep -o` → `SESSION_MODEL`) — `:201` 분기 내부의 메시지 문자열이라 소속 분기는 같으나 변수는 다르다. **C21 Gate R 정정**: 초안이 이 행을 `SESSION_TIER` 사용처로 계수하고 할당부 `:171` 을 누락해 "4곳 전부 inherit 분기 안"이 열거로서 거짓이었다 — 결론(리터럴 분기는 세션 무참조)은 독립 재현으로 불변.
+
+리터럴 분기(`:177` `tier_of "$REQ_MODEL"` · `:206-213` `REQ_TIER`)는 `SESSION_TIER` 를 읽지 않는다 → **`SESSION_MODEL` 이 채워지기만 하면 리터럴 축은 세션 티어와 무관하게 동작**하고, 비-Claude 세션(`SESSION_TIER=0`)의 상속 축은 기존 `!= "0"` 가드(`:201`)와 `= "4"` 비교(`:178`·`:198`)로 **자동 skip** 된다 — 새 가드 불요. GPT transcript + 중립 정규식(프로세스 치환으로 수정본 실행) 실측:
+
+| Agent 입력 | 결과 | 발화 arm |
+|---|---|---|
+| `review-strict, model:"haiku"` | **ALERT** | `rule-b-verifier-below-opus-floor` |
+| `review-strict, model:"fable"` | **ALERT** | `rule-b-fable-leak` |
+| `execute-strict, model:"fable"` | **ALERT** | `rule-a-fable-leak` |
+| `review-strict, model:"inherit"` | **SILENT** | 없음 — `SESSION_TIER=0` 가드 |
+
+**기각 — `:169` 조기 종료 제거**(GAP 원 기록 F2 의 절반). 원 기록은 `:169`/`:54` 를 결함으로 지목했으나 실측은 그 지목을 지지하지 않는다. `:169` 는 **판별 실패**의 fail-open 이고, 그것은 **미지 티어**와 상태 의미가 다르다:
+
+| 상태 | 뜻 | 처분 |
+|---|---|---|
+| `SESSION_MODEL` 이 빈 값 | transcript 에 assistant 라인이 아직 없음 = **판별 자체가 불가** | fail-open(`:169`) |
+| `SESSION_MODEL` 존재 · `SESSION_TIER=0` | 모델은 알지만 티어를 모름 = **미지 티어** | 리터럴 축 수행 · 상속 축 skip |
+
+실측 발산(assistant 라인 0건 transcript + `review-strict, model:"haiku"`): **`:169` 유지 → SILENT / `:169` 제거 → ALERT**. 그 발화가 그 자체로 오탐이라고 **단언하지 않는다** — 리터럴 haiku 검증자는 세션과 무관하게 위반이다. 논점은 **필요성**이다: ⓐ 중립화만으로 목표(비-Claude 리터럴 축 복원)가 달성되고 ⓑ `:169` 제거는 별개 클래스(판별 실패)의 처분까지 함께 바꾸는 스코프 확장이며 ⓒ 그 클래스의 모집단은 작지 않다 — `projects/C--Users-12132--claude/*.jsonl` **50개 중 12개**가 assistant 라인 0건이다(세션 첫 도구 호출 창, 실측). 그 판정은 독립 근거를 요구하고 이번 R 에 없다. **`:169` 는 유지한다.**
+
+### §20.3 C21-C — 복원 범위: Agent 리터럴 축 한정 (N3·N4)
+
+**정확한 범위 표기: Claude 세션 = 5규칙 / 비-Claude 세션 = Agent 리터럴 축 / 상속 축 = 판정 불가.** "완전 복원"·"봉인"은 이 절의 주장이 아니다 — 복원분은 리터럴 축이고 층은 advisory 다(`:7` "차단하지 않는다(항상 exit 0, fail-open …)").
+
+| 축 | C21 후 | 왜 |
+|---|---|---|
+| Rule A 명시 `fable` 리터럴 (Agent) | **복원** — ALERT 실측 | `:177` 이 `tier_of "$REQ_MODEL"` 만 참조 |
+| Rule B floor arm 리터럴 (Agent) | **복원** — ALERT 실측 | `:210` `REQ_TIER -lt OPUS_FLOOR` — 세션 무참조 |
+| Rule B 누출 arm 리터럴 `fable` (Agent) | **복원** — ALERT 실측 | `:207` `REQ_TIER = 4` — 세션 무참조 |
+| Agent 무지정 | **불변 침묵** | `:175`/`:195` 의 `-n "$REQ_MODEL"` 게이트 — frontmatter opus(§16.1 Option 1) |
+| Rule A/B 명시 `inherit` (상속 축) | **계속 skip** — SILENT 실측 | `SESSION_TIER=0` → 단언 불가(N4) |
+| Rule C·C2·C3 (Workflow 전 규칙) | **불변** — 전 세션 조기 exit(`:54`·`:56`) | §16.4-5 의 의식적 수용(N3) |
+
+**N4 — 상속 축 계속 skip.** 미지 세션에 임의 티어를 부여해 `inherit` 을 "평가"하는 안은 기각한다. §16.4-4 가 정직 전환한 클래스의 재발이기 때문:
+
+  > `§16.4-4` — **미지-티어의 opus "평가"는 상계가 아니다**(A2/A3): … 미지/동적이 실제 fable 급으로 해소되면 floor 과소평가로 하한 불변식이 L2 미탐이 된다 … 구조 해소는 런타임 관측을 요구해 텍스트 휴리스틱 상한 초과 — L1(밸브 동반-상향 규약)이 방어선, 표에 정직 기록.
+
+비-Claude 세션의 `inherit` 은 세션 모델이 `gpt-5.6-sol` 임을 **알고도** 그것이 opus 이상인지 단언할 근거가 없는 상태다(ⓒ). 임의 티어 부여는 그 단언 불가를 단언으로 바꾼다 → 옳은 처분은 **면제로 계수하되 침묵하지 않는 것**이고(§19.3 「면제는 침묵이 아니다」), 계수 표면은 L1 워커 계약(비-Claude 세션 `inherit` 위임 금지 · 리터럴 강제)이다.
+
+**N3 — Workflow 경로(`:54`·`:56`)는 이번에 개정하지 않는다.** §16.4-5 가 "C2 의 inherit/동적/폴백 평가가 세션 티어 필수라 부분-평가 복잡도가 advisory 상한 초과"로 의식적 수용을 명문화했고, 그 판단을 뒤집는 독립 근거가 이번 R 에 없다 → §20.6-2 로 존속.
+
+### §20.4 선행 서술의 정밀화 (§16.2 `:1551` · §16.4-5)
+
+기존 절은 편집하지 않는다 — 아래는 §17.0 선례의 **의식적 정밀화**다.
+
+| 대상 | 구 문면 | C21 후 유효 범위 |
+|---|---|---|
+| `§16.2 :1551` | "transcript 부재/비-claude 세션은 세션 판별 자체가 실패해 기존 fail-open 그대로" | **`transcript 부재` 에 한해 유효**로 좁혀진다. `비-claude 세션` 절반은 **Agent 경로 리터럴 축에 한해 무효** — 상속 축과 Workflow 경로에서는 계속 유효하다. |
+| `§16.4-5` | "Agent 경로 Rule B 는 리터럴-평가를 세션 무관 수행하도록 개정되나 Workflow 경로는 유지 … 비대칭 정직 부기" | **판정 불변**(Workflow 축 유지). 비대칭의 *내용*이 넓어진다 — 구: Agent 는 **미지-티어(claude-미지)** 세션에서 리터럴 수행 / 신: Agent 는 **미지-티어 및 비-Claude** 세션에서 리터럴 수행. |
+
+`:1551` 의 문면은 C17 시점에 참이었고 그 절의 기록으로서 지금도 참이다 — 무효화되는 것은 그것이 서술한 *상태*이지 그 서술의 당시 정확성이 아니다.
+
+### §20.5 검증 계획
+
+| 결정 | 검증 수단 | 기대 |
+|---|---|---|
+| N2 RED→GREEN | 실 GPT transcript + `mk_agent_event review-strict haiku` → `additionalContext` 유무 | **RED**(현행) 출력 없음 [실측 ✓] → **GREEN**(중립화) `rule-b-verifier-below-opus-floor` [실측 ✓ · 프로세스 치환 수정본] |
+| N2 판별 무회귀 | 중립화+앵커 판별식을 Claude transcript·빈 입력에 적용 | `claude-opus-5` / (빈 값) — §20.2 표 ① [실측 ✓] |
+| N2 앵커 거짓-건너뜀 없음 | 실 GPT transcript 5파일의 전 assistant 라인에 앵커 적용 → pick 성공/빈 값 집계 | **40/0**(2+22+4+1+11 전건 pick · 빈 값 0) — 60자 윈도우가 정상 세션 모델을 삼키지 않음 [실측 ✓ · §20.6-9 의 실측 하한] |
+| N2 면역 유지 | content 인용 2종 + **GPT 툴콜 적대 픽스처**(`content` 안 `input.model:"haiku"` · `model` 이 뒤) + Claude 툴콜 적대 픽스처 | 인용 2종 → `claude-opus-5` · GPT 툴콜 → **(빈 값)** = `:169` fail-open(오판별 `haiku` 가 **아닐 것**) · Claude 툴콜 → `claude-opus-5` [실측 ✓ · §20.2 실측 ②] |
+| N4 상속 축 skip | GPT transcript + `review-strict model:"inherit"` | **SILENT** [실측 ✓] |
+| N3 Workflow 불변 | `hooks/surface-model-policy.sh` `:42-158` diff **0** | Rule C/C2/C3 픽스처 전건 판정 불변 |
+| Claude 세션 무회귀 | `bash hooks/tests/run-all.sh` | **291/291 불변** + 신규분(2026-08-16 기준선 재실측 ✓ · `cases.tsv` 선언 291 == 실행 291) |
+| 배선 seal | `bash setup/verify-setup.sh` | **89/0** + 신규분(2026-08-16 실측 기준선 ✓) |
+| seal 회귀 | `bash setup/tests/seal-regression.test.sh` | **26**(`assert_seal_fires` 24 + control·witness 2 — **정적 선언 계수**, 본 절 집필 시점 완주 미확인) 불변 또는 +신규분 |
+
+**신규 픽스처는 실 shape 를 쓴다** — transcript 는 `"model":"gpt-5.6-sol"` 라인을 담은 파일, stdin 은 `run-all.sh:1042 mk_agent_event` 계열(`run-all.sh:1041` "stdin 은 … 실측 캡처 shape verbatim … 합성 shape 금지 (cycle-40 교훈)"). **신규 seal 번호는 이 절에서 배정하지 않는다** — closeout 직전 origin/master 실측 발급(§6).
+
+### §20.6 수용 잔여
+
+1. **상속 축은 여전히 판정 불가** — 비-Claude 세션의 Agent 명시 `inherit` 은 C21 후에도 SILENT 다(실측). `tier_of`=0 위에서 하향 여부를 단언할 수단이 없으며(§16.4-4), 방어선은 L1 워커 계약이다.
+2. **Workflow 경로 비대칭 존속** — `:54`(판별 실패)·`:56`(`WF_TIER=0`) 조기 exit 유지로 비-Claude 세션에서 Rule C·C2·C3 는 전부 침묵한다(§16.4-5 · §20.3 N3). 재판정하려면 C2 부분-평가 복잡도 상한을 뒤집는 독립 근거가 선행해야 한다.
+3. **advisory 상한** — 복원분은 `additionalContext` 환기이고 차단이 아니다(`:7` fail-open 불변식). 워커가 무시할 수 있으며 L2 는 관측 층이지 강제 층이 아니다.
+4. **`tier_of` 가 비-Claude 를 전부 0 으로 뭉갠다** — `gpt-5.6-sol`·`gpt-5.6-luna` 등 **gpt 모델 간 상대 티어는 미표현**이다(ⓒ). 따라서 복원되는 판정은 **Claude 패밀리 리터럴**(fable/opus/sonnet/haiku) 축이고, 비-Claude 리터럴 선언은 `tier_of`=0 → Rule B floor arm 의 **미지-티어 비면제 ALERT**(C17 규약, `:212`)로 계수된다 — 정확한 티어 판정이 아니라 정직한 과분류다.
+5. **복원 후 관측 커버리지 미측정** — 훅 로그에 세션 패밀리 필드가 없어 "GPT 세션에서 실제 몇 건이 발화하는가"는 착륙 후 슬러그 대조로만 확인 가능한 사후 관측 대상이다(§20.0 상한 3).
+6. **GAP 원 기록의 미정정 — 정정-전파 공백** — `docs/ai-context/c21-gap-nonclaude-session-blindness.md`(추적, `d7491e3`)는 `:21-22` 에서 `:169`/`:54` 를 결함으로 단정하고 `:81-83`(F2)이 조기 종료 분리를 처방한다. §20.2 가 `:169` 지목을 실측으로 **기각**하고 §20.3 N3 가 `:54` 를 (결함이 아니라) §16.4-5 의식적 수용으로 판정했으므로 추적 사이트 2곳이 spec 과 모순 상태다 — 「정정-전파 공백」(CONTEXT.md canonical · §18.3 대조 의무)에 해당한다. §19.7-7 선례("원 기록을 정정 부기할 것")를 따라 **Phase I 에서 원 기록에 정정 부기**한다(삭제 아님 — 오판정의 이력도 근거다). ★**Phase I 착륙 완료**: `c21-gap-nonclaude-session-blindness.md` 3곳(:169/:54 표·F1·F2)과 `c20-carryover-recovery.md` 4곳에 「> **C21 판정**」 인용-블록 부기(원문 무삭제).
+7. **§20.0 ⓓ 의 표본 = 1픽스처** — 클래스 존재 증명이며 arm 커버리지가 아니다. 전 arm RED 수열은 Phase I 소관(§20.0 상한 1). ★**Phase I 착륙 완료**: 픽스처 6건 신설(GPT shape 3 + 적대 3) — cases.tsv 291→297, run-all 297/297.
+8. **GPT 툴콜 라인은 판별-불가로 처분된다** — 후보 E 는 라인의 매치가 전부 `input` 소속일 때 빈 값을 반환해 `:169` fail-open 으로 떨어진다(§20.2 실측 ② ⓐ). 세션이 GPT 임을 *알 수 있는데도* 판별을 포기하는 것이며, 후보 D(node JSON 파싱)가 그 1케이스를 해소하나 핫패스 **2.1배 지연**(276ms vs 현행 134ms) 비용이라 기각했다. 재판정 조건 = 지연 예산이 바뀌거나 그 라인 클래스의 모집단이 실측으로 커질 때(현재 0건).
+9. **앵커는 60자 윈도우의 텍스트 휴리스틱이다** — `"input":{` 와 `"model"` 사이에 60자를 넘는 키가 끼면 앵커가 빗나간다(구조 파서가 아님 — §20.6-4 `tier_of` 상한과 동류). 현 실측 shape 에서 그 거리는 60자 이내이나 shape 변경 내성은 없고, 빗나갈 때의 방향은 A 와 동형(툴콜 인자 채택)이다. 방어선 = Phase I 픽스처가 실 shape 를 고정한다(§20.5 「신규 픽스처는 실 shape 를 쓴다」).
+
+### §20.7 C21-D — 판별식 재설계 (슬롯 2 역-supersede, 2026-08-17)
+
+교차패밀리 슬롯 2(GPT `gpt-5.6-sol`, ultra)가 §20.2 채택안(후보 E = 정규식 + 60자 룩백 앵커)의 **코어 실패 4종**을 제기했고, **메인이 전건 독립 재현**했다. 이는 §20.6-8·9 가 "수용 잔여"로 분류했던 것이 실은 **N4 위반 경로**였음을 뜻한다 — 잔여가 아니라 결함이다.
+
+| # | 입력 | §20.2 안 | 기대 |
+|---|---|---|---|
+| ① | 툴콜 라인(`input` 이 **닫힌 뒤** outer model) | `EMPTY` | `gpt-5.6-sol` |
+| ② | 같은 구조 + 패딩 **1자** 추가 | `haiku` | `gpt-5.6-sol` |
+| ③ | `metadata.model` 중첩(= `input` 아님) | `haiku` | `gpt-5.6-sol` |
+| ④ | assistant 2라인(직전 라인 판별 성공) | `claude-fable-5`(stale) | `gpt-5.6-sol` |
+
+**②가 결정적이다.** `tier_of("haiku")`=1 이라 `SESSION_TIER != 0` 가드를 통과해 **상속 축이 오발화**한다. 이것은 §20.2 가 후보 A 를 기각한 사유와 **동일한 실패**다 — 후보 E 는 그 창을 좁혔을 뿐 닫지 못했고, 60자는 어떤 값을 골라도 두 방향(짧은 객체 오거부 / 긴 객체 오채택)을 동시에 막을 수 없다. **④는 fail-open 보다 위험하다**: 주석이 약속한 "빈 값 → fail-open" 은 단일-assistant transcript 에서만 성립하고, 정상적인 다중-assistant transcript 에서는 **과거 모델**로 정책이 발화한다.
+
+**채택 = 후보 D(JSON 구조 파싱).** `tail -c 1000000` 후 **뒤에서부터 `JSON.parse` 에 성공한** `type=assistant` 레코드의 `message.model` 만 취한다. 중첩 `model`(input·metadata 등)은 경로가 달라 배제되고, 미완성 후미·tail 로 잘린 선두는 파싱 실패로 자연 배제된다.
+
+**지연 재실측(2026-08-17) — §20.2 의 2.1배 근거는 실측으로 무너졌다.** 세 층위로 쟀다: ⓐ 판별식 단독(1000줄, 5회 평균) awk 292ms vs node 466ms = 1.6배 ⓑ **판별식 단독(실 픽스처 1줄, hook 이 실제로 보는 크기) awk 287ms vs node 271ms = node 가 빠름** ⓒ **hook 전종단 1회 구 5.61s vs 신 4.23s = node 판별식이 25% 빠름**. 즉 1.6배는 1000줄 전량을 문자열로 모으는 합성 입력의 산물이고, 실제 호출 형태에서는 역전된다. 지배항은 판별식이 아니라 MSYS 프로세스 기동 비용이며, 이 hook 은 `:15` `require_node` + `json_get` 로 node 를 이미 여러 번 기동한다 — 판별식 1회는 새 의존도, 추가 예산도 아니다. **§20.2 의 후보 D 기각을 supersede 한다**(기각 근거였던 "정규식으로 충분 + 지연 2.1배"가 둘 다 무너졌다).
+
+**픽스처 정정(GPT #20·#22 — 판별력 공백)**: 구 77 은 기대값 `SILENT` 하나로 **두 경로**(올바른 판별 후 tier 0 skip / 판별 실패 후 `:169` fail-open)를 구별하지 못했고, 구현은 후자였다 = **오답을 GREEN 으로 봉인**. 주석이 이를 자백하고 있었다("앵커 생존 시 pick 빈 값 → fail-open → SILENT"). 정정: ①77b 신설(같은 transcript + **명시 리터럴** → 판별 실패면 SILENT 로 RED) ②**79~85 extractor 직접 단언 7건**(정책 부작용이 아니라 반환 문자열을 단언 — 73~78 은 `SESSION_MODEL` 이 비어 있지만 않으면 통과하므로 잘못된 모델을 반환하는 mutant 를 전부 통과시킨다). RED 실측: 구 판별식에서 **6/7 RED**(84 는 무회귀 대조군이라 GREEN 이 정상).
+
+**교훈**: 텍스트 휴리스틱으로 JSON 스코프를 근사하면, 근사가 빗나가는 방향이 입력 길이에 의존해 **양방향으로** 틀린다. 후보 A 기각 근거가 후보 E 에 그대로 살아 있었는데도 슬롯 1(설계층)과 Gate P 가 모두 통과시켰다 — 잡은 것은 슬롯 2(코드층, 교차패밀리)다. 이는 §18.1 트리거 (b)의 재발이다.

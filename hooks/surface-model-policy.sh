@@ -6,7 +6,8 @@
 # additionalContext 로 환기. C17 재정의 근거·전 arm 표: spec 2026-08-02 §16.
 # 차단하지 않는다(항상 exit 0, fail-open — ERR trap 이 내부 실패도 exit 0 으로 흡수).
 # 세션 모델은 hook stdin 에 없어 transcript 의 assistant 라인 message.model 로 판별(실측 shape).
-# 라인 내 첫 매치만 취해 content 의 모델 id 인용에 면역(assistant JSON 은 model 이 content 앞).
+# 라인 내 **첫 비-`input` 매치**를 취해 content 인용·툴콜 input.model 인자에 면역(Claude=model 선행 3851/3 ·
+# GPT=content 선행 0/40 실측, spec §20.2). 라인의 매치가 전부 input 소속이면 빈 값 → :169 fail-open.
 # 스크립트 검사는 파이프 대신 bash [[ =~ ]] — pipefail+SIGPIPE 로 인한 거짓 판정 원천 차단.
 # reload/upgrade 내성: settings.json 배선 + 라이브 tool_input 관측 — skill 텍스트와 무관 (spec §5).
 source "$HOME/.claude/hooks/_common.sh"
@@ -27,11 +28,27 @@ tier_of() {
   esac
 }
 
-session_model_of() {  # $1=transcript path — 마지막 assistant 라인의 message.model (라인-내 첫 매치)
-  tail -c 1000000 "$1" 2>/dev/null | awk '
-    /"type":"assistant"/ && match($0, /"model":[[:space:]]*"claude-[a-z0-9.-]+"/) {
-      m = substr($0, RSTART, RLENGTH); sub(/^"model":[[:space:]]*"/, "", m); sub(/"$/, "", m) }
-    END { if (m != "") print m }'
+session_model_of() {  # $1=transcript path — 마지막 완결 assistant 레코드의 message.model (JSON 구조 선택)
+  # C21 슬롯2(GPT)가 텍스트-휴리스틱(60자 룩백) 버전의 실패 4종을 실증해 구조 파싱으로 교체(spec §20.7):
+  #   ① 닫힌 input 뒤의 진짜 message.model 오거부 ② 룩백 경계 1자 차이로 input.model 오채택(N4 위반)
+  #   ③ metadata.model 등 input 아닌 중첩의 선점 ④ 라인 간 stale 잔존.
+  # node 는 이 hook 이 :15 require_node 로 전제하며 json_get 등에서 이미 반복 기동한다(새 의존 아님).
+  # 선택 규칙: 뒤에서부터 **파싱에 성공한** type=assistant 레코드의 message.model 만 채택.
+  #   미완성(append 중) 후미·tail 로 잘린 선두는 JSON.parse 실패로 자연 배제 · 중첩 model 은 경로가 달라 배제.
+  tail -c 1000000 "$1" 2>/dev/null | node -e '
+    let d = "";
+    process.stdin.on("data", c => d += c).on("end", () => {
+      const L = d.split("\n");
+      for (let i = L.length - 1; i >= 0; i--) {
+        const ln = L[i].trim();
+        if (!ln) continue;
+        let o; try { o = JSON.parse(ln); } catch (e) { continue; }
+        if (o && o.type === "assistant" && o.message && typeof o.message.model === "string") {
+          process.stdout.write(o.message.model + "\n");
+          return;
+        }
+      }
+    });' 2>/dev/null
 }
 
 # Rule C/C2/C3 — Workflow 경로 (C12 spec §10, C13 spec §12.3 per-spawn 전환). 정직 공개:
