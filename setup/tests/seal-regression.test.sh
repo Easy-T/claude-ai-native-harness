@@ -160,6 +160,18 @@ mut_mp_model_flip() { perl -pi -e 's/^(\| 구현 heavy [^|]*\| *execute-strict *
 # 라인 삭제보다 강한 변이: 리터럴 존재-검사까지 함께 우회). 내용-앵커 conjunct 결합 후에만 RED.
 mut_schema_required_empty() { perl -pi -e 's/"required":\s*\[[^\]]*\]/"required": []/g' "$1/state.schema.json"; }
 
+# Mutator 23 (C21) — seal #52(경로-전달 규약)의 RED: replica 의 테스트 파일에 겹따옴표 인라인 소스 +
+# 셸 변수 보간을 1건 주입한다. non-obvious #3 이 기술한 실패 형태 그 자체이며, seal 이 대상 계수만
+# 하고 위반 판정을 안 하면(vacuous) GREEN 으로 새어 나간다.
+# ★위반 문자열은 **런타임 조립**한다 — 소스에 `node -e "…$VAR…"` 를 리터럴로 적으면 이 파일 자신이
+#   seal 스캔 대상(setup/tests/*.sh)에 걸려 **seal 이 자기 자신을 위반으로 계수**한다(C21 Gate P F1 실측:
+#   리터럴형 정의행 1줄 추가 → verify-setup FAIL=1 · control replica 도 동반 오염 → assert_seal_fires
+#   24건이 전부 vacuous PASS). 아래 형태는 정의행 스캔 시 VIOLATION=0, 주입 결과는 VIOLATION=1 [실측].
+mut_pathpass_interp() {
+  local q='"'
+  printf '%s\n' "PPV=\$(mktemp -d); node -e ${q}console.log(\$PPV)${q}" >> "$1/hooks/tests/run-all.sh"
+}
+
 assert_seal_fires "state_schema"    mut_state_count_string "state.json schema 위반"
 assert_seal_fires "settings_parity" mut_settings_matcher   "settings/example harness-hook drift"
 assert_seal_fires "readme_cases"    mut_readme_cases       "README cases drift"
@@ -184,6 +196,7 @@ assert_seal_fires "yield_cp_field_drop"       mut_yield_cp_field_drop   "layer-y
 assert_seal_fires "old_assertion_revival" mut_old_assertion_revival "집필-위임 규약 토큰 drift"
 assert_seal_fires "mp_model_flip"        mut_mp_model_flip        "역할×모델 매트릭스 봉인 붕괴"
 assert_seal_fires "schema_required_empty" mut_schema_required_empty "state.json schema 위반"
+assert_seal_fires "pathpass_interp"       mut_pathpass_interp       "경로-전달 규약 위반"
 
 # === Live immutability: witnessed files byte-identical (all mutation stayed in replicas) ===
 LIVE_AFTER="$(witness)"

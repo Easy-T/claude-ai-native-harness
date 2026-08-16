@@ -618,7 +618,10 @@ MP_ORACLE="$HOME/.claude/setup/lib/modepack-oracle.sh"
 if [ -f "$MP_ORACLE" ]; then
   # shellcheck source=/dev/null
   . "$MP_ORACLE"
-  MP_OUT=$(modepack_oracle_scan "$HOME/.claude/modes" 2>/dev/null); MP_RC=$?
+  # C21 I3: stderr 를 버리지 않고 포획 — 위반 상세(파일·워커·티어)가 stderr 로만 나오므로
+  # 2>/dev/null 은 FAIL 을 재현 불가로 만든다. 원 목적(오라클 부재 시 소음 억제)은 :618 가드가 담당.
+  MP_ERR=$(mktemp); MP_OUT=$(modepack_oracle_scan "$HOME/.claude/modes" 2>"$MP_ERR"); MP_RC=$?
+  MP_DETAIL=$(cat "$MP_ERR" 2>/dev/null); rm -f "$MP_ERR"
   MP_TOTAL=$(printf '%s' "$MP_OUT" | grep -oE 'TOTAL=[0-9]+' | cut -d= -f2)
   MP_DYN=$(printf '%s' "$MP_OUT" | grep -oE 'DYNAMIC=[0-9]+' | cut -d= -f2)
   if [ "$MP_RC" -eq 0 ] && [ "${MP_TOTAL:-0}" -gt 0 ]; then
@@ -626,10 +629,39 @@ if [ -f "$MP_ORACLE" ]; then
   elif [ "${MP_TOTAL:-0}" -eq 0 ]; then
     fail "모드팩 오라클: 검사 대상 0 (modes/*.json 부재 — vacuous seal 방지, spec §19.3)"
   else
-    fail "모드팩 오라클: 정책 위반 검출 — review-only 워커가 floor max(작업자,opus) 미만"
+    fail "모드팩 오라클: 정책 위반 검출 — review-only 워커가 floor max(작업자,opus) 미만 — 상세: ${MP_DETAIL:-없음}"
   fi
 else
   fail "모드팩 오라클 스크립트 부재: setup/lib/modepack-oracle.sh"
+fi
+
+# 52. 경로-전달 규약 (C21, non-obvious #3 SMART ① — 기한 "C21 초입"): setup/tests/·hooks/tests/ 의
+#     인라인 인터프리터 소스(node -e / python -c)에 리터럴 /tmp/ 또는 (겹따옴표 소스의) 셸 변수 보간이
+#     있으면 FAIL. MSYS 에서 bash 가 만든 경로를 네이티브 python/node 가 C:\tmp\x 로 오해석해 픽스처가
+#     조용히 미생성되고, 계수기형 오라클이 그 빈 입력을 "위반 없음"으로 보고하던 클래스(C20 T6 라이브 재현).
+#     ★vacuous 방지: 대상 0(TOTAL=0)이면 FAIL — #51 선례(계수기형은 "대상 0"과 "위반 0"이 동형).
+PP_OUT=$(awk '
+  /^[[:space:]]*#/ { next }
+  { line = $0; pos = 1
+    while (match(substr(line, pos), /(python3?|node)[ \t]+-[ce][ \t]+/)) {
+      st = pos + RSTART - 1; pos = st + RLENGTH; rest = substr(line, pos); q = substr(rest, 1, 1)
+      if (q == "\047") { i = index(substr(rest, 2), "\047"); src = (i > 0) ? substr(rest, 2, i - 1) : substr(rest, 2); interp = 0 }
+      else if (q == "\"") { i = index(substr(rest, 2), "\""); src = (i > 0) ? substr(rest, 2, i - 1) : substr(rest, 2); interp = 1 }
+      else { src = rest; interp = 0 }
+      TOTAL++
+      if (index(src, "/tmp/") > 0 || (interp && src ~ /\$[A-Za-z_{(]/)) { V++; printf "%s:%d ", FILENAME, FNR }
+    } }
+  END { printf "\nTOTAL=%d VIOLATION=%d\n", TOTAL + 0, V + 0 }
+' "$HOME/.claude/hooks/tests"/*.sh "$HOME/.claude/setup/tests"/*.sh 2>/dev/null)
+PP_TOTAL=$(printf '%s' "$PP_OUT" | tail -1 | grep -oE 'TOTAL=[0-9]+' | cut -d= -f2)
+PP_VIOL=$(printf '%s' "$PP_OUT" | tail -1 | grep -oE 'VIOLATION=[0-9]+' | cut -d= -f2)
+PP_SITES=$(printf '%s' "$PP_OUT" | head -1)
+if [ "${PP_TOTAL:-0}" -eq 0 ]; then
+  fail "경로-전달 seal: 검사 대상 0 (인라인 인터프리터 호출 부재 — vacuous seal 방지, #51 선례)"
+elif [ "${PP_VIOL:-0}" -eq 0 ]; then
+  ok "경로-전달 규약: 인라인 인터프리터 ${PP_TOTAL}건 위반 0 (non-obvious #3 SMART ①)"
+else
+  fail "경로-전달 규약 위반 ${PP_VIOL}건 — 인라인 소스의 리터럴 /tmp/ 또는 변수 보간 경로: ${PP_SITES}. argv/stdin 으로 전달할 것 (non-obvious #3)"
 fi
 
 #     이 시점까지의 PASS+FAIL+1(이 체크 자신) == README "(현재 N PASS)" 선언. 체크 추가 시 README 미동기가 자동 FAIL.

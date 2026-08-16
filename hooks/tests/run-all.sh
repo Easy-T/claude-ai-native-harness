@@ -1361,6 +1361,28 @@ WF_C2_INH_OPUS_S="await agent('impl', {agentType: 'execute-strict', model: 'opus
 await agent('v', {agentType: 'review-strict', model: 'inherit'})"
 test_smp "72-rule-c2-leak-opus-session-inherit-silent" 0 0 "$(mk_wf_event script "$WF_C2_INH_OPUS_S" "$SMP_OPUS_T" "smp72-$$")"
 
+# --- C21 (73~78): 비-Claude 세션 Agent 리터럴 축 복원 (spec §20) ---
+# transcript 는 **실 GPT 라인 shape** — content 가 model 앞(§20.2 키 순서 실측: GPT model-first 0 / content-first 40).
+SMP_GPT_T=$(mktemp "$SCRATCH/smp-gpt-XXXXXX.jsonl")
+printf '{"type":"assistant","message":{"content":[{"type":"thinking","thinking":"x"}],"model":"gpt-5.6-sol"}}\n' > "$SMP_GPT_T"
+# 적대 ⓐ: content 안 툴콜 input.model:"haiku" 가 세션 model 보다 앞 — 앵커 없으면 haiku 오판별(후보 A ✗)
+SMP_ADVGPT_T=$(mktemp "$SCRATCH/smp-advgpt-XXXXXX.jsonl")
+printf '{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Agent","input":{"model":"haiku","prompt":"x"}}],"model":"gpt-5.6-sol"}}\n' > "$SMP_ADVGPT_T"
+# 적대 ⓑ: Claude model 선행 + 툴콜 후행 — 앵커가 Claude shape 를 깨지 않음(후보 B ✗ 대조)
+SMP_ADVCLA_T=$(mktemp "$SCRATCH/smp-advcla-XXXXXX.jsonl")
+printf '{"type":"assistant","message":{"model":"claude-fable-5","content":[{"type":"tool_use","name":"Agent","input":{"model":"haiku","prompt":"x"}}]}}\n' > "$SMP_ADVCLA_T"
+# 73~75: 비-Claude(GPT) 세션 리터럴 축 3 arm 복원 (§20.3 — 세션 티어 무참조)
+test_smp "73-nonclaude-rule-b-literal-haiku"  0 1 "$(mk_agent_event review-strict  haiku   "$SMP_GPT_T" "smp73-$$")"
+test_smp "74-nonclaude-rule-b-fable-leak"     0 1 "$(mk_agent_event review-strict  fable   "$SMP_GPT_T" "smp74-$$")"
+test_smp "75-nonclaude-rule-a-fable-leak"     0 1 "$(mk_agent_event execute-strict fable   "$SMP_GPT_T" "smp75-$$")"
+# 76: N4 — 상속 축 계속 skip. ALERT 로 뒤집히면 N4 위반 회귀.
+test_smp "76-nonclaude-inherit-silent"        0 0 "$(mk_agent_event review-strict  inherit "$SMP_GPT_T" "smp76-$$")"
+# 77: 앵커 회귀 센티널 — 툴콜 input.model 이 채택되면 haiku(tier 1) → :201 floor arm 발화(후보 A 회귀).
+#     앵커 생존 시 pick 빈 값 → :169 fail-open → SILENT. (판별 대상은 후보 A 회귀 — plan 수용 잔여 10)
+test_smp "77-anchor-gpt-toolcall-input-model" 0 0 "$(mk_agent_event review-strict  inherit "$SMP_ADVGPT_T" "smp77-$$")"
+# 78: 무회귀 — Claude model-선행 라인은 툴콜이 뒤여도 세션 판별 불변(fable 세션 + 명시 inherit → Rule A ALERT).
+test_smp "78-anchor-claude-toolcall-nonregress" 0 1 "$(mk_agent_event execute-strict inherit "$SMP_ADVCLA_T" "smp78-$$")"
+
 # ==================== Summary ====================
 echo
 echo "Hook tests: $PASSED / $TOTAL passed"

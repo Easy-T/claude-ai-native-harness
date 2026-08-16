@@ -308,3 +308,9 @@ surface-model-policy	69-rule-a-opus-session-inherit-silent	0	mk_agent_event
 surface-model-policy	70-rule-b-opus-session-inherit-silent	0	mk_agent_event
 surface-model-policy	71-rule-c-opus-session-inherit-silent	0	mk_wf_event
 surface-model-policy	72-rule-c2-leak-opus-session-inherit-silent	0	mk_wf_event
+surface-model-policy	73-nonclaude-rule-b-literal-haiku	0	mk_agent_event
+surface-model-policy	74-nonclaude-rule-b-fable-leak	0	mk_agent_event
+surface-model-policy	75-nonclaude-rule-a-fable-leak	0	mk_agent_event
+surface-model-policy	76-nonclaude-inherit-silent	0	mk_agent_event
+surface-model-policy	77-anchor-gpt-toolcall-input-model	0	mk_agent_event
+surface-model-policy	78-anchor-claude-toolcall-nonregress	0	mk_agent_event

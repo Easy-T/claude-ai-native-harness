@@ -117,3 +117,66 @@
   → `TOTAL=0 LITERAL=0 DYNAMIC=0 VIOLATION=0` + `exit=0` — 검사 대상 부재가 "위반 없음"과 동형.
 - **관계**: spec §13.10(C14-G)과 **동일 기전**이며 이 등록은 그것의 **일반화·승격**이다(중복 아님).
   C14-G 는 `doctor.sh` 단일 사이트의 코드 수정이었고, 이 항목은 그 제약을 Phase R 이 읽는 자리로 옮긴다.
+
+---
+
+## 4. Edit 도구는 **혼합-개행** 파일을 전량 LF 로 통일해 편집 범위 밖을 파괴한다
+
+- **관측 (2026-08-10 C19 최초 · 2026-08-16 C21 재발)**: C19 리뷰 정정 중 Edit 이 혼합-개행 spec 파일의
+  개행을 전 파일 통일해 편집 범위 밖 줄이 diff 에 잡혔다. C21 Phase R 에서 **동일 사고가 재발** —
+  `docs/superpowers/specs/2026-07-25-model-policy-design.md`(당시 CRLF 1823 + LF 572 혼합)에 **4줄 Edit**
+  을 넣었더니 **723 deletions** 이 나왔다. `git checkout --` 후 `perl -0777 -i -pe` 바이트 편집으로 전환.
+- **★방향은 CRLF → LF** (C20 Phase R 3케이스 실측, `_goal/c20-i1-repro-measured.md`):
+  A(CRLF 머리+LF 꼬리) **파괴** · B(LF 다수 + CRLF **1개**) **파괴** · C(순수 CRLF) **보존**.
+  B 가 보이듯 **다수결이 아니다** — CRLF 가 1/5 여도 그 1개가 LF 로 흡수된다. 순수 CRLF 는 보존되므로
+  "Edit 은 항상 LF 로 쓴다"가 아니라 **"혼합이면 LF 로 통일한다"**가 정확한 서술이다.
+  **C19 layer-yield `:63` 은 방향을 "LF 꼬리를 CRLF 재작성"으로 반대로 적었다** — 실패 *클래스*
+  (편집 범위 밖 개행의 전-파일 통일)는 동일하나 방향 기술이 틀렸고, 이 등록이 실측 방향으로 정정한다.
+- **모집단 (2026-08-16 실측)**: 추적 `*.md` 중 혼합 파일 **2건** —
+  `docs/superpowers/specs/2026-07-25-model-policy-design.md`(CRLF 1823/2597) ·
+  `docs/ai-context/c21-orca-mode-design.md`(CRLF 728/754). 둘 다 사이클이 반복 편집하는 파일이다.
+- **5 Whys (시스템 원인까지)**:
+  1. 왜 4줄 편집이 723줄을 지웠나? → Edit 이 파일 전체 개행을 LF 로 통일했다.
+  2. 왜 그 도구를 골랐나? → 파일이 혼합-개행임을 **모르는 상태**로 편집을 시작했다.
+  3. 왜 몰랐나? → 확인을 시도했고 `grep -c $'\r'` 를 썼는데 **이 파일에서 0 을 반환**했다
+     (실측: 정답 1823). 확인을 *했는데* 오답을 받아 "순수 LF" 로 판단했다.
+  4. 왜 오답 계수기를 썼나? → 개행 계수의 **정본 명령이 어디에도 없다**. 각 사이클이 즉석에서
+     `grep`/`file`/`cat -A` 중 하나를 고르고, 그중 `grep -c $'\r'` 는 MSYS 에서 조용히 틀린다.
+  5. 왜 정본이 없나? → **파일의 개행 상태가 편집 도구 선택을 좌우하는데, 그것을 조회하는 단계가
+     어느 skill·plan 템플릿에도 배치돼 있지 않다.** 도구 선택이 파일 속성에 의존한다는 사실 자체가
+     절차에 표현돼 있지 않아, 확인은 개인 재량이 되고 재량은 오답 명령을 고를 수 있다.
+     ← **시스템 원인**(사람/AI 아님 — C21 은 규율을 *알고도* 계수기 때문에 재발했다).
+  - *반대 심문*: "규율이 있었으니 사람이 안 지킨 것"은 성립하지 않는다. C21 Phase R 은 규율을
+    적용하려 **확인을 실행했고**, 그 확인이 틀린 값을 줬다. 절차가 명령을 지정했다면 막혔다.
+- **SMART action item**:
+  1. **개행 계수의 정본 고정** — 혼합-개행 파일을 편집하는 plan task 는 Files 블록에 개행 실측을
+     `perl -ne '$n++ if /\r/; END{print "$n\n"}' <파일>` 출력으로 인용한다(`grep -c $'\r'` 금지).
+     측정 = 그런 task 의 Files 블록에 `perl -ne` 계수 인용이 존재. **기한 = C22 Phase P**.
+  2. **혼합 파일에서 Edit 금지** — 편집 전 CR 계수가 `0 < CR < 총줄수` 면 `perl -0777 -i -pe` 를 쓴다.
+     순수 CRLF·순수 LF 는 Edit 허용(대조군 C 가 보존을 실증). 측정 = 편집 후 CR 계수 불변 +
+     `git diff --numstat` 의 deletions 가 의도한 교체분과 일치. **기한 = 즉시 적용**(C21 이 이미 이행 —
+     spec §20 개정 2회 모두 CR 1823 불변 실측).
+- **재현 픽스처**:
+  ```bash
+  D=$(mktemp -d)
+  printf 'alpha\r\nbravo\r\ncharlie\r\ndelta\r\necho\nfoxtrot\n' > "$D/orig.txt"
+  cp "$D/orig.txt" "$D/edit.txt"; cp "$D/orig.txt" "$D/perl.txt"
+  perl -i    -pe 's/\r\n/\n/g; s/^charlie$/charlie-EDITED/' "$D/edit.txt"   # Edit 도구 상당(혼합→전량 LF)
+  perl -0777 -i -pe 's/charlie/charlie-EDITED/'             "$D/perl.txt"   # 바이트 편집(개행 보존)
+  crlf() { perl -ne '$n++ if /\r/; END{print $n+0}' "$1"; }
+  printf 'BEFORE   CRLF=%s\n' "$(crlf "$D/orig.txt")"
+  printf 'EDIT상당 CRLF=%s  changed=%s\n' "$(crlf "$D/edit.txt")" "$(diff "$D/orig.txt" "$D/edit.txt" | grep -c '^<')"
+  printf 'perl     CRLF=%s  changed=%s\n' "$(crlf "$D/perl.txt")" "$(diff "$D/orig.txt" "$D/perl.txt" | grep -c '^<')"
+  rm -rf "$D"
+  ```
+  → 실행 확인(2026-08-16): `BEFORE CRLF=4` · `EDIT상당 CRLF=0 changed=4` · `perl CRLF=4 changed=1`.
+  **1줄 편집 의도가 4줄 diff 로 번진다.**
+  **자동화 상한(정직 부기)**: Edit 은 모델 도구라 셸이 호출할 수 없다 — 위 픽스처는 Edit 자체가 아니라
+  **기전**(혼합 파일에 개행 정규화가 동반되면 무관 줄이 diff 에 잡힘)을 재현한다. Edit 의 실제 동작은
+  `_goal/c20-i1-repro-measured.md` 의 3케이스 매트릭스(세션이 Edit 을 직접 호출해 측정)가 근거다.
+  계수기 오답도 함께 확인할 것: `grep -c $'\r' docs/superpowers/specs/2026-07-25-model-policy-design.md`
+  → **0**(오답) vs `perl -ne '$n++ if /\r/; END{print "$n\n"}'` → **1823**(정답).
+- **관계**: [[3]](#3-bash-가-만든-경로를-네이티브-인터프리터에-소스-보간하면-조용히-다른-위치를-가리킨다)과
+  **동류**다 — 둘 다 "확인을 했는데 확인 도구가 MSYS 에서 조용히 틀린 값을 준다". #3 은 경로 축,
+  이 항목은 개행 축이며 근본 원인도 같은 형태(실측 환경 제약이 강제 표면에 없음)다.
+  C19 layer-yield `:63`(방향 오기 · §4 1단계 사용자 승인 2026-08-10) · C20 layer-yield(②차기 이월) 지목.

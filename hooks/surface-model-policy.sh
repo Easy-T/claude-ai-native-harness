@@ -6,7 +6,8 @@
 # additionalContext 로 환기. C17 재정의 근거·전 arm 표: spec 2026-08-02 §16.
 # 차단하지 않는다(항상 exit 0, fail-open — ERR trap 이 내부 실패도 exit 0 으로 흡수).
 # 세션 모델은 hook stdin 에 없어 transcript 의 assistant 라인 message.model 로 판별(실측 shape).
-# 라인 내 첫 매치만 취해 content 의 모델 id 인용에 면역(assistant JSON 은 model 이 content 앞).
+# 라인 내 **첫 비-`input` 매치**를 취해 content 인용·툴콜 input.model 인자에 면역(Claude=model 선행 3851/3 ·
+# GPT=content 선행 0/40 실측, spec §20.2). 라인의 매치가 전부 input 소속이면 빈 값 → :169 fail-open.
 # 스크립트 검사는 파이프 대신 bash [[ =~ ]] — pipefail+SIGPIPE 로 인한 거짓 판정 원천 차단.
 # reload/upgrade 내성: settings.json 배선 + 라이브 tool_input 관측 — skill 텍스트와 무관 (spec §5).
 source "$HOME/.claude/hooks/_common.sh"
@@ -27,10 +28,18 @@ tier_of() {
   esac
 }
 
-session_model_of() {  # $1=transcript path — 마지막 assistant 라인의 message.model (라인-내 첫 매치)
+session_model_of() {  # $1=transcript path — 마지막 assistant 라인의 message.model (라인-내 첫 비-input 매치)
   tail -c 1000000 "$1" 2>/dev/null | awk '
-    /"type":"assistant"/ && match($0, /"model":[[:space:]]*"claude-[a-z0-9.-]+"/) {
-      m = substr($0, RSTART, RLENGTH); sub(/^"model":[[:space:]]*"/, "", m); sub(/"$/, "", m) }
+    /"type":"assistant"/ {
+      s=$0; off=0; pick=""
+      while (match(s, /"model":[[:space:]]*"[A-Za-z0-9._-]+"/)) {
+        abs = off + RSTART
+        pre = substr($0, (abs>60 ? abs-60 : 1), (abs>60 ? 60 : abs-1))
+        if (pre !~ /"input":[[:space:]]*\{/) { pick = substr($0, abs, RLENGTH); break }
+        off = abs + RLENGTH - 1
+        s = substr($0, off+1)
+      }
+      if (pick != "") { m=pick; sub(/^"model":[[:space:]]*"/,"",m); sub(/"$/,"",m) } }
     END { if (m != "") print m }'
 }
 
