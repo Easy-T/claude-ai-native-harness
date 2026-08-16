@@ -1377,11 +1377,53 @@ test_smp "74-nonclaude-rule-b-fable-leak"     0 1 "$(mk_agent_event review-stric
 test_smp "75-nonclaude-rule-a-fable-leak"     0 1 "$(mk_agent_event execute-strict fable   "$SMP_GPT_T" "smp75-$$")"
 # 76: N4 — 상속 축 계속 skip. ALERT 로 뒤집히면 N4 위반 회귀.
 test_smp "76-nonclaude-inherit-silent"        0 0 "$(mk_agent_event review-strict  inherit "$SMP_GPT_T" "smp76-$$")"
-# 77: 앵커 회귀 센티널 — 툴콜 input.model 이 채택되면 haiku(tier 1) → :201 floor arm 발화(후보 A 회귀).
-#     앵커 생존 시 pick 빈 값 → :169 fail-open → SILENT. (판별 대상은 후보 A 회귀 — plan 수용 잔여 10)
-test_smp "77-anchor-gpt-toolcall-input-model" 0 0 "$(mk_agent_event review-strict  inherit "$SMP_ADVGPT_T" "smp77-$$")"
+# 77: 툴콜 라인 + inherit → SILENT. ★단독으로는 비-판별(구 코드도 GREEN) — 아래 77b 와 **쌍으로만** 유효하다.
+#     C21 슬롯2(GPT #20) 가 실증: SILENT 에 이르는 경로가 둘(올바른 gpt 판별 후 tier 0 skip / 판별 실패 후
+#     :169 fail-open)인데 구 텍스트-휴리스틱은 후자였다 = 오답을 GREEN 으로 봉인. 77b 가 그 창을 닫는다.
+test_smp "77-gpt-toolcall-inherit-silent"     0 0 "$(mk_agent_event review-strict  inherit "$SMP_ADVGPT_T" "smp77-$$")"
+# 77b: ★77 의 판별력 짝 — 같은 툴콜 transcript 에 **명시 리터럴**. 세션 판별이 실패(EMPTY)하면
+#      :169 fail-open 으로 SILENT 가 되어 RED. 즉 "올바른 GPT 를 골랐다"를 정책 축에서 강제한다(GPT #20).
+test_smp "77b-gpt-toolcall-literal-fires"     0 1 "$(mk_agent_event review-strict  haiku   "$SMP_ADVGPT_T" "smp77b-$$")"
 # 78: 무회귀 — Claude model-선행 라인은 툴콜이 뒤여도 세션 판별 불변(fable 세션 + 명시 inherit → Rule A ALERT).
 test_smp "78-anchor-claude-toolcall-nonregress" 0 1 "$(mk_agent_event execute-strict inherit "$SMP_ADVCLA_T" "smp78-$$")"
+# 79~84: ★extractor 직접 단언 (GPT #20·#22 — 정책 부작용은 추출 정확성을 봉인하지 못한다).
+#        73~78 은 SESSION_MODEL 이 *비어 있지만 않으면* 통과하므로, 잘못된 모델을 반환하는 mutant 도
+#        전부 통과한다. 아래는 판별식 자체의 반환값을 문자열로 단언해 그 창을 닫는다.
+smp_extract() { tail -c 1000000 "$1" 2>/dev/null | node -e '
+  let d=""; process.stdin.on("data",c=>d+=c).on("end",()=>{
+    const L=d.split("\n");
+    for(let i=L.length-1;i>=0;i--){ const ln=L[i].trim(); if(!ln) continue;
+      let o; try{o=JSON.parse(ln)}catch(e){continue}
+      if(o&&o.type==="assistant"&&o.message&&typeof o.message.model==="string"){process.stdout.write(o.message.model+"\n");return} }
+    process.stdout.write("EMPTY\n"); });' 2>/dev/null; }
+test_extract() {   # $1=name $2=expected $3=jsonl-content
+  local t; t=$(mktemp "$SCRATCH/smpx-XXXXXX.jsonl"); printf '%s\n' "$3" > "$t"
+  TOTAL=$((TOTAL+1))
+  local got; got=$(smp_extract "$t")
+  if [ "$got" = "$2" ]; then PASSED=$((PASSED+1))
+  else FAILED_LIST+=("surface-model-policy/$1 (expected=$2 got=$got)"); fi
+}
+SMP_PAD45=$(printf 'A%.0s' $(seq 1 45))
+test_extract "79-extract-gpt-toolcall-outer-model" "gpt-5.6-sol" \
+  '{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Agent","input":{"model":"haiku","prompt":"x"}}],"model":"gpt-5.6-sol"}}'
+test_extract "80-extract-long-input-no-lookback-flip" "gpt-5.6-sol" \
+  "{\"type\":\"assistant\",\"message\":{\"content\":[{\"input\":{\"p\":\"$SMP_PAD45\",\"model\":\"haiku\"}}],\"model\":\"gpt-5.6-sol\"}}"
+test_extract "81-extract-nested-metadata-not-picked" "gpt-5.6-sol" \
+  '{"type":"assistant","message":{"content":[{"metadata":{"model":"haiku"}}],"model":"gpt-5.6-sol"}}'
+test_extract "82-extract-truncated-line-excluded" "EMPTY" \
+  '{"type":"assistant","message":{"model":"claude-fable-5","content":['
+test_extract "83-extract-user-record-not-assistant" "EMPTY" \
+  '{"type":"user","payload":{"foo\"type":"assistant","model":"claude-fable-5"}}'
+test_extract "84-extract-claude-nonregress" "claude-fable-5" \
+  '{"type":"assistant","message":{"model":"claude-fable-5","content":[{"type":"tool_use","name":"Agent","input":{"model":"haiku","prompt":"x"}}]}}'
+# 85: 다중 assistant 라인에서 **마지막**을 취한다(구 awk 는 m 미초기화로 직전 라인 값이 stale 잔존 — GPT #4).
+SMP_MULTI_T=$(mktemp "$SCRATCH/smp-multi-XXXXXX.jsonl")
+printf '%s\n%s\n' '{"type":"assistant","message":{"model":"claude-fable-5"}}' \
+                  '{"type":"assistant","message":{"content":[{"input":{}}],"model":"gpt-5.6-sol"}}' > "$SMP_MULTI_T"
+TOTAL=$((TOTAL+1))
+SMP_MULTI_GOT=$(smp_extract "$SMP_MULTI_T")
+if [ "$SMP_MULTI_GOT" = "gpt-5.6-sol" ]; then PASSED=$((PASSED+1))
+else FAILED_LIST+=("surface-model-policy/85-extract-multiline-takes-last (expected=gpt-5.6-sol got=$SMP_MULTI_GOT)"); fi
 
 # ==================== Summary ====================
 echo

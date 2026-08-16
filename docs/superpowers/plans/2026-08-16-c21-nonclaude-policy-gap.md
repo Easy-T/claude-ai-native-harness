@@ -2,10 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Status:** completed
+**Status:** active
 **RPI-Cycle:** 72
 **Started:** 2026-08-16
-**Completed:** 2026-08-16
+**Reopened:** 2026-08-17 — 교차패밀리 슬롯 2(GPT)가 판별식 코어 결함 4종을 실증(메인 전건 재현).
+Task 7 추가: 텍스트 휴리스틱 → JSON 구조 파싱 전환. 사용자 승인 2026-08-17("이번 사이클에서 고친다").
 
 **Goal:** 비-Claude 세션(GPT/Orca)에서 `session_model_of()` 의 `claude-` 접두 편향 때문에 Agent 경로가 `:169` 에서 전량 조기 종료하던 상태를 끝내고, **세션 티어를 참조하지 않는 리터럴 축**(Rule A fable-누출 · Rule B floor · Rule B fable-누출)만 복원한다.
 
