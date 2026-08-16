@@ -122,21 +122,38 @@
 
 ## 4. Edit 도구는 **혼합-개행** 파일을 전량 LF 로 통일해 편집 범위 밖을 파괴한다
 
-- **관측 (2026-08-10 C19 최초 · 2026-08-16 C21 재발)**: C19 리뷰 정정 중 Edit 이 혼합-개행 spec 파일의
-  개행을 전 파일 통일해 편집 범위 밖 줄이 diff 에 잡혔다. C21 Phase R 에서 **동일 사고가 재발** —
-  `docs/superpowers/specs/2026-07-25-model-policy-design.md`(당시 CRLF 1823 + LF 572 혼합)에 **4줄 Edit**
-  을 넣었더니 **723 deletions** 이 나왔다. `git checkout --` 후 `perl -0777 -i -pe` 바이트 편집으로 전환.
-- **★방향은 CRLF → LF** (C20 Phase R 3케이스 실측, `_goal/c20-i1-repro-measured.md`):
-  A(CRLF 머리+LF 꼬리) **파괴** · B(LF 다수 + CRLF **1개**) **파괴** · C(순수 CRLF) **보존**.
-  B 가 보이듯 **다수결이 아니다** — CRLF 가 1/5 여도 그 1개가 LF 로 흡수된다. 순수 CRLF 는 보존되므로
-  "Edit 은 항상 LF 로 쓴다"가 아니라 **"혼합이면 LF 로 통일한다"**가 정확한 서술이다.
-  **C19 layer-yield `:63` 은 방향을 "LF 꼬리를 CRLF 재작성"으로 반대로 적었다** — 실패 *클래스*
-  (편집 범위 밖 개행의 전-파일 통일)는 동일하나 방향 기술이 틀렸고, 이 등록이 실측 방향으로 정정한다.
+- **관측 (2026-08-10 C19 최초 · 2026-08-16 C21 재발)**: C19 Gate R 정정 세션에서 Edit 이 혼합-개행
+  spec 파일의 LF 꼬리를 CRLF 로 재작성해 §17 전체가 diff 오염됐다
+  (`plans/2026-08-09-c19-review-economics.md:48`). C21 Phase R 에서 **동일 사고가 재발** —
+  `docs/superpowers/specs/2026-07-25-model-policy-design.md`(당시 CRLF **1823** + LF **723**, 총 2546 —
+  `git show 89624bf:<파일>` 실측)에 **4줄 Edit** 을 넣었더니 **723 deletions** 이 나왔다.
+  `git checkout --` 후 `perl -0777 -i -pe` 바이트 편집으로 전환(그래서 이 사고는 커밋에 남지 않았다 —
+  git 이력으로는 재현 불가하며, **723 이라는 수치의 방향 함의만 커밋된 파일 상태로 독립 산출된다**).
+- **★방향 = 소수 개행이 다수 개행으로 흡수된다(다수결).** 4개 데이터가 전부 이 가설과 정합한다:
+
+  | 케이스 | 구성 | 결과 | 판정 |
+  |---|---|---|---|
+  | C21 spec (실파일) | CRLF **1823** / LF **723** | **723줄 변경** = LF 가 CRLF 로 | 다수(CRLF) 승 |
+  | C20-B (합성) | CRLF 1 / LF 4 | 전량 LF | 다수(LF) 승 |
+  | C20-C (합성) | CRLF 3 / LF 0 | CRLF 보존 | 혼합 아님 — 대조군 |
+  | C20-A (합성) | CRLF 2 / LF 2 | 전량 LF | 동수 — 판별 불가 |
+
+  **판별 산술**: C21 케이스에서 변경 줄 수(723)가 **LF 줄 수와 정확히 일치**한다. CRLF→LF 였다면
+  변경 줄 = CRLF 줄 수 = **1823** 이어야 한다. 따라서 이 사고의 방향은 **LF → CRLF** 다.
+  순수 CRLF(C20-C)는 보존되므로 "Edit 은 항상 LF 로 쓴다"도 "항상 CRLF 로 쓴다"도 아니고,
+  **"혼합이면 한쪽으로 통일하며 그 방향은 다수 쪽"** 이 현 데이터가 지지하는 서술이다.
+  **C19 원 기록(`plans/2026-08-09-c19-review-economics.md:48`)의 "LF 꼬리를 CRLF 재작성"은 옳았다** —
+  C20 Phase R 이 합성 케이스만 보고 "C19 는 방향이 반대"라고 판정한 것(`_goal/c20-i1-repro-measured.md:21-23`)이
+  오히려 오판이었고, 이 등록이 실파일 산술로 그것을 정정한다. 실패 *클래스*(편집 범위 밖 개행의
+  전-파일 통일)는 세 기록이 모두 동일하다.
+  ※ **상한**: 다수결 가설을 반증하는 케이스는 아직 없으나 C20-A(동수)가 판별 불가이므로
+  "소수가 이기는 구성"은 미탐색이다. 실무 처방은 방향과 무관하다 — **혼합이면 Edit 을 쓰지 않는다.**
 - **모집단 (2026-08-16 실측)**: 추적 `*.md` 중 혼합 파일 **2건** —
   `docs/superpowers/specs/2026-07-25-model-policy-design.md`(CRLF 1823/2597) ·
   `docs/ai-context/c21-orca-mode-design.md`(CRLF 728/754). 둘 다 사이클이 반복 편집하는 파일이다.
 - **5 Whys (시스템 원인까지)**:
-  1. 왜 4줄 편집이 723줄을 지웠나? → Edit 이 파일 전체 개행을 LF 로 통일했다.
+  1. 왜 4줄 편집이 723줄을 지웠나? → Edit 이 파일 전체 개행을 **다수 쪽(CRLF)으로 통일**해,
+     편집 시점 **LF-only 줄 723개 전량**이 반대 개행으로 재작성됐다(723 = 그 시점 LF 줄 수 — 산술 일치).
   2. 왜 그 도구를 골랐나? → 파일이 혼합-개행임을 **모르는 상태**로 편집을 시작했다.
   3. 왜 몰랐나? → 확인을 시도했고 `grep -c $'\r'` 를 썼는데 **이 파일에서 0 을 반환**했다
      (실측: 정답 1823). 확인을 *했는데* 오답을 받아 "순수 LF" 로 판단했다.
@@ -155,13 +172,13 @@
   2. **혼합 파일에서 Edit 금지** — 편집 전 CR 계수가 `0 < CR < 총줄수` 면 `perl -0777 -i -pe` 를 쓴다.
      순수 CRLF·순수 LF 는 Edit 허용(대조군 C 가 보존을 실증). 측정 = 편집 후 CR 계수 불변 +
      `git diff --numstat` 의 deletions 가 의도한 교체분과 일치. **기한 = 즉시 적용**(C21 이 이미 이행 —
-     spec §20 개정 2회 모두 CR 1823 불변 실측).
+     C21 의 spec 파일 커밋 **4건**(`89624bf`·`ff6e967`·`9eb409e`·`9b84de6`) 전부 CR **1823** 불변 실측).
 - **재현 픽스처**:
   ```bash
   D=$(mktemp -d)
-  printf 'alpha\r\nbravo\r\ncharlie\r\ndelta\r\necho\nfoxtrot\n' > "$D/orig.txt"
+  printf 'alpha\r\nbravo\r\ncharlie\r\ndelta\r\necho\nfoxtrot\n' > "$D/orig.txt"   # CRLF 4 / LF 2
   cp "$D/orig.txt" "$D/edit.txt"; cp "$D/orig.txt" "$D/perl.txt"
-  perl -i    -pe 's/\r\n/\n/g; s/^charlie$/charlie-EDITED/' "$D/edit.txt"   # Edit 도구 상당(혼합→전량 LF)
+  perl -i    -pe 's/\r\n/\n/g; s/^charlie$/charlie-EDITED/' "$D/edit.txt"   # 개행-통일 동반 편집(전량 LF)
   perl -0777 -i -pe 's/charlie/charlie-EDITED/'             "$D/perl.txt"   # 바이트 편집(개행 보존)
   crlf() { perl -ne '$n++ if /\r/; END{print $n+0}' "$1"; }
   printf 'BEFORE   CRLF=%s\n' "$(crlf "$D/orig.txt")"
@@ -172,11 +189,16 @@
   → 실행 확인(2026-08-16): `BEFORE CRLF=4` · `EDIT상당 CRLF=0 changed=4` · `perl CRLF=4 changed=1`.
   **1줄 편집 의도가 4줄 diff 로 번진다.**
   **자동화 상한(정직 부기)**: Edit 은 모델 도구라 셸이 호출할 수 없다 — 위 픽스처는 Edit 자체가 아니라
-  **기전**(혼합 파일에 개행 정규화가 동반되면 무관 줄이 diff 에 잡힘)을 재현한다. Edit 의 실제 동작은
-  `_goal/c20-i1-repro-measured.md` 의 3케이스 매트릭스(세션이 Edit 을 직접 호출해 측정)가 근거다.
+  **기전**(혼합 파일에 개행 통일이 동반되면 무관 줄이 diff 에 잡힘)을 재현하며, 방향은 픽스처 구성상
+  LF 쪽이다(실파일 사고의 방향과 반대 — 기전은 같고 방향은 다수 쪽을 따른다). Edit 의 실제 동작 근거는
+  ⓐ `_goal/c20-i1-repro-measured.md` 3케이스 매트릭스(세션이 Edit 을 직접 호출해 측정 — 합성 파일) ·
+  ⓑ C21 실파일 사고의 산술(723 = 편집 시점 LF 줄 수, `git show 89624bf:<파일>` 로 재검 가능)이다.
   계수기 오답도 함께 확인할 것: `grep -c $'\r' docs/superpowers/specs/2026-07-25-model-policy-design.md`
   → **0**(오답) vs `perl -ne '$n++ if /\r/; END{print "$n\n"}'` → **1823**(정답).
 - **관계**: [[3]](#3-bash-가-만든-경로를-네이티브-인터프리터에-소스-보간하면-조용히-다른-위치를-가리킨다)과
   **동류**다 — 둘 다 "확인을 했는데 확인 도구가 MSYS 에서 조용히 틀린 값을 준다". #3 은 경로 축,
   이 항목은 개행 축이며 근본 원인도 같은 형태(실측 환경 제약이 강제 표면에 없음)다.
-  C19 layer-yield `:63`(방향 오기 · §4 1단계 사용자 승인 2026-08-10) · C20 layer-yield(②차기 이월) 지목.
+  spec **§19.7-7**(C20 이 "실측 방향으로 기재하고 원 기록을 정정 부기할 것"으로 예약한 항목 — 본 등록이 이행) ·
+  `plans/2026-08-09-c19-review-economics.md:48`(C19 최초 관측 · 방향 서술의 실제 출처 — **옳았음이 확인됨**) ·
+  `docs/ai-context/review-yield.md:63`(§4 1단계 사용자 승인 2026-08-10 · 방향 서술은 이 줄에 없음) ·
+  `_goal/c20-i1-repro-measured.md:21-23`(C20 의 "C19 방향이 반대" 판정 — 본 등록이 실파일 산술로 정정).
