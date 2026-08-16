@@ -825,3 +825,52 @@ ANTHROPIC_CUSTOM_MODEL_OPTION=gpt-5.6-sol
 | `modes/orca-rpi-implement.json` + `setup/lib/modepack-oracle.sh` | 실재하나 **§4-4 폐기 대상** |
 
 **결론: Orca 오케스트레이션은 "설계 완료 · 배선 미착륙"이다.** 런타임(11.1)과 문법(11.3)이 확인됐으므로 남은 것은 캐리어 구현 + repo 등록 1회다.
+
+### 11.7 훅 상속의 정확한 경계 — "그대로 따라간다"는 과장이다 (§0.1 반증 1 정밀화)
+
+§0.1 은 규범(L1)·훅(L2)이 프로세스 경계를 넘는다고 적었고 그 자체는 옳다. **그러나 "하네스가 그대로 적용된다"는 서술은 과장**이다 — 실측 판정은 **PARTIAL** 이며 경계가 셋 있다.
+
+**⊕ 실제로 강제되는 것** (부모와 무관한 cwd·비-git·로컬 `.claude` 부재에서 실측):
+- SessionStart·PostToolUse·SessionEnd 훅이 자식 `claude` 에서 **새 runlog 엔트리를 남긴다**
+- PreToolUse RPI 게이트는 **발화만이 아니라 차단까지 한다** — active plan 없는 곳에서 코드파일 셸-쓰기 시도가 `enforce-rpi-bash.sh` exit 2 로 막혔고 파일은 생성되지 않았다
+- 워크트리 per-worker 에서도 plan 경로 해석이 깨지지 않는다(`resolve_project_root` 가 `git rev-parse --show-toplevel` 로 워커 자신의 워크트리 루트에 앵커)
+
+**⊖ 구조적으로 미발화하는 것**:
+- `surface-model-policy.sh` 의 matcher 는 **`Agent|Workflow` 한정**(실측). Orca 가 자식 claude 에게 단발 `-p` 태스크만 던지고 그 자식이 서브에이전트를 스폰하지 않으면 **모델 정책은 한 번도 발화하지 않는다**. 프로브 2회(Bash 만 사용) 모두 이 훅 엔트리 0건.
+  → 즉 **"Orca 워커에도 모델 정책이 적용된다"는 조건부**다: 워커가 Agent/Workflow 를 쓸 때만.
+
+**⊘ 관측 불가**:
+- **Orca 경유 세션을 runlog 에서 판별할 수단이 없다.** 하네스 훅 전수에 Orca 식별자(`ORCA_*`) 참조 **0건**, runlog 스키마에 실행-주체 필드 없음. Orca shim 은 자기 로컬 서버로 POST 할 뿐 하네스 runlog 에 태깅하지 않는다 — **두 관측 계통이 분리**돼 있다.
+- 대체 판별자인 `session_id` 도 **채움률 8.6%**(9,617행 중 827) — `export RL_SID` 를 하는 훅이 `enforce-rpi-cycle`·`enforce-rpi-bash` 둘뿐이라 나머지는 빈 문자열이다.
+  → §9 시나리오의 "Orca 로 돌린 사이클의 게이트 발화를 사후 확인" 은 **현 계측으로 불가**. 캐리어 착륙 시 SID 배선 통일이 선행돼야 한다.
+
+**⚠ per-worker 워크트리의 함의(INFERRED)**: plan 은 git-tracked 라 워크트리 체크아웃에 따라오지만, **메인에서 갓 작성하고 커밋 안 한 plan 은 워커 워크트리에 부재**해 그 워커가 `no-active-plan` 으로 차단된다. **plan 커밋이 워커 스폰의 선행조건**이다.
+
+### 11.8 CCS 티어 접힘 — 우려는 실측으로 반증됨
+
+교차검증이 「CCS 별칭이 sonnet/haiku 를 전부 opus 로 접으므로 오라클의 티어 판정이 실 라우팅과 무관해진다」고 제기했다. 근거는 `~/.ccs/claude.settings.json` 선언이다:
+
+```
+"ANTHROPIC_DEFAULT_OPUS_MODEL":  "claude-opus-5[1m]"
+"ANTHROPIC_DEFAULT_SONNET_MODEL":"claude-opus-5[1m]"    ← 접힘
+"ANTHROPIC_DEFAULT_HAIKU_MODEL": "claude-opus-5[1m]"    ← 접힘
+```
+
+**그러나 실효값은 라이브 프로세스 env 이고, 거기서는 티어가 보존된다**:
+
+```
+$ env | grep ANTHROPIC_DEFAULT
+ANTHROPIC_DEFAULT_OPUS_MODEL=claude-opus-5[1m]
+ANTHROPIC_DEFAULT_SONNET_MODEL=claude-sonnet-5[1m]      ← 접히지 않음
+ANTHROPIC_DEFAULT_HAIKU_MODEL=claude-haiku-4-5-20251001 ← 접히지 않음
+ANTHROPIC_DEFAULT_FABLE_MODEL=claude-fable-5[1m]
+```
+
+E2E 실측(자식 프로세스):
+```
+$ claude --model haiku -p "Output ONLY your exact model id string" --output-format json
+modelUsage: claude-haiku-4-5-20251001
+result:     claude-haiku-4-5-20251001
+```
+
+→ **접힘 없음. 하네스 모델 정책의 티어 판정은 실 라우팅과 정합한다.** 단 이것은 *현 세션 env 가 실효*라는 조건 위에 서 있으므로, **CCS 파일 선언이 실효가 되는 경로(예: env 없이 새로 뜬 셸)에서는 접힘이 성립할 수 있다** — 미측정. 워커가 env 를 상속하지 않는 경로가 생기면 재측정 대상.
