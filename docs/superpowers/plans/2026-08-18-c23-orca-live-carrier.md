@@ -336,13 +336,13 @@ git commit -m "feat(orca): C23 T1 — 라이브 측정으로 [P2] 해제 + probe
 ## Task 2: 브랜치 가드 — 지시문에서 코드로
 
 **Files:**
-- Modify: `bin/orca-rpi.sh` — `assert_worktree_arg` 뒤에 함수 2개 추가 · `cmd_spawn`/`cmd_handoff` 에 호출 삽입
+- Modify: `bin/orca-rpi.sh` — `assert_worktree_arg` 뒤에 함수 3개 추가(`worktree_path_of` · `git_at` · `assert_branch_not_merge_target`) · `cmd_spawn`/`cmd_handoff` 에 호출 삽입
 
 **Interfaces:**
 - Consumes: `RUNDIR`(`:14`) · `WT_SEL` · `die()`(`:24`)
 - Produces: `worktree_path_of <값>` → path(stdout) · `assert_branch_not_merge_target <값>` → rc=0 또는 die
 
-- [ ] **Step 1: RED — 가드 없는 현재 캐리어가 master 에서 non-readonly spawn 을 통과시킴을 실측**
+- [x] **Step 1: RED — 가드 없는 현재 캐리어가 master 에서 non-readonly spawn 을 통과시킴을 실측**
 
 ★**stub 응답은 `{"result":{"dispatchId":"d_stub"}}` 다**(Task 2 의 3사이트 전부). 초안은
 `{"result":{"dispatch":{"id":"d_stub"}}}` 였는데, **Task 1 의 실측이 `cmd_spawn` 의 jq 를
@@ -370,7 +370,7 @@ echo "부작용 줄수=$(wc -l < "$STUB_LOG")"
 Expected (RED): `rc=0` + `d_stub` 출력 + **부작용 줄수=1** — master 브랜치인데 non-readonly spawn 이
 `worker-start` 를 실제로 발행한다. 이 출력을 실행 보고에 그대로 인용한다.
 
-- [ ] **Step 2: GREEN 목표 — 가드 함수 추가**
+- [x] **Step 2: GREEN 목표 — 가드 함수 추가**
 
 `bin/orca-rpi.sh` 의 `assert_worktree_arg` 정의(`:64-77`) **바로 뒤**에 삽입한다.
 
@@ -425,7 +425,7 @@ assert_branch_not_merge_target() {   # $1 = --worktree 값
 `[P2]` 미측정이기 때문이다 — Task 1 의 `jq paths` 전수 출력에 워크트리 필드가 나오면 차기 사이클에
 상향한다(슬롯 1 A1 · spec §11.10 ① · 「선언된 잔여 7」).
 
-- [ ] **Step 3: 호출 삽입 — `cmd_spawn`(non-readonly 만) · `cmd_handoff`(정의상 non-readonly)**
+- [x] **Step 3: 호출 삽입 — `cmd_spawn`(non-readonly 만) · `cmd_handoff`(정의상 non-readonly)**
 
 `cmd_spawn` 에서 필수 인자 검사(`:201`) 바로 뒤, `require_jq; ensure_rundir`(`:202`) **앞**에 넣는다
 (가드는 원장 쓰기보다 앞이어야 한다):
@@ -447,7 +447,7 @@ assert_branch_not_merge_target() {   # $1 = --worktree 값
   require_jq; ensure_rundir
 ```
 
-- [ ] **Step 4: GREEN 확인 — 거부 + 부작용 0줄 단언**
+- [x] **Step 4: GREEN 확인 — 거부 + 부작용 0줄 단언**
 
 ```bash
 cd "$HOME/.claude"
@@ -467,7 +467,7 @@ echo "부작용 줄수=$(wc -l < "$STUB_LOG")"
 Expected (GREEN): 두 호출 모두 `rc=1` + `거부: non-readonly 워커를 머지 대상 브랜치('master' …` ·
 **부작용 줄수=0**. 부작용이 1줄이라도 있으면 가드가 외부 호출 뒤에 놓인 것이므로 FAIL 이다.
 
-- [ ] **Step 5: 무회귀 — read-only 는 브랜치 무관 허용 + 비-머지 브랜치는 통과**
+- [x] **Step 5: 무회귀 — read-only 는 브랜치 무관 허용 + 비-머지 브랜치는 통과**
 
 ```bash
 cd "$HOME/.claude"
@@ -488,7 +488,7 @@ echo "feature 부작용 줄수=$(wc -l < "$STUB_LOG")"
 
 Expected: `readonly rc=0`(브랜치 무관 허용) · `feature rc=0` + `feature 부작용 줄수=1`(정상 발행).
 
-- [ ] **Step 6: fail-closed 확인 — git repo 가 아닌 path**
+- [x] **Step 6: fail-closed 확인 — git repo 가 아닌 path**
 
 ```bash
 cd "$HOME/.claude"
@@ -502,7 +502,7 @@ echo "부작용 줄수=$(wc -l < "$STUB_LOG")"
 
 Expected: `rc=1` + `거부: 브랜치 판정 불가` · **부작용 줄수=0**.
 
-- [ ] **Step 7: `GIT_DIR` 오염이 가드를 뚫지 못함을 단언 (슬롯 1 B1 회귀 봉인)**
+- [x] **Step 7: `GIT_DIR` 오염이 가드를 뚫지 못함을 단언 (슬롯 1 B1 회귀 봉인)**
 
 ```bash
 cd "$HOME/.claude"
@@ -525,7 +525,7 @@ Expected: `rc=1` + `거부: … 머지 대상 브랜치('master' @ …/A)` · **
 가드가 `feature-x`(=repo B)를 읽어 rc=0 으로 통과하면 `git_at` 의 `env -u` 가 빠진 것이다 — 실측으로
 그 형태는 **무음 통과**한다. 이 단언이 그 회귀의 유일한 탐지자다.
 
-- [ ] **Step 8: 커밋**
+- [x] **Step 8: 커밋**
 
 ```bash
 cd "$HOME/.claude"
@@ -1563,13 +1563,13 @@ git commit -m "test(seal): C23 T7 — seal #53 뮤테이터 2건(대장 밖 주�
 ## Task 8: T17 — `setup/install.sh` 배포 계약
 
 **Files:**
-- Modify: `setup/install.sh:79` 부근(REQUIRED 배열) · `:98-100`(chmod 블록)
+- Modify: `setup/install.sh:79` 부근(REQUIRED 배열) · `:99-102`(chmod 블록 — REQUIRED 1줄 삽입 후 오프셋)
 
 **Interfaces:**
 - Consumes: 없음
 - Produces: `$TARGET/bin/orca-rpi.sh` 배포 보장 + 실행 비트
 
-- [ ] **Step 1: RED — 현재 계약의 구멍 실측**
+- [x] **Step 1: RED — 현재 계약의 구멍 실측**
 
 ```bash
 cd "$HOME/.claude"
@@ -1581,7 +1581,7 @@ Expected (RED): REQUIRED 에 `bin/claude-ocx` 는 있고 `bin/orca-rpi.sh` 는 *
 chmod 대상이 `setup/`·`hooks/`·`hooks/tests/` 뿐이라 **`bin/` 이 통째로 빠져 있다**(`bin/claude-ocx` 도 같은 구멍) ·
 git index mode 는 `100755`.
 
-- [ ] **Step 2: REQUIRED 등재**
+- [x] **Step 2: REQUIRED 등재**
 
 `"$TARGET/bin/claude-ocx"` 줄 바로 뒤에 추가:
 
@@ -1589,7 +1589,7 @@ git index mode 는 `100755`.
   "$TARGET/bin/orca-rpi.sh"
 ```
 
-- [ ] **Step 3: `bin/` 실행 비트 부여**
+- [x] **Step 3: `bin/` 실행 비트 부여**
 
 chmod 블록(`:98-100`)의 마지막 줄 뒤에 추가:
 
@@ -1597,7 +1597,7 @@ chmod 블록(`:98-100`)의 마지막 줄 뒤에 추가:
 chmod +x "$TARGET/bin/"* 2>/dev/null || true
 ```
 
-- [ ] **Step 4: 검증 — 전체 실행 금지, 계약만 확인 (Global Constraint 4)**
+- [x] **Step 4: 검증 — 전체 실행 금지, 계약만 확인 (Global Constraint 4)**
 
 `setup/doctor.sh:235-260` 이 `gh api` 로 skill 을 자동 설치하므로 `install.sh` 를 통째로 돌리지 않는다.
 대신 **REQUIRED 배열만 떼어 내 계약 검사**로 확인한다(네트워크 0회 · 설치 0회 · chmod 0회 —
@@ -1624,7 +1624,7 @@ Expected: `bash -n OK` · `REQUIRED=35 MISSING=0`(34 → 35) · `chmod` grep 1�
 git index mode 둘 다 `100755`.
 `REQUIRED=34` 가 나오면 Step 2 편집이 배열 밖(다른 배열·주석)에 떨어진 것이다.
 
-- [ ] **Step 5: seal #29 무회귀 + 커밋**
+- [x] **Step 5: seal #29 무회귀 + 커밋**
 
 ```bash
 cd "$HOME/.claude"
