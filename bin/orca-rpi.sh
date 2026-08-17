@@ -13,6 +13,8 @@ set -u
 ORCA="${ORCA_CLI_COMMAND:-C:/Users/12132/AppData/Local/Programs/orca/resources/bin/orca.exe}"
 RUNDIR="${ORCA_RPI_RUNDIR:-$HOME/.claude/.orca-rpi}"
 SELF="$(basename "$0")"
+# 안내 줄에 붙여 넣을 용도 — basename 은 PATH 에 없어 그대로 복사하면 command-not-found 다(§11.10 ④).
+SELF_PATH="$0"
 
 # hang 하는 CLI 는 rc 를 주지 않는다 — "사이클은 절대 멈추지 않는다"는 fail-open 약속이 깨진다.
 # timeout(1) 이 있으면 상한을 씌우고, 없으면 그대로 호출한다(가용성 의존 금지).
@@ -37,6 +39,17 @@ ensure_rundir() {
   touch "$RUNDIR/active-nonreadonly.tasks" || die "원장 파일 생성 실패: $RUNDIR/active-nonreadonly.tasks"
 }
 require_jq() { command -v jq >/dev/null 2>&1 || die "jq 미설치 — 이 캐리어는 jq 에 의존한다"; }
+
+# ── gpt 비용 원장 (§11.10 ⑥ — §4.3·§9 시나리오 2 supersede) ─────────────────
+# 캐리어는 사이클 번호를 모르므로 _goal/<cycle>-… 을 스스로 구성할 수 없다. 기본은 런타임 경로,
+# 사이클이 원하면 ORCA_RPI_LEDGER 로 _goal/<cycle>-ocx-ledger.tsv 를 지정한다.
+# 상한: 강제자는 없다 — 호출자가 env 를 줄 때만 _goal/ 에 착지한다.
+LEDGER="${ORCA_RPI_LEDGER:-$RUNDIR/gpt-ledger.tsv}"
+gpt_ledger_append() {   # $1=role $2=model $3=rc $4=cost(모르면 n/a)
+  mkdir -p "$(dirname "$LEDGER")" 2>/dev/null || return 0
+  [ -s "$LEDGER" ] || printf 'ts\trole\tmodel\trc\ttotal_cost_usd\n' >> "$LEDGER" 2>/dev/null
+  printf '%s\t%s\t%s\t%s\t%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$1" "$2" "$3" "$4" >> "$LEDGER" 2>/dev/null || true
+}
 
 # ── 동시성 원장 뮤텍스 ────────────────────────────────────────────────────────
 # 읽기-검사-추가 사이에 잠금이 없으면 두 프로세스가 동시에 0을 읽고 둘 다 워커를 띄운다.
@@ -186,23 +199,40 @@ cmd_preflight() {
 }
 
 cmd_run() {
-  local objective=""
+  local objective="" retry_request=""
   while [ $# -gt 0 ]; do
     reject_forbidden_flag "$1"
     case "$1" in
       --objective) objective="${2:-}"; [ -n "$objective" ] || die "run: --objective 필수"; shift 2 ;;
+      # 정확 복구 — 같은 요청 id 로 멱등 재발행해 중복 레코드 없이 원 결과를 회수한다(§11.10 ④).
+      --retry-request) retry_request="${2:-}"; [ -n "$retry_request" ] || die "run: --retry-request 값(요청 id) 필요"; shift 2 ;;
       *) die "run: 인식하지 않는 인자 '$1'" ;;
     esac
   done
   [ -n "$objective" ] || die "run: --objective 필수"
-  is_dryrun && dryrun_emit orchestration run-create --objective "$objective" --json
+  # 선택 인자 배열은 DRYRUN 정지점 **앞**에서 조립한다 — 뒤에서 조립하면 emit 이 부분집합 argv 가 된다(§11.10 ②).
+  local rr=()
+  [ -n "$retry_request" ] && rr=(--retry-request "$retry_request")
+  is_dryrun && dryrun_emit orchestration run-create --objective "$objective" "${rr[@]}" --json
   require_jq; ensure_rundir
   # 응답은 die 이전에 항상 저장한다 — 실패 시 증거가 사라지면 진단이 불가능하다.
   local resp rc
-  resp=$("$ORCA" orchestration run-create --objective "$objective" --json)
+  resp=$("$ORCA" orchestration run-create --objective "$objective" "${rr[@]}" --json)
   rc=$?
   printf '%s' "$resp" > "$RUNDIR/last-run-create.json"
-  [ "$rc" -eq 0 ] || die "run: run-create 실패(rc=$rc) — 응답: $RUNDIR/last-run-create.json"
+  if [ "$rc" -ne 0 ]; then
+    # 봉투 최상위 .id 는 요청 상관ID(c22-probe P0-2) — 그것이 곧 --retry-request 인자다.
+    local req_id; req_id=$(printf '%s' "$resp" | jq -r '.id // empty' 2>/dev/null)
+    if [ -n "$req_id" ]; then
+      # ★붙여 넣으면 바로 도는 줄이어야 한다 — placeholder 를 쓰면 안내가 아니라 숙제다(§11.10 ④).
+      #   $SELF(=basename)는 PATH 에 없으므로 실제 경로를 쓴다(T17 은 실행 비트만 주지 PATH 는 안 건드린다).
+      echo "run: 정확 복구(중복 레코드 없이 원 결과 회수) — 아래를 그대로 실행하라:" >&2
+      printf '  bash %q run --objective %q --retry-request %q\n' "$SELF_PATH" "$objective" "$req_id" >&2
+    else
+      echo "run: 요청 id 를 응답에서 뽑지 못했다 — 정확 복구 명령을 제시할 수 없다. 그냥 재발행하면 중복 레코드가 생긴다(삭제 명령 부재). 응답 확인: $RUNDIR/last-run-create.json" >&2
+    fi
+    die "run: run-create 실패(rc=$rc) — 응답: $RUNDIR/last-run-create.json"
+  fi
   # ★함정(c22-probe P0-2) — 봉투 최상위 .id 는 요청 상관ID(run id 아님). result.run.id 만 채택.
   local run_id; run_id=$(printf '%s' "$resp" | jq -r '.result.run.id // empty')
   [ -n "$run_id" ] || die "run: result.run.id 추출 실패 — 응답: $RUNDIR/last-run-create.json"
@@ -210,7 +240,7 @@ cmd_run() {
 }
 
 cmd_task() {
-  local title="" spec="" deps="" run=""
+  local title="" spec="" deps="" run="" retry_request=""
   while [ $# -gt 0 ]; do
     reject_forbidden_flag "$1"
     case "$1" in
@@ -219,6 +249,8 @@ cmd_task() {
       --deps) deps="${2:-}"; [ -n "$deps" ] || die "task: --deps 값 필요(json 배열)"; shift 2 ;;
       # run 바인딩이 프로세스 경계를 넘는지 미보장 — 명시 전달 경로를 둔다(실측 help 에 존재).
       --run) run="${2:-}"; [ -n "$run" ] || die "task: --run 값 필요"; shift 2 ;;
+      # 정확 복구 — task-create 수용은 C23 Task 1 --help 실측(§11.10 ④ 「확인된 명령만」).
+      --retry-request) retry_request="${2:-}"; [ -n "$retry_request" ] || die "task: --retry-request 값(요청 id) 필요"; shift 2 ;;
       *) die "task: 인식하지 않는 인자 '$1'" ;;
     esac
   done
@@ -226,6 +258,7 @@ cmd_task() {
   local extra=()
   [ -n "$deps" ] && extra=(--deps "$deps")
   [ -n "$run" ] && extra+=(--run "$run")
+  [ -n "$retry_request" ] && extra+=(--retry-request "$retry_request")
   is_dryrun && dryrun_emit orchestration task-create --task-title "$title" --spec "$spec" "${extra[@]}" --json
   require_jq; ensure_rundir
   local resp rc
@@ -239,7 +272,7 @@ cmd_task() {
 }
 
 cmd_spawn() {
-  local readonly_flag=0 task="" worktree="current" run="" retry_of=""
+  local readonly_flag=0 task="" worktree="current" run="" retry_of="" retry_request=""
   while [ $# -gt 0 ]; do
     reject_forbidden_flag "$1"
     case "$1" in
@@ -249,6 +282,8 @@ cmd_spawn() {
       --worktree) [ -n "${2:-}" ] || die "spawn: --worktree 값 필요"; assert_worktree_arg "$2"; worktree="$2"; shift 2 ;;
       # 승인된 유일 재시도 경로 — 실패 안내가 --retry-of 를 지시하므로 파서가 반드시 받아야 한다.
       --retry-of) retry_of="${2:-}"; [ -n "$retry_of" ] || die "spawn: --retry-of 값(dispatch id) 필요"; shift 2 ;;
+      # ★--retry-of 와 다른 축이다 — 저쪽은 *새* 시도(레코드 증가), 이쪽은 같은 mutation 의 멱등 재발행(§11.10 ④).
+      --retry-request) retry_request="${2:-}"; [ -n "$retry_request" ] || die "spawn: --retry-request 값(요청 id) 필요"; shift 2 ;;
       *) die "spawn: 인식하지 않는 인자 '$1'" ;;
     esac
   done
@@ -258,6 +293,7 @@ cmd_spawn() {
   local extra=()
   # --retry-of 는 배치(placement)를 상속하지 않는다(스키마 NOTE) — --worktree/--agent 를 매번 재지정한다.
   [ -n "$retry_of" ] && extra=(--retry-of "$retry_of")
+  [ -n "$retry_request" ] && extra+=(--retry-request "$retry_request")
   is_dryrun && dryrun_emit orchestration worker-start --run "$run" --task "$task" --worktree "$worktree" --agent claude "${extra[@]}" --json
   require_jq; ensure_rundir
 
@@ -285,6 +321,22 @@ cmd_spawn() {
       echo "spawn: 원장 슬롯 유지 — outcome_unknown 가능성(워커 생존 가능). 재시도 전 'release --task $task' 로 명시 해제 필요" >&2
     fi
     echo "spawn: 응답 JSON(stage/failedStage/setup/effects/residualResources/recovery): $RUNDIR/last-worker-start.json" >&2
+    # 정확 복구 안내 — 봉투 최상위 .id 가 요청 상관ID다(c22-probe P0-2). 위 --retry-of 안내는 유지한다:
+    # --retry-of 는 *새* 시도, --retry-request 는 같은 mutation 의 멱등 재발행이라 축이 다르다(§11.10 ④).
+    local req_id; req_id=$(printf '%s' "$resp" | jq -r '.id // empty' 2>/dev/null)
+    if [ -n "$req_id" ]; then
+      # ★붙여 넣으면 바로 도는 줄이어야 한다 — placeholder 금지. $SELF(=basename)는 PATH 에 없다.
+      #   원 호출의 선택 인자(--readonly/--retry-of)를 그대로 싣는다 — 빠뜨리면 재발행이 *다른* mutation 이 된다.
+      local line; line="  bash $(printf '%q' "$SELF_PATH") spawn"
+      [ "$readonly_flag" -eq 1 ] && line="$line --readonly"
+      line="$line --run $(printf '%q' "$run") --task $(printf '%q' "$task") --worktree $(printf '%q' "$worktree")"
+      [ -n "$retry_of" ] && line="$line --retry-of $(printf '%q' "$retry_of")"
+      line="$line --retry-request $(printf '%q' "$req_id")"
+      echo "spawn: 정확 복구(중복 dispatch 없이 원 결과 회수) — 아래를 그대로 실행하라:" >&2
+      printf '%s\n' "$line" >&2
+    else
+      echo "spawn: 요청 id 를 응답에서 뽑지 못했다 — 정확 복구 명령을 제시할 수 없다. 그냥 재발행하면 중복 dispatch 가 생긴다(삭제 명령 부재). 응답 확인: $RUNDIR/last-worker-start.json" >&2
+    fi
     exit "$rc"
   fi
   # ★실측(C23 Task 1 Step 4): worker-start 응답은 dispatch 를 중첩 객체가 아니라 **평면 camelCase**
@@ -323,6 +375,9 @@ cmd_wait() {
   fi
   local extra=()
   [ -n "$use_ack" ] && extra=(--ack "$use_ack")
+  # ★--retry-request 는 여기 배선하지 않는다(선언된 미배선 — 침묵 잔여 금지): `check` 도 수용은 하지만
+  #   (C23 Task 1 --help 실측) help Notes 가 "only for exact recovery after an unknown **mutation** result"
+  #   이고 §11.10 ④ⓐ 의 배선 대상은 「변이 서브커맨드」다. check 는 대기/조회라 회수할 mutation 이 없다.
 
   is_dryrun && dryrun_emit orchestration check --run "$run" --wait --types worker_done,escalation,question,decision_gate --timeout-ms "$timeout" "${extra[@]}" --json
   require_jq; ensure_rundir
@@ -472,7 +527,7 @@ cmd_release() {
 
 cmd_gate() {
   local action="${1:-}"; [ $# -gt 0 ] && shift
-  local task="" question="" id="" resolution=""
+  local task="" question="" id="" resolution="" retry_request=""
   while [ $# -gt 0 ]; do
     reject_forbidden_flag "$1"
     case "$1" in
@@ -480,13 +535,18 @@ cmd_gate() {
       --question) question="${2:-}"; [ -n "$question" ] || die "gate: --question 값 필요"; shift 2 ;;
       --id) id="${2:-}"; [ -n "$id" ] || die "gate: --id 값 필요"; shift 2 ;;
       --resolution) resolution="${2:-}"; [ -n "$resolution" ] || die "gate: --resolution 값 필요"; shift 2 ;;
+      # 정확 복구 — gate-create 수용은 C23 Task 1 --help 실측(§11.10 ④ 「확인된 변이 명령만」).
+      --retry-request) retry_request="${2:-}"; [ -n "$retry_request" ] || die "gate: --retry-request 값(요청 id) 필요"; shift 2 ;;
       *) die "gate: 인식하지 않는 인자 '$1'" ;;
     esac
   done
+  # DRYRUN 정지점 앞에서 조립한다 — 뒤면 emit 이 부분집합 argv 가 된다(§11.10 ②).
+  local rr=()
+  [ -n "$retry_request" ] && rr=(--retry-request "$retry_request")
   if is_dryrun; then
     case "$action" in
       create)  [ -n "$task" ] && [ -n "$question" ] || die "gate create: --task 와 --question 필수"
-               dryrun_emit orchestration gate-create --task "$task" --question "$question" --options '["PASS","FAIL"]' --json ;;
+               dryrun_emit orchestration gate-create --task "$task" --question "$question" --options '["PASS","FAIL"]' "${rr[@]}" --json ;;
       resolve) [ -n "$id" ] && [ -n "$resolution" ] || die "gate resolve: --id 와 --resolution 필수"
                dryrun_emit orchestration gate-resolve --id "$id" --resolution "$resolution" --json ;;
       list)    [ -n "$task" ] || die "gate list: --task 필수"
@@ -499,7 +559,7 @@ cmd_gate() {
     create)
       [ -n "$task" ] && [ -n "$question" ] || die "gate create: --task 와 --question 필수"
       local resp rc
-      resp=$("$ORCA" orchestration gate-create --task "$task" --question "$question" --options '["PASS","FAIL"]' --json)
+      resp=$("$ORCA" orchestration gate-create --task "$task" --question "$question" --options '["PASS","FAIL"]' "${rr[@]}" --json)
       rc=$?
       printf '%s' "$resp" > "$RUNDIR/last-gate-create.json"
       [ "$rc" -eq 0 ] || die "gate create: 실패(rc=$rc) — 응답: $RUNDIR/last-gate-create.json"
@@ -541,7 +601,16 @@ cmd_gpt() {
     executor)
       # 경로 B — 규율 아래 실행자(하네스 안, 설계 §4.3). 대상 문서는 stdin 으로 전달(호출자 책임).
       is_dryrun && dryrun_emit "OCX_MODEL=$gpt_model" "$HOME/.claude/bin/claude-ocx" -p "$prompt" --output-format json
-      OCX_MODEL="$gpt_model" "$HOME/.claude/bin/claude-ocx" -p "$prompt" --output-format json
+      # stdout·rc 를 바이트 그대로 통과시켜야 하므로 임시 파일을 거친다($( ) 는 후행 개행을 먹는다).
+      local tf ercc cost
+      tf=$(mktemp)
+      OCX_MODEL="$gpt_model" "$HOME/.claude/bin/claude-ocx" -p "$prompt" --output-format json > "$tf"
+      ercc=$?
+      cat "$tf"
+      cost=$(jq -r '.total_cost_usd // empty' < "$tf" 2>/dev/null)
+      rm -f "$tf"
+      gpt_ledger_append executor "$gpt_model" "$ercc" "${cost:-n/a}"
+      return "$ercc"
       ;;
     verifier)
       [ -n "$out" ] || die "gpt --role verifier: --out 필수(cross-family-review.md -o 소비 규율)"
@@ -550,6 +619,9 @@ cmd_gpt() {
       codex exec -m "$gpt_model" -c model_reasoning_effort=ultra -c model_verbosity=high \
         --sandbox read-only --skip-git-repo-check -o "$out" "$prompt"
       local rc=$?
+      # codex 는 비용 필드를 내지 않으므로 n/a — 모르는 값을 0 으로 적지 않는다(§11.10 ⑥).
+      # ★부기는 [ -s "$out" ] 검증 **앞**이다 — 비용 부기가 검증 실패에 흡수되면 안 된다.
+      gpt_ledger_append verifier "$gpt_model" "$rc" "n/a"
       [ -s "$out" ] || die "gpt --role verifier: 출력 파일 미생성 — API 실패 가능성(cross-family-review.md -o 소비 규율)"
       return "$rc"
       ;;
