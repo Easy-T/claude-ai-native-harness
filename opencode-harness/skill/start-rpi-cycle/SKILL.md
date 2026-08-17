@@ -70,6 +70,8 @@ C. **explore-strict** 서브에이전트를 `task` 도구로 디스패치 —
      - spec 도메인 용어가 CONTEXT.md canonical과 일치 (_Avoid_ 별칭 누출 0)
      - spec delta가 있으면 durable spec/ADR에 반영됨; 없으면 "delta 없음(no-op)" 명시
      - CONTEXT.md 갱신됨 또는 신규 용어 없음(no-op) 명시
+     - **자기 산출물의 전제·실행 가능성을 실측으로 확인했는가** — 검증 대상이 인용한 줄 번호·
+       grep 결과·파일 존재를 직접 재현하고, 재현되지 않으면 그 항목은 FAIL (C20 spec §19.5 처분)
      FAIL with: 누락 용어·미반영 결정·spec 부재 목록".
 
    리터럴 디스패치 예시 (opencode: dispatch the review-strict subagent via the task tool):
@@ -125,6 +127,10 @@ plan 상단 헤더 주입 (writing-plans 표준 헤더 위에):
      - 각 task의 검증 기준이 명확함
      - task 간 의존 순서가 논리적
      - plan에 'Best-Direction Check' 필드 존재 + (채택안==최선안 또는 DOWNGRADE-DECLARED(사유) 명시) — 필드 부재 = FAIL
+     - **자기 산출물의 전제·실행 가능성을 실측으로 확인했는가** — 검증 대상이 인용한 줄 번호·
+       grep 결과·파일 존재를 직접 재현하고, 재현되지 않으면 그 항목은 FAIL (C20 spec §19.5 처분)
+     - plan 의 `LIVE-INTENT` 사용 건수·사유가 타당한가 (자기-면제이므로 게이트가 제2자 검토를
+       대신한다 — 총계 parity 는 seal #53 이 코드로 표면화하되 타당성 판단은 여기서 한다)
 
      FAIL with:
      - 미커버 spec 요구사항 목록
@@ -173,11 +179,15 @@ plan 상단 헤더 주입 (writing-plans 표준 헤더 위에):
         stage2 success 기준에 "stage1 보고에 RED 증거(실패 출력)와 GREEN 증거(통과 출력)가 모두 없으면 FAIL" 명시.
       ※ 같은 파일을 동시 수정하는 task ≥2면 각 스테이지를 worktree로 격리. 이 경우 stage2는 **짝지은 stage1과 같은 worktree에서** 리뷰해야 함(base/다른 컨텍스트에서 읽으면 미변경 파일을 봐 false PASS/FAIL).
       ※ 우회 불가: plan-존재·spec-before-plan 게이트(거버넌스 플러그인의 RPI 게이트(plugin/gates/*.js) = `tool.execute.before` `Write|Edit|NotebookEdit` 매처)는 **서브에이전트의 execute-strict 쓰기에도 동일 발화**하고, 메인 세션이 R→P를 통과해 plan·spec이 디스크에 존재하는 상태로만 디스패치되므로 (d)가 게이트를 건너뛸 수 없음.
+- (e) **Orca 감독 사이클 — 이 번들에서는 미착륙.** opencode 번들에는 `bin/` 자체가 없고 Orca 워커
+      진입점이 Claude Code 이기 때문이다. 없는 경로를 있다고 쓰지 않는다(capstone 3-계층 정직공개).
+      Claude Code 하네스에서는 가용하다 — `~/.claude/skills/start-rpi-cycle/SKILL.md` 옵션 (e).
 
 권장:
 - 큰 사이클 (≥5 task) → (a) — 또는 순차 파이프라인이 필요하면 (d)
 - 중간 사이클 (2~5 task) → (b)
 - 작은 사이클 (≤2 task) → (c)
+- (e)는 **이 번들에서 선택 불가**다(미착륙 — 위 (e) 항목 참조). 크기와 무관하게 위 세 줄이 답이다.
 
 worktree 사용:
 - 같은 파일을 동시 수정 / 격리된 검증 필요 시 → 호출 시 worktree 격리 명시
@@ -227,6 +237,8 @@ closeout-pr-cycle 결과를 받아:
        일치하는가 — 미신고 열화(선언 없이 더 쉬운 대안으로 대체된 지점) 발견 시 FAIL.
        plan에 DOWNGRADE-DECLARED(사유)가 있으면 그 범위는 열화가 아니라 선언된 결정.
      - finishing-a-development-branch 산출물(브랜치/PR)이 존재 시 일관성 (선택)
+     - **자기 산출물의 전제·실행 가능성을 실측으로 확인했는가** — 검증 대상이 인용한 줄 번호·
+       grep 결과·파일 존재를 직접 재현하고, 재현되지 않으면 그 항목은 FAIL (C20 spec §19.5 처분)
    ".
 
    ※ 고-스테이크 사이클(하네스 거버넌스·루브릭 재채점·spec 변경)은 교차패밀리(GPT) 적대 리뷰 옵션 — 탐지·프로토콜·트리아지는 `docs/ai-context/cross-family-review.md`(GAP-006+C16 §15.5 2-슬롯 규약 — 슬롯 1: Gate P 직후 spec delta+plan / 슬롯 2: Closeout 코드 diff. 가용 시 슬롯당 1회·불가 시 SKIP+사유).

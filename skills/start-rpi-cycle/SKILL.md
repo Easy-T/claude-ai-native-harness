@@ -79,6 +79,8 @@ C. Agent(subagent_type="explore-strict",
           - spec 도메인 용어가 CONTEXT.md canonical과 일치 (_Avoid_ 별칭 누출 0)
           - spec delta가 있으면 durable spec/ADR에 반영됨; 없으면 "delta 없음(no-op)" 명시
           - CONTEXT.md 갱신됨 또는 신규 용어 없음(no-op) 명시
+          - **자기 산출물의 전제·실행 가능성을 실측으로 확인했는가** — 검증 대상이 인용한 줄 번호·
+            grep 결과·파일 존재를 직접 재현하고, 재현되지 않으면 그 항목은 FAIL (C20 spec §19.5 처분)
           FAIL with: 누락 용어·미반영 결정·spec 부재 목록")
    ※ 게이트 review-strict 는 판단-게이트 — frontmatter opus 기본(무지정=opus, C17 Option 1)이라 model 인자 없이도 기준선(`max(작업자,opus)`) 충족. 상향 명시 허용. **단 FABLE-TAKEOVER 산출물은 작업자=fable 이라 floor=`max(작업자,opus)`=fable** — 무지정 상속만으로는 미충족이므로 그 산출물의 게이트는 검증자를 fable 로 동반 상향한다(하한 불변식의 L1 이행이라 별도 밸브 선언 불요 — spec §17.1).
    FAIL 시: spec 역류/CONTEXT.md 보강 후 재실행 (또는 사용자가 \"Gate R override: <이유>\" 명시)
@@ -123,6 +125,10 @@ plan 상단 헤더 주입 (writing-plans 표준 헤더 위에):
           - 각 task의 검증 기준이 명확함
           - task 간 의존 순서가 논리적
           - plan에 'Best-Direction Check' 필드 존재 + (채택안==최선안 또는 DOWNGRADE-DECLARED(사유) 명시) — 필드 부재 = FAIL
+          - **자기 산출물의 전제·실행 가능성을 실측으로 확인했는가** — 검증 대상이 인용한 줄 번호·
+            grep 결과·파일 존재를 직접 재현하고, 재현되지 않으면 그 항목은 FAIL (C20 spec §19.5 처분)
+          - plan 의 `LIVE-INTENT` 사용 건수·사유가 타당한가 (자기-면제이므로 게이트가 제2자 검토를
+            대신한다 — 총계 parity 는 seal #53 이 코드로 표면화하되 타당성 판단은 여기서 한다)
 
           FAIL with:
           - 미커버 spec 요구사항 목록
@@ -164,11 +170,22 @@ plan 상단 헤더 주입 (writing-plans 표준 헤더 위에):
         stage2 success_criteria에 "stage1 보고에 RED 증거(실패 출력)와 GREEN 증거(통과 출력)가 모두 없으면 FAIL" 명시.
       ※ 같은 파일을 동시 수정하는 task ≥2면 **worktree가 아니라 순차 실행** — Workflow의 `isolation:'worktree'`는 에이전트마다 독립 사본을 주므로 stage2가 stage1의 변경을 못 보고 메인도 편집을 못 받는다(같은-worktree 공유 API 부재; canonical 스크립트가 파일 겹침을 감지해 자동 순차 처리). worktree는 (a)/(c)의 Agent 도구 경로에서만 유효.
       ※ 우회 불가: plan-존재·spec-before-plan 게이트(enforce-rpi-cycle = PreToolUse `Write|Edit|NotebookEdit` 매처)는 **Workflow 서브에이전트의 execute-strict 쓰기에도 동일 발화**하고, 메인 세션이 R→P를 통과해 plan·spec이 디스크에 존재하는 상태로만 디스패치되므로 (d)가 게이트를 건너뛸 수 없음.
+- (e) **Orca 감독 사이클** — Phase 를 Orca ADE Task DAG 로 돌린다(포인터: `Skill(orca-rpi-cycle)`).
+      진입 전 `bash ~/.claude/bin/orca-rpi.sh preflight` 가 rc=0 이어야 하며, **rc≠0 이면(Orca
+      미설치·미가동 무관) 자동으로 (a)/(d) 로 폴백**한다 — Orca 는 선택적 가속기이지 사이클의 전제가
+      아니다. (rc=3 = 설치돼 있으나 미가동/전제 미충족 · rc=1 = 실행자 부재·경로 오지정. rc=3 만
+      폴백시키면 **설치가 금지된 환경의 미설치 머신이 폴백 밖에 놓여** 사이클이 멈춘다.)
+      ★**사이클 브랜치에서만** — 캐리어가 `master`/`main` 에서 non-readonly 스폰을 코드로 거부한다
+      (워커가 같은 체크아웃에 커밋해 머지 승인이 사후 무력화되는 것을 막는다).
+      상세는 `docs/ai-context/c21-orca-mode-design.md` §7·§11.10.
 
 권장:
 - 큰 사이클 (≥5 task) → (a) — 또는 ultracode ON이면 (d)
 - 중간 사이클 (2~5 task) → (b)
 - 작은 사이클 (≤2 task) → (c)
+- (e)는 **크기 축이 아니라 직교**하다 — task 수와 무관하게, 사이클 브랜치에서 `preflight` rc=0 이고
+  워커에 넘길 작업이 **터미널 격리를 요구할 때**만 고른다. 그 외에는 위 세 줄이 그대로 답이다.
+  rc≠0 이면 (e)는 선택지에서 사라지고 자동으로 (a)/(d)로 폴백한다.
 
 ※ fable 세션의 execute-strict 위임은 (a)/(c) 어느 경로든 frontmatter opus 기본(C17 Option 1 — `model:'opus'` 명시는 선택 보강). 검증자(review-strict) Agent 경로(판단-게이트) 기준선 = `max(작업자, opus)`(spec §16 — 세션 축 제거·U4). 실행자를 opus 위로 상향(밸브 fable 작업자)했으면 검증자도 동반 상향(L1). **fable 서브에이전트 위임 기본 금지** — 밸브 V1/V2/V3 + `FABLE-ESCALATION(사유)` 선언만 예외(spec §16.5). Workflow 준수-확인 경로는 작업자 티어(§15.1·§16 폴백 opus).
 
@@ -220,6 +237,8 @@ closeout-pr-cycle 결과를 받아:
             일치하는가 — 미신고 열화(선언 없이 더 쉬운 대안으로 대체된 지점) 발견 시 FAIL.
             plan에 DOWNGRADE-DECLARED(사유)가 있으면 그 범위는 열화가 아니라 선언된 결정.
           - finishing-a-development-branch 산출물(브랜치/PR)이 존재 시 일관성 (선택)
+          - **자기 산출물의 전제·실행 가능성을 실측으로 확인했는가** — 검증 대상이 인용한 줄 번호·
+            grep 결과·파일 존재를 직접 재현하고, 재현되지 않으면 그 항목은 FAIL (C20 spec §19.5 처분)
         ")
 
    ※ 위 context_paths 중 **실재하는 것만** 전달(하네스에서는 architecture·domain-glossary 부재가 정상 — spec §13.4).
