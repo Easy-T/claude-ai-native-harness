@@ -172,3 +172,15 @@ _Avoid_: "훅 미발화"(훅 자체는 발화한다 — 공백은 매처의 *관
 ### 세션 판별 축 / 세션 티어 축 (session-identification axis / session-tier axis)
 세션 모델을 다루는 두 단계를 구분하는 canonical 축. **판별 축** = transcript 에서 모델 문자열을 *뽑을 수 있는가*(`session_model_of()` 의 정규식 인식). **티어 축** = 뽑은 문자열을 *어떻게 계수하는가*(`tier_of()` 출력). 두 축은 코드상 지점이 달라 독립적으로 실패한다 — C17 A1 이 티어 축(`SESSION_TIER != 0` 전체-skip)을 세션-무관으로 개정했으나 판별 축(`claude-` 접두)은 남겼고, 그래서 비-Claude 세션은 티어 판정에 도달하기 전에 조기 종료했다(C21 §20.1). 판별 실패(모델을 모름)와 미지 티어(모델은 알되 등급을 모름)는 **처분이 다르다** — 전자는 fail-open, 후자는 리터럴 축 수행 + 상속 축 skip.
 _Avoid_: "세션 인식 실패"(두 축을 뭉갬), "미지 세션"(판별 실패인지 미지 티어인지 불명 — 어느 축인지 명시할 것), "모델 감지"(감지 후 계수까지 포함하는 것처럼 읽힘).
+
+### 스폰 캐리어 (spawn carrier)
+Orca 워커 기동(`worker-start`)을 발행하는 **유일한** 경로로 지정된 스크립트(`bin/orca-rpi.sh`) — 금지 인자(`--model`/`--effort`/`--on`/`new-child`/`new-top-level`)·금지 명령(`orchestration reset` 등)·non-readonly 동시 spawn 제한을 코드로 강제해, 경계가 문서 규약이 아니라 실행 경로 자체다(c21-orca-mode-design.md §7 T1).
+_Avoid_: "오케스트레이터"(Orca 자신과 혼동 — 이 스크립트는 Orca 를 호출하는 하네스 쪽 래퍼일 뿐), "런처"(단순 실행보다 강제 스코프가 넓음).
+
+### 워커 계약 (worker contract)
+Orca 가 워커 세션에 주입하는 preamble 위에 얹히는 **하네스-고유** 규약 문서(`docs/ai-context/orca-worker-contract.md`) — preamble 이 이미 나르는 규범(CLAUDE.md·훅)을 재전송하지 않고, 사이클 고유 계약(`worker_done` 정확 커맨드·PASS/FAIL→`--outcome` 매핑·[[승인 채널 층 분리]] 등)만 담는다.
+_Avoid_: "워커 가이드"(Orca 자체 CLI 가이드와 혼동), "preamble 재작성"(재전송 금지가 핵심 — 중복이 아니라 그 위에 얹는 것).
+
+### 승인 채널 층 분리 (approval-channel layering)
+워커(dispatched, preamble RULE#1 적용)는 `AskUserQuestion` 이 금지되며 `orchestration ask`/`decision_gate` 로 코디네이터에 묻고, 코디네이터(사람과 같은 화면)는 `AskUserQuestion` 을 유지해 머지 승인을 사람이 소유한다 — 두 계층이 물리적으로 다른 프로세스라 혼동하면 워커 영구 hang(워커가 아무도 못 보는 TUI 를 열고 대기) 또는 무승인 머지(gate 로 대체) 중 하나가 난다(c22-orca-probe-measured.md P0-4).
+_Avoid_: "gate 로 대체"(머지 승인의 gate 대체는 금지), "AskUserQuestion 전면 금지"(코디네이터 층에는 여전히 유효 — 워커 층에만 적용).
