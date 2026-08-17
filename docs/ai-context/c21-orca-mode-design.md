@@ -1083,6 +1083,10 @@ non-obvious #5 SMART ①②의 착륙. **구현 지점 = `setup/verify-setup.sh`
 - **호출 판별식**(커맨드-위치 앵커 — cycle-37 install/rsync 선례 동형): 선두 공백 제거 후 첫 문자가 `#` 또는
   백틱이면 실격(산문 인라인 코드 — 실측 오탐 그 plan `:699`) → 명령치환 여는 토큰을 구분자로 치환 →
   공백 및 `;` `&` `|` `(` `)` 로 토큰화 → `bash` / `sh` / `env` / `exec` / `time` 및 `VAR=` 형태를 건너뛴
+  (★`env` 는 **자기 옵션까지** 건너뛰어야 한다 — `-u <VAR>` · `-i` · `--`. Phase P 실측에서
+  `env -u WT_SEL … bash …/orca-rpi.sh spawn` 형태가 코퍼스에 다수인데 옵션을 안 건너뛰면 첫 실토큰이
+  `-u` 가 되어 **호출 전체가 미탐**된다. 반대로 `-` 로 시작하는 토큰을 무조건 건너뛰면 마크다운
+  리스트 항목(`- \`…orca-rpi.sh spawn\` 은 …`)이 거짓 FAIL 되므로, 건너뛰기는 `env` 뒤에서만 한다)
   **첫 실토큰**이 `…/orca-rpi.sh` 이고 **다음 토큰**이 부작용 서브커맨드
   (`run` `task` `spawn` `wait` `handoff` `release` `gate` `preflight` `gpt`)일 때만 호출로 판정한다.
   `selfcheck` 는 외부 기동이 없어 제외(②의 성질 분할과 같은 근거). 이 판별식이 실측으로 걸러낸 거짓 FAIL
