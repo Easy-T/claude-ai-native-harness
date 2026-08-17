@@ -23,6 +23,13 @@ orca_t() {
 
 die() { echo "$SELF: $*" >&2; exit 1; }
 
+# ── 검증-전용 경로 (§11.10 ②) ────────────────────────────────────────────────
+# 인자·금지 플래그·워크트리·브랜치 가드를 전부 통과한 뒤 **부작용 경계 직전**에 정지한다.
+# 정지 지점이 원장/설정 쓰기와 외부 호출 **양쪽 앞**이라 격리 토큰 1개로 충분하다.
+# 상한: 원장 뮤텍스(동시-1 상한)는 본질적으로 쓰기라 이 경로로 검증되지 않는다.
+is_dryrun() { [ -n "${ORCA_RPI_DRYRUN:-}" ]; }
+dryrun_emit() { printf 'DRYRUN: %s\n' "$*"; exit 0; }
+
 # mkdir -p / touch 실패를 무시하면 동시성 원장이 침묵 무효화된다(ORCA_RPI_RUNDIR=/dev/null 재현) —
 # 원장은 동시-1 불변식의 유일한 저장소이므로 여기서 즉시 죽는다.
 ensure_rundir() {
@@ -145,6 +152,7 @@ assert_orca_exe() {
 }
 
 cmd_preflight() {
+  is_dryrun && dryrun_emit "preflight: status / orchestration run-list / repo list / worktree current / agent hooks status"
   require_jq
   ensure_rundir
   cp "$HOME/.claude/settings.json" "$RUNDIR/settings.pre-orca.json" || die "preflight: settings.json 백업 실패"
@@ -185,6 +193,7 @@ cmd_run() {
     esac
   done
   [ -n "$objective" ] || die "run: --objective 필수"
+  is_dryrun && dryrun_emit orchestration run-create --objective "$objective" --json
   require_jq; ensure_rundir
   # 응답은 die 이전에 항상 저장한다 — 실패 시 증거가 사라지면 진단이 불가능하다.
   local resp rc
@@ -212,10 +221,11 @@ cmd_task() {
     esac
   done
   [ -n "$title" ] && [ -n "$spec" ] || die "task: --title 와 --spec 필수"
-  require_jq; ensure_rundir
   local extra=()
   [ -n "$deps" ] && extra=(--deps "$deps")
   [ -n "$run" ] && extra+=(--run "$run")
+  is_dryrun && dryrun_emit orchestration task-create --task-title "$title" --spec "$spec" "${extra[@]}" --json
+  require_jq; ensure_rundir
   local resp rc
   resp=$("$ORCA" orchestration task-create --task-title "$title" --spec "$spec" "${extra[@]}" --json)
   rc=$?
@@ -243,6 +253,10 @@ cmd_spawn() {
   [ -n "$task" ] && [ -n "$run" ] || die "spawn: --run 과 --task 필수"
   # read-only 팬아웃은 브랜치 무관 허용 — 커밋하지 않기로 *선언*된 경로다(§11.9 ⑧ 자기-선언 상한 상속).
   [ "$readonly_flag" -eq 1 ] || assert_branch_not_merge_target "$worktree"
+  local extra=()
+  # --retry-of 는 배치(placement)를 상속하지 않는다(스키마 NOTE) — --worktree/--agent 를 매번 재지정한다.
+  [ -n "$retry_of" ] && extra=(--retry-of "$retry_of")
+  is_dryrun && dryrun_emit orchestration worker-start --run "$run" --task "$task" --worktree "$worktree" --agent claude "${extra[@]}" --json
   require_jq; ensure_rundir
 
   if [ "$readonly_flag" -eq 0 ]; then
@@ -256,9 +270,7 @@ cmd_spawn() {
     slot_unlock
   fi
 
-  local resp rc extra=()
-  # --retry-of 는 배치(placement)를 상속하지 않는다(스키마 NOTE) — --worktree/--agent 를 매번 재지정한다.
-  [ -n "$retry_of" ] && extra=(--retry-of "$retry_of")
+  local resp rc
   resp=$("$ORCA" orchestration worker-start --run "$run" --task "$task" --worktree "$worktree" --agent claude "${extra[@]}" --json)
   rc=$?
   printf '%s' "$resp" > "$RUNDIR/last-worker-start.json"
@@ -294,10 +306,10 @@ cmd_wait() {
     esac
   done
   [ -n "$run" ] || die "wait: --run 필수"
-  require_jq; ensure_rundir
 
   # ★ack 강제(가이드: "A bound Run replays the same Delivery until --ack; process every message
   #   before acknowledging") — 전건 순회 후 ack 를 문서가 아니라 코드로 만든다.
+  #   이 블록은 읽기 전용이라 DRYRUN 정지점 **앞**에 둔다(§11.10 ② argv 완전성).
   local pending use_ack=""
   pending=$(cat "$RUNDIR/pending-ack" 2>/dev/null || true)
   if [ -n "$ack" ]; then
@@ -309,6 +321,9 @@ cmd_wait() {
   fi
   local extra=()
   [ -n "$use_ack" ] && extra=(--ack "$use_ack")
+
+  is_dryrun && dryrun_emit orchestration check --run "$run" --wait --types worker_done,escalation,question,decision_gate --timeout-ms "$timeout" "${extra[@]}" --json
+  require_jq; ensure_rundir
 
   # ★--types 에 decision_gate 필수 — 워커 preamble RULE#1 이 'send --type decision_gate' 를 명시
   #   허용하므로, 이 타입이 wake 목록에서 빠지면 워커가 게이트를 올린 채 영구 hang 한다.
@@ -370,6 +385,7 @@ cmd_handoff() {
   [ -n "$task" ] && [ -n "$dispatch" ] || die "handoff: --task 와 --dispatch 필수"
   # handoff 는 --readonly 를 받지 않는다(정의상 편집 워커) — R→P→I→C 4단계 중 3단계가 이 경로다.
   assert_branch_not_merge_target current
+  is_dryrun && dryrun_emit orchestration worker-show --dispatch "$dispatch" --json
   require_jq; ensure_rundir
   # ★실측(C23 Task 1 Step 5): worker-show 는 중첩 snake_case **레코드**를 낸다 —
   # `.result.worker.agent_terminal_handle` 이 맞다(실측값 예: term_42a7b36b-…).
@@ -427,6 +443,7 @@ cmd_release() {
     esac
   done
   [ -n "$dispatch" ] || die "release: --dispatch 필수"
+  is_dryrun && dryrun_emit orchestration worker-release --dispatch "$dispatch" --json
   ensure_rundir
   "$ORCA" orchestration worker-release --dispatch "$dispatch" --json
   local rc=$?
@@ -460,6 +477,17 @@ cmd_gate() {
       *) die "gate: 인식하지 않는 인자 '$1'" ;;
     esac
   done
+  if is_dryrun; then
+    case "$action" in
+      create)  [ -n "$task" ] && [ -n "$question" ] || die "gate create: --task 와 --question 필수"
+               dryrun_emit orchestration gate-create --task "$task" --question "$question" --options '["PASS","FAIL"]' --json ;;
+      resolve) [ -n "$id" ] && [ -n "$resolution" ] || die "gate resolve: --id 와 --resolution 필수"
+               dryrun_emit orchestration gate-resolve --id "$id" --resolution "$resolution" --json ;;
+      list)    [ -n "$task" ] || die "gate list: --task 필수"
+               dryrun_emit orchestration gate-list --task "$task" --json ;;
+      *) die "gate: 서브액션은 create|resolve|list 중 하나(받음: '$action')" ;;
+    esac
+  fi
   require_jq; ensure_rundir
   case "$action" in
     create)
@@ -506,10 +534,12 @@ cmd_gpt() {
   case "$role" in
     executor)
       # 경로 B — 규율 아래 실행자(하네스 안, 설계 §4.3). 대상 문서는 stdin 으로 전달(호출자 책임).
+      is_dryrun && dryrun_emit claude-ocx -p "$prompt" --output-format json
       OCX_MODEL="$gpt_model" "$HOME/.claude/bin/claude-ocx" -p "$prompt" --output-format json
       ;;
     verifier)
       [ -n "$out" ] || die "gpt --role verifier: --out 필수(cross-family-review.md -o 소비 규율)"
+      is_dryrun && dryrun_emit codex exec -m "$gpt_model" --sandbox read-only --skip-git-repo-check -o "$out" "$prompt"
       rm -f "$out"
       codex exec -m "$gpt_model" -c model_reasoning_effort=ultra -c model_verbosity=high \
         --sandbox read-only --skip-git-repo-check -o "$out" "$prompt"
@@ -546,7 +576,9 @@ main() {
   # selfcheck 는 진단 전용이라 assert 로 죽는 대신 스스로 FAIL 을 보고한다.
   # selfcheck 제외: 죽는 대신 보고하는 진단 커맨드다(C-20 이 여기서 실재·실행가능을 검사).
   # gpt 제외: 교차패밀리 리뷰 경로는 $ORCA 를 전혀 쓰지 않는다 — Orca 미설치 머신에서도 가용해야 한다.
-  case "$cmd" in selfcheck|gpt) ;; *) assert_orca_exe ;; esac
+  # gpt 제외와 같은 이유로 DRYRUN 도 제외한다 — 외부 프로세스를 부르지 않는 경로가 그 실행자의
+  # 존재를 요구할 근거가 없고, Orca 미설치 머신에서도 인자·가드를 시험할 수 있어야 한다(§11.10 ②).
+  case "$cmd" in selfcheck|gpt) ;; *) is_dryrun || assert_orca_exe ;; esac
   case "$cmd" in
     preflight) cmd_preflight "$@" ;;
     run) cmd_run "$@" ;;
