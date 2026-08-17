@@ -3,6 +3,9 @@
 #   Orca ADE 오케스트레이션을 하네스 규약 안에서 구동하는 코드 레벨 경계.
 #   서브커맨드: preflight run task spawn wait handoff release gate gpt selfcheck
 #   불변식은 문서가 아니라 이 스크립트가 강제한다 — 상세 근거는 docs/ai-context/c21-orca-mode-design.md.
+#   stdout 계약: run=run id / task=task id / spawn=dispatch id / handoff=dispatch id / gate create=gate id
+#     (handoff 는 봉투 JSON 이 아니라 dispatch id 1줄만 낸다 — 원본은 $RUNDIR/last-handoff.json).
+#   gpt 서브커맨드의 모델 인자는 '--gpt-model' 이다(캐리어 어느 서브커맨드도 '--model' 리터럴을 받지 않는다).
 set -u
 
 # orca.cmd 는 orchestration send/reply 를 exit /b 2 로 거부한다(orca.cmd:13-14 verbatim) —
@@ -11,35 +14,92 @@ ORCA="${ORCA_CLI_COMMAND:-C:/Users/12132/AppData/Local/Programs/orca/resources/b
 RUNDIR="${ORCA_RPI_RUNDIR:-$HOME/.claude/.orca-rpi}"
 SELF="$(basename "$0")"
 
+# hang 하는 CLI 는 rc 를 주지 않는다 — "사이클은 절대 멈추지 않는다"는 fail-open 약속이 깨진다.
+# timeout(1) 이 있으면 상한을 씌우고, 없으면 그대로 호출한다(가용성 의존 금지).
+ORCA_TIMEOUT_BIN="$(command -v timeout 2>/dev/null || true)"
+orca_t() {
+  if [ -n "$ORCA_TIMEOUT_BIN" ]; then "$ORCA_TIMEOUT_BIN" 60 "$ORCA" "$@"; else "$ORCA" "$@"; fi
+}
+
 die() { echo "$SELF: $*" >&2; exit 1; }
-ensure_rundir() { mkdir -p "$RUNDIR"; touch "$RUNDIR/active-nonreadonly.tasks"; }
+
+# mkdir -p / touch 실패를 무시하면 동시성 원장이 침묵 무효화된다(ORCA_RPI_RUNDIR=/dev/null 재현) —
+# 원장은 동시-1 불변식의 유일한 저장소이므로 여기서 즉시 죽는다.
+ensure_rundir() {
+  mkdir -p "$RUNDIR" || die "RUNDIR 생성 실패: $RUNDIR — 동시성 원장을 쓸 수 없다"
+  touch "$RUNDIR/active-nonreadonly.tasks" || die "원장 파일 생성 실패: $RUNDIR/active-nonreadonly.tasks"
+}
 require_jq() { command -v jq >/dev/null 2>&1 || die "jq 미설치 — 이 캐리어는 jq 에 의존한다"; }
 
-# --worktree 는 'current' 또는 $WT_SEL 값만 허용한다(설계 §5.3 "selector 재조립 금지" —
+# ── 동시성 원장 뮤텍스 ────────────────────────────────────────────────────────
+# 읽기-검사-추가 사이에 잠금이 없으면 두 프로세스가 동시에 0을 읽고 둘 다 워커를 띄운다.
+# mkdir 은 POSIX 원자 연산 — 파일 잠금 없이도 상호배제가 성립한다.
+SLOT_LOCK_HELD=0
+slot_lock() {
+  ensure_rundir
+  local i=0
+  while ! mkdir "$RUNDIR/.lock" 2>/dev/null; do
+    i=$((i + 1))
+    [ "$i" -ge 100 ] && die "원장 잠금 획득 실패(~10초) — 스테일 잠금이면 '$RUNDIR/.lock' 을 확인 후 제거하라"
+    sleep 0.1
+  done
+  SLOT_LOCK_HELD=1
+  trap 'slot_unlock' EXIT INT TERM
+}
+slot_unlock() {
+  [ "$SLOT_LOCK_HELD" -eq 1 ] || return 0
+  SLOT_LOCK_HELD=0
+  rmdir "$RUNDIR/.lock" 2>/dev/null || true
+}
+# 잠금 안에서만 호출할 것.
+slot_remove() {
+  local t="$1"
+  grep -vFx "$t" "$RUNDIR/active-nonreadonly.tasks" > "$RUNDIR/active-nonreadonly.tasks.tmp" 2>/dev/null
+  mv "$RUNDIR/active-nonreadonly.tasks.tmp" "$RUNDIR/active-nonreadonly.tasks" 2>/dev/null || true
+}
+
+# --worktree 는 'current' 또는 실측 selector 값만 허용한다(설계 §5.3 "selector 재조립 금지" —
 # worktree current --json 반환값을 verbatim 보존, 재조립 시 MSYS 경로 보간 사고 재현 위험).
+# 우선순위: current → $WT_SEL → $RUNDIR/wt_sel(preflight 가 실측 기록한 값).
 assert_worktree_arg() {
-  local v="$1"
+  local v="$1" sel=""
+  case "$v" in
+    new-child|new-top-level)
+      die "거부: '$v' — 워크트리는 always current 입니다(설계 §5.3 plan 가시성)" ;;
+  esac
   [ "$v" = "current" ] && return 0
   if [ -n "${WT_SEL:-}" ] && [ "$v" = "$WT_SEL" ]; then return 0; fi
-  die "거부: --worktree 는 'current' 또는 \$WT_SEL 값만 허용됩니다(받음: $v) — 설계 §5.3/§5.4"
+  if [ -s "$RUNDIR/wt_sel" ]; then
+    sel=$(cat "$RUNDIR/wt_sel" 2>/dev/null)
+    if [ -n "$sel" ] && [ "$v" = "$sel" ]; then return 0; fi
+  fi
+  die "거부: --worktree 는 'current' 또는 \$WT_SEL / $RUNDIR/wt_sel 값만 허용됩니다(받음: $v) — 설계 §5.3/§5.4"
 }
 
 # 호출자가 캐리어에 줄 수 없는 인자 — "명령 리터럴"이 아니라 "거부 로직의 패턴 문자열"이므로
 # 여기 포함은 T1 TDD ⓓ("소스에 금지 명령 리터럴 0건")의 대상이 아니다(설계 근거 2번 참조).
-assert_no_forbidden_args() {
-  local a
-  for a in "$@"; do
-    case "$a" in
-      --model|--model=*)
-        die "거부: '--model' 은 이 캐리어가 받지 않는 인자입니다 — 모델 티어는 워커 내부(Agent/Workflow)로 미룬다(설계 §2·§4.1)" ;;
-      --effort|--effort=*)
-        die "거부: '--effort' 은 이 캐리어가 받지 않는 인자입니다 — --model 없이는 무의미하고 --terminal 과 배타입니다(설계 §3.5 스키마 NOTE)" ;;
-      --on|--on=*)
-        die "거부: '--on' 은 이 캐리어가 받지 않는 인자입니다(설계 §3.10)" ;;
-      new-child|new-top-level)
-        die "거부: '$a' — 워크트리는 always current 입니다(설계 §5.3 plan 가시성)" ;;
-    esac
-  done
+# ★위치-인식: 각 파서 루프의 첫 줄에서만 호출한다(= 옵션 자리). 값 토큰까지 무차별 스캔하면
+#   'run --objective new-child' 같은 정당한 *값*을 거부한다.
+reject_forbidden_flag() {
+  case "${1:-}" in
+    --model|--model=*)
+      die "거부: '--model' 은 이 캐리어가 받지 않는 인자입니다 — 모델 티어는 워커 내부(Agent/Workflow)로 미룬다(설계 §2·§4.1)" ;;
+    --effort|--effort=*)
+      die "거부: '--effort' 은 이 캐리어가 받지 않는 인자입니다 — --model 없이는 무의미하고 --terminal 과 배타입니다(설계 §3.5 스키마 NOTE)" ;;
+    --on|--on=*)
+      die "거부: '--on' 은 이 캐리어가 받지 않는 인자입니다(설계 §3.10)" ;;
+  esac
+}
+
+# $ORCA 불변식 — 런타임을 건드리는 전 서브커맨드에 강제한다(selfcheck 는 죽는 대신 *보고*하므로 제외).
+assert_orca_exe() {
+  case "$ORCA" in
+    *.cmd)
+      die "거부: \$ORCA 가 orca.cmd 로 해소됨 — orchestration send/reply 를 exit /b 2 로 거부한다(설계 §3.0 함정②). ORCA_CLI_COMMAND 에 orca.exe 절대경로를 지정하라" ;;
+  esac
+  if [ ! -x "$ORCA" ] && ! command -v "$ORCA" >/dev/null 2>&1; then
+    die "거부: \$ORCA 실행 불가 — '$ORCA' 는 실행 가능한 파일도, PATH 로 해소되는 명령도 아니다"
+  fi
 }
 
 cmd_preflight() {
@@ -47,19 +107,21 @@ cmd_preflight() {
   ensure_rundir
   cp "$HOME/.claude/settings.json" "$RUNDIR/settings.pre-orca.json" || die "preflight: settings.json 백업 실패"
 
-  "$ORCA" status --json >"$RUNDIR/preflight-status.json" 2>&1 || { echo "preflight: orca status 실패 — Orca 미가동, 사이클은 기존 Phase I (a)/(d) 로 폴백" >&2; exit 3; }
+  orca_t status --json >"$RUNDIR/preflight-status.json" 2>&1 || { echo "preflight: orca status 실패 — Orca 미가동, 사이클은 기존 Phase I (a)/(d) 로 폴백" >&2; exit 3; }
   jq -e '.ok == true' "$RUNDIR/preflight-status.json" >/dev/null 2>&1 || { echo "preflight: orca status ok!=true" >&2; exit 3; }
 
-  "$ORCA" orchestration run-list --json >"$RUNDIR/preflight-runlist.json" 2>&1 || { echo "preflight: orchestration RPC 도달 실패" >&2; exit 3; }
-  "$ORCA" repo list --json >"$RUNDIR/preflight-repolist.json" 2>&1 || { echo "preflight: repo list 실패" >&2; exit 3; }
+  orca_t orchestration run-list --json >"$RUNDIR/preflight-runlist.json" 2>&1 || { echo "preflight: orchestration RPC 도달 실패" >&2; exit 3; }
+  orca_t repo list --json >"$RUNDIR/preflight-repolist.json" 2>&1 || { echo "preflight: repo list 실패" >&2; exit 3; }
 
-  local wt_sel; wt_sel=$("$ORCA" worktree current --json 2>/dev/null | jq -r '.result.worktree.id // empty')
+  local wt_sel; wt_sel=$(orca_t worktree current --json 2>/dev/null | jq -r '.result.worktree.id // empty')
   [ -n "$wt_sel" ] || { echo "preflight: worktree current 셀렉터 미획득 — 'orca repo add' 로 이 repo 등록 확인(설계 §9-A1)" >&2; exit 3; }
   printf '%s' "$wt_sel" > "$RUNDIR/wt_sel"
 
-  "$ORCA" agent hooks status --json >"$RUNDIR/preflight-hooks-status.json" 2>&1 || { echo "preflight: agent hooks status 실패" >&2; exit 3; }
-  "$ORCA" agent-context --json 2>/dev/null | cksum > "$RUNDIR/agent-context.cksum"
-  "$ORCA" skills get orchestration --json 2>/dev/null | cksum > "$RUNDIR/skills-orchestration.cksum"
+  orca_t agent hooks status --json >"$RUNDIR/preflight-hooks-status.json" 2>&1 || { echo "preflight: agent hooks status 실패" >&2; exit 3; }
+  # ★아래 두 cksum 은 *기록용 스냅샷*이지 게이트가 아니다 — 파이프라인 앞단($ORCA)이 실패해도
+  #   cksum 자체는 빈 입력에 대해 성공하므로, 게이트로 쓰면 실패를 성공으로 가린다.
+  orca_t agent-context --json 2>/dev/null | cksum > "$RUNDIR/agent-context.cksum"
+  orca_t skills get orchestration --json 2>/dev/null | cksum > "$RUNDIR/skills-orchestration.cksum"
 
   # 하네스 전제 — plan 실재 단언(워커가 BLOCK 을 만나 RPI_SKIP 을 학습하는 경로 원천 차단, 설계 §3.1·§5.3).
   # 서브셸에서만 소싱 — _common.sh 의 `set -euo pipefail` 이 이 스크립트 본체를 오염시키지 않게.
@@ -74,15 +136,20 @@ cmd_preflight() {
 cmd_run() {
   local objective=""
   while [ $# -gt 0 ]; do
+    reject_forbidden_flag "$1"
     case "$1" in
-      --objective) objective="$2"; shift 2 ;;
+      --objective) objective="${2:-}"; [ -n "$objective" ] || die "run: --objective 필수"; shift 2 ;;
       *) die "run: 인식하지 않는 인자 '$1'" ;;
     esac
   done
   [ -n "$objective" ] || die "run: --objective 필수"
   require_jq; ensure_rundir
-  local resp; resp=$("$ORCA" orchestration run-create --objective "$objective" --json) || die "run: run-create 실패"
+  # 응답은 die 이전에 항상 저장한다 — 실패 시 증거가 사라지면 진단이 불가능하다.
+  local resp rc
+  resp=$("$ORCA" orchestration run-create --objective "$objective" --json)
+  rc=$?
   printf '%s' "$resp" > "$RUNDIR/last-run-create.json"
+  [ "$rc" -eq 0 ] || die "run: run-create 실패(rc=$rc) — 응답: $RUNDIR/last-run-create.json"
   # ★함정(c22-probe P0-2) — 봉투 최상위 .id 는 요청 상관ID(run id 아님). result.run.id 만 채택.
   local run_id; run_id=$(printf '%s' "$resp" | jq -r '.result.run.id // empty')
   [ -n "$run_id" ] || die "run: result.run.id 추출 실패 — 응답: $RUNDIR/last-run-create.json"
@@ -90,12 +157,15 @@ cmd_run() {
 }
 
 cmd_task() {
-  local title="" spec="" deps=""
+  local title="" spec="" deps="" run=""
   while [ $# -gt 0 ]; do
+    reject_forbidden_flag "$1"
     case "$1" in
-      --title) title="$2"; shift 2 ;;
-      --spec) spec="$2"; shift 2 ;;
-      --deps) deps="$2"; shift 2 ;;
+      --title) title="${2:-}"; [ -n "$title" ] || die "task: --title 와 --spec 필수"; shift 2 ;;
+      --spec) spec="${2:-}"; [ -n "$spec" ] || die "task: --title 와 --spec 필수"; shift 2 ;;
+      --deps) deps="${2:-}"; [ -n "$deps" ] || die "task: --deps 값 필요(json 배열)"; shift 2 ;;
+      # run 바인딩이 프로세스 경계를 넘는지 미보장 — 명시 전달 경로를 둔다(실측 help 에 존재).
+      --run) run="${2:-}"; [ -n "$run" ] || die "task: --run 값 필요"; shift 2 ;;
       *) die "task: 인식하지 않는 인자 '$1'" ;;
     esac
   done
@@ -103,21 +173,28 @@ cmd_task() {
   require_jq; ensure_rundir
   local extra=()
   [ -n "$deps" ] && extra=(--deps "$deps")
-  local resp; resp=$("$ORCA" orchestration task-create --task-title "$title" --spec "$spec" "${extra[@]}" --json) || die "task: task-create 실패"
+  [ -n "$run" ] && extra+=(--run "$run")
+  local resp rc
+  resp=$("$ORCA" orchestration task-create --task-title "$title" --spec "$spec" "${extra[@]}" --json)
+  rc=$?
   printf '%s' "$resp" > "$RUNDIR/last-task-create.json"
+  [ "$rc" -eq 0 ] || die "task: task-create 실패(rc=$rc) — 응답: $RUNDIR/last-task-create.json"
   local task_id; task_id=$(printf '%s' "$resp" | jq -r '.result.task.id // empty')
   [ -n "$task_id" ] || die "task: result.task.id 추출 실패 — 응답: $RUNDIR/last-task-create.json"
   printf '%s\n' "$task_id"
 }
 
 cmd_spawn() {
-  local readonly_flag=0 task="" worktree="current" run=""
+  local readonly_flag=0 task="" worktree="current" run="" retry_of=""
   while [ $# -gt 0 ]; do
+    reject_forbidden_flag "$1"
     case "$1" in
       --readonly) readonly_flag=1; shift ;;
-      --run) run="$2"; shift 2 ;;
-      --task) task="$2"; shift 2 ;;
-      --worktree) assert_worktree_arg "$2"; worktree="$2"; shift 2 ;;
+      --run) run="${2:-}"; [ -n "$run" ] || die "spawn: --run 과 --task 필수"; shift 2 ;;
+      --task) task="${2:-}"; [ -n "$task" ] || die "spawn: --run 과 --task 필수"; shift 2 ;;
+      --worktree) [ -n "${2:-}" ] || die "spawn: --worktree 값 필요"; assert_worktree_arg "$2"; worktree="$2"; shift 2 ;;
+      # 승인된 유일 재시도 경로 — 실패 안내가 --retry-of 를 지시하므로 파서가 반드시 받아야 한다.
+      --retry-of) retry_of="${2:-}"; [ -n "$retry_of" ] || die "spawn: --retry-of 값(dispatch id) 필요"; shift 2 ;;
       *) die "spawn: 인식하지 않는 인자 '$1'" ;;
     esac
   done
@@ -125,61 +202,119 @@ cmd_spawn() {
   require_jq; ensure_rundir
 
   if [ "$readonly_flag" -eq 0 ]; then
+    # 읽기-검사-추가를 한 임계구역에 넣는다(잠금 없으면 두 프로세스가 동시에 0을 읽는다).
+    slot_lock
     local active; active=$(wc -l < "$RUNDIR/active-nonreadonly.tasks" 2>/dev/null || echo 0)
     if [ "${active:-0}" -ge 1 ]; then
       die "거부: non-readonly task 동시 실행 상한(1) 초과 — 활성: $(tr '\n' ' ' < "$RUNDIR/active-nonreadonly.tasks") (설계 §3.6 — Orca 는 충돌을 추론하지 않는다, orchestration.md:181/:342)"
     fi
     echo "$task" >> "$RUNDIR/active-nonreadonly.tasks"
+    slot_unlock
   fi
 
-  local resp rc
-  resp=$("$ORCA" orchestration worker-start --run "$run" --task "$task" --worktree "$worktree" --agent claude --json)
+  local resp rc extra=()
+  # --retry-of 는 배치(placement)를 상속하지 않는다(스키마 NOTE) — --worktree/--agent 를 매번 재지정한다.
+  [ -n "$retry_of" ] && extra=(--retry-of "$retry_of")
+  resp=$("$ORCA" orchestration worker-start --run "$run" --task "$task" --worktree "$worktree" --agent claude "${extra[@]}" --json)
   rc=$?
   printf '%s' "$resp" > "$RUNDIR/last-worker-start.json"
 
   if [ "$rc" -ne 0 ]; then
+    # ★슬롯을 롤백하지 않는다 — 스키마 NOTE: "Failed or outcome_unknown exits 1".
+    #   outcome_unknown 은 워커가 살아있을 수 있으므로, 슬롯을 푸는 순간 동시-1 불변식이 깨진다.
+    echo "spawn: worker-start 비-0(rc=$rc, ready 아님) — 자동 재시도 금지, --retry-of <dispatch_id> 로만 재시도(설계 §3.3)" >&2
     if [ "$readonly_flag" -eq 0 ]; then
-      grep -vFx "$task" "$RUNDIR/active-nonreadonly.tasks" > "$RUNDIR/active-nonreadonly.tasks.tmp" 2>/dev/null
-      mv "$RUNDIR/active-nonreadonly.tasks.tmp" "$RUNDIR/active-nonreadonly.tasks" 2>/dev/null
+      echo "spawn: 원장 슬롯 유지 — outcome_unknown 가능성(워커 생존 가능). 재시도 전 'release --task $task' 로 명시 해제 필요" >&2
     fi
-    echo "spawn: worker-start 비-0(ready 아님) — 자동 재시도 금지, --retry-of 로만 재시도(설계 §3.3)" >&2
+    echo "spawn: 응답 JSON(stage/failedStage/setup/effects/residualResources/recovery): $RUNDIR/last-worker-start.json" >&2
     exit "$rc"
   fi
   # dispatch id 실제 응답 shape 미측정(워커를 실제로 띄워야 확인 — c22-probe 잔여) [P2]
-  local dispatch_id; dispatch_id=$(printf '%s' "$resp" | jq -r '.result.dispatch.id // .result.dispatch // empty')  # [P2]
+  # 객체 폴백(.result.dispatch)은 객체 직렬화를 id 로 출력하므로 쓰지 않는다.
+  local dispatch_id; dispatch_id=$(printf '%s' "$resp" | jq -r '.result.dispatch.id // empty')  # [P2]
+  [ -n "$dispatch_id" ] || die "spawn: dispatch id 추출 실패 — 응답 확인: $RUNDIR/last-worker-start.json"
   printf '%s\n' "$dispatch_id"
 }
 
 cmd_wait() {
   local run="" timeout=900000 ack=""
   while [ $# -gt 0 ]; do
+    reject_forbidden_flag "$1"
     case "$1" in
-      --run) run="$2"; shift 2 ;;
-      --timeout-ms) timeout="$2"; shift 2 ;;
-      --ack) ack="$2"; shift 2 ;;
+      --run) run="${2:-}"; [ -n "$run" ] || die "wait: --run 필수"; shift 2 ;;
+      --timeout-ms) timeout="${2:-}"; [ -n "$timeout" ] || die "wait: --timeout-ms 값 필요"; shift 2 ;;
+      --ack) ack="${2:-}"; [ -n "$ack" ] || die "wait: --ack 값(delivery id) 필요"; shift 2 ;;
       *) die "wait: 인식하지 않는 인자 '$1'" ;;
     esac
   done
   [ -n "$run" ] || die "wait: --run 필수"
   require_jq; ensure_rundir
+
+  # ★ack 강제(가이드: "A bound Run replays the same Delivery until --ack; process every message
+  #   before acknowledging") — 전건 순회 후 ack 를 문서가 아니라 코드로 만든다.
+  local pending use_ack=""
+  pending=$(cat "$RUNDIR/pending-ack" 2>/dev/null || true)
+  if [ -n "$ack" ]; then
+    [ -n "$pending" ] || die "wait: --ack 거부 — 미ack 배치가 없다(이 캐리어가 전건 emit 한 배치만 ack 할 수 있다)"
+    [ "$ack" = "$pending" ] || die "wait: --ack 거부 — 미ack 배치($pending)와 불일치(받음: $ack)"
+    use_ack="$ack"
+  else
+    use_ack="$pending"   # 직전 배치를 전건 emit 했으므로 자동 ack
+  fi
   local extra=()
-  [ -n "$ack" ] && extra=(--ack "$ack")
+  [ -n "$use_ack" ] && extra=(--ack "$use_ack")
+
+  # ★--types 에 decision_gate 필수 — 워커 preamble RULE#1 이 'send --type decision_gate' 를 명시
+  #   허용하므로, 이 타입이 wake 목록에서 빠지면 워커가 게이트를 올린 채 영구 hang 한다.
   # ★stderr 로 keepalive 분리(15초 간격, 스키마 usage verbatim) — stdout 은 이미 깨끗하지만
   #   병합 상황을 대비해 _keepalive 필터도 이중으로 건다(설계 §3.4 jq 'select(._keepalive|not)').
-  "$ORCA" orchestration check --run "$run" --wait --types worker_done,escalation,question \
+  "$ORCA" orchestration check --run "$run" --wait --types worker_done,escalation,question,decision_gate \
     --timeout-ms "$timeout" "${extra[@]}" --json \
     1>"$RUNDIR/last-check.json" 2>>"$RUNDIR/keepalive.log"
   local rc=$?
-  jq 'select(._keepalive|not)' "$RUNDIR/last-check.json" 2>/dev/null
+
+  if [ "$rc" -ne 0 ]; then
+    # orca 진단 메시지는 keepalive 로그에 묻힌다 — 코디네이터에게 최소한을 표면화한다.
+    echo "wait: orca check 비-0(rc=$rc) — keepalive.log 최근 20줄:" >&2
+    tail -n 20 "$RUNDIR/keepalive.log" >&2 2>/dev/null
+  fi
+
+  # jq 실패를 침묵 삼키면(최상위가 배열이면 rc=5) 코디네이터가 "빈 배치=정상"으로 오해해
+  # worker_done 을 통째로 유실한다 — 원본을 그대로 내고 비-0 을 돌려준다.
+  local out jq_rc
+  out=$(jq 'select(._keepalive|not)' "$RUNDIR/last-check.json" 2>>"$RUNDIR/keepalive.log")
+  jq_rc=$?
+  if [ "$jq_rc" -ne 0 ]; then
+    cat "$RUNDIR/last-check.json"
+    echo "wait: check 응답 파싱 실패(jq rc=$jq_rc) — 원본 그대로 출력. 원본: $RUNDIR/last-check.json" >&2
+    return 1
+  fi
+  [ -n "$out" ] && printf '%s\n' "$out"
+
+  # 배치 emit 이 성공한 뒤에만 ack 자격을 기록한다(rc 비-0 이면 배치 미확정 — pending 을 건드리지 않는다).
+  if [ "$rc" -eq 0 ]; then
+    # delivery id 필드 경로 미측정(배치 수신을 실제로 해야 확인 — c22-probe 잔여) [P2]
+    local delivery_id
+    delivery_id=$(printf '%s' "$out" | jq -r '.result.delivery.id // .result.deliveryId // .result.delivery_id // empty' 2>/dev/null)  # [P2]
+    if [ -n "$delivery_id" ]; then
+      printf '%s' "$delivery_id" > "$RUNDIR/pending-ack"
+    else
+      rm -f "$RUNDIR/pending-ack"
+    fi
+  fi
   return "$rc"
 }
 
 cmd_handoff() {
-  local task="" dispatch=""
+  local task="" dispatch="" prev_task="" run=""
   while [ $# -gt 0 ]; do
+    reject_forbidden_flag "$1"
     case "$1" in
-      --task) task="$2"; shift 2 ;;
-      --dispatch) dispatch="$2"; shift 2 ;;
+      --task) task="${2:-}"; [ -n "$task" ] || die "handoff: --task 와 --dispatch 필수"; shift 2 ;;
+      --dispatch) dispatch="${2:-}"; [ -n "$dispatch" ] || die "handoff: --task 와 --dispatch 필수"; shift 2 ;;
+      # 원장 원자 교체용 — 이 터미널을 붙잡고 있던 직전 task.
+      --prev-task) prev_task="${2:-}"; [ -n "$prev_task" ] || die "handoff: --prev-task 값 필요"; shift 2 ;;
+      --run) run="${2:-}"; [ -n "$run" ] || die "handoff: --run 값 필요"; shift 2 ;;
       *) die "handoff: 인식하지 않는 인자 '$1'" ;;
     esac
   done
@@ -190,16 +325,43 @@ cmd_handoff() {
   resp=$("$ORCA" orchestration worker-show --dispatch "$dispatch" --json) || die "handoff: worker-show 실패"
   handle=$(printf '%s' "$resp" | jq -r '.result.worker.agent_terminal_handle // empty')  # [P2]
   [ -n "$handle" ] || die "handoff: agent_terminal_handle 획득 실패 — 응답 확인 필요"
-  # ★--terminal 재사용은 --model/--effort 와 배타(스키마 NOTE, 설계 §3.5) — 이 서브커맨드는 그 인자를 아예 안 받는다.
-  "$ORCA" orchestration worker-start --task "$task" --terminal "$handle" --json
+
+  # 원장 원자 교체(prev-task 제거 + task 추가) — handoff 도 편집 워커이므로 동시-1 원장을 유지해야 한다.
+  slot_lock
+  if [ -s "$RUNDIR/active-nonreadonly.tasks" ]; then
+    [ -n "$prev_task" ] || die "handoff: 원장에 활성 task 가 있는데 --prev-task 가 없다 — 무엇을 교체하는지 불명이면 동시-1 불변식이 깨진다(활성: $(tr '\n' ' ' < "$RUNDIR/active-nonreadonly.tasks"))"
+    grep -qFx "$prev_task" "$RUNDIR/active-nonreadonly.tasks" || die "handoff: --prev-task '$prev_task' 가 원장에 없다 — 교체가 아니라 추가가 되어 상한이 무너진다(활성: $(tr '\n' ' ' < "$RUNDIR/active-nonreadonly.tasks"))"
+    slot_remove "$prev_task"
+  fi
+  echo "$task" >> "$RUNDIR/active-nonreadonly.tasks"
+  slot_unlock
+
+  local extra=()
+  [ -n "$run" ] && extra=(--run "$run")
+  # ★--terminal 은 --agent 와 배타(스키마 verbatim: "Neither can combine with --terminal",
+  #   "(--agent <agent> | --terminal <handle>)") — 이 경로는 --terminal 재사용이므로 --agent 를 절대 안 준다.
+  #   같은 이유로 --model/--effort 도 받지 않는다(설계 §3.5).
+  local hresp hrc
+  hresp=$("$ORCA" orchestration worker-start --task "$task" --terminal "$handle" "${extra[@]}" --json)
+  hrc=$?
+  printf '%s' "$hresp" > "$RUNDIR/last-handoff.json"
+  if [ "$hrc" -ne 0 ]; then
+    echo "handoff: worker-start 비-0(rc=$hrc, ready 아님) — 원장 슬롯 유지(outcome_unknown 가능). 재시도 전 'release --task $task' 로 명시 해제 필요" >&2
+    die "handoff: worker-start 실패 — 응답: $RUNDIR/last-handoff.json"
+  fi
+  # stdout 계약 = dispatch id 1줄(봉투 JSON 전문을 흘리면 호출자의 D=$(... handoff ...) 가 결정적으로 깨진다) [P2]
+  local dispatch_id; dispatch_id=$(printf '%s' "$hresp" | jq -r '.result.dispatch.id // empty')  # [P2]
+  [ -n "$dispatch_id" ] || die "handoff: dispatch id 추출 실패 — 응답 확인: $RUNDIR/last-handoff.json"
+  printf '%s\n' "$dispatch_id"
 }
 
 cmd_release() {
   local dispatch="" task=""
   while [ $# -gt 0 ]; do
+    reject_forbidden_flag "$1"
     case "$1" in
-      --dispatch) dispatch="$2"; shift 2 ;;
-      --task) task="$2"; shift 2 ;;
+      --dispatch) dispatch="${2:-}"; [ -n "$dispatch" ] || die "release: --dispatch 필수"; shift 2 ;;
+      --task) task="${2:-}"; [ -n "$task" ] || die "release: --task 값 필요"; shift 2 ;;
       *) die "release: 인식하지 않는 인자 '$1'" ;;
     esac
   done
@@ -207,12 +369,19 @@ cmd_release() {
   ensure_rundir
   "$ORCA" orchestration worker-release --dispatch "$dispatch" --json
   local rc=$?
-  if [ -n "$task" ] && [ -f "$RUNDIR/active-nonreadonly.tasks" ]; then
-    grep -vFx "$task" "$RUNDIR/active-nonreadonly.tasks" > "$RUNDIR/active-nonreadonly.tasks.tmp" 2>/dev/null
-    mv "$RUNDIR/active-nonreadonly.tasks.tmp" "$RUNDIR/active-nonreadonly.tasks" 2>/dev/null
+  if [ "$rc" -eq 0 ]; then
+    if [ -n "$task" ]; then
+      slot_lock
+      slot_remove "$task"
+      slot_unlock
+    fi
+  else
+    # 해제 실패인데 슬롯을 비우면 편집 워커가 살아있는 채 다음 spawn 이 통과한다.
+    echo "release: worker-release 비-0(rc=$rc) — 원장 슬롯 유지(워커 생존 가능). 해제 확인 후 재시도하라" >&2
   fi
   if [ -f "$RUNDIR/settings.pre-orca.json" ] && ! diff -q "$RUNDIR/settings.pre-orca.json" "$HOME/.claude/settings.json" >/dev/null 2>&1; then
-    echo "release: 경고 — settings.json 이 preflight 이후 변경됨(훅 배선 무변경 단언 실패, 설계 §3.1/§3.9)" >&2
+    echo "release: 경고 — settings.json 이 preflight 이후 변경됨(훅 배선 무변경 단언 실패, 설계 §3.1/§3.9). diff:" >&2
+    diff -u "$RUNDIR/settings.pre-orca.json" "$HOME/.claude/settings.json" >&2
   fi
   return "$rc"
 }
@@ -221,11 +390,12 @@ cmd_gate() {
   local action="${1:-}"; [ $# -gt 0 ] && shift
   local task="" question="" id="" resolution=""
   while [ $# -gt 0 ]; do
+    reject_forbidden_flag "$1"
     case "$1" in
-      --task) task="$2"; shift 2 ;;
-      --question) question="$2"; shift 2 ;;
-      --id) id="$2"; shift 2 ;;
-      --resolution) resolution="$2"; shift 2 ;;
+      --task) task="${2:-}"; [ -n "$task" ] || die "gate: --task 값 필요"; shift 2 ;;
+      --question) question="${2:-}"; [ -n "$question" ] || die "gate: --question 값 필요"; shift 2 ;;
+      --id) id="${2:-}"; [ -n "$id" ] || die "gate: --id 값 필요"; shift 2 ;;
+      --resolution) resolution="${2:-}"; [ -n "$resolution" ] || die "gate: --resolution 값 필요"; shift 2 ;;
       *) die "gate: 인식하지 않는 인자 '$1'" ;;
     esac
   done
@@ -233,10 +403,14 @@ cmd_gate() {
   case "$action" in
     create)
       [ -n "$task" ] && [ -n "$question" ] || die "gate create: --task 와 --question 필수"
-      local resp; resp=$("$ORCA" orchestration gate-create --task "$task" --question "$question" --options '["PASS","FAIL"]' --json) || die "gate create: 실패"
+      local resp rc
+      resp=$("$ORCA" orchestration gate-create --task "$task" --question "$question" --options '["PASS","FAIL"]' --json)
+      rc=$?
       printf '%s' "$resp" > "$RUNDIR/last-gate-create.json"
+      [ "$rc" -eq 0 ] || die "gate create: 실패(rc=$rc) — 응답: $RUNDIR/last-gate-create.json"
       # gate id 필드 경로 미측정(gate-create 미실행 — c22-probe 잔여) [P2]
-      local gate_id; gate_id=$(printf '%s' "$resp" | jq -r '.result.gate.id // .id // empty')  # [P2]
+      # .id 폴백 금지 — 최상위 .id 는 요청 상관ID라 gate-resolve 가 영구 미해소된다(c22-probe P0-2).
+      local gate_id; gate_id=$(printf '%s' "$resp" | jq -r '.result.gate.id // empty')  # [P2]
       [ -n "$gate_id" ] || die "gate create: gate id 추출 실패 — 응답 확인: $RUNDIR/last-gate-create.json"
       printf '%s\n' "$gate_id"
       ;;
@@ -253,13 +427,15 @@ cmd_gate() {
 }
 
 cmd_gpt() {
-  local role="" prompt="" model="gpt-5.6-sol" out=""
+  # 모델 인자 이름이 '--gpt-model' 인 이유: "이 캐리어의 어느 서브커맨드도 '--model' 리터럴을
+  # 수용하지 않는다"는 불변식을 예외 없이 만들기 위함(예외가 있으면 가드가 조건부가 된다).
+  local role="" prompt="" gpt_model="gpt-5.6-sol" out=""
   while [ $# -gt 0 ]; do
     case "$1" in
-      --role) role="$2"; shift 2 ;;
-      --prompt) prompt="$2"; shift 2 ;;
-      --model) model="$2"; shift 2 ;;
-      --out) out="$2"; shift 2 ;;
+      --role) role="${2:-}"; [ -n "$role" ] || die "gpt: --role 값 필요(executor|verifier)"; shift 2 ;;
+      --prompt) prompt="${2:-}"; [ -n "$prompt" ] || die "gpt: --prompt 필수"; shift 2 ;;
+      --gpt-model) gpt_model="${2:-}"; [ -n "$gpt_model" ] || die "gpt: --gpt-model 값 필요"; shift 2 ;;
+      --out) out="${2:-}"; [ -n "$out" ] || die "gpt: --out 값 필요"; shift 2 ;;
       *) die "gpt: 인식하지 않는 인자 '$1'" ;;
     esac
   done
@@ -267,12 +443,12 @@ cmd_gpt() {
   case "$role" in
     executor)
       # 경로 B — 규율 아래 실행자(하네스 안, 설계 §4.3). 대상 문서는 stdin 으로 전달(호출자 책임).
-      OCX_MODEL="$model" "$HOME/.claude/bin/claude-ocx" -p "$prompt" --output-format json
+      OCX_MODEL="$gpt_model" "$HOME/.claude/bin/claude-ocx" -p "$prompt" --output-format json
       ;;
     verifier)
       [ -n "$out" ] || die "gpt --role verifier: --out 필수(cross-family-review.md -o 소비 규율)"
       rm -f "$out"
-      codex exec -m "$model" -c model_reasoning_effort=ultra -c model_verbosity=high \
+      codex exec -m "$gpt_model" -c model_reasoning_effort=ultra -c model_verbosity=high \
         --sandbox read-only --skip-git-repo-check -o "$out" "$prompt"
       local rc=$?
       [ -s "$out" ] || die "gpt --role verifier: 출력 파일 미생성 — API 실패 가능성(cross-family-review.md -o 소비 규율)"
@@ -288,15 +464,26 @@ cmd_selfcheck() {
   command -v jq >/dev/null 2>&1 && echo "OK jq: $(command -v jq)" || { echo "FAIL jq 미설치"; rc=1; }
   case "$ORCA" in
     *.cmd) echo "FAIL: \$ORCA 가 orca.cmd 로 해소됨 — orchestration send/reply 거부(설계 §3.0 함정②)"; rc=1 ;;
-    *) echo "OK ORCA=$ORCA" ;;
+    *)
+      # 존재하지 않는 경로도 .cmd 만 아니면 OK 를 내던 결함 정정 — 실행 가능성까지 확인한다.
+      if [ -x "$ORCA" ] || command -v "$ORCA" >/dev/null 2>&1; then
+        echo "OK ORCA=$ORCA"
+      else
+        echo "FAIL: \$ORCA 실행 불가 — '$ORCA' 는 실행 가능한 파일도, PATH 로 해소되는 명령도 아니다"; rc=1
+      fi
+      ;;
   esac
   return "$rc"
 }
 
 main() {
   local cmd="${1:-}"; [ $# -gt 0 ] && shift
-  # gpt 서브커맨드는 --model 을 다른 의미(GPT 모델명)로 정당하게 받으므로 이 가드에서 제외한다.
-  [ "$cmd" = "gpt" ] || assert_no_forbidden_args "$@"
+  # 금지 인자(--model/--effort/--on)는 각 파서의 *옵션 위치*에서만 거부한다(reject_forbidden_flag) —
+  # 무차별 스캔은 'run --objective new-child' 같은 정당한 값 토큰까지 죽인다.
+  # selfcheck 는 진단 전용이라 assert 로 죽는 대신 스스로 FAIL 을 보고한다.
+  # selfcheck 제외: 죽는 대신 보고하는 진단 커맨드다(C-20 이 여기서 실재·실행가능을 검사).
+  # gpt 제외: 교차패밀리 리뷰 경로는 $ORCA 를 전혀 쓰지 않는다 — Orca 미설치 머신에서도 가용해야 한다.
+  case "$cmd" in selfcheck|gpt) ;; *) assert_orca_exe ;; esac
   case "$cmd" in
     preflight) cmd_preflight "$@" ;;
     run) cmd_run "$@" ;;

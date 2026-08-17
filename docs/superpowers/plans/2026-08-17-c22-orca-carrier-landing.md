@@ -66,7 +66,7 @@
 5. **자원-생성 서브커맨드(`run`/`task`/`gate create`/`spawn`)는 봉투가 아니라 추출된 ID 1줄만 stdout 에 낸다** — c22-probe 의 "함정"(최상위 `.id` 오채택)을 코드로 구조적으로 예방한다. 원본 JSON 은 `$RUNDIR/last-*.json` 에 보존(디버깅용).
 6. **non-readonly 동시성 추적은 파일 기반**(`$RUNDIR/active-nonreadonly.tasks`, 1줄 1 task id) — 캐리어는 매 서브커맨드 호출마다 새 프로세스이므로 상태를 파일에 둔다. `spawn`(readonly 아님) 이 카운트 ≥1 이면 `$ORCA` 호출 전에 거부. `worker-start` 가 실패(비-ready)하면 추가한 슬롯을 롤백. `release` 가 슬롯을 비운다.
 
-- [ ] **Step 1: 스켈레톤 작성 (가드 없음 — RED 준비)**
+- [x] **Step 1: 스켈레톤 작성 (가드 없음 — RED 준비)**
 
 `bin/orca-rpi.sh` 를 아래 내용으로 작성한다. 이 시점에는 `assert_no_forbidden_args`/동시성 가드를 **호출하지 않은 상태**로 둔다(다음 step 에서 RED 를 잡기 위해):
 
@@ -146,7 +146,7 @@ main() {
 if [ "${BASH_SOURCE[0]}" = "$0" ]; then main "$@"; fi
 ```
 
-- [ ] **Step 2: RED 확인 — 가드 없는 스켈레톤이 위험 인자를 거부하지 못함을 실측**
+- [x] **Step 2: RED 확인 — 가드 없는 스켈레톤이 위험 인자를 거부하지 못함을 실측**
 
 ```bash
 chmod +x bin/orca-rpi.sh
@@ -155,7 +155,7 @@ bin/orca-rpi.sh spawn --run run_x --task task_x --model opus; echo "rc=$?"
 ```
 Expected (RED): `rc=0` 그리고 `"spawn: would call worker-start …"` 가 출력됨 — `--model` 이 **거부되지 않고 통과**한다. 이 출력을 그대로 plan 실행 보고에 인용한다(RED 증거).
 
-- [ ] **Step 3: 가드 추가 (GREEN 목표)**
+- [x] **Step 3: 가드 추가 (GREEN 목표)**
 
 `assert_no_forbidden_args` 함수를 추가하고 `main()` 의 dispatch 직전에서 호출한다. ★단 `gpt` 서브커맨드는
 제외한다 — 거기서의 `--model` 은 Orca 워커에 실리는 티어 선언이 아니라 GPT 모델명(`gpt-5.6-sol` 등, 경로 A/B
@@ -206,7 +206,7 @@ main() {
 }
 ```
 
-- [ ] **Step 4: GREEN 확인 (ⓑ 증거)**
+- [x] **Step 4: GREEN 확인 (ⓑ 증거)**
 
 ```bash
 bin/orca-rpi.sh spawn --run run_x --task task_x --model opus; echo "rc=$?"
@@ -215,7 +215,7 @@ bin/orca-rpi.sh handoff --task task_x --dispatch d_x --effort high; echo "rc=$?"
 ```
 Expected (GREEN): 3건 전부 `rc=1` + `거부: '--model'…`/`'--effort'…` 사유가 stderr 에 출력.
 
-- [ ] **Step 5: 동시성 가드 — RED 확인**
+- [x] **Step 5: 동시성 가드 — RED 확인**
 
 먼저 `cmd_spawn` 에 파일 기반 동시성 카운트를 아직 추가하지 않은 채로, 활성 슬롯을 수동으로 시뮬레이션해 가드 부재를 확인한다:
 
@@ -226,7 +226,7 @@ bin/orca-rpi.sh spawn --run run_x --task task_new; echo "rc=$?"
 ```
 Expected (RED): `rc=0`(또는 스켈레톤의 `--run`/`--task` 필수 체크만 통과해 "would call…" 출력) — 활성 슬롯이 1개 있는데도 2번째 spawn 이 거부되지 않는다.
 
-- [ ] **Step 6: 동시성 가드 구현 (GREEN 목표) + 나머지 서브커맨드 전체 완성**
+- [x] **Step 6: 동시성 가드 구현 (GREEN 목표) + 나머지 서브커맨드 전체 완성**
 
 이 step 은 스켈레톤의 스텁 함수 9개(`cmd_preflight`/`cmd_run`/`cmd_task`/`cmd_spawn`/`cmd_wait`/`cmd_handoff`/`cmd_release`/`cmd_gate`/`cmd_gpt`)와 `cmd_selfcheck` 전부를 아래 최종 구현으로 **교체**한다(파일 안의 동명 함수 정의를 전부 이 블록으로 바꾼다 — `cmd_spawn` 은 특히 미인식 인자 분기가 `*) shift ;;` 에서 `*) die …` 로 바뀐다):
 
@@ -483,7 +483,7 @@ cmd_selfcheck() {
 }
 ```
 
-- [ ] **Step 7: GREEN 확인 (ⓒ 증거) + 무회귀 확인**
+- [x] **Step 7: GREEN 확인 (ⓒ 증거) + 무회귀 확인**
 
 ```bash
 rm -f "$HOME/.claude/.orca-rpi/active-nonreadonly.tasks"
@@ -505,7 +505,7 @@ bin/orca-rpi.sh gpt --role verifier --model gpt-5.6-terra; echo "rc=$?"
 ```
 Expected: `rc=1` + `gpt: --prompt 필수`(인자파싱까지 도달했다는 뜻 — `거부: '--model'…` 이 아니어야 한다. 그게 나오면 main() 의 `gpt` 제외 분기가 깨진 것).
 
-- [ ] **Step 8: ⓐⓓ 증거 + 무회귀**
+- [x] **Step 8: ⓐⓓ 증거 + 무회귀**
 
 ```bash
 bash -n bin/orca-rpi.sh && echo "ⓐ bash -n: OK"
@@ -514,7 +514,7 @@ grep -c 'orchestration reset\|coordinator-start\|coordinator-stop\|agent hooks o
 ```
 Expected: `ⓐ bash -n: OK` · selfcheck `rc=0`(orca.exe 경로가 `.cmd` 아니므로) · grep count = **0**(ⓓ 증거 — 이 6개 금지 명령 리터럴이 소스에 전혀 없음).
 
-- [ ] **Step 9: `.gitignore` 에 런타임 디렉터리 등록**
+- [x] **Step 9: `.gitignore` 에 런타임 디렉터리 등록**
 
 `$RUNDIR`(`$HOME/.claude/.orca-rpi/`)는 preflight 백업·마지막 응답 JSON·동시성 추적 파일 등 **런타임 상태**이지
 소스가 아니다 — `worktrees-marker/`(worktree-teardown 훅의 동형 선례)와 같은 대접을 준다. `.gitignore` 에
@@ -525,7 +525,7 @@ Expected: `ⓐ bash -n: OK` · selfcheck `rc=0`(orca.exe 경로가 `.cmd` 아니
 /.orca-rpi/
 ```
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 ```bash
 git add bin/orca-rpi.sh .gitignore
@@ -545,15 +545,15 @@ git commit -m "feat(orca): T1 — bin/orca-rpi.sh 유일 스폰 캐리어 착륙
 
 **이 task 는 execute-strict 위임이 아니라 메인이 `create-orchestrator-skill` Skill 도구를 직접 호출한다** (CLAUDE.md §2 + create-orchestrator-skill/SKILL.md Phase 2 "메인 세션이 직접" 규약). 아래 순서로 진행:
 
-- [ ] **Step 1: `Skill(skill="create-orchestrator-skill")` 호출**
+- [x] **Step 1: `Skill(skill="create-orchestrator-skill")` 호출**
 
-- [ ] **Step 2: Phase 1(Capture Intent) 에 아래 답을 직접 채워 넣는다** (사용자에게 되묻지 않음 — 이미 c21-orca-mode-design.md·c22-orca-probe-measured.md 로 확정됨):
+- [x] **Step 2: Phase 1(Capture Intent) 에 아래 답을 직접 채워 넣는다** (사용자에게 되묻지 않음 — 이미 c21-orca-mode-design.md·c22-orca-probe-measured.md 로 확정됨):
   1. 목적: Orca ADE 로 표준 RPI 4-Task DAG(R→P→I→C)를 구동 — `bin/orca-rpi.sh` 를 통해서만 `worker-start` 발행.
   2. 트리거: "C\<N\> 사이클 시작해줘, Orca 로 돌려" / start-rpi-cycle Phase I 옵션 (e) 선택 시.
   3. 입력: RPI 사이클 목표(자연어) + 현재 plan 경로. 출력: Run 1개 + Task 4개(R/P/I/C) + read-only 리뷰 팬아웃 2개, `worker_done` 집계 보고.
   4. 사이클형(4-Task DAG, deps 체인 R→P→I→C, 깊이 4 = 가이드 권고 상한 — `orchestration.md:390` "avoid dependency chains deeper than 3-4 steps").
 
-- [ ] **Step 3: Phase 2(skill-creator 호출) — draft 골격에 아래 내용을 명시 지시**:
+- [x] **Step 3: Phase 2(skill-creator 호출) — draft 골격에 아래 내용을 명시 지시**:
   - `bin/orca-rpi.sh preflight` 실패(rc=3) 시 **자동으로 기존 Phase I 옵션 (a)/(d) 로 폴백** — Orca 는 선택적 가속기, 사이클을 멈추지 않는다(설계 §9 시나리오3).
   - preflight 성공 시: `run` → `task`(R/P/I/C, deps 체인) → 각 Phase 마다 `spawn --worktree current`(1번째) 또는 `handoff --dispatch <이전 dispatch>`(2번째부터, 터미널 재사용) → `wait --run <RUN> --timeout-ms 900000`(코디네이터는 블로킹 대기, sleep 루프 금지) → `worker_done` 수신 시 다음 Task 로 진행.
   - Closeout(C) 완료 후: read-only 리뷰 2슬롯을 **동시** `spawn --readonly` 로 팬아웃(설계 §3.6 STAGE 5 — "Create the Run and every independent Task first, then start all independent workers before waiting") 후 단일 `wait` 로 수확.
@@ -597,13 +597,13 @@ git commit -m "feat(orca): T1 — bin/orca-rpi.sh 유일 스폰 캐리어 착륙
     발견마다 파일:줄 인용. worker_done --outcome succeeded --body "<발견 N건 요약>" --phase V2.
     ```
 
-- [ ] **Step 4: Phase 3(Inject Orchestrator Skeleton) — draft 에 자동 주입 확인**:
+- [x] **Step 4: Phase 3(Inject Orchestrator Skeleton) — draft 에 자동 주입 확인**:
   - frontmatter 3줄: `orchestrator_skill: true` / `generated_by: create-orchestrator-skill` / `orchestrator_version: 1.0`
   - body `# Phase ` 헤더 ≥3개(R/P/I/C 4단계 서술 + Communication Protocol 이면 자연히 충족)
   - 실제 `Agent(subagent_type=...)` 호출 ≥1개 — 이 skill 은 Orca 워커를 스폰하는 것이 본질이지만, `preflight` 실패 시 폴백 경로(옵션 (a)/(d))를 설명하는 절에 최소 1개의 실제 `Agent(subagent_type="execute-strict", …)` 예시 호출을 포함시켜 계약을 만족시킨다(폴백 경로가 실제로 이 형태이므로 인위적 삽입이 아니다).
   - `Communication Protocol` 절 — result(COMPLETE/FAIL) · evidence(Run/Task id, worker_done 로그) · unknowns.
 
-- [ ] **Step 5: Phase 4(Verify) — `hooks/lib/skeleton-scan.js` 직접 통과 확인**
+- [x] **Step 5: Phase 4(Verify) — `hooks/lib/skeleton-scan.js` 직접 통과 확인**
 
 Phase 4 규약("파일 생성은 통과 후에만")을 지키려면 draft 를 **최종 경로가 아닌 스크래치 경로**에 먼저 쓰고
 그걸 검증한 뒤에만 `skills/orca-rpi-cycle/SKILL.md` 로 옮긴다:
@@ -623,7 +623,7 @@ Expected: 공백 구분 4개 정수 `<hasMarker> <phase> <agent> <contract>`(예
 && phase>=3 && agent>=1 && contract>=1`. FAIL 시 draft 를 보정하고 재검증 — **통과한 뒤에만**
 `mv "$DRAFT" skills/orca-rpi-cycle/SKILL.md`(create-orchestrator-skill Phase 4 규약: "통과 시에만 파일 생성").
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add skills/orca-rpi-cycle/SKILL.md
@@ -641,7 +641,7 @@ git commit -m "feat(orca): T2 — skills/orca-rpi-cycle/SKILL.md (create-orchest
 - Consumes: Task 1 의 정확한 서브커맨드명(`orca.exe` 절대경로·`worker_done` 정확 커맨드는 Orca CLI 명령이지 `bin/orca-rpi.sh` 서브커맨드가 아님 — worker_done 은 워커가 **직접** `$ORCA orchestration send` 를 호출한다, T1 은 coordinator 측 subcommand 세트에 `send`/`ask`/`reply` 를 포함하지 않는다).
 - Produces: seal #52-ⓑ(향후 T10)가 검사할 필수 토큰 6종의 SSOT: `--outcome` · `--worktree current` · `read-only 팬아웃` · `RPI_SKIP 금지` · `orca.exe` · `inherit 위임 금지`.
 
-- [ ] **Step 1: 문서 작성**
+- [x] **Step 1: 문서 작성**
 
 `docs/ai-context/orca-worker-contract.md` 를 아래 내용으로 작성한다(★외곽 펜스는 4-backtick — 안의
 `worker_done` 예시가 3-backtick bash 블록을 담고 있어 3-backtick 으로 감싸면 그 안쪽 블록의 닫는
@@ -726,7 +726,7 @@ Task spec 이 지시하는 층1 호출(`Agent(execute-strict|review-strict|explo
 일어난다 — 워커는 Task spec 을 권유가 아니라 **명령**으로 취급한다(c21-orca-mode-design.md §4.1).
 ````
 
-- [ ] **Step 2: seal #52-ⓑ 필수 토큰 6종 존재 확인**
+- [x] **Step 2: seal #52-ⓑ 필수 토큰 6종 존재 확인**
 
 ```bash
 for tok in '\-\-outcome' '\-\-worktree current' 'read-only 팬아웃' 'RPI_SKIP 금지' 'orca\.exe' 'inherit 위임 금지'; do
@@ -735,7 +735,7 @@ done
 ```
 Expected: 6줄 전부 `≥1`.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add docs/ai-context/orca-worker-contract.md
@@ -762,3 +762,48 @@ bash setup/verify-setup.sh          # 기준선 90/0 무회귀 확인
 bash hooks/tests/run-all.sh         # 기준선 305/305(또는 이 사이클 실측 기준선) 무회귀 확인 — T1-T3 는 hooks/ 를 건드리지 않으므로 회귀 없어야 함
 bash setup/tests/seal-regression.test.sh   # setup/+입력집합 diff 없으면 SKIP+사유(이번 사이클은 setup/ 미변경 예상) — 조건부, Closeout 에서 diff 확인 후 결정
 ```
+
+---
+
+## 실행 결과 · Closeout 재감사 · 정정 (2026-08-17)
+
+### 착륙물
+
+| Task | 파일 | 최종 |
+|---|---|---|
+| T1 | `bin/orca-rpi.sh` | 500줄 · git mode **100755**(`git update-index --chmod=+x` — `core.filemode=false` 라 작업트리 권한이 인덱스에 반영되지 않던 결함을 닫음) |
+| T2 | `skills/orca-rpi-cycle/SKILL.md` | 256줄 · `skeleton-scan.js` → `1 6 7 1` (요건 `1 ≥3 ≥1 ≥1`) |
+| T3 | `docs/ai-context/orca-worker-contract.md` | 91줄 · seal #52-ⓑ 토큰 6종 전부 ≥1 · 승인 채널 층 분리 표 §5 |
+| 부속 | `.gitignore`(`/.orca-rpi/`) · `CONTEXT.md`(용어 3종) · `docs/ai-context/scaffold-registry.md`(`orca-rpi-cycle` 등재, Skills 10→11) · `docs/ai-context/c21-orca-mode-design.md` §11.9(spec delta 10건) | — |
+
+### TDD 증거 (stub `$ORCA` 로 격리 재수행 — 라이브 DB 오염 0)
+
+- ⓐ `bash -n bin/orca-rpi.sh` → OK · `selfcheck` → rc=0
+- ⓑ `spawn --run r --task t --model opus` → **rc=1** + `거부: '--model' 은 이 캐리어가 받지 않는 인자입니다 …`
+  · `task … --effort xhigh` → rc=1 · `wait … --on env` → rc=1 · `spawn --worktree new-child` → rc=1
+  · **오탐 제거 확인**: `run --objective new-child`(값 토큰) → rc=0 정상 통과 (정정 전에는 전역 스캐너가 정당한 값을 거부했다)
+- ⓒ 원장 선점 후 2번째 `spawn` → **rc=1** + `거부: non-readonly task 동시 실행 상한(1) 초과 — 활성: task_A`
+- ⓓ 금지 명령 리터럴 `grep -c` → **0**
+- 추가: `$ORCA`=`*.cmd` → 전 서브커맨드 rc=1(`selfcheck`/`gpt` 는 의도적 예외) · `# [P2]` 는 **4종**(dispatch id · delivery id · gate id · `agent_terminal_handle`)에만
+
+### 재감사에서 나온 정정 (검증 3층 + 교차패밀리 2슬롯)
+
+**캐리어 C-1~C-20**: `ensure_rundir` fail-closed · 원장 접근 원자화(mkdir 뮤텍스) · `outcome_unknown` 에서 슬롯 **비-롤백** · `--retry-of` 수용 · dispatch/gate id 의 `.id` 폴백 제거(요청 상관 ID 오채택 차단) · `handoff` 가 dispatch id 를 출력하고 원장을 원자 교체 · `--types` 에 **`decision_gate` 추가** · `jq` 실패 비-침묵화 · **전건 순회 후 ack 를 코드로 강제**(직전 배치 자동 `--ack`, 불일치 ack 거부) · keepalive 로그에 묻힌 진단 표면화 · release 는 rc=0 일 때만 슬롯 해제 + 실제 `diff -u` 출력 · `assert_orca_exe` 를 `main()` 에서 강제 · 금지 인자 가드를 **위치-인식**으로 교체 · `gpt --model`→`--gpt-model` · `"${2:-}"` 가드 · `wt_sel` 파일 소비 · preflight `timeout` 래핑 · 응답을 die 이전에 저장 · `task --run` 수용 · selfcheck 실재성 검사
+
+**SKILL S-1~S-11**: 브랜치 가드 신설(`master|main` 에서 non-readonly 스폰 금지 — `current` 가 main worktree/master 라 사람 승인이 사후 무력화됨) · 4종 템플릿이 **층1 호출을 명령**(`Agent(explore|execute|review-strict)`·`Workflow(rpi-implement.js)`) · 템플릿 첫 지시로 **계약문서 절대경로 읽기**(자동 상속되지 않음) · `--outcome succeeded|failed` · `--prev-task` 동반 · `reply` 절대경로 `.exe` · `--outcome failed` 시 DAG 미전진 · 터미널 소멸 분기 · Phase 4 는 두 dispatch 가 settle 할 때까지 수확 · 전 dispatch release + 재사용 터미널 미폐쇄 정직 부기 · `--readonly` overclaim 정정
+
+**계약 T-1~T-4**: 자동 상속 거짓 단언 제거 · `--outcome <succeeded|failed>` · 코디네이터 `reply` 경로 명시 · `decision_gate` 수신 보장 명시
+
+### 선언된 잔여 (silent downgrade 아님 — 차기 사이클)
+
+1. **`install.sh` REQUIRED 등재** — 설계 §7 의 T1 행에 포함돼 있으나 사용자 goal 이 T17 을 범위 밖으로 명시. 이번엔 실행 비트 커밋만 이행. (§11.9 ⑨)
+2. **`gpt` 서브커맨드의 비용 원장 append**(설계 §4 의 `_goal/<cycle>-ocx-ledger.tsv`) — goal 의 T1 불변식 목록 밖이라 미구현.
+3. **`worker-start`/`worker-show`/`gate-create`/`check` 실응답 shape** — 실 워커를 띄워야 확정. `# [P2]` 4종 유지.
+4. **`--retry-request` 기반 정확 복구**(unknown mutation) — 미구현, 재시도는 `--retry-of` 만.
+5. **우발 생성된 라이브 Orca run `run_4e4776c1b041`(objective="new-child")** — 정정 위임의 증거 수집 명령이 stub 없이 라이브 CLI 에 도달해 생성. 삭제 명령 부재 + `orchestration reset` 은 금지 명령(안전제약 6) → **영구 잔존**. 이후 전 검증은 stub 으로 격리 재수행.
+
+### 무회귀 검증 결과
+
+- `setup/verify-setup.sh` → **PASS=90 FAIL=0** (정정 전 89/1 — seal #37 scaffold-registry 미등재)
+- `hooks/tests/run-all.sh` → **305/305**
+- `setup/tests/seal-regression.test.sh` → **full 실행**(`skills/` diff 존재 → SKIP 불가)

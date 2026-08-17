@@ -24,7 +24,7 @@
 | `surface-model-policy.sh` | 실행자 fable 누출·검증자 기준선(임무-분리 v2 floor, §16) 미달을 advisory 환기(역할×모델 매트릭스 L2) | tri-model C11 (2026-07-25), C12/C13 확장, **C17 v2** |
 | (`_common.sh`) | 위 전 hook의 공유 함수(json 파서·hook_log·plan_status·resolve_project_root·run_log_event·surface_bypass 등) | 지속 진화; **C2 run_log_event 추가** |
 
-## Skills (10 — `ls skills/*/SKILL.md`; grill-with-docs·ccs-delegation은 비추적 설치 산물)
+## Skills (11 — `ls skills/*/SKILL.md`; grill-with-docs·ccs-delegation은 비추적 설치 산물)
 
 | Skill | 존재 이유 | 추적 |
 |---|---|---|
@@ -38,6 +38,7 @@
 | `statusline` | 커스텀 상태줄 유지보수(비강제 on-demand) | statusline v2 |
 | `disk-cleanup` | Windows C: 디스크 정리 orchestrator(진단→Tier 안전삭제→구조화; 위험 삭제는 AskUserQuestion) — 비강제 on-demand | 2026-07 신설(등재 2026-07-25, seal #37 발화 백필) |
 | `system-optimize` | Windows 실행상태(메모리·시작프로그램·전원·발열) 최적화 orchestrator — 되돌리기 쉬운 변경만, 비강제 on-demand | 2026-07 신설(등재 2026-07-25, seal #37 발화 백필) |
+| `orca-rpi-cycle` | Orca ADE 로 RPI 4-Task DAG(R→P→I→C) 구동 — 스폰은 `bin/orca-rpi.sh`(유일 스폰 캐리어) 경유만, preflight 실패 시 기존 (a)/(d) 로 폴백(선택적 가속기) | **C22 T2 (2026-08-17)**; 설계 `docs/ai-context/c21-orca-mode-design.md` §7 |
 | (grill-with-docs) | 도메인 어휘 stress-test — doctor.sh 자동설치(gitignored), 벤더링 | 미추적(설치 산물) |
 | (ccs-delegation) | CCS CLI 위임(로컬 정션, 비추적) — 하네스 게이트 무관 | 미추적 |
 

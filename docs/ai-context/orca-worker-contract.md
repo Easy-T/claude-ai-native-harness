@@ -3,7 +3,9 @@
 > Orca 가 워커 세션에 주입하는 preamble(RULE#1 포함) 위에 얹히는 **하네스-고유** 계약만 담는다.
 > preamble 이 이미 나르는 규범(worker_done 1회 필수·5분 heartbeat·taskId+dispatchId 동봉 등)은
 > 재전송하지 않는다(c21-orca-mode-design.md §2 "규범 재전송 금지", c22-orca-probe-measured.md P0-4).
-> 워커는 이 문서를 CLAUDE.md 와 함께 자동 상속한다(§0.1 반증 1 — 글로벌 CLAUDE.md 는 프로세스 경계를 넘는다).
+> ⚠️ 이 문서는 **자동 상속되지 않는다** — 프로세스 경계를 넘는 것은 자동 로드 특수 파일인 `CLAUDE.md` 뿐이고
+> (§0.1 반증 1), 임의 문서인 이 파일을 워커에 주입하는 단계는 어디에도 없다. 따라서 **코디네이터의 Task spec 이
+> 이 문서를 절대경로로 명시적으로 읽으라고 지시해야 한다**(`C:/Users/12132/.claude/docs/ai-context/orca-worker-contract.md`).
 
 ## 1. `worker_done` — 정확한 커맨드
 
@@ -11,7 +13,7 @@
 ORCA="C:/Users/12132/AppData/Local/Programs/orca/resources/bin/orca.exe"   # ★PATH 부재 가능성 + .cmd 는 send 거부
 "$ORCA" orchestration send --type worker_done --subject "Phase <R|P|I|C>: <PASS|FAIL>" \
   --body "<변경·발견·잔여 3문장 요약>" --task-id "$TASK" --dispatch-id "$DISPATCH" \
-  --outcome succeeded --files-modified "hooks/x.sh,setup/verify-setup.sh" \
+  --outcome <succeeded|failed> --files-modified "hooks/x.sh,setup/verify-setup.sh" \
   --report-path "docs/superpowers/plans/<plan>.md" --phase "<R|P|I|C>" --json
 ```
 
@@ -35,6 +37,19 @@ ORCA="C:/Users/12132/AppData/Local/Programs/orca/resources/bin/orca.exe"   # ★
 | `orchestration ask` | 워커→코디네이터 질문(코디네이터가 `reply` 로 응답) | 워커 |
 | `gate-create`/`gate-resolve` | **코디네이터 소유** DAG 판정(예: Gate P PASS/FAIL) — 워커의 질문에 답하는 용도 아님 | 코디네이터(`bin/orca-rpi.sh gate`) |
 | `send --type escalation` | 사고 상신(훅 차단·예상 밖 상태) | 워커 |
+
+**코디네이터는 어떻게 답하는가** — 캐리어 서브커맨드 세트에 `reply` 가 없다는 것은 "답할 수 없다"가 아니라
+"캐리어를 거치지 않는다"는 뜻이다(`bin/orca-rpi.sh` 는 *스폰* 캐리어이지 유일한 orca 호출 지점이 아니다).
+코디네이터는 아래를 **직접** 실행한다 — `orca.cmd` 가 `reply` 를 `exit /b 2` 로 거부하므로 `orca.exe`
+절대경로가 필수다:
+
+```bash
+"C:/Users/12132/AppData/Local/Programs/orca/resources/bin/orca.exe" orchestration reply \
+  --id <msg_id> --body "<답>" --json
+```
+
+**수신 보장**: 코디네이터의 `wait` 는 wake 목록에 `worker_done,escalation,question,decision_gate` 를 모두
+포함한다 — `decision_gate` 가 목록에서 빠지면 그것으로 물은 워커는 영구 hang 한다(이번 사이클에 실제로 빠져 있었다).
 
 ⚠️ **`orca orchestration escalation` 이라는 명령은 존재하지 않는다** — orchestration 하위 28개
 서브커맨드 전수(`ask check coordinator-start coordinator-stop dispatch dispatch-show gate-create

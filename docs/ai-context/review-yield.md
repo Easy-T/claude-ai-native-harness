@@ -98,3 +98,30 @@
 - 최종 3-스위트: run-all **305/305** · verify-setup **90/0** · seal-regression **27/0** · run-log EVENTS=9366 BLOCK=2484 SKIP=376 **FAILOPEN=0**
 - **트리거 대조(§18.1 판정 3)**: (a) 불성립 · **(b) 성립**[C19 슬롯1 BLOCKER 2 → C20 SKIP 으로 연속 끊김 → **C21 슬롯2 가 BLOCKER 급 재적발**. 단 §19.5 의 반증 조건 판정은 **(ii) 다른 클래스**: 이번 BLOCKER 는 "자기-산출물 전제 미실측"이 아니라 **텍스트 휴리스틱이 구조를 근사한다는 설계 오류** → §19.5 의 floor 축 무변경 판정 **유지**] · (c) **성립**[게이트 빈도 아닌 *검증 층 구성* 변경 없음 — 단 판별식 축을 변경했으므로 그 층 한정 재심 대상] · (d) N/A
 - (부기) FABLE-TAKEOVER 0회 · 집필-위임: spec §20 개정 1회(골격 계약 `_goal/c21-skeleton-spec20-rev.md`)·plan 1회 · **§20.7 은 메인 직접 집필**(슬롯2 트리아지 판정을 담은 절이라 판정 주권 분리 불가 — FABLE-TAKEOVER 성격의 직접 집필) · **핵심 교훈: 설계층 리뷰(슬롯 1)와 Gate P 가 통과시킨 결함을 코드층 교차패밀리(슬롯 2)가 잡았다.** 후보 A 기각 근거가 후보 E 에 그대로 살아 있었는데 동일 패밀리 검증 3층이 모두 놓쳤다 — 자기채점 편향의 실증이며 슬롯 2 를 SKIP 했다면 오답이 머지됐다.
+
+## C22 (cycle 73, 2026-08-17) — Orca 스폰 캐리어 T1~T3 착륙 + 재감사 정정
+
+- Gate R: **조건부 생략**(spec delta no-op, 기계 판별 `git diff 39a1dea..HEAD -- docs/superpowers/specs/` = 0줄) · 실발견 0 · 미실행
+  · ★정직 부기: 이 subsystem 의 durable spec 은 관례를 벗어나 `docs/ai-context/c21-orca-mode-design.md` 에 있다.
+    §16.3-1 의 기계 판별은 `docs/superpowers/specs/` 만 보므로 **이 사이클에서 그 판별은 vacuous 였다** —
+    실제로 Closeout 재감사가 spec delta 10건을 찾아 §11.9 로 in-place 개정했다(0-diff 증거가 delta 부재를 뜻하지 않은 사례).
+- Gate P: FAIL→정정 4건→델타 재심 PASS · 실발견 4건 · 발견 (**BLOCKER** T3 문서에 `inherit 위임 금지` 연속 리터럴 부재[seal #52-ⓑ 토큰이 백틱으로 쪼개져 있었음] · `cmd_gpt --model` 이 전역 가드에 걸려 죽은 코드 · Task2 Step5 닭-달걀 파일 읽기 + Expected 형식 오기 · Task3 3-백틱 펜스 조기 종료)
+- Task2 골격 검증(review-strict, create-orchestrator-skill Phase 4): PASS · 실발견 1건 · 발견 (`Agent(execute-strict)` 예시를 "Research 위임"으로 서술 — CLAUDE.md §3 역할 매핑과 모순)
+- **통합 리뷰(Closeout drift+senior 합본, review-strict): FAIL→정정 · 실발견 12건** · 발견
+  (**BLOCKER 4**: scaffold-registry 미등재로 seal #37 RED[verify-setup 89/1] · plan 체크박스 0/19 + Status active · `D_P=$(handoff …)` 가 dispatch id 아닌 JSON 봉투를 받음 · `cmd_handoff` 가 동시성 원장을 읽지도 쓰지도 않아 실사이클 경로 3/4 에서 불변식 ⓕ 미발화 /
+   **MAJOR 5**: `.cmd` 판정이 selfcheck 안의 죽은 코드 · "전건 순회 후 ack" 미강제 · `$T_R` 슬롯 영구 잔존[다음 사이클 첫 spawn 영구 잠금] · git index 100644[실행 비트 미커밋] · `jq` 실패 침묵[rc 유실 → worker_done 통째 유실] /
+   **MINOR 3**: release 가 실제 diff 미출력 · V1/V2 dispatch 플레이스홀더 · P 산출물이 I 커밋보다 뒤에 커밋된 순서 역전)
+- **교차패밀리 슬롯 1(GPT gpt-5.6-sol, ultra, verbosity=high — spec+plan): 실행 · 제기 27 · 실발견 25 · 기각 2**
+  (기각: 카탈로그 조회 미수행[cross-family-review.md:33 이 sol 고정을 사용자 확정으로 SSOT 화] · release 단계 부재[plan 요약만 보고 판정, 실 SKILL.md 에는 존재])
+- **교차패밀리 슬롯 2(동 조합 — 코드 diff): 실행 · 제기 29 · 실발견 29 · 기각 0 ★이번 사이클 최대 수확**
+  · **BLOCKER 급 고유 발견**: `check --types` 에 `decision_gate` 부재[preamble RULE#1 이 워커에게 명시 지시하는 채널 — 빠지면 **워커 영구 hang**, T3 가 막으려던 실패 모드가 T1 기본값에 그대로 남아 있었다] ·
+    `--ack` 미사용으로 **oldest Delivery 무한 재생** · TOCTOU(검사-예약 비원자) · `outcome_unknown` 에서 슬롯 롤백[동시-1 붕괴] · `--readonly` overclaim[Orca 에 전달되지 않는 자기-선언인데 강제로 서술] ·
+    `--worktree current` = **main worktree/master** → I 워커가 머지 대상에 직접 커밋해 **사람 승인이 사후 무력화**
+  · 계약-층 고유 발견: `orca-worker-contract.md` 는 `CLAUDE.md` 와 달리 **자동 상속되지 않는다**[아무것도 주입하지 않음 → T3 전체가 사문일 뻔] · `--outcome succeeded` 하드코딩이 FAIL 보고를 성공으로 기록
+- 정정 위임(§17.3 미니-사이클, execute-strict ×2 병렬 — 캐리어 / SKILL+계약): 실행 · 자기검증 증거 산출 · 메인이 잔여 3건 직접 마감(`gpt` 를 `assert_orca_exe` 예외로 · R/P 템플릿 outcome · V1/V2 템플릿에 계약 읽기+층1 위임)
+- 재검증: verify-setup **89/1 → 90/0** · run-all **305/305** · seal-regression **full 실행**(skills/ diff 존재 → SKIP 불가)
+- **트리거 대조(§18.1 판정 3)**: (a) 불성립[이번 사이클 실행 층 전부 실발견 ≥1] · **(b) 성립**[GPT 슬롯 2 가 내부-통과 BLOCKER 를 **C21·C22 2사이클 연속** 적발 → 차기 floor 한정 재심 1회 예약, §16.0-2 역-supersede 경로] · (c) 불성립[티어·프레이밍·게이트 빈도 무변경 — §11.9 ① 은 *미구현* T6 오라클의 판정 기준 개정이라 층 변경 아님] · (d) N/A
+- (부기) FABLE-TAKEOVER 0회 · 집필-위임: 정정 실행 2건(execute-strict) · spec §11.9 는 **메인 직접 집필**(교차패밀리 트리아지 판정을 담은 절이라 판정 주권 분리 불가) · fable 위임 토큰 0
+- **★교훈 1 — 슬롯 2 가 또 이겼다.** 내부 3층(Gate P·골격 검증·통합 리뷰)이 통과시킨 `decision_gate` 누락을 코드층 교차패밀리가 잡았다. 이것은 C21 과 **같은 클래스의 재발**이며, 특히 뼈아픈 것은 이 사이클의 T3 가 "AskUserQuestion 층 분리를 빠뜨리면 워커가 영구 hang 한다"를 **문서로 정확히 경고하면서** 정작 T1 의 수신 목록에서 그 채널을 빠뜨렸다는 점이다 — **경고를 쓴 사람이 경고 대상을 구현하지 않는** 클래스.
+- **★교훈 2 — 0-diff 는 delta 부재의 증거가 아니다.** durable spec 이 관례 경로 밖(`docs/ai-context/`)에 있으면 §16.3-1 기계 판별이 vacuous 해진다. 판별 경로는 *그 subsystem 의 spec 실제 위치*를 따라야 한다.
+- **★교훈 3 — 인자 파싱 검증이 라이브 CLI 에 도달했다.** 정정 위임의 증거 수집 명령(`run --objective new-child`)이 stub 없이 실행돼 되돌릴 수 없는 Orca run(`run_4e4776c1b041`) 을 생성했다(삭제 명령 부재 · `reset` 은 금지 명령). 이후 전 검증을 `ORCA_CLI_COMMAND=<stub>` 로 격리 재수행. non-obvious 등록 후보(사용자 확인 대기).

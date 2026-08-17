@@ -874,3 +874,67 @@ result:     claude-haiku-4-5-20251001
 ```
 
 → **접힘 없음. 하네스 모델 정책의 티어 판정은 실 라우팅과 정합한다.** 단 이것은 *현 세션 env 가 실효*라는 조건 위에 서 있으므로, **CCS 파일 선언이 실효가 되는 경로(예: env 없이 새로 뜬 셸)에서는 접힘이 성립할 수 있다** — 미측정. 워커가 env 를 상속하지 않는 경로가 생기면 재측정 대상.
+
+### 11.9 C22 재감사 spec delta (2026-08-17) — 교차패밀리 2슬롯 + 내부 통합 리뷰 산출
+
+> T1~T3 착륙물을 실측 CLI `--help` · 가이드 · preamble 원문에 대조한 재감사에서 나온 **in-place 개정**
+> (CLAUDE.md §5 — 하네스 자신의 아키텍처 결정은 durable spec in-place 개정으로 기록).
+> 아래 항목은 §3·§5·§6·§7 의 해당 문장을 **supersede** 한다.
+
+**① §6.1 검사항목 ⓐ·ⓒ·ⓕ 판정 기준 정정 — "리터럴 0" → "발행 0"**
+AS-IS 는 `--model`/`--effort` **출현** 0 · `new-child|new-top-level` **리터럴 부재**(§6.3-ⓒ) · `orca.cmd` **리터럴** 0 을 요구한다.
+그런데 이 불변식들을 *코드로 강제*하려면 거부 arm 이 자기가 거부하는 토큰을 이름으로 불러야 한다 —
+AS-IS 기준은 **거부 코드 자신을 위반으로 만드는 자기반박 오라클**이다(캐리어의 `--model` 거부 arm ·
+`assert_worktree_arg` 의 `new-child` arm · `.cmd` 금지 근거 주석이 전부 걸린다).
+TO-BE: ⓐ `"$ORCA"` **호출 라인의 인자 벡터**에 `--model`/`--effort` 가 실리는 경로 **0**(거부 arm·주석 허용)
+· ⓒ `--worktree` **값으로** `new-child|new-top-level` 이 전달되는 경로 **0** · ⓕ `$ORCA` 가 `.cmd` 로 해소된 채
+발행되는 경로 **0**(런타임 assert 로 강제). §6.3-ⓒ 의 부정-단언도 "전달 경로 부재"로 같이 정정.
+T6 오라클(`setup/lib/orca-carrier-oracle.sh`)은 이 기준으로 구현한다.
+
+**② §3.4 `check --types` 에 `decision_gate` 추가 (BLOCKER 급 정정)**
+AS-IS 의 `--types worker_done,escalation,question` 은 가이드의 canonical 예시를 그대로 베낀 것이다.
+그러나 워커 preamble RULE#1 verbatim 이 `send --type decision_gate` 를 **허용 채널로 명시 지시**하고,
+가이드 :151 이 `decision_gate` 를 유효 타입으로 열거한다 → wake 목록에서 빠지면 **워커 영구 hang**.
+T3 가 막으려던 실패 모드가 T1 의 기본값에 그대로 남아 있었다. 기본값 = `worker_done,escalation,question,decision_gate`.
+
+**③ §9-A1 stale 정정** — `.claude` repo **미등록**을 전제한 선행조건 문장은 무효.
+P0 프로브 실측(`repo list` → `orca-lab` + `.claude` 2건)으로 **등록 완료**. §11.3 과 정합.
+
+**④ P0-2 판정 정밀화 — 미측정 잔여는 3 이 아니라 4**
+§7 의 "P0-2 필드 경로 표 확정" 합격 문구는 `check` 의 **delivery id** 를 가렸다.
+미측정 = ⓐdispatch id ⓑgate id ⓒ**delivery id** ⓓ`worker.agent_terminal_handle`.
+delivery id 는 `--ack` 규율의 핵심 식별자다(ack 전까지 같은 Delivery 무한 재생) → 캐리어의 `# [P2]` 는 이 **4곳**.
+따라서 P0 게이트는 "확정 통과"가 아니라 **"4건 선언 잔여를 안고 통과"** 로 읽어야 정직하다.
+
+**⑤ §5.3 `--worktree current` 의 브랜치 부작용 — 신규 불변식**
+실측: `worktree.isMainWorktree = true` · `worktree.branch = refs/heads/master`.
+즉 `current` 로 띄운 **non-readonly 워커는 머지 대상 브랜치에 직접 커밋**한다 → 사람의 머지 승인이
+사후 무력화된다(거절해도 이미 착륙). plan 가시성을 위해 `current` 를 고정한 결정은 유지하되,
+**추가 불변식**: non-readonly 워커 스폰 전 코디네이터는 현재 브랜치가 `master|main` 이 **아님**을 단언한다
+(T2 Phase 0 브랜치 가드). read-only 팬아웃은 이 제약과 무관.
+
+**⑥ §2 "규범 재전송 금지" 의 반대 방향 공백 — 계약 문서는 자동 상속되지 않는다**
+`docs/ai-context/orca-worker-contract.md` 는 `CLAUDE.md` 같은 자동 로드 특수 파일이 **아니며**, 그것을
+워커에 주입하는 단계가 설계 어디에도 없었다. Task spec 이 **명시적으로 읽기를 지시**하지 않으면 T3 전체가
+사문이다. → T2 템플릿 4종의 **첫 지시**로 절대경로 읽기를 편입한다.
+
+**⑦ §4.1 층1 호출은 Task spec 이 명령해야 한다 — T2 템플릿에 부재였다**
+워커 셸은 오케스트레이션 사무용(sonnet 상속)이므로, 템플릿이 `Agent(explore-strict|execute-strict|review-strict)`
+· `Workflow(rpi-implement.js)` 를 **명령**하지 않으면 실제 추론이 사무용 셸에서 일어나 역할×모델 매트릭스의
+발화 지점을 통째로 우회한다. 4종 템플릿에 층1 호출을 명시한다.
+
+**⑧ §3.6 `--readonly` 는 강제가 아니라 선언 (overclaim 정정)**
+캐리어는 `--readonly` 를 Orca 에 전달하지 않고, Orca 는 read-only 샌드박스·권한 제한·task 내용 검증을
+제공하지 않는다. `--readonly` 는 **캐리어 로컬 카운터를 우회하는 코디네이터의 자기-선언**이다.
+"read-only 팬아웃만이 유일한 병렬 축"은 *강제된 사실*이 아니라 *지켜야 할 규율*이며, 안전은 Task spec 이
+실제로 read-only 인지에 달려 있다(하네스 선례: opencode capstone 3-계층 정직공개).
+
+**⑨ §7 T1 의 `install.sh REQUIRED 등재` — 선언적 이월**
+사용자 goal 이 T1 을 서브커맨드·불변식·TDD ⓐ~ⓓ 로 한정했고 `install.sh`(T17)를 범위 밖으로 명시했다.
+무선언 누락이 아니라 **선언된 잔여** — 차기 사이클에 T17 과 같은 커밋으로 착륙한다.
+(이번 사이클은 `git update-index --chmod=+x` 로 **실행 비트 커밋**만 이행 — `core.filemode=false` 라
+작업 트리 권한이 인덱스에 반영되지 않던 결함을 닫았다.)
+
+**⑩ §11.7 근거 강도 정직 부기**
+워커 트랜스크립트 기반 상속 결론은 **실제 dispatched worker 기동 0회** 위에 서 있다(P0-4 는 `--dry-run`).
+`worker-start` 실 경로에서 env 상속·훅 발화가 동일하다는 보장은 아직 없다 — 실 워커 기동 후 재측정 대상.
