@@ -76,6 +76,48 @@ assert_worktree_arg() {
   die "거부: --worktree 는 'current' 또는 \$WT_SEL / $RUNDIR/wt_sel 값만 허용됩니다(받음: $v) — 설계 §5.3/§5.4"
 }
 
+# ── 브랜치 가드 (§11.10 ①) ───────────────────────────────────────────────────
+# non-readonly 워커는 코디네이터와 같은 체크아웃에서 커밋한다 — 그 체크아웃이 머지 대상이면
+# 사람의 머지 승인이 *사후* 무력화된다(거절해도 이미 착륙해 있다). 지시문이 아니라 여기서 거부한다.
+# 측정 대상은 cwd 가 아니라 **워커가 뜨는 워크트리**다 — cwd 를 재면 오탐·미탐이 양방향으로 난다.
+worktree_path_of() {   # $1 = --worktree 값('current' 또는 셀렉터) → stdout = path(없으면 빈 문자열)
+  local v="$1" sel=""
+  if [ "$v" = "current" ]; then
+    if [ -n "${WT_SEL:-}" ]; then sel="$WT_SEL"
+    elif [ -s "$RUNDIR/wt_sel" ]; then sel=$(cat "$RUNDIR/wt_sel" 2>/dev/null)
+    fi
+  else
+    sel="$v"
+  fi
+  [ -n "$sel" ] || return 0
+  # 셀렉터는 '<repoId>::<path>' — 마지막 '::' 뒤가 path(재조립 금지, 절단만 한다).
+  printf '%s' "${sel##*::}"
+}
+
+# ★ambient GIT_DIR/GIT_WORK_TREE 를 제거하고 묻는다 — `git -C <path>` 는 cwd 만 바꾸고 **저장소 결정은
+# GIT_DIR 이 이긴다**(실측: `GIT_DIR=<repoB>/.git git -C <repoA> rev-parse --abbrev-ref HEAD` → repoB 의
+# 브랜치, rc=0). 제거하지 않으면 가드가 다른 저장소를 보고 **무음 통과**한다(슬롯 1 B1).
+git_at() { env -u GIT_DIR -u GIT_WORK_TREE git -C "$@"; }
+
+# 판정 불가는 fail-closed — "커밋 대상이 머지 브랜치가 아님"을 단언할 수 없으면 스폰하지 않는다.
+# fail-open 약속은 Orca *가용성* 축(preflight rc≠0)의 것이지 안전 가드의 것이 아니다.
+assert_branch_not_merge_target() {   # $1 = --worktree 값
+  local p br
+  p=$(worktree_path_of "$1")
+  [ -n "$p" ] || p="$PWD"            # 문서화된 폴백 — 셀렉터 미획득 시에만
+  # symbolic-ref 를 먼저 쓴다: unborn branch(커밋 0건)에서도 rc=0 으로 이름을 준다.
+  # rev-parse 는 그 경우 stdout='HEAD' + rc=128 이라 판정이 뒤집힌다(슬롯 1 B6).
+  br=$(git_at "$p" symbolic-ref --short HEAD 2>/dev/null) || br=""
+  # detached HEAD 는 symbolic-ref 가 실패한다 → rev-parse 가 'HEAD' 를 주고 아래 case 를 통과(허용).
+  [ -n "$br" ] || br=$(git_at "$p" rev-parse --abbrev-ref HEAD 2>/dev/null) || br=""
+  [ -n "$br" ] || die "거부: 브랜치 판정 불가 — '$p' 에서 브랜치명을 얻지 못했다(git 저장소가 아니거나 접근 불가). 커밋 대상이 머지 브랜치가 아님을 단언할 수 없으면 스폰하지 않는다(fail-closed, 설계 §11.10 ①)"
+  case "$br" in
+    master|main)
+      die "거부: non-readonly 워커를 머지 대상 브랜치('$br' @ $p)에서 스폰할 수 없다 — 워커가 같은 체크아웃에 직접 커밋해 사람의 머지 승인이 사후 무력화된다. 사이클 브랜치를 만들어 체크아웃하라(설계 §11.10 ①)" ;;
+  esac
+  return 0
+}
+
 # 호출자가 캐리어에 줄 수 없는 인자 — "명령 리터럴"이 아니라 "거부 로직의 패턴 문자열"이므로
 # 여기 포함은 T1 TDD ⓓ("소스에 금지 명령 리터럴 0건")의 대상이 아니다(설계 근거 2번 참조).
 # ★위치-인식: 각 파서 루프의 첫 줄에서만 호출한다(= 옵션 자리). 값 토큰까지 무차별 스캔하면
@@ -199,6 +241,8 @@ cmd_spawn() {
     esac
   done
   [ -n "$task" ] && [ -n "$run" ] || die "spawn: --run 과 --task 필수"
+  # read-only 팬아웃은 브랜치 무관 허용 — 커밋하지 않기로 *선언*된 경로다(§11.9 ⑧ 자기-선언 상한 상속).
+  [ "$readonly_flag" -eq 1 ] || assert_branch_not_merge_target "$worktree"
   require_jq; ensure_rundir
 
   if [ "$readonly_flag" -eq 0 ]; then
@@ -324,6 +368,8 @@ cmd_handoff() {
     esac
   done
   [ -n "$task" ] && [ -n "$dispatch" ] || die "handoff: --task 와 --dispatch 필수"
+  # handoff 는 --readonly 를 받지 않는다(정의상 편집 워커) — R→P→I→C 4단계 중 3단계가 이 경로다.
+  assert_branch_not_merge_target current
   require_jq; ensure_rundir
   # ★실측(C23 Task 1 Step 5): worker-show 는 중첩 snake_case **레코드**를 낸다 —
   # `.result.worker.agent_terminal_handle` 이 맞다(실측값 예: term_42a7b36b-…).
