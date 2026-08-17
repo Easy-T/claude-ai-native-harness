@@ -169,8 +169,11 @@ Expected: `preflight: OK worktree=<repoId>::<path>` + `rc=0`.
 **rc≠0 이면 자동 재시도 금지** — 이 task 를 여기서 중단하고
 `docs/ai-context/c22-orca-probe-measured.md` 에 「preflight rc=<값>, 미측정 사유」를 append 한 뒤
 Task 2 로 넘어간다(goal: 실패해도 원문 기록이 산출물이다).
-★rc 값의 의미가 둘로 갈린다(실측): **rc=3 = Orca 설치돼 있으나 미가동/전제 미충족**(status 실패 ·
-`no active plan` 등 8종), **rc=1 = `assert_orca_exe` 탈락 = 실행자 부재·경로 오지정**. 둘 다 중단
+★rc 값의 의미가 둘로 갈린다(실측): **rc=3 = Orca 설치돼 있으나 미가동/전제 미충족**(`cmd_preflight`
+안의 `exit 3` **7사이트** — status 실패 · `ok!=true` · run-list · repo list · `wt_sel` · hooks status ·
+`no active plan`), **rc=1 = `die()` 계열 = 실행자 부재·경로 오지정(`assert_orca_exe`) 및 그 밖의 전제
+실패(`require_jq` 등)**. 두 열거 모두 *현행 실측*이지 닫힌 계약이 아니다 — 운용 계약은 **rc≠0 단일화**
+이므로 새 `exit 3`/`die` 가 늘어도 처분은 불변이다. 둘 다 중단
 사유이며, 「rc=3 만 취급」하면 미설치 머신이 처분 밖에 놓인다(슬롯 1 A8 — Task 9 의 옵션 (e) 문면도
 같은 이유로 rc≠0 으로 쓴다).
 
