@@ -194,14 +194,19 @@ perl -0777 -i -pe '
   s/^\s*# gate id 필드 경로 미측정.*\n//m;
   s/^\s*# worker\.agent_terminal_handle 실제 응답 shape 미측정.*\n//m;
   s/^\s*# delivery id 필드 경로 미측정.*\n//m;
-  s/\s*# \[P2\]$//mg;
+  s/\s*#\s*\[P2\]$//mg;
+  s/\s+\[P2\]$//mg;
 ' bin/orca-rpi.sh
 grep -c '\[P2\]' bin/orca-rpi.sh
 bash -n bin/orca-rpi.sh && echo "bash -n OK"
 ```
 
-Expected: `grep -c` → **0** · `bash -n OK`. 미해제분이 있으면 그 사이트의 `[P2]` 는 **남기고**
-주석을 「미해제 사유: …」로 바꾼다(침묵 잔여 금지).
+Expected: `grep -c` → **0** · `bash -n OK`.
+★마지막 `s/\s+\[P2\]$//mg` 가 필수다 — `:352` 는 `# stdout 계약 = dispatch id 1줄(…깨진다) [P2]` 라
+**끝이 `# [P2]` 가 아니고**(마커 앞이 `)`), 4개 줄-삭제 패턴 어디에도 안 걸린다. 이 줄만 놓치면
+10→1 이 되고 「전부 해제」가 거짓이 된다(Gate P 실측 B3). 그 줄은 살아 있어야 할 실제 계약 설명이므로
+**줄을 지우지 않고 마커만** 뗀다.
+미해제분이 있으면 그 사이트의 `[P2]` 는 **남기고** 주석을 「미해제 사유: …」로 바꾼다(침묵 잔여 금지).
 
 - [ ] **Step 7: `wait` 의 3중 폴백 축소**
 
@@ -481,7 +486,10 @@ cmd_preflight() {
   require_jq; ensure_rundir
 ```
 
-(아래 `local resp rc extra=()`(`:215`)는 `local resp rc` 로 바꾼다.)
+(아래 두 줄을 **함께** 처리한다 — 하나만 하면 `extra` 가 조립 직후 빈 배열로 덮이거나 같은 대입이
+두 번 남는다: `local resp rc extra=()`(`:215`) → `local resp rc` · `[ -n "$retry_of" ] &&
+extra=(--retry-of "$retry_of")`(`:217`) → **삭제**(위 `:483-484` 로 이전됨). `:216` 의 스키마 NOTE
+주석은 이전된 조립 줄 위로 함께 옮긴다 — 주석만 남으면 무엇을 설명하는지 사라진다.)
 
 `cmd_wait` — `[ -n "$run" ] || die`(`:250`) 뒤:
 
@@ -830,7 +838,9 @@ chmod +x setup/tests/orca-carrier.test.sh
 bash setup/tests/orca-carrier.test.sh; echo "rc=$?"
 ```
 
-Expected: `PASS=11 FAIL=0`(픽스처 1 + 서브커맨드 10) · `rc=0`.
+Expected: `PASS=12 FAIL=0` · `rc=0`.
+(계수 근거 — 루프 **앞** `ok` 2건: 픽스처 브랜치 단언 1 + 서브커맨드 추출 1. 루프 안 서브커맨드 10건
+(`preflight run task spawn wait handoff release gate gpt selfcheck` — 실물 `^cmd_[a-z]*()` 10개). 2+10=12.)
 
 - [ ] **Step 3: 드리프트 앵커 RED 확인 — 표에 없는 서브커맨드**
 
@@ -1032,10 +1042,15 @@ cd "$HOME/.claude"
 # Step 3 의 awk 를 임시 파일로 뽑아 실행값을 얻는다(seal 자신을 돌리지 않고 스캐너만 재사용).
 TMPD=$(mktemp -d)
 sed -n "/^S53_AWK='\$/,/^'\$/p" setup/verify-setup.sh | sed '1d;$d' > "$TMPD/s53.awk"
-CK=$(awk -f "$TMPD/s53.awk" docs/superpowers/plans/*.md docs/ai-context/*.md 2>/dev/null \
-     | awk -F'\t' -v L="$HOME/.claude/docs/superpowers/plans/2026-08-17-c22-orca-carrier-landing.md" '$1=="NOISO" && $2==L {print $5}' \
+# ★seal 과 **완전히 같은 식**이어야 한다(경로도 절대경로로 — seal 이 $HOME 절대경로로 스캔하므로
+#   상대경로로 돌리면 $2==L 이 한 건도 매치되지 않아 '빈 입력 cksum'(42949672950)이 나온다.
+#   그리고 텍스트는 $5(=UNIT 번호)가 아니라 **마지막 필드**다 — 앞 5필드를 잘라내야 한다.)
+CK=$(awk -f "$TMPD/s53.awk" "$HOME/.claude/docs/superpowers/plans"/*.md "$HOME/.claude/docs/ai-context"/*.md 2>/dev/null \
+     | awk -F'\t' -v L="$HOME/.claude/docs/superpowers/plans/2026-08-17-c22-orca-carrier-landing.md" '$1=="NOISO" && $2==L { l=$0; sub(/^([^\t]*\t){5}/, "", l); print l }' \
      | sed 's/[[:space:]][[:space:]]*/ /g' | sort | cksum | tr -d ' ')
 echo "동결값=$CK"
+# 위생 검사: 빈 입력이면 경로/필드가 어긋난 것이다. 반드시 8줄이 잡혀야 한다(6단위 / 8호출줄).
+[ "$CK" = "42949672950" ] && { echo "✗ 빈 입력 cksum — 경로 또는 필드 지정이 어긋났다"; exit 1; }
 perl -pi -e "s/\@\@S53_LEDGER_CKSUM\@\@/$CK/g" setup/verify-setup.sh
 grep -c 'S53_LEDGER_CKSUM' setup/verify-setup.sh
 ```
@@ -1118,17 +1133,33 @@ assert_seal_fires "s53_unisolated"  mut_s53_unisolated  "부작용-차단 주입
 assert_seal_fires "s53_substitute"  mut_s53_substitute  "1회성 예외 대장 drift"
 ```
 
-- [ ] **Step 4: RED→GREEN 확인 (full 실행 — 40분+)**
+- [ ] **Step 4: 표적 부분집합 실행 — 신규 뮤테이터 2건만 (~6분)**
 
-⚠️ **실행 중 `~/.claude` 파일을 편집하지 말 것** — witness cksum 불변이 물리 전제다(Global Constraint 6).
+★**여기서 full 을 돌리지 않는다.** Task 8 이 `setup/install.sh`(replica 복제 대상)를, Task 9 가
+`skills/start-rpi-cycle/SKILL.md`(**witness 목록 `:19` 에 실재**)를 편집한다. 지금 40분짜리 full 을
+돌리면 그 결과는 두 편집 *이전* 트리의 인증이고, 편집을 미루면 이번엔 「실행 중 편집 금지」(물리 제약,
+C22 에서 `✗ live MUTATED` 로 실증)와 부딪힌다. **full 은 Task 9·10 이 끝난 뒤 「검증 수열」 4번에서
+1회** 돈다(Gate P 실측 M2).
+
+부분집합은 원본을 건드리지 않고 사본에서 만든다 — 신규 라벨(`s53_*`)만 남기고 나머지 단언을
+주석 처리한다. control 과 live-immutability 단언은 무조건 남는다(둘 다 `assert_seal_fires` 호출이
+아니라서 필터에 안 걸린다).
 
 ```bash
 cd "$HOME/.claude"
-bash setup/tests/seal-regression.test.sh 2>&1 | tail -12
+T=$(mktemp -d)
+awk '/^assert_seal_fires "/ && $0 !~ /"s53_/ { print "#" $0; next } { print }' \
+    setup/tests/seal-regression.test.sh > "$T/subset.sh"
+grep -c '^assert_seal_fires "' "$T/subset.sh"
+bash "$T/subset.sh" 2>&1 | tail -8
+rm -rf "$T"
 ```
 
-Expected: `seal-regression: PASS=29 FAIL=0` + `✓ live ~/.claude untouched (witness cksum stable across run)`.
+Expected: `grep -c` → **2**(s53 둘만 살아남음) · `seal-regression: PASS=4 FAIL=0`
+(control 1 + s53 2 + live-immutability 1) + `✓ live ~/.claude untouched (witness cksum stable across run)`.
 `s53_substitute` 가 PASS 한다는 것은 **개수가 유지된 치환을 잡았다**는 뜻이다(§11.10 ③ B1 해소의 실증).
+둘 중 하나라도 `rc=0, missing «…»` 으로 떨어지면 Task 6 의 seal 이 그 변이를 못 잡는 것이므로
+뮤테이터가 아니라 **seal 쪽을 고친다**(뮤테이터를 seal 에 맞추면 판별력 공백이 그대로 봉인된다).
 
 - [ ] **Step 5: 커밋**
 
@@ -1180,21 +1211,29 @@ chmod +x "$TARGET/bin/"* 2>/dev/null || true
 - [ ] **Step 4: 검증 — 전체 실행 금지, 계약만 확인 (Global Constraint 4)**
 
 `setup/doctor.sh:235-260` 이 `gh api` 로 skill 을 자동 설치하므로 `install.sh` 를 통째로 돌리지 않는다.
-대신 **clean 아카이브 추출 + 계약 검사**로 확인한다(네트워크 0회 · 설치 0회).
+대신 **REQUIRED 배열만 떼어 내 계약 검사**로 확인한다(네트워크 0회 · 설치 0회 · chmod 0회 —
+소스하는 것은 배열 리터럴뿐이라 `install.sh` 의 어떤 부작용 줄도 실행되지 않는다).
+
+★검사 기준은 **워킹트리**다. `git archive HEAD` 는 이번 편집 *이전* 스냅샷이라 Step 2 를 되돌린
+`REQUIRED=34` 를 재확인할 뿐이고, 그러면 이 Step 은 자기 편집을 검사하지 못한다(Gate P 실측 M1).
+아직 커밋 전이므로 워킹트리가 유일한 최신 계약이다.
 
 ```bash
 cd "$HOME/.claude"
 bash -n setup/install.sh && echo "bash -n OK"
-T=$(mktemp -d); git archive HEAD | tar -x -C "$T"
-TARGET="$T" bash -c 'source /dev/stdin <<EOF
-$(sed -n "/^REQUIRED=(/,/^)/p" '"$T"'/setup/install.sh)
-EOF
+REQ=$(mktemp)
+sed -n '/^REQUIRED=(/,/^)/p' setup/install.sh > "$REQ"
+TARGET="$HOME/.claude" bash -c 'source "$1"
 M=0; for f in "${REQUIRED[@]}"; do [ -f "$f" ] || { echo "MISSING: $f"; M=$((M+1)); }; done
-echo "REQUIRED=${#REQUIRED[@]} MISSING=$M"'
-ls -l "$T/bin/"
+echo "REQUIRED=${#REQUIRED[@]} MISSING=$M"' _ "$REQ"
+rm -f "$REQ"
+grep -n 'chmod +x "\$TARGET/bin/"' setup/install.sh
+git ls-files -s bin/orca-rpi.sh bin/claude-ocx
 ```
 
-Expected: `bash -n OK` · `REQUIRED=35 MISSING=0`(34 → 35) · `bin/` 에 `orca-rpi.sh`·`claude-ocx` 존재.
+Expected: `bash -n OK` · `REQUIRED=35 MISSING=0`(34 → 35) · `chmod` grep 1줄 히트 ·
+git index mode 둘 다 `100755`.
+`REQUIRED=34` 가 나오면 Step 2 편집이 배열 밖(다른 배열·주석)에 떨어진 것이다.
 
 - [ ] **Step 5: seal #29 무회귀 + 커밋**
 
@@ -1210,8 +1249,8 @@ git commit -m "feat(install): C23 T17 — REQUIRED 에 bin/orca-rpi.sh 등재 + 
 ## Task 9: T15 — Phase I 옵션 (e) + §19.5 조항 착륙 (정본 + 미러)
 
 **Files:**
-- Modify: `skills/start-rpi-cycle/SKILL.md` — Phase I 옵션 (e)(`:152` 뒤) · Gate R/Gate P/Closeout
-  success_criteria 3곳
+- Modify: `skills/start-rpi-cycle/SKILL.md` — Phase I 옵션 (e)(**(d) 블록 끝 `:166` 뒤 · `권장:` `:168` 앞**) ·
+  Gate R/Gate P/Closeout success_criteria 3곳
 - Modify: `opencode-harness/skill/start-rpi-cycle/SKILL.md` — 동반(미러, seal #50 conjunct ③)
 
 **Interfaces:**
@@ -1230,7 +1269,17 @@ grep -rniE '자기 산출물|실행 가능성' skills/ | wc -l
 
 Expected (RED): 앞 둘 **0** — RPI 절차에 Orca 진입점이 없다. 뒤 둘 **0** — C20 §19.5 처분이 미착륙이다.
 
-- [ ] **Step 2: 정본에 옵션 (e) 추가 (`- (c) …` 줄 뒤, `- (d) …` 앞)**
+- [ ] **Step 2: 정본에 옵션 (e) 추가 — (d) 블록 **뒤**, `권장:` 앞**
+
+★삽입 위치는 **(d) 뒤**다. (c) 뒤에 넣으면 목록이 a,b,c,e,d 순이 되고, 무엇보다 (d) 는
+`- (d) …` 한 줄이 아니라 `:152`–`:166` 의 **15줄 블록**(※ 주석 9개 포함)이라 「(c) 줄 뒤」와
+「(d) 앞」이 같은 지점을 가리키지도 않는다. 앵커는 줄 번호가 아니라 텍스트로 잡는다 —
+`권장:` 바로 앞의 빈 줄이 유일하게 안정적인 경계다.
+
+```bash
+cd "$HOME/.claude"
+grep -n '^권장:' skills/start-rpi-cycle/SKILL.md   # 삽입 직전 실측 — :168 예상
+```
 
 ```markdown
 - (e) **Orca 감독 사이클** — Phase 를 Orca ADE Task DAG 로 돌린다(포인터: `Skill(orca-rpi-cycle)`).
@@ -1243,7 +1292,9 @@ Expected (RED): 앞 둘 **0** — RPI 절차에 Orca 진입점이 없다. 뒤 �
 
 - [ ] **Step 3: 미러에 옵션 (e) 추가 — 미착륙으로 명시**
 
-`opencode-harness/skill/start-rpi-cycle/SKILL.md` 의 `- (c) …` 뒤(`:161` 뒤):
+`opencode-harness/skill/start-rpi-cycle/SKILL.md` — 정본과 같은 규칙으로 **(d) 블록(`:162`–`:175`) 뒤,
+`권장:`(`:177`) 앞**에 넣는다(미러의 (d) 는 정본과 내용이 다르다 — Workflow 도구 부재라 「순차
+execute-strict→review-strict」다. 번호만 맞추고 본문은 각자 것을 유지):
 
 ```markdown
 - (e) **Orca 감독 사이클 — 이 번들에서는 미착륙.** opencode 번들에는 `bin/` 자체가 없고 Orca 워커
@@ -1295,8 +1346,11 @@ git commit -m "feat(rpi): C23 T15 — Phase I 옵션 (e) Orca 감독 사이클 +
 
 **Files:**
 - Modify: `docs/ai-context/review-yield.md` — C23 절 append
-- Modify: `docs/superpowers/specs/2026-07-25-model-policy-design.md` §19.6 추가
+- Modify: `docs/superpowers/specs/2026-07-25-model-policy-design.md` — **§21 신설**(말미 append)
   (**혼합 개행 CR=1823 — `perl -0777 -i` 만 사용, `Edit` 금지**)
+  ★번호 주의: `§19.6` 은 **이미 존재**한다(`:2374` 「§19.6 검증 계획」 — C20 소유). 현존 최고 번호는
+  `§20.7`(`:2599`)이므로 C23 판정은 **`§21`** 로 신설한다. 기존 번호에 덧쓰면 C20 의 검증 계획이
+  이 판정으로 가려진다(Gate P 실측 B4).
 
 **Interfaces:**
 - Consumes: §18.1 트리거 (b)(C22 에서 성립 — 「차기 floor 한정 재심 1회 예약」) · §19.5 반증 조건
@@ -1308,9 +1362,14 @@ git commit -m "feat(rpi): C23 T15 — Phase I 옵션 (e) Orca 감독 사이클 +
 cd "$HOME/.claude"
 sed -n '2340,2375p' docs/superpowers/specs/2026-07-25-model-policy-design.md
 tail -8 docs/ai-context/review-yield.md
+# 번호 충돌 사전 확인 — 신설 번호가 진짜로 비어 있는지
+grep -n '^#\+ *§2[0-9]' docs/superpowers/specs/2026-07-25-model-policy-design.md | tail -5
 ```
 
-- [ ] **Step 2: 판정 작성 — §19.6 을 spec 에 append**
+Expected: `§19.5`(`:2348`)와 `§19.6 검증 계획`(`:2374`)이 보이고, 마지막 `grep` 의 최대 번호가
+**`§20.7`**(`:2599`) 다. `§21` 이 출력에 있으면 이미 누가 쓴 것이므로 **다음 빈 번호로 올린다**.
+
+- [ ] **Step 2: 판정 작성 — §21 을 spec 말미에 append**
 
 판정의 뼈대는 이미 실측으로 정해져 있다(§11.10 ⑧): §19.5 의 처분이 **미착륙**이었으므로 반증 조건
 (「지시문 보강 착륙 후 같은 클래스 재발」)이 아직 **평가 불가**였고, 따라서 C21·C22 의 BLOCKER 는
@@ -1320,7 +1379,7 @@ floor-축 반증 입력이 되지 못한다.
 **append 만** 한다(`cat >> …` 또는 `perl -0777 -i -pe` 로 말미 추가). 아래가 그 문안이다.
 
 ```markdown
-### §19.6 floor 한정 재심 (C23 — §18.1 트리거 (b) 소비)
+## §21 floor 한정 재심 (C23 — §18.1 트리거 (b) 소비)
 
 **입력**: C19 가 예약한 재심 1회. 트리거 (b) = GPT 슬롯이 내부-통과 BLOCKER 를 C21·C22 **2사이클 연속** 적발.
 
@@ -1338,6 +1397,16 @@ floor-축 반증 입력이 되지 못한다.
 그때의 재심은 **반증 입력이 유효하므로** floor 상향을 실질 검토한다.
 ```
 
+```bash
+cd "$HOME/.claude"
+grep -c '^## §21 floor 한정 재심' docs/superpowers/specs/2026-07-25-model-policy-design.md
+grep -c '^### §19.6 검증 계획' docs/superpowers/specs/2026-07-25-model-policy-design.md
+perl -ne '$n++ if /\r/; END{print "CR=$n\n"}' docs/superpowers/specs/2026-07-25-model-policy-design.md
+```
+
+Expected: 첫 `grep -c` → **1**(신설 절 1개) · 둘째 → **1**(C20 §19.6 이 살아 있음 — 덧쓰기 안 함) ·
+`CR=1823`(불변 — `Edit` 이 아니라 append 를 썼다는 증거).
+
 - [ ] **Step 3: `review-yield.md` 에 C23 절 append**
 
 Closeout 직전에 층별 실측을 채워 넣는다(§15.3 S19 — 말미 층 실측 후 append).
@@ -1349,8 +1418,17 @@ Closeout 직전에 층별 실측을 채워 넣는다(§15.3 S19 — 말미 층 �
 - Gate R 델타 재심 ×5: `0 PASS/5 FAIL` → 최종 PASS · 실발견 20(7+7+2+4, 5회차 0) · 발견
 - stage2 ×N: … · 통합(senior+drift): … · 교차패밀리 슬롯1/슬롯2: …
 - **트리거 대조(§18.1 판정 3)**: (a) … · (b) … · (c) … · (d) …
-- **floor 재심 판정**: 무변경 — §19.5 반증 조건이 지시문 미착륙으로 **평가 불가**였음(spec §19.6)
+- **floor 재심 판정**: 무변경 — §19.5 반증 조건이 지시문 미착륙으로 **평가 불가**였음(spec §21)
 ```
+
+```bash
+cd "$HOME/.claude"
+grep -c '^## C23 (cycle 74' docs/ai-context/review-yield.md
+grep -c '트리거 대조' docs/ai-context/review-yield.md
+```
+
+Expected: 첫 `grep -c` → **1** · 둘째 → **≥1**(§18.1 판정 3 의 트리거 대조 1줄이 실재).
+`…` 자리표시자가 하나라도 남아 있으면 이 Step 은 미완이다 — 실측 수치로 전부 치환한다.
 
 - [ ] **Step 4: 커밋**
 
@@ -1358,7 +1436,7 @@ Closeout 직전에 층별 실측을 채워 넣는다(§15.3 S19 — 말미 층 �
 cd "$HOME/.claude"
 perl -ne '$n++ if /\r/; END{print "CR=$n\n"}' docs/superpowers/specs/2026-07-25-model-policy-design.md
 git add docs/superpowers/specs/2026-07-25-model-policy-design.md docs/ai-context/review-yield.md
-git commit -m "docs(policy): C23 T-floor — §19.6 floor 한정 재심 판정(무변경) + review-yield C23 절"
+git commit -m "docs(policy): C23 T-floor — §21 floor 한정 재심 판정(무변경) + review-yield C23 절"
 ```
 
 Expected: CR=**1823**(불변 — 혼합 개행 보존 확인).
@@ -1371,11 +1449,16 @@ Expected: CR=**1823**(불변 — 혼합 개행 보존 확인).
 |---|---|---|---|
 | 1 | `bash setup/verify-setup.sh` | 90/0 | **91/0** |
 | 2 | `bash hooks/tests/run-all.sh` | 305/305 | 305/305 (무회귀) |
-| 3 | `bash setup/tests/orca-carrier.test.sh` | (신규) | 11/0 |
+| 3 | `bash setup/tests/orca-carrier.test.sh` | (신규) | 12/0 |
 | 4 | `bash setup/tests/seal-regression.test.sh` | 27/0 | **29/0** (full 필수 — setup/ diff 존재) |
 | 5 | `bash setup/verify-all.sh` | ALL PASS | ALL PASS (STAGE 2e 포함) |
 
-4번 실행 중에는 **`~/.claude` 를 편집하지 않는다**(witness cksum 불변이 물리 전제).
+4번은 **Task 10 까지 전부 끝난 뒤** 1회 돈다 — Task 8(`setup/install.sh`, replica 복제 대상)·
+Task 9(`skills/start-rpi-cycle/SKILL.md`, **witness `:19`**)가 seal-regression 의 입력을 바꾸므로
+그 전에 돌린 full 은 최종 트리를 인증하지 못한다(Task 7 Step 4 는 표적 부분집합 4/0 만).
+4번 실행 중에는 **`~/.claude` 를 편집하지 않는다**(witness cksum 불변이 물리 전제 — C22 에서
+`✗ live ~/.claude MUTATED during run` 으로 실증). Task 10 Step 3 의 `review-yield.md` append 는
+witness 파일이므로 **4번이 끝난 뒤**에 한다(실행 전/후는 무관, 실행 *중*만 금지).
 
 ## 선언된 잔여
 
