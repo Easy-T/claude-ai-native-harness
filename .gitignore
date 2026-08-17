@@ -65,5 +65,7 @@ daemon/
 
 # Worktree-teardown runtime markers (session_id-keyed, worktrees-marker/<sid>=WT_ROOT) — per-session runtime state, never source
 /worktrees-marker/
+# Orca 스폰 캐리어 런타임 상태(preflight 백업·last-*.json·동시성 추적·skill draft) — per-session, never source
+/.orca-rpi/
 # Local git worktrees created under the harness (EnterWorktree / git worktree add) — never source
 /.claude/worktrees/
