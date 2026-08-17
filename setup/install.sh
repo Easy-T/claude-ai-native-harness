@@ -77,6 +77,7 @@ REQUIRED=(
   "$TARGET/hooks/lib/model-window.js"
   "$TARGET/hooks/lib/workflow-spawns.js"
   "$TARGET/bin/claude-ocx"
+  "$TARGET/bin/orca-rpi.sh"
   "$TARGET/setup/doctor.sh"
   "$TARGET/commands/init-ai-ready.md"
   "$TARGET/CLAUDE.md"
@@ -98,6 +99,7 @@ echo "[3/6] 스크립트 실행 권한 부여..."
 chmod +x "$TARGET/setup/"*.sh 2>/dev/null || true
 chmod +x "$TARGET/hooks/"*.sh 2>/dev/null || true
 chmod +x "$TARGET/hooks/tests/"*.sh 2>/dev/null || true
+chmod +x "$TARGET/bin/"* 2>/dev/null || true
 echo "  ✓ chmod +x 완료"
 
 # --- 4. settings.json 생성 또는 병합 ---
