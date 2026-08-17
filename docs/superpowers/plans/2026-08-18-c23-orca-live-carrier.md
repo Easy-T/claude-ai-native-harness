@@ -16,8 +16,8 @@
 
 **Tech Stack:** bash(POSIX + bash 배열) · awk(어휘 스캐너) · jq · git · Orca ADE CLI(`orca.exe`)
 
-**Spec:** `docs/ai-context/c21-orca-mode-design.md` — 특히 **§11.10**(C23 설계 결정 ①~⑨, **6차 정정 판본**
-= 교차패밀리 슬롯 1 트리아지 채택 30건 반영분).
+**Spec:** `docs/ai-context/c21-orca-mode-design.md` — 특히 **§11.10**(C23 설계 결정 ①~⑨, **7차 정정 판본**
+= 교차패밀리 슬롯 1 트리아지 채택 30건 + 정정문 자기-검증 1건 반영분).
 보조: `docs/ai-context/c22-orca-probe-measured.md`(P0 실측 SSOT) · `docs/ai-context/non-obvious.md` #5 ·
 `docs/superpowers/specs/2026-07-25-model-policy-design.md` §18.1·§19.5.
 
@@ -737,7 +737,7 @@ git commit -m "feat(orca): C23 T3 — ORCA_RPI_DRYRUN 검증-전용 경로 (부�
 - Consumes: Task 3 의 `is_dryrun`/`dryrun_emit`
 - Produces: `gpt_ledger_append <role> <model> <rc> <cost>` · `LEDGER` 경로(`ORCA_RPI_LEDGER` override)
 
-- [ ] **Step 1: `--retry-request` 파서 수용 (Task 1 Step 5 에서 수용이 확인된 명령만)**
+- [ ] **Step 1: `--retry-request` 파서 수용 (Task 1 Step 2 에서 수용이 확인된 명령만)**
 
 `cmd_run` 파서(`:140-143`)에 아암 추가:
 
@@ -897,9 +897,13 @@ PATH 가 **실제 codex 를 잡아 진짜 API 를 때린다**. 스텁은 `-o` �
 Expected:
 - ⓐ 1번 `rc=0` + `DRYRUN: … --retry-request req_123 …` · 2번 `rc=1`(빈 값 거부) ·
   3번 `rc=0` + `DRYRUN: codex exec …` · 원장 미생성.
-- ⓑ 첫 호출이 `실패 rc=1` 이면서 stderr 에 **`--objective '[C23] O'\''Brien' --retry-request req_abc`
-  형태의 붙여 넣기 가능한 줄**(placeholder `<같은 objective>` 가 **없어야** 한다 — 슬롯 1 A4) ·
+- ⓑ 첫 호출이 `실패 rc=1` 이면서 stderr 에 **붙여 넣기 가능한 복구 줄** ·
   둘째 호출의 `grep -c` → **1**(id 부재 경고 분기 도달).
+  ★인용 형태를 문자열로 단언하지 않는다 — bash `printf %q` 는 작은따옴표로 감싸지 않고 **백슬래시로
+  이스케이프**한다(실측: `--objective \[C23\]\ O\'Brien --retry-request req_abc`). 초안이 적었던
+  `'[C23] O'\''Brien'` 형태는 `%q` 가 내는 형태가 아니다. 판정 기준은 두 가지다 —
+  ㉠ placeholder(`<같은 objective>` 등 꺾쇠 토큰)가 **0건** · ㉡ `bash` 뒤 경로가 basename 이 아닌
+  **실경로**(`/` 포함). 형태 무관하게 이 둘이면 PASS(슬롯 1 A4 의 요구는 「그대로 붙여 실행 가능」이다).
 - ⓒ 원장 `led2.tsv` 가 **2줄**(헤더 + 1행) · 각 줄 `fields=5` · 데이터 행의 5번째 필드가 `n/a`.
   `codex` stub 이 `-o` 파일을 안 만들어 `die` 하더라도 **원장 append 는 그 앞에서 일어난다** —
   이 순서가 곧 「비용 부기가 검증 실패에 흡수되지 않는다」의 증거다. 원장이 아예 없으면
@@ -1627,7 +1631,7 @@ git commit -m "feat(install): C23 T17 — REQUIRED 에 bin/orca-rpi.sh 등재 + 
 - Modify: `opencode-harness/skill/start-rpi-cycle/SKILL.md` — 동반(미러, seal #50 conjunct ③)
 
 **Interfaces:**
-- Consumes: `bin/orca-rpi.sh preflight` 의 rc=3 폴백 계약
+- Consumes: `bin/orca-rpi.sh preflight` 의 **rc≠0 폴백 계약**(rc=3 만이 아니다 — Step 2 본문 참조)
 - Produces: RPI 절차에 Orca 진입점. §11.10 ⑧ 의 TO-BE 이행.
 
 - [ ] **Step 1: RED — 현 상태 실측**
@@ -1677,21 +1681,53 @@ execute-strict→review-strict」다. 번호만 맞추고 본문은 각자 것�
       Claude Code 하네스에서는 가용하다 — `~/.claude/skills/start-rpi-cycle/SKILL.md` 옵션 (e).
 ```
 
-- [ ] **Step 4: §19.5 조항을 3개 게이트 success_criteria 에 착륙 (정본 + 미러)**
+- [ ] **Step 4: §19.5 조항을 3개 게이트 기준 블록에 착륙 (정본 + 미러)**
 
-Gate R · Gate P · Closeout Step C-1 의 `success_criteria="` 블록 각각에 아래 1줄을 추가한다.
+★**두 파일의 앵커 이름이 다르다.** 정본은 `Agent(...)` 호출이라 `success_criteria="` 이지만, 미러는
+opencode 의 `task` 도구 디스패치를 산문으로 적은 것이라 `success: "` 다. 「미러에서
+`success_criteria="` 블록을 찾는다」로 읽으면 미러에는 그런 블록이 **1개**(`:81`, Gate R 아래의
+축약 리터럴 예시)뿐이고 그건 게이트 기준이 아니라 예시라, 3곳 착륙이 불가능해진다. 실측 앵커:
+
+```bash
+cd "$HOME/.claude"
+grep -n 'success_criteria="$' skills/start-rpi-cycle/SKILL.md            # :76 :119 :213 예상
+grep -n 'success: "$' opencode-harness/skill/start-rpi-cycle/SKILL.md    # :67 :121 :220 예상
+```
+
+정본 = `:76`(Gate R) · `:119`(Gate P) · `:213`(Closeout Step C-1), 불릿 들여쓰기 **10칸**.
+미러 = `:67`(Gate R) · `:121`(Gate P) · `:220`(Closeout Step C-1), 불릿 들여쓰기 **5칸**.
+미러 `:55`(explore-strict) 와 `:81`(리터럴 예시)에는 **넣지 않는다** — 게이트가 아니다.
+
+정본 3곳에 넣을 줄(10칸):
 
 ```markdown
           - **자기 산출물의 전제·실행 가능성을 실측으로 확인했는가** — 검증 대상이 인용한 줄 번호·
             grep 결과·파일 존재를 직접 재현하고, 재현되지 않으면 그 항목은 FAIL (C20 spec §19.5 처분)
 ```
 
-Gate P 에는 `LIVE-INTENT` 검토 조항도 함께 넣는다(§11.10 ③ 의 지시문 층 보정):
+미러 3곳에 넣을 줄(5칸 — 같은 문면, 들여쓰기만 주변에 맞춤):
+
+```markdown
+     - **자기 산출물의 전제·실행 가능성을 실측으로 확인했는가** — 검증 대상이 인용한 줄 번호·
+       grep 결과·파일 존재를 직접 재현하고, 재현되지 않으면 그 항목은 FAIL (C20 spec §19.5 처분)
+```
+
+Gate P 에는 `LIVE-INTENT` 검토 조항도 함께 넣는다(§11.10 ③ 의 지시문 층 보정) — 정본 `:119` 블록(10칸):
 
 ```markdown
           - plan 의 `LIVE-INTENT` 사용 건수·사유가 타당한가 (자기-면제이므로 게이트가 제2자 검토를
             대신한다 — 총계 parity 는 seal #53 이 코드로 표면화하되 타당성 판단은 여기서 한다)
 ```
+
+미러 `:121` 블록(5칸):
+
+```markdown
+     - plan 의 `LIVE-INTENT` 사용 건수·사유가 타당한가 (자기-면제이므로 게이트가 제2자 검토를
+       대신한다 — 총계 parity 는 seal #53 이 코드로 표면화하되 타당성 판단은 여기서 한다)
+```
+
+삽입 지점은 각 블록의 **마지막 기준 불릿 뒤**(정본 Gate R/P 는 `FAIL with:` 앞, Closeout 은
+`finishing-a-development-branch …` 줄 뒤). 줄 번호는 앞선 삽입으로 밀리므로 **매 삽입 직전 재측정**한다.
 
 - [ ] **Step 5: seal #50 미러 conjunct 무회귀 + 정합 확인**
 
@@ -1701,11 +1737,15 @@ grep -c 'FABLE-TAKEOVER' opencode-harness/skill/start-rpi-cycle/SKILL.md
 grep -c '위임 X' opencode-harness/skill/start-rpi-cycle/SKILL.md
 grep -c '자기 산출물의 전제' skills/start-rpi-cycle/SKILL.md
 grep -c '자기 산출물의 전제' opencode-harness/skill/start-rpi-cycle/SKILL.md
+grep -c 'LIVE-INTENT' skills/start-rpi-cycle/SKILL.md
+grep -c 'LIVE-INTENT' opencode-harness/skill/start-rpi-cycle/SKILL.md
 bash setup/verify-setup.sh 2>&1 | tail -3
 ```
 
 Expected: `FABLE-TAKEOVER` ≥1 · `위임 X` **0** · `자기 산출물의 전제` 가 정본 **3** · 미러 **3** ·
-`verify-setup: PASS=91 FAIL=0`.
+`LIVE-INTENT` 가 정본 **1** · 미러 **1**(Gate P 블록에만) · `verify-setup: PASS=91 FAIL=0`.
+정본/미러 어느 쪽이든 **3 이 아니면** Step 4 의 삽입이 게이트가 아닌 블록(미러 `:55` explore-strict ·
+`:81` 리터럴 예시)에 떨어졌거나 한 게이트를 빠뜨린 것이다 — 앵커를 재측정해 다시 넣는다.
 
 - [ ] **Step 6: 커밋**
 
