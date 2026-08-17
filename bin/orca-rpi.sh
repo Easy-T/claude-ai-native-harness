@@ -229,9 +229,11 @@ cmd_spawn() {
     echo "spawn: 응답 JSON(stage/failedStage/setup/effects/residualResources/recovery): $RUNDIR/last-worker-start.json" >&2
     exit "$rc"
   fi
-  # dispatch id 실제 응답 shape 미측정(워커를 실제로 띄워야 확인 — c22-probe 잔여) [P2]
+  # ★실측(C23 Task 1 Step 4): worker-start 응답은 dispatch 를 중첩 객체가 아니라 **평면 camelCase**
+  # `.result.dispatchId` 로 낸다(실측값 예: ctx_b35f37d7e59e). 추정이던 `.result.dispatch.id` 는
+  # worker-**show** 의 shape 였다 — 같은 축의 *다른 명령* 에서 온 경로라 코드 독해로는 구분되지 않았다.
   # 객체 폴백(.result.dispatch)은 객체 직렬화를 id 로 출력하므로 쓰지 않는다.
-  local dispatch_id; dispatch_id=$(printf '%s' "$resp" | jq -r '.result.dispatch.id // empty')  # [P2]
+  local dispatch_id; dispatch_id=$(printf '%s' "$resp" | jq -r '.result.dispatchId // empty')
   [ -n "$dispatch_id" ] || die "spawn: dispatch id 추출 실패 — 응답 확인: $RUNDIR/last-worker-start.json"
   printf '%s\n' "$dispatch_id"
 }
@@ -293,9 +295,12 @@ cmd_wait() {
 
   # 배치 emit 이 성공한 뒤에만 ack 자격을 기록한다(rc 비-0 이면 배치 미확정 — pending 을 건드리지 않는다).
   if [ "$rc" -eq 0 ]; then
-    # delivery id 필드 경로 미측정(배치 수신을 실제로 해야 확인 — c22-probe 잔여) [P2]
+    # ★실측(C23 Task 1 Step 4): check 응답의 실경로는 평면 camelCase `.result.deliveryId` 다
+    # (worker-start 축과 동형). 3중 폴백의 나머지 둘(`.result.delivery.id`·`.result.delivery_id`)은
+    # 스키마에 없다 — 배치가 비어도 `deliveryId` 필드는 존재하고 값만 null 이므로, 필드 부재와
+    # 빈 배치는 이 한 경로로 구분된다.
     local delivery_id
-    delivery_id=$(printf '%s' "$out" | jq -r '.result.delivery.id // .result.deliveryId // .result.delivery_id // empty' 2>/dev/null)  # [P2]
+    delivery_id=$(printf '%s' "$out" | jq -r '.result.deliveryId // empty' 2>/dev/null)
     if [ -n "$delivery_id" ]; then
       printf '%s' "$delivery_id" > "$RUNDIR/pending-ack"
     else
@@ -320,10 +325,13 @@ cmd_handoff() {
   done
   [ -n "$task" ] && [ -n "$dispatch" ] || die "handoff: --task 와 --dispatch 필수"
   require_jq; ensure_rundir
-  # worker.agent_terminal_handle 실제 응답 shape 미측정(worker-show 는 dispatch 선행 필요 — c22-probe 잔여) [P2]
+  # ★실측(C23 Task 1 Step 5): worker-show 는 중첩 snake_case **레코드**를 낸다 —
+  # `.result.worker.agent_terminal_handle` 이 맞다(실측값 예: term_42a7b36b-…).
+  # 동값 별칭 3종이 함께 존재하지만(.result.dispatch.assignee_handle · .result.terminal.handle ·
+  # .result.terminalResource.terminalHandle) 계약 경로 하나만 쓴다 — 별칭 폴백은 "모른다"의 표기다.
   local resp handle
   resp=$("$ORCA" orchestration worker-show --dispatch "$dispatch" --json) || die "handoff: worker-show 실패"
-  handle=$(printf '%s' "$resp" | jq -r '.result.worker.agent_terminal_handle // empty')  # [P2]
+  handle=$(printf '%s' "$resp" | jq -r '.result.worker.agent_terminal_handle // empty')
   [ -n "$handle" ] || die "handoff: agent_terminal_handle 획득 실패 — 응답 확인 필요"
 
   # 원장 원자 교체(prev-task 제거 + task 추가) — handoff 도 편집 워커이므로 동시-1 원장을 유지해야 한다.
@@ -349,8 +357,15 @@ cmd_handoff() {
     echo "handoff: worker-start 비-0(rc=$hrc, ready 아님) — 원장 슬롯 유지(outcome_unknown 가능). 재시도 전 'release --task $task' 로 명시 해제 필요" >&2
     die "handoff: worker-start 실패 — 응답: $RUNDIR/last-handoff.json"
   fi
-  # stdout 계약 = dispatch id 1줄(봉투 JSON 전문을 흘리면 호출자의 D=$(... handoff ...) 가 결정적으로 깨진다) [P2]
-  local dispatch_id; dispatch_id=$(printf '%s' "$hresp" | jq -r '.result.dispatch.id // empty')  # [P2]
+  # stdout 계약 = dispatch id 1줄(봉투 JSON 전문을 흘리면 호출자의 D=$(... handoff ...) 가 결정적으로 깨진다)
+  # [P2 미해제 사유: terminal 기반 worker-start(--terminal) 응답은 C23 에서 **미측정**이다 — handoff 를
+  #  호출하려면 워커를 한 기 더 띄워야 하고 그것은 이번 사이클의 라이브 예산(read-only 1기동) 밖이다.
+  #  경로는 agent 기반 실측(`.result.dispatchId`, C23 Step 4)에서 **유추해 갱신**했다: 같은 CLI 명령이라
+  #  동형일 가능성이 높다. 그럼에도 마커를 남기는 이유는 유추가 실측이 아니기 때문이고, 경로를
+  #  갱신하는 이유는 알려진-틀린 `.result.dispatch.id` 를 그대로 두는 것이 「미측정」의 정직한 표현이
+  #  아니기 때문이다(C23 Task 1 Step 6 처분 — plan 은 마커 유지만 지시했으나 실측이 형제 사이트의
+  #  경로까지 반증했으므로 「유지 + 유추 반영」으로 강화).]
+  local dispatch_id; dispatch_id=$(printf '%s' "$hresp" | jq -r '.result.dispatchId // empty')  # [P2 미해제: 위 사유]
   [ -n "$dispatch_id" ] || die "handoff: dispatch id 추출 실패 — 응답 확인: $RUNDIR/last-handoff.json"
   printf '%s\n' "$dispatch_id"
 }
@@ -408,9 +423,11 @@ cmd_gate() {
       rc=$?
       printf '%s' "$resp" > "$RUNDIR/last-gate-create.json"
       [ "$rc" -eq 0 ] || die "gate create: 실패(rc=$rc) — 응답: $RUNDIR/last-gate-create.json"
-      # gate id 필드 경로 미측정(gate-create 미실행 — c22-probe 잔여) [P2]
+      # ★실측(C23 Task 1 Step 5): gate-create 는 생성 레코드를 **타입 키 아래 중첩**해 낸다 —
+      # `.result.gate.id` 가 맞다(실측값 예: gate_7153aa08d7e0). run-create/task-create 와 동형이고
+      # worker-start 축(평면 camelCase)과는 다르다 — 이 갈림이 dispatch id 추정을 빗나가게 했다.
       # .id 폴백 금지 — 최상위 .id 는 요청 상관ID라 gate-resolve 가 영구 미해소된다(c22-probe P0-2).
-      local gate_id; gate_id=$(printf '%s' "$resp" | jq -r '.result.gate.id // empty')  # [P2]
+      local gate_id; gate_id=$(printf '%s' "$resp" | jq -r '.result.gate.id // empty')
       [ -n "$gate_id" ] || die "gate create: gate id 추출 실패 — 응답 확인: $RUNDIR/last-gate-create.json"
       printf '%s\n' "$gate_id"
       ;;
