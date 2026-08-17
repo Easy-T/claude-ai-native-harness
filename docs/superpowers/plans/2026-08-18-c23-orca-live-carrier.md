@@ -1244,7 +1244,9 @@ Expected (RED): `grep -c` → **0** · `verify-setup: PASS=90 FAIL=0` — 격리
 S53_AWK='
 # 파일 단위 2-상 처리: 수집(라인 순회) → 분류(파일 끝). LIVE-INTENT 는 호출 **뒤**에도 올 수 있어
 # (마크다운에서 선언은 보통 코드블록 다음 Expected 줄에 붙는다) 한 번에 판정할 수 없다.
-# 격리 토큰은 **같은 단위 + 앞 15줄**, LIVE-INTENT 는 **파일 안 앞뒤 15줄**(단위 무관)이 인정 범위다.
+# 격리 토큰은 **같은 단위 + 앞 15줄**. LIVE-INTENT 는 **같은 단위이거나 앞 15줄** + **줄 전체가 선언**
+# 일 때만 인정한다(거리만으로는 *언급*과 *선언*이 구분되지 않는다 — spec §11.10 ③ 7차 정정).
+BEGIN { QQ = "[\"" sprintf("%c", 39) "]+" }   # 양끝에서 벗길 따옴표(", ')
 function classify(  i,j,d,cli,rd,iso,live,st) {
   for (i = 1; i <= nc; i++) {
     cli = 0; rd = 0; iso = 0; live = 0
@@ -1256,7 +1258,10 @@ function classify(  i,j,d,cli,rd,iso,live,st) {
       else if (tk[j] == "CLI") cli = 1
       else if (tk[j] == "RD") rd = 1
     }
-    for (j = 1; j <= nv; j++) { d = cl[i] - vl[j]; if (d < 0) d = -d; if (d <= 15) live = 1 }
+    for (j = 1; j <= nv; j++) {
+      d = cl[i] - vl[j]
+      if (vu[j] == cu[i] || (d >= 0 && d <= 15)) live = 1
+    }
     st = (iso || (cli && rd)) ? "ISO" : (live ? "LIVE" : "NOISO")
     # 필드: STATUS \t FILE \t LINE \t RC \t UNIT \t TEXT (TEXT 가 마지막 — 탭 포함 시에도 잘리지 않게)
     printf "%s\t%s\t%d\t%d\t%d\t%s\n", st, CURF, cl[i], (rcu[cu[i]] ? 1 : 0), cu[i], ct[i]
@@ -1272,7 +1277,11 @@ function callof(line,  s,n,a,i,t,nx,em,sk) {
   n = split(s, a, /[ \t]+|[;&|()]+/)
   em = 0; sk = 0
   for (i = 1; i <= n; i++) {
-    t = a[i]; gsub(/^["]+/, "", t)
+    # ★따옴표는 **양끝** 모두 벗긴다(슬롯 1 B4 실측). 선두만 벗기면
+    # `bash "$HOME/.claude/bin/orca-rpi.sh" run …` 이 닫는 따옴표 때문에 경로 정규식에서 탈락해
+    # **호출 자체가 스캔에 들어오지 않는다**(awk 실행으로 출력 0줄 확인). 이건 고의 우회가 아니라
+    # 관용적 표기이고 — 이 plan 의 Task 5 도 `bash "$CARRIER"` 형태다 — 통째로 침묵하는 미탐이다.
+    t = a[i]; gsub("^" QQ, "", t); gsub(QQ "$", "", t)
     if (t == "") continue
     # env 의 자기 옵션은 건너뛴다 — `env -u WT_SEL bash …/orca-rpi.sh spawn` 을 놓치면
     # 격리 없는 호출이 통째로 미탐된다(C23 Phase P 실측: 이 형태가 코퍼스에 다수).
@@ -1283,7 +1292,7 @@ function callof(line,  s,n,a,i,t,nx,em,sk) {
     if (t == "bash" || t == "sh" || t == "exec" || t == "time") continue
     if (t ~ /^[A-Za-z_][A-Za-z0-9_]*=/) continue
     if (t ~ /(^|\/)orca-rpi\.sh$/) {
-      nx = a[i+1]; gsub(/^["]+/, "", nx)
+      nx = a[i+1]; gsub("^" QQ, "", nx); gsub(QQ "$", "", nx)
       if (nx ~ /^(run|task|spawn|wait|handoff|release|gate|preflight|gpt)$/) return line
       return ""
     }
@@ -1296,10 +1305,21 @@ FNR == 1 { if (NR > 1) classify(); CURF = FILENAME; nc = 0; nt = 0; nv = 0; unit
 {
   c = callof($0)
   if (c != "") { nc++; cl[nc] = FNR; cu[nc] = unit; ct[nc] = c }
-  if ($0 ~ /ORCA_RPI_DRYRUN=/)  { nt++; tl[nt] = FNR; tu[nt] = unit; tk[nt] = "DRY" }
-  if ($0 ~ /ORCA_CLI_COMMAND=/) { nt++; tl[nt] = FNR; tu[nt] = unit; tk[nt] = "CLI" }
-  if ($0 ~ /ORCA_RPI_RUNDIR=/)  { nt++; tl[nt] = FNR; tu[nt] = unit; tk[nt] = "RD" }
-  if ($0 ~ /LIVE-INTENT\([^)][^)][^)][^)][^)][^)]+\)/) { nv++; vl[nv] = FNR }
+  # ★격리 토큰은 ①주석 줄이 아니고 ②`=` 뒤에 비-공백 값이 있어야 인정한다(슬롯 1 A3 실측).
+  #   캐리어의 술어는 `[ -n "${ORCA_RPI_DRYRUN:-}" ]` 라 **빈 대입은 라이브 실행**인데 문자열 존재만
+  #   보면 ISO 로 오분류한다. 더 넓게는 `# ORCA_RPI_DRYRUN=1` **주석 한 줄**만으로도 세탁됐다.
+  #   탐지자와 런타임 술어가 어긋나면 seal 은 「PASS 하는데 Run 이 생기는」 최악의 방향으로 틀린다.
+  ls = $0; sub(/^[ \t]*/, "", ls)
+  if (substr(ls, 1, 1) != "#") {
+    if ($0 ~ /ORCA_RPI_DRYRUN=[^ \t]/)  { nt++; tl[nt] = FNR; tu[nt] = unit; tk[nt] = "DRY" }
+    if ($0 ~ /ORCA_CLI_COMMAND=[^ \t]/) { nt++; tl[nt] = FNR; tu[nt] = unit; tk[nt] = "CLI" }
+    if ($0 ~ /ORCA_RPI_RUNDIR=[^ \t]/)  { nt++; tl[nt] = FNR; tu[nt] = unit; tk[nt] = "RD" }
+  }
+  # ★LIVE-INTENT 는 **줄 전체가 선언**일 때만 센다(공백·백틱 제외 후 그것 하나만 남아야 한다).
+  #   거리로는 언급과 선언이 안 갈린다 — 「예시 문자열은 `LIVE-INTENT(…)` 이다」 같은 산문이
+  #   11줄 뒤 호출을 면제해 버린다(슬롯 1 B5, spec §11.10 ③ 7차 정정).
+  lv = $0; gsub(/^[ \t`]+/, "", lv); gsub(/[ \t`]+$/, "", lv)
+  if (lv ~ /^LIVE-INTENT\([^)][^)][^)][^)][^)][^)]+\)$/) { nv++; vl[nv] = FNR; vu[nv] = unit }
   if ($0 ~ /rc=/) rcu[unit] = 1
 }
 END { classify() }
@@ -1315,10 +1335,23 @@ S53_CARRIER_TOKEN="bin/orca-rpi.sh"
   printf 'NOISO probe\n'
   printf 'bash %s spawn --run r --task t\n' "$S53_CARRIER_TOKEN"
   printf '\n'
+  # ★따옴표 감싼 경로 — 이 형태가 통째로 미탐이던 회귀를 봉인한다(슬롯 1 B4).
+  printf 'NOISO quoted probe\n'
+  printf 'bash "$HOME/.claude/%s" run --objective x\n' "$S53_CARRIER_TOKEN"
+  printf '\n'
+  # ★빈 대입은 격리가 아니다 — 캐리어 술어가 -n 이라 라이브로 실행된다(슬롯 1 A3).
+  printf 'NOISO empty-assign probe\n'
+  printf 'ORCA_RPI_DRYRUN= bash %s run --objective x\n' "$S53_CARRIER_TOKEN"
+  printf '\n'
+  # ★주석 줄은 격리원이 될 수 없다(슬롯 1 A3 — 대조 노동에서 추가 발견).
+  printf 'NOISO commented-token probe\n'
+  printf '# ORCA_RPI_DRYRUN=1\n'
+  printf 'bash %s run --objective x\n' "$S53_CARRIER_TOKEN"
+  printf '\n'
 } > "$S53_TMP/fixture.md"
 S53_FIX=$(awk -f "$S53_TMP/s53.awk" "$S53_TMP/fixture.md" 2>/dev/null | cut -f1 | tr '\n' ',')
-if [ "$S53_FIX" != "ISO,NOISO," ]; then
-  fail "부작용-차단 seal: 자기-시험 픽스처 판별 실패(기대 'ISO,NOISO,' 실측 '${S53_FIX:-빈값}') — 탐지자가 죽었다면 위반 0 은 무의미하다"
+if [ "$S53_FIX" != "ISO,NOISO,NOISO,NOISO,NOISO," ]; then
+  fail "부작용-차단 seal: 자기-시험 픽스처 판별 실패(기대 'ISO,NOISO,NOISO,NOISO,NOISO,' 실측 '${S53_FIX:-빈값}') — 탐지자가 죽었다면 위반 0 은 무의미하다"
 else
   S53_LEDGER="$HOME/.claude/docs/superpowers/plans/2026-08-17-c22-orca-carrier-landing.md"
   S53_ALL=$(awk -f "$S53_TMP/s53.awk" "$HOME/.claude/docs/superpowers/plans"/*.md "$HOME/.claude/docs/ai-context"/*.md 2>/dev/null)
@@ -1357,17 +1390,27 @@ sed -n "/^S53_AWK='\$/,/^'\$/p" setup/verify-setup.sh | sed '1d;$d' > "$TMPD/s53
 # ★seal 과 **완전히 같은 식**이어야 한다(경로도 절대경로로 — seal 이 $HOME 절대경로로 스캔하므로
 #   상대경로로 돌리면 $2==L 이 한 건도 매치되지 않아 '빈 입력 cksum'(42949672950)이 나온다.
 #   그리고 텍스트는 $5(=UNIT 번호)가 아니라 **마지막 필드**다 — 앞 5필드를 잘라내야 한다.)
-CK=$(awk -f "$TMPD/s53.awk" "$HOME/.claude/docs/superpowers/plans"/*.md "$HOME/.claude/docs/ai-context"/*.md 2>/dev/null \
+LINES=$(awk -f "$TMPD/s53.awk" "$HOME/.claude/docs/superpowers/plans"/*.md "$HOME/.claude/docs/ai-context"/*.md 2>/dev/null \
      | awk -F'\t' -v L="$HOME/.claude/docs/superpowers/plans/2026-08-17-c22-orca-carrier-landing.md" '$1=="NOISO" && $2==L { l=$0; sub(/^([^\t]*\t){5}/, "", l); print l }' \
-     | sed 's/[[:space:]][[:space:]]*/ /g' | sort | cksum | tr -d ' ')
-echo "동결값=$CK"
-# 위생 검사: 빈 입력이면 경로/필드가 어긋난 것이다. 반드시 8줄이 잡혀야 한다(6단위 / 8호출줄).
-[ "$CK" = "42949672950" ] && { echo "✗ 빈 입력 cksum — 경로 또는 필드 지정이 어긋났다"; exit 1; }
+     | sed 's/[[:space:]][[:space:]]*/ /g')
+N=$(printf '%s\n' "$LINES" | grep -c .)
+CK=$(printf '%s\n' "$LINES" | sort | cksum | tr -d ' ')
+echo "호출 줄수=$N 동결값=$CK"
+# ★위생 검사는 「빈 입력이 아님」이 아니라 **줄 수**여야 한다(슬롯 1 C4 실측).
+#   판별식 결함으로 8줄 중 1줄이 빠져 7줄만 잡혀도 cksum 은 빈 입력값(42949672950)이 아니므로
+#   「비어 있지 않은가」식 가드는 통과하고, 누락된 호출이 신규 위반 검사와 대장 동일성 검사 **양쪽에서
+#   영구히 사라지면서** verify-setup 은 91/0 이 된다. 「빈 입력 아님」은 필요조건일 뿐이다.
+[ "$N" -eq 8 ] || { echo "✗ 호출 줄수=$N (기대 8 — 6단위/8호출줄). 판별식 또는 경로가 어긋났다"; exit 1; }
 perl -pi -e "s/\@\@S53_LEDGER_CKSUM\@\@/$CK/g" setup/verify-setup.sh
 grep -c 'S53_LEDGER_CKSUM' setup/verify-setup.sh
 ```
 
-Expected: `동결값=<숫자>` · 마지막 `grep -c` → **0**(플레이스홀더 전부 치환).
+Expected: `호출 줄수=8` · `동결값=<숫자>`(빈 입력값 `42949672950` 이 아니어야 한다) ·
+마지막 `grep -c` → **0**(플레이스홀더 전부 치환).
+★줄 수가 8 이 아니면 **멈춘다** — 이 시점의 잘못된 동결값은 되돌리기 어렵다(다음 사이클이 그 값을
+정본으로 신뢰한다). B4 정정(따옴표 양끝 벗기기) 때문에 이전보다 더 잡힐 수도 있으니, 8 이 아니면
+실제로 무엇이 늘거나 줄었는지 `printf '%s\n' "$LINES"` 로 먼저 확인하고 이 숫자를 갱신할지
+판별식을 고칠지 판단한다.
 
 - [ ] **Step 5: C22 plan 부기 (왜곡 없는 공개)**
 
@@ -1434,6 +1477,11 @@ mut_s53_unisolated() {
 mut_s53_substitute() {
   local p; p="$1/docs/superpowers/plans/2026-08-17-c22-orca-carrier-landing.md"
   perl -0777 -i -pe 's{^(bin/orca-rpi\.sh spawn --run run_x --task task_x --model opus; echo "rc=\$\?")$}{ORCA_CLI_COMMAND=/x ORCA_RPI_RUNDIR=/y $1}m' "$p"
+  # ★치환 성공을 스스로 단언한다(슬롯 1 C5). 대상 줄의 공백·인자 순서가 미래에 바뀌면 치환이 0건이 되고
+  #   append 만 남아 **6→7 순증**이 된다 — cksum 은 어차피 바뀌므로 테스트는 계속 PASS 하는데
+  #   「개수 유지 치환을 잡는다」는 이 뮤테이터의 존재 이유만 조용히 거짓이 된다.
+  grep -q 'ORCA_CLI_COMMAND=/x ORCA_RPI_RUNDIR=/y bin/orca-rpi.sh spawn' "$p" \
+    || { echo "  (mut_s53_substitute: 치환 0건 — 대상 줄이 바뀌었다. 개수-유지 변이를 만들지 못했다)"; return 1; }
   { printf '\n'; printf 'bash bin/orca-%s.sh gate create --task t9 --question q9\n' "rpi"; printf '\n'; } >> "$p"
 }
 ```
@@ -1450,8 +1498,10 @@ assert_seal_fires "s53_substitute"  mut_s53_substitute  "1회성 예외 대장 d
 ★**여기서 full 을 돌리지 않는다.** Task 8 이 `setup/install.sh`(replica 복제 대상)를, Task 9 가
 `skills/start-rpi-cycle/SKILL.md`(**witness 목록 `:19` 에 실재**)를 편집한다. 지금 40분짜리 full 을
 돌리면 그 결과는 두 편집 *이전* 트리의 인증이고, 편집을 미루면 이번엔 「실행 중 편집 금지」(물리 제약,
-C22 에서 `✗ live MUTATED` 로 실증)와 부딪힌다. **full 은 Task 9·10 이 끝난 뒤 「검증 수열」 4번에서
-1회** 돈다(Gate P 실측 M2).
+C22 에서 `✗ live MUTATED` 로 실증)와 부딪힌다. **full 은 「검증 수열」 4번에서 1회** 돈다 —
+그 시점은 **Task 8·9 완료 후 · Task 10 Step 1-2 뒤**이고, Task 10 Step 3(`review-yield.md` append —
+witness 파일)은 그 실행이 **끝난 뒤**다. 세 문면이 같은 순서를 가리키게 맞춰 둔다(Gate P 실측 M2 ·
+슬롯 1 D3 — 초안은 「Task 10 이 끝난 뒤」와 「Step 3 은 4번 뒤」가 동시에 참일 수 없었다).
 
 부분집합은 원본을 건드리지 않고 사본에서 만든다 — 신규 라벨(`s53_*`)만 남기고 나머지 단언을
 주석 처리한다. control 과 live-immutability 단언은 무조건 남는다(둘 다 `assert_seal_fires` 호출이
@@ -1727,8 +1777,12 @@ Closeout 직전에 층별 실측을 채워 넣는다(§15.3 S19 — 말미 층 �
 ## C23 (cycle 74, 2026-08-18) — Orca 캐리어 자기-적용
 
 - Gate R: FAIL→정정 · 실발견 10 · 발견
-- Gate R 델타 재심 ×5: `0 PASS/5 FAIL` → 최종 PASS · 실발견 20(7+7+2+4, 5회차 0) · 발견
-- stage2 ×N: … · 통합(senior+drift): … · 교차패밀리 슬롯1/슬롯2: …
+- Gate R 델타 재심 ×5: `1 PASS/4 FAIL` · 실발견 20(7+7+2+4+0, 5회차 0으로 종결) · 발견
+- Gate P: FAIL→정정 · 실발견 9(BLOCKER 4 · MEDIUM 2 · MINOR 3) · 발견
+- Gate P 델타 재심 ×1: `1 PASS/0 FAIL` · 실발견 0(지목 9건 전건 해소 확인) · 확인
+- stage2 ×N: … · 통합(senior+drift): … · 교차패밀리 슬롯2: …
+- 교차패밀리 슬롯1(GPT sol/ultra, Gate P 델타 재심 PASS 직후): 실행 · 실발견 30 · 발견
+  (제기 33 → 트리아지 채택 30 / 기각 3. 2단계 트리아지 — 1단계 증거 수집 opus ×5 병렬, 2단계 판정 메인)
 - **트리거 대조(§18.1 판정 3)**: (a) … · (b) … · (c) … · (d) …
 - **floor 재심 판정**: 무변경 — §19.5 반증 조건이 지시문 미착륙으로 **평가 불가**였음(spec §21)
 ```
@@ -1779,9 +1833,27 @@ witness 파일이므로 **4번이 끝난 뒤**에 한다(실행 전/후는 무�
    먼저 실측해야 하고 이번 사이클에 그 실측이 없다(§11.10 ③).
 2. **1회성 예외 대장의 좁은 잔여** — 위반 1건을 격리하며 **바이트 동일 텍스트**의 새 위반을 다른
    위치에 넣으면 cksum 이 불변이라 무발화한다. 줄 번호 이동 불변성의 직접 귀결이며 감수한다.
+   (다만 정렬이 `sort` 이지 `sort -u` 가 아니라 **다중집합**이 보존되므로, 현 코퍼스처럼 바이트 동일
+   줄이 이미 2개 있으면 그중 하나만 격리해도 발화한다 — 설계가 우연히 옳은 지점이다.)
 3. **`LIVE-INTENT` parity 는 자기-정합 검사** — 같은 커밋에서 총계를 함께 올리면 통과한다.
    잡는 것은 *침묵의* 추가이지 의식적 확장이 아니다.
 4. **DRYRUN 은 원장 뮤텍스를 검증하지 않는다** — 동시-1 상한은 본질적으로 쓰기라 dry 경로로 검증
    불가. 그 축은 stub `$ORCA` + `ORCA_RPI_RUNDIR` 격리 경로가 계속 담당한다.
 5. **`--retry-request` 는 실측 확인된 명령에만 배선** — `task-create`/`gate-create`/`check` 는
-   Task 1 Step 5 의 `--help` 결과에 따라 확장하거나 **미확인으로 남긴다**.
+   **Task 1 Step 2** 의 `--help` 결과에 따라 확장하거나 **미확인으로 남긴다**. help 실측 자체가
+   불가능하면(`orca.exe` 부재) 이미 실측된 `run-create`·`worker-start` 2개에 한정한다.
+6. **Task 1 부분 실패 시 `[C23]` Run 이 잔존할 수 있다** — `run-create` 커밋 후 응답 유실이나 후속
+   `task-create` 실패가 나면 재실행 없이 멈춘다. 멱등 재발행 수단(`--retry-request`)이 Task 4 에서야
+   착륙하고 그 배선의 입력이 이 측정이라, 이 부트스트랩 순환은 순서로 풀 수 없다. `run-delete` 가
+   부재하므로 처분은 정리가 아니라 **기록**이다(잔존 id 를 probe 문서에 남긴다 — 슬롯 1 D6).
+7. **`handoff` 브랜치 가드는 `wt_sel` 축의 근사** — 실제 워커가 뜨는 워크트리는 **dispatch 소유**인데
+   가드는 `wt_sel` 을 읽는다. 둘이 갈리면(`preflight` 가 매 실행 덮어쓴다) 가드가 다른 곳을 판정한다.
+   dispatch→워크트리 바인딩이 `[P2]` 미측정이라 이번 사이클에 닫지 못한다 — Task 1 의 `jq paths`
+   전수 출력에 워크트리 필드가 나오면 차기 사이클에 상향한다(슬롯 1 A1 · spec §11.10 ①).
+8. **`handoff` 의 `[P2]` 2사이트는 미해제로 남는다** — `handoff` 를 호출하지 않으므로 미측정이고,
+   terminal 기반 `worker-start` 응답이 agent 기반과 동형이라는 보장이 없다. 「전부 해제」로 쓰면
+   추정을 실측으로 승격하게 되므로 마커를 유지하고 사유를 명시한다(슬롯 1 A6 · spec §11.10 ⑤).
+9. **`gpt` 비용 원장의 쓰기 실패는 흡수된다** — 권한·ACL 실패가 `|| true` 로 삼켜져 호출자에게
+   드러나지 않는다. 여기서 `die` 하면 executor 의 「stdout·rc 바이트 그대로 통과」 계약이 비용 부기
+   실패 때문에 깨지므로 의도된 advisory 성질이다. 다만 **형식**(헤더·컬럼·`n/a`)은 Task 5 의
+   상설 단언이 stub 경로로 1회 실측한다(슬롯 1 A7 → C3 로 이관).
