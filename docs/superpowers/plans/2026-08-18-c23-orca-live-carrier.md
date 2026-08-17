@@ -751,13 +751,13 @@ git commit -m "feat(orca): C23 T3 — ORCA_RPI_DRYRUN 검증-전용 경로 (부�
 ## Task 4: `--retry-request` 정확 복구 + `gpt` 비용 원장
 
 **Files:**
-- Modify: `bin/orca-rpi.sh` — `cmd_run`/`cmd_spawn` 파서 + 실패 경로 · `cmd_gpt` 원장 append
+- Modify: `bin/orca-rpi.sh` — `cmd_run`/`cmd_task`/`cmd_spawn`/`cmd_gate` 파서(4개 변이 명령 · 실측 갱신분) + `cmd_run`/`cmd_spawn` 실패 경로 복구 안내 · `cmd_wait` 미배선 사유 주석 · `cmd_gpt` 원장 append
 
 **Interfaces:**
 - Consumes: Task 3 의 `is_dryrun`/`dryrun_emit`
 - Produces: `gpt_ledger_append <role> <model> <rc> <cost>` · `LEDGER` 경로(`ORCA_RPI_LEDGER` override)
 
-- [ ] **Step 1: `--retry-request` 파서 수용 (Task 1 Step 2 에서 수용이 확인된 명령만)**
+- [x] **Step 1: `--retry-request` 파서 수용 (Task 1 Step 2 에서 수용이 확인된 명령만)**
 
 `cmd_run` 파서(`:140-143`)에 아암 추가:
 
@@ -796,13 +796,25 @@ Expected(`DRYRUN: … --retry-request req_123 …`)가 결정적으로 불가능
 
 `cmd_spawn` 도 같은 형태로 `--retry-request` 아암·변수를 추가하되, **`extra` 조립은 Task 3 이 이미
 정지점 앞으로 올려 뒀으므로** 그 배열에 아암을 하나 더 붙이면 된다.
-**배선 범위**: Task 1 Step 2 의 help 실측에서 **수용이 확인된 명령에만** 넣는다. 확인되지 않은
-명령(`task-create`/`gate-create`/`check`)에는 넣지 않는다 — 받는다고 가정하고 배선하지 않는다(§11.10 ④).
+**배선 범위**: Task 1 Step 2 의 help 실측에서 **수용이 확인된 명령에만** 넣는다 — 받는다고 가정하고
+배선하지 않는다(§11.10 ④).
+★**실측 결과가 이 절의 초안 예시를 갱신했다(C23 Phase I)**: 초안은 「확인되지 않은 명령
+(`task-create`/`gate-create`/`check`)에는 넣지 않는다」고 적었으나, Task 1 Step 2 의 `--help` 실측은
+`run-create` · `task-create` · `worker-start` · `gate-create` · `check` **5개 전부**가 `--retry-request`
+를 수용함을 보였다(미확인 잔여 0). 규칙은 그대로이고 *입력*이 바뀐 것이므로 배선은 다음과 같다:
+- **배선 4개** — `cmd_run`(run-create) · `cmd_task`(task-create) · `cmd_spawn`(worker-start) ·
+  `cmd_gate create`(gate-create). 전부 **변이** 서브커맨드다.
+- **`check` 는 미배선** — 수용은 확인됐으나 help Notes 가 `only for exact recovery after an unknown
+  **mutation** result` 이고 `check` 는 대기/조회라 **회수할 mutation 이 없다**. 침묵 배제를 피하려
+  `cmd_wait` 에 미배선 사유를 주석으로 남긴다(동작 무변경).
+- **선언된 잔여(비대칭)**: 실패-분기 *복구 안내 출력*은 `cmd_run`·`cmd_spawn` **2개에만** 있다.
+  파서 배선(4개)과 안내 생성(2개)이 다른 기능이라 Step 2 의 지시 범위를 넘기지 않았다 —
+  `task`/`gate create` 가 unknown result 로 실패하면 사용자가 안내 없이 스스로 조립해야 한다.
 ★help 실측 자체가 수행되지 않았으면(`orca.exe` 부재 등) 배선은 **이미 실측된 2개
 (`run-create`·`worker-start`)에 한정**하고 나머지는 미확인으로 남긴다 — 「확인된 명령만」이라는 조건을
 만족시킬 입력이 없다고 해서 추정 배선으로 넘어가지 않는다(슬롯 1 A5·D2).
 
-- [ ] **Step 2: 비-0 응답 시 정확 복구 명령 출력**
+- [x] **Step 2: 비-0 응답 시 정확 복구 명령 출력**
 
 먼저 `SELF` 선언(`bin/orca-rpi.sh:15`) 바로 뒤에 실행 가능한 경로 변수를 하나 추가한다.
 `SELF`(=`basename`)는 오류 접두사 용도라 그대로 두고, **안내 줄에 넣을 경로**만 따로 만든다:
@@ -834,7 +846,7 @@ SELF_PATH="$0"
 `cmd_spawn` 의 실패 분기(`:222-231`)에도 같은 3분기를 추가한다(기존 `--retry-of` 안내는 **유지** —
 두 축은 다르다: `--retry-of` 는 *새* 시도, `--retry-request` 는 같은 mutation 의 멱등 재발행).
 
-- [ ] **Step 3: 비용 원장 함수 추가 (`require_jq` 정의 뒤)**
+- [x] **Step 3: 비용 원장 함수 추가 (`require_jq` 정의 뒤)**
 
 ```bash
 # ── gpt 비용 원장 (§11.10 ⑥ — §4.3·§9 시나리오 2 supersede) ─────────────────
@@ -849,7 +861,7 @@ gpt_ledger_append() {   # $1=role $2=model $3=rc $4=cost(모르면 n/a)
 }
 ```
 
-- [ ] **Step 4: `cmd_gpt` 두 아암에 원장 배선 (stdout 계약 불변)**
+- [x] **Step 4: `cmd_gpt` 두 아암에 원장 배선 (stdout 계약 불변)**
 
 executor 는 **바이트 그대로 통과**해야 하므로 임시 파일을 거친다(`$( )` 는 후행 개행을 먹는다):
 
@@ -877,7 +889,7 @@ verifier(codex)는 비용 필드를 내지 않으므로 `n/a` — **모르는 �
       return "$rc"
 ```
 
-- [ ] **Step 5: 검증 — 인자 수용 · 실패 분기 · 원장 형식**
+- [x] **Step 5: 검증 — 인자 수용 · 실패 분기 · 원장 형식**
 
 DRYRUN 만으로는 이 task 의 산출물 3분기와 원장 append 를 **한 번도 실행하지 않는다**(슬롯 1 C2·C3).
 따라서 검증은 세 축이다: ⓐ dry 로 인자 수용/거부 ⓑ **비-0 stub** 으로 정확 복구 안내 ⓒ **비-dry stub**
@@ -929,7 +941,7 @@ Expected:
   이 순서가 곧 「비용 부기가 검증 실패에 흡수되지 않는다」의 증거다. 원장이 아예 없으면
   `gpt_ledger_append` 배선이 빠진 것이므로 FAIL.
 
-- [ ] **Step 6: 커밋**
+- [x] **Step 6: 커밋**
 
 ```bash
 cd "$HOME/.claude"
