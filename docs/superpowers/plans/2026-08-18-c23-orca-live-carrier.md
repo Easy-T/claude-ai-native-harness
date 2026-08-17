@@ -110,7 +110,7 @@
 - Consumes: 없음(첫 task)
 - Produces: 실측 확정된 jq 경로 4종. Task 2~4 는 같은 파일을 편집하므로 **이 task 이후 순차 실행**한다.
 
-- [ ] **Step 1: 스테일 원장 슬롯 해제 (증거 먼저 기록)**
+- [x] **Step 1: 스테일 원장 슬롯 해제 (증거 먼저 기록)**
 
 C22 의 stub 검증이 라이브 `$HOME/.claude/.orca-rpi` 에 직접 써서 `t1` 이 남아 있다(§11.10 ②).
 그대로 두면 C23 의 첫 non-readonly spawn 이 상한 초과로 거부된다. 지우기 **전에** 상태를 남긴다.
@@ -136,7 +136,7 @@ append 에 인용한다.
 0바이트로 만든 상태가 되고, 내용이 예상과 달라도(=진짜 활성 task) 되돌릴 근거가 사라진다. 지우는 것은
 라이브 안전 원장이므로 **파괴적 줄 앞에 전제를 세운다.**
 
-- [ ] **Step 2: `--help` 실측(부작용 0) → preflight (라이브 · rc=0 확인)**
+- [x] **Step 2: `--help` 실측(부작용 0) → preflight (라이브 · rc=0 확인)**
 
 ★**먼저 `--help` 실측을 끝낸다**(슬롯 1 A5·D2). Task 4 의 배선 범위는 이 프로브의 산출물에 종속되는데,
 `--help` 는 **로컬 CLI 만으로 실행 가능**하고 부작용이 0 이다. 초안은 이것을 Step 5 말미에 뒀고 Step 2 는
@@ -177,7 +177,7 @@ Task 2 로 넘어간다(goal: 실패해도 원문 기록이 산출물이다).
 사유이며, 「rc=3 만 취급」하면 미설치 머신이 처분 밖에 놓인다(슬롯 1 A8 — Task 9 의 옵션 (e) 문면도
 같은 이유로 rc≠0 으로 쓴다).
 
-- [ ] **Step 3: Run + Task 생성 (라이브)**
+- [x] **Step 3: Run + Task 생성 (라이브)**
 
 `LIVE-INTENT(dispatch/delivery/handle/gate 4종 필드 경로는 실 워커 없이는 확인 불가)`
 
@@ -199,7 +199,7 @@ Expected: `RUN=run_…` · `TASK=task_…` · 마지막 jq 가 `.id`(요청 상�
 「선언된 잔여 6」으로 명시돼 있다. 잔존물이 생기면 그 id 를 probe 문서에 남겨 다음 사이클이 식별할 수
 있게 한다(`run-delete` 부재라 정리가 아니라 **기록**이 유일한 처분이다).
 
-- [ ] **Step 4: 워커 spawn + 배치 수신 (라이브 — dispatch id · delivery id 측정)**
+- [x] **Step 4: 워커 spawn + 배치 수신 (라이브 — dispatch id · delivery id 측정)**
 
 `LIVE-INTENT(worker-start/check 응답 shape 는 실 워커 기동으로만 관측된다)`
 
@@ -230,7 +230,7 @@ D="$(jq -r '<그 실경로>' .orca-rpi/last-worker-start.json)"; echo "recovered
 이 절차는 이미 출력 중인 데이터를 쓰는 것이라 스코프 확대가 아니다. `$D` 를 끝내 못 얻으면 워커가
 살아 있는 채로 남으므로, 그 사실과 `last-worker-start.json` 전문을 probe 문서에 기록한다.
 
-- [ ] **Step 5: handle · gate id 측정 + 릴리즈 (라이브)**
+- [x] **Step 5: handle · gate id 측정 + 릴리즈 (라이브)**
 
 `LIVE-INTENT(worker-show handle 과 gate-create id 는 살아 있는 dispatch/task 위에서만 관측된다)`
 
@@ -250,7 +250,7 @@ Expected: handle 경로와 gate id 경로가 확정된다. `gate create` 가 **�
 (`--retry-request` help 실측은 **Step 2 로 이동**했다 — 라이브 발행보다 먼저 끝내야 Task 4 가 입력을
 갖는다.)
 
-- [ ] **Step 6: `[P2]` 주석 제거 + 실경로 반영**
+- [x] **Step 6: `[P2]` 주석 제거 + 실경로 반영**
 
 측정 결과가 추정과 **같으면** 주석만 지우고, **다르면** jq 경로를 실측값으로 바꾼다.
 
@@ -287,7 +287,7 @@ Expected: `grep -n '\[P2'` → **정확히 2줄**(`:352`·`:353` 계열, 둘 다
 (치환식 확장이 다른 줄을 삼키는 편이 더 위험하다).
 측정 경로가 추정과 **다르면** 위 치환 대신 해당 `jq -r '…'` 문자열 자체를 실측 경로로 바꾸고 마커를 뗀다.
 
-- [ ] **Step 7: `wait` 의 3중 폴백 축소**
+- [x] **Step 7: `wait` 의 3중 폴백 축소**
 
 3중 폴백(`.result.delivery.id // .result.deliveryId // .result.delivery_id`)은 "모른다"는 뜻이었다.
 실측된 경로 **하나만** 남긴다.
@@ -304,7 +304,7 @@ perl -0777 -i -pe "s{jq -r '\.result\.delivery\.id // \.result\.deliveryId // \.
 bash -n bin/orca-rpi.sh && echo "bash -n OK"
 ```
 
-- [ ] **Step 8: probe 문서 append + 커밋**
+- [x] **Step 8: probe 문서 append + 커밋**
 
 `docs/ai-context/c22-orca-probe-measured.md` 말미에 아래 골격으로 append 한다(새 파일 금지).
 각 항목은 **명령 · 원문 발췌 · 판정(추정 일치/불일치)** 3요소를 갖춘다.
@@ -344,12 +344,21 @@ git commit -m "feat(orca): C23 T1 — 라이브 측정으로 [P2] 해제 + probe
 
 - [ ] **Step 1: RED — 가드 없는 현재 캐리어가 master 에서 non-readonly spawn 을 통과시킴을 실측**
 
+★**stub 응답은 `{"result":{"dispatchId":"d_stub"}}` 다**(Task 2 의 3사이트 전부). 초안은
+`{"result":{"dispatch":{"id":"d_stub"}}}` 였는데, **Task 1 의 실측이 `cmd_spawn` 의 jq 를
+`.result.dispatchId` 로 바꿔 그 stub 을 stale 로 만들었다**. 고치지 않으면 가드가 *통과시켜야 하는*
+아암에서도 rc=1 이 나온다(가드가 아니라 그 뒤 `dispatch id 추출 실패` 로 죽는다) — 부작용 줄 수
+단언은 그대로 성립하므로 **rc 단언만 조용히 무의미해지는** 유형이다. 같은 이유로 Task 5 의
+검사자(`orca-carrier.test.sh`)가 이 시나리오를 코드화할 때도 실측 shape 를 써야 한다.
+(교훈: 라이브 측정이 추정을 반증하면 **그 추정을 복제한 픽스처 전부**가 정정 대상이다 —
+정정-전파 공백 클래스.)
+
 ```bash
 cd "$HOME/.claude"
 D=$(mktemp -d); mkdir -p "$D/rd"
-printf '#!/usr/bin/env bash\nprintf "SIDE-EFFECT: %%s\\n" "$*" >> "$STUB_LOG"\nprintf %%s "{\\"id\\":\\"req\\",\\"ok\\":true,\\"result\\":{\\"dispatch\\":{\\"id\\":\\"d_stub\\"}}}"\n' > "$D/orca-stub"
+printf '#!/usr/bin/env bash\nprintf "SIDE-EFFECT: %%s\\n" "$*" >> "$STUB_LOG"\nprintf %%s "{\\"id\\":\\"req\\",\\"ok\\":true,\\"result\\":{\\"dispatchId\\":\\"d_stub\\"}}"\n' > "$D/orca-stub"
 chmod +x "$D/orca-stub"; export STUB_LOG="$D/side.log"; : > "$STUB_LOG"
-git -C "$D" init -q; git -C "$D" checkout -q -b master
+git -C "$D" init -q; git -C "$D" checkout -q -B master
 # ★커밋 1건 필수 — unborn branch 에서 `rev-parse --abbrev-ref HEAD` 는 stdout 에 'HEAD' 를 내며 rc=128 이라
 #   가드가 「판정 불가」로 죽고 Expected 문안이 어긋난다(슬롯 1 B6 실측). RED/GREEN 은 같은 픽스처여야 한다.
 git -C "$D" -c user.email=c23@local -c user.name=c23 commit -q --allow-empty -m init
@@ -443,9 +452,9 @@ assert_branch_not_merge_target() {   # $1 = --worktree 값
 ```bash
 cd "$HOME/.claude"
 D=$(mktemp -d); mkdir -p "$D/rd"
-printf '#!/usr/bin/env bash\nprintf "SIDE-EFFECT: %%s\\n" "$*" >> "$STUB_LOG"\nprintf %%s "{\\"id\\":\\"req\\",\\"ok\\":true,\\"result\\":{\\"dispatch\\":{\\"id\\":\\"d_stub\\"}}}"\n' > "$D/orca-stub"
+printf '#!/usr/bin/env bash\nprintf "SIDE-EFFECT: %%s\\n" "$*" >> "$STUB_LOG"\nprintf %%s "{\\"id\\":\\"req\\",\\"ok\\":true,\\"result\\":{\\"dispatchId\\":\\"d_stub\\"}}"\n' > "$D/orca-stub"
 chmod +x "$D/orca-stub"; export STUB_LOG="$D/side.log"; : > "$STUB_LOG"
-git -C "$D" init -q; git -C "$D" checkout -q -b master
+git -C "$D" init -q; git -C "$D" checkout -q -B master
 # ★커밋 1건 필수 — unborn branch 에서 `rev-parse --abbrev-ref HEAD` 는 stdout 에 'HEAD' 를 내며 rc=128 이라
 #   가드가 「판정 불가」로 죽고 Expected 문안이 어긋난다(슬롯 1 B6 실측). RED/GREEN 은 같은 픽스처여야 한다.
 git -C "$D" -c user.email=c23@local -c user.name=c23 commit -q --allow-empty -m init
@@ -463,9 +472,9 @@ Expected (GREEN): 두 호출 모두 `rc=1` + `거부: non-readonly 워커를 머
 ```bash
 cd "$HOME/.claude"
 D=$(mktemp -d); mkdir -p "$D/rd"
-printf '#!/usr/bin/env bash\nprintf "SIDE-EFFECT: %%s\\n" "$*" >> "$STUB_LOG"\nprintf %%s "{\\"id\\":\\"req\\",\\"ok\\":true,\\"result\\":{\\"dispatch\\":{\\"id\\":\\"d_stub\\"}}}"\n' > "$D/orca-stub"
+printf '#!/usr/bin/env bash\nprintf "SIDE-EFFECT: %%s\\n" "$*" >> "$STUB_LOG"\nprintf %%s "{\\"id\\":\\"req\\",\\"ok\\":true,\\"result\\":{\\"dispatchId\\":\\"d_stub\\"}}"\n' > "$D/orca-stub"
 chmod +x "$D/orca-stub"; export STUB_LOG="$D/side.log"; : > "$STUB_LOG"
-git -C "$D" init -q; git -C "$D" checkout -q -b master
+git -C "$D" init -q; git -C "$D" checkout -q -B master
 # ★커밋 1건 필수 — unborn branch 에서 `rev-parse --abbrev-ref HEAD` 는 stdout 에 'HEAD' 를 내며 rc=128 이라
 #   가드가 「판정 불가」로 죽고 Expected 문안이 어긋난다(슬롯 1 B6 실측). RED/GREEN 은 같은 픽스처여야 한다.
 git -C "$D" -c user.email=c23@local -c user.name=c23 commit -q --allow-empty -m init
@@ -504,7 +513,7 @@ for r in A B; do
   git -C "$D/$r" init -q
   git -C "$D/$r" -c user.email=c23@local -c user.name=c23 commit -q --allow-empty -m init
 done
-git -C "$D/A" checkout -q -b master
+git -C "$D/A" checkout -q -B master
 git -C "$D/B" checkout -q -b feature-x
 printf 'r::%s' "$D/A" > "$D/rd/wt_sel"
 GIT_DIR="$D/B/.git" env -u WT_SEL ORCA_CLI_COMMAND="$D/orca-stub" ORCA_RPI_RUNDIR="$D/rd" \
@@ -960,7 +969,7 @@ mkfix() {   # $1 = 디렉터리 · $2 = 브랜치명
   mkdir -p "$1"
   git -C "$1" init -q 2>/dev/null || return 1
   git -C "$1" -c user.email=c23@local -c user.name=c23 commit -q --allow-empty -m init 2>/dev/null || return 1
-  git -C "$1" checkout -q -b "$2" 2>/dev/null || return 1
+  git -C "$1" checkout -q -B "$2" 2>/dev/null || return 1
   # symbolic-ref: unborn 에서도 rc=0 으로 이름을 준다(가드와 같은 판별 경로).
   git -C "$1" symbolic-ref --short HEAD 2>/dev/null
 }
