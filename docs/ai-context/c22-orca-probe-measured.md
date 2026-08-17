@@ -106,3 +106,77 @@ worker-retain worker-show worker-start worker-stop
 - `agent hooks off/on` 의 실제 편집 범위 — **발행 금지 유지**
 - Run/Task/Dispatch/Gate 응답 shape — 위 차단 사유
 - 워커 preamble 원문(P0-4) — dispatch 선행 필요
+
+---
+
+# P0-2 · P0-4 완결 (2026-08-17, 사용자 승인 후 — 프로브용 Run 1개)
+
+생성물(삭제 수단 부재 — DB 영구 잔존, objective/title 에 `[PROBE]` 명시):
+`run_720d6f472515` · `task_946e358573bc`. 워커는 **띄우지 않았다**(`dispatch --dry-run` → `dispatch:null, injected:false`).
+
+## P0-2 — 응답 필드 경로 **확정**
+
+| 필드 | 경로 | 실측값 |
+|---|---|---|
+| 봉투 | `{id, ok, result, _meta}` | `_meta.runtimeId` 동반 |
+| **run id** | `result.run.id` | `run_720d6f472515` |
+| coordinator handle | `result.run.coordinator_handle` | `term_a77af4ad-…` |
+| coordinator pane key | `result.run.coordinator_pane_key` | `2fdb2541-…:9fb1a676-…` |
+| **task id** | `result.task.id` | `task_946e358573bc` |
+| task status | `result.task.status` | `ready` (생성 직후 기본값) |
+| task deps | `result.task.deps` | `"[]"` — **JSON 문자열이지 배열이 아니다** |
+| provenance | `result.task.created_by_process_incarnation` | `<repoId>::<path>@@…` — 워크트리 셀렉터가 그대로 박힌다 |
+| 멱등 | `result.mutation.{requestId,replayed}` | `replayed:false` |
+| dry-run | `result.{dispatch,injected,dryRun,preamble}` | `null / false / true / <원문>` |
+
+★**함정**: 봉투의 최상위 `id`(`6ae6d4eb-…`)는 **요청 상관 ID이지 run/task id가 아니다**. `result.run.id`(`run_…` 접두)와 형식부터 다르다. 캐리어가 `.id` 를 그대로 집으면 조용히 틀린 값을 잡는다.
+
+★`deps` 는 **문자열** `"[]"` 로 돌아온다. `--deps <json_array>` 로 넣지만 읽을 때는 파싱이 필요하다.
+
+## P0-4 — preamble 원문 확보 + ★규약 충돌 1건
+
+`--return-preamble` 로 워커에게 주입될 원문 전체를 확보했다. 주요 계약:
+
+- `worker_done` **정확히 1회** 필수 · `--body` 는 3문장 요약 강제 · `--outcome succeeded|failed`
+- payload 에 **taskId + dispatchId 둘 다** 포함(실패한 재시도의 지각 완료가 현 dispatch 를 완료시키는 것 방지)
+- **5분마다 heartbeat** — 단 `check --wait`/`ask` 블로킹 중에는 생략(그 자체가 liveness)
+- escalation = `send --type escalation` (`orchestration escalation` 이라는 명령은 **없다** — 설계문서 T3 의 정정 항목 확인됨)
+- worker_done 후 **추가 행동 금지**(sleep/poll 루프 금지, 셸 종료도 금지 — 터미널 재사용 대기)
+
+### ★충돌 — preamble 이 `AskUserQuestion` 을 전면 금지한다
+
+preamble verbatim:
+> **BEHAVIOR RULE #1 (MUST NOT VIOLATE):** NEVER use AskUserQuestion; use `orca orchestration ask` or send `--type decision_gate`. AskUserQuestion opens a local TUI prompt that the coordinator cannot see and cannot answer — your session will hang forever waiting on a human.
+
+그런데 설계문서는 **3곳**에서 머지 승인을 AskUserQuestion 으로 규정한다:
+- §2 경계표: 「**사용자 머지 승인** = 사람 · `gate-resolve` 로 대체 **금지**」
+- §3.7 `:232`: 「★ 사용자 머지 승인 = AskUserQuestion (사람) — gate 로 대체 금지」
+- §9 시나리오1 9단계: 「머지 승인은 **사용자에게 AskUserQuestion**(gate 아님)」
+
+**둘 다 옳고, 층이 다르다** — 충돌은 실재하나 해소 가능하다:
+
+| 층 | 누가 | 승인 채널 | 근거 |
+|---|---|---|---|
+| **워커**(dispatched) | 코디네이터에게 묻는다 | `orchestration ask` / `decision_gate` | preamble RULE #1 — 워커의 TUI 는 아무도 못 본다 |
+| **코디네이터**(사람과 같은 화면) | 사용자에게 묻는다 | **AskUserQuestion** | 설계문서 §2 — 머지는 사람 소유 |
+
+→ **T3 워커 계약에 반드시 명시할 것**: 「워커 세션에서는 AskUserQuestion 금지(hang), 대신 `ask`. 단 **코디네이터 세션의 머지 승인 AskUserQuestion 은 유지**」. 이 구분을 빠뜨리면 ⓐ워커가 영구 hang 하거나 ⓑ머지가 사람 승인 없이 gate 로 처리되는 규약 위반 중 하나가 난다.
+
+**+ 파생 확인**: 워커 계약이 나를 대체하지 않는다 — preamble 은 Orca 가 주입하므로 **T3 는 그 위에 얹히는 하네스-고유 계약만** 담으면 된다(중복 재전송 금지 — 설계문서 §2 「규범 재전송 금지」와 정합).
+
+## P0 게이트 판정: **통과**
+
+| 항목 | 상태 |
+|---|---|
+| P0-1 5건 | ✅ 완료(dispatch 는 dry-run) |
+| P0-2 필드 경로 | ✅ **확정** — `[P2]` 마커 해제 가능 |
+| P0-3 settings 무결성 | ✅ cksum 불변 |
+| P0-4 preamble | ✅ 원문 확보 + **충돌 1건 표면화·해소안 명시** |
+
+→ 설계문서 §7 「P0 산출물 없으면 T1~T3 코드 작성 금지」 **해제**. T1 캐리어는 이제 실측 위에서 작성된다.
+
+## 잔여 미측정
+
+- `worker-start` 실제 응답 shape(`worker.agent_terminal_handle`) — 워커를 띄워야 나온다. T1 작성 시 `# [P2]` 유지.
+- `gate-create` / `check` 의 delivery id — 상동.
+- `agent hooks off` 의 편집 범위 — **발행 금지 유지**.
