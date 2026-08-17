@@ -706,6 +706,155 @@ else
   fail "경로-전달 규약 위반 ${PP_VIOL}건 — 인라인 소스의 리터럴 /tmp/ 또는 변수 보간 경로: ${PP_SITES}. argv/stdin 으로 전달할 것 (non-obvious #3)"
 fi
 
+# 53. 부작용-차단 주입 명시 (C23, non-obvious #5 SMART ①② — 기한 "C23 Phase P"):
+#     docs/superpowers/plans/*.md + docs/ai-context/*.md 의 **증거 단위**(연속 비-공백 줄의 최대 런)에
+#     커맨드-위치 캐리어 부작용 호출이 있으면, 그 호출 줄 자신 또는 **앞 15줄 이내**에
+#     ⓐ ORCA_RPI_DRYRUN= (단독 충분) 또는 ⓑ ORCA_CLI_COMMAND= + ORCA_RPI_RUNDIR=(동반 필수)
+#     가 있어야 한다. 없으면 FAIL. 라이브가 *목적*인 단위는 LIVE-INTENT(<6자 이상 사유>) 로 면제된다.
+#     ★문단 단위인 이유: 펜스 모델은 중첩 펜스로 패리티가 깨진다(C22 plan 실측 — 오탐 1건).
+#     ★근접 창인 이유: 공백줄 없는 긴 절에서 토큰 1개가 절 전체를 세탁한다(non-obvious.md 실측 87줄 단일 문단).
+#     ★vacuous 방지: TOTAL=0 → FAIL 을 쓰지 않는다(캐리어 호출 없는 미래 사이클을 거짓 FAIL).
+#       대신 **런타임 조립 자기-시험 픽스처**(ISO 1 + NOISO 1)로 탐지자가 양방향 판별함을 매번 증명한다.
+#     ★1회성 예외 대장: C22 plan 6단위는 *이미 실행된 기록*이라 소급 편집이 왜곡/허위 재분류다.
+#       개수가 아니라 **호출 줄 집합의 cksum 을 동결**한다(치환 우회 차단).
+S53_AWK='
+# 파일 단위 2-상 처리: 수집(라인 순회) → 분류(파일 끝). LIVE-INTENT 는 호출 **뒤**에도 올 수 있어
+# (마크다운에서 선언은 보통 코드블록 다음 Expected 줄에 붙는다) 한 번에 판정할 수 없다.
+# 격리 토큰은 **같은 단위 + 앞 15줄**. LIVE-INTENT 는 **같은 단위이거나 앞 15줄** + **줄 전체가 선언**
+# 일 때만 인정한다(거리만으로는 *언급*과 *선언*이 구분되지 않는다 — spec §11.10 ③ 7차 정정).
+BEGIN { QQ = "[\"" sprintf("%c", 39) "]+" }   # 양끝에서 벗길 따옴표(", '\'')
+function classify(  i,j,d,cli,rd,iso,live,st) {
+  for (i = 1; i <= nc; i++) {
+    cli = 0; rd = 0; iso = 0; live = 0
+    for (j = 1; j <= nt; j++) {
+      if (tu[j] != cu[i]) continue
+      d = cl[i] - tl[j]
+      if (d < 0 || d > 15) continue
+      if (tk[j] == "DRY") iso = 1
+      else if (tk[j] == "CLI") cli = 1
+      else if (tk[j] == "RD") rd = 1
+    }
+    for (j = 1; j <= nv; j++) {
+      d = cl[i] - vl[j]
+      if (vu[j] == cu[i] || (d >= 0 && d <= 15)) live = 1
+    }
+    st = (iso || (cli && rd)) ? "ISO" : (live ? "LIVE" : "NOISO")
+    # 필드: STATUS \t FILE \t LINE \t RC \t UNIT \t TEXT (TEXT 가 마지막 — 탭 포함 시에도 잘리지 않게)
+    printf "%s\t%s\t%d\t%d\t%d\t%s\n", st, CURF, cl[i], (rcu[cu[i]] ? 1 : 0), cu[i], ct[i]
+  }
+  nc = 0; nt = 0; nv = 0; unit = 0; split("", rcu, ":")
+}
+function callof(line,  s,n,a,i,t,nx,em,sk) {
+  s = line
+  sub(/^[ \t]*/, "", s)
+  if (s ~ /^#/) return ""
+  if (substr(s, 1, 1) == "`") return ""
+  gsub(/\$\(/, " ", s)
+  n = split(s, a, /[ \t]+|[;&|()]+/)
+  em = 0; sk = 0
+  for (i = 1; i <= n; i++) {
+    # ★따옴표는 **양끝** 모두 벗긴다(슬롯 1 B4 실측). 선두만 벗기면
+    # `bash "$HOME/.claude/bin/orca-rpi.sh" run …` 이 닫는 따옴표 때문에 경로 정규식에서 탈락해
+    # **호출 자체가 스캔에 들어오지 않는다**(awk 실행으로 출력 0줄 확인). 이건 고의 우회가 아니라
+    # 관용적 표기이고 — 이 plan 의 Task 5 도 `bash "$CARRIER"` 형태다 — 통째로 침묵하는 미탐이다.
+    t = a[i]; gsub("^" QQ, "", t); gsub(QQ "$", "", t)
+    if (t == "") continue
+    # env 의 자기 옵션은 건너뛴다 — `env -u WT_SEL bash …/orca-rpi.sh spawn` 을 놓치면
+    # 격리 없는 호출이 통째로 미탐된다(C23 Phase P 실측: 이 형태가 코퍼스에 다수).
+    if (sk) { sk = 0; continue }
+    if (t == "env") { em = 1; continue }
+    if (em && t == "-u") { sk = 1; continue }
+    if (em && t ~ /^-/) continue
+    if (t == "bash" || t == "sh" || t == "exec" || t == "time") continue
+    if (t ~ /^[A-Za-z_][A-Za-z0-9_]*=/) continue
+    if (t ~ /(^|\/)orca-rpi\.sh$/) {
+      nx = a[i+1]; gsub("^" QQ, "", nx); gsub(QQ "$", "", nx)
+      if (nx ~ /^(run|task|spawn|wait|handoff|release|gate|preflight|gpt)$/) return line
+      return ""
+    }
+    return ""
+  }
+  return ""
+}
+FNR == 1 { if (NR > 1) classify(); CURF = FILENAME; nc = 0; nt = 0; nv = 0; unit = 1; split("", rcu, ":") }
+/^[ \t]*$/ { unit++; next }
+{
+  c = callof($0)
+  if (c != "") { nc++; cl[nc] = FNR; cu[nc] = unit; ct[nc] = c }
+  # ★격리 토큰은 ①주석 줄이 아니고 ②`=` 뒤에 비-공백 값이 있어야 인정한다(슬롯 1 A3 실측).
+  #   캐리어의 술어는 `[ -n "${ORCA_RPI_DRYRUN:-}" ]` 라 **빈 대입은 라이브 실행**인데 문자열 존재만
+  #   보면 ISO 로 오분류한다. 더 넓게는 `# ORCA_RPI_DRYRUN=1` **주석 한 줄**만으로도 세탁됐다.
+  #   탐지자와 런타임 술어가 어긋나면 seal 은 「PASS 하는데 Run 이 생기는」 최악의 방향으로 틀린다.
+  ls = $0; sub(/^[ \t]*/, "", ls)
+  if (substr(ls, 1, 1) != "#") {
+    if ($0 ~ /ORCA_RPI_DRYRUN=[^ \t]/)  { nt++; tl[nt] = FNR; tu[nt] = unit; tk[nt] = "DRY" }
+    if ($0 ~ /ORCA_CLI_COMMAND=[^ \t]/) { nt++; tl[nt] = FNR; tu[nt] = unit; tk[nt] = "CLI" }
+    if ($0 ~ /ORCA_RPI_RUNDIR=[^ \t]/)  { nt++; tl[nt] = FNR; tu[nt] = unit; tk[nt] = "RD" }
+  }
+  # ★LIVE-INTENT 는 **줄 전체가 선언**일 때만 센다(공백·백틱 제외 후 그것 하나만 남아야 한다).
+  #   거리로는 언급과 선언이 안 갈린다 — 「예시 문자열은 `LIVE-INTENT(…)` 이다」 같은 산문이
+  #   11줄 뒤 호출을 면제해 버린다(슬롯 1 B5, spec §11.10 ③ 7차 정정).
+  lv = $0; gsub(/^[ \t`]+/, "", lv); gsub(/[ \t`]+$/, "", lv)
+  if (lv ~ /^LIVE-INTENT\([^)][^)][^)][^)][^)][^)]+\)$/) { nv++; vl[nv] = FNR; vu[nv] = unit }
+  if ($0 ~ /rc=/) rcu[unit] = 1
+}
+END { classify() }
+'
+S53_TMP=$(mktemp -d)
+printf '%s' "$S53_AWK" > "$S53_TMP/s53.awk"
+
+# --- 자기-시험 픽스처(런타임 조립 — 리터럴로 두면 이 파일 자신이 코퍼스 오염원이 된다) ---
+S53_CARRIER_TOKEN="bin/orca-rpi.sh"
+{ printf 'ISO probe\n'
+  printf 'ORCA_CLI_COMMAND=/x ORCA_RPI_RUNDIR=/y bash %s spawn --run r --task t\n' "$S53_CARRIER_TOKEN"
+  printf '\n'
+  printf 'NOISO probe\n'
+  printf 'bash %s spawn --run r --task t\n' "$S53_CARRIER_TOKEN"
+  printf '\n'
+  # ★따옴표 감싼 경로 — 이 형태가 통째로 미탐이던 회귀를 봉인한다(슬롯 1 B4).
+  printf 'NOISO quoted probe\n'
+  printf 'bash "$HOME/.claude/%s" run --objective x\n' "$S53_CARRIER_TOKEN"
+  printf '\n'
+  # ★빈 대입은 격리가 아니다 — 캐리어 술어가 -n 이라 라이브로 실행된다(슬롯 1 A3).
+  printf 'NOISO empty-assign probe\n'
+  printf 'ORCA_RPI_DRYRUN= bash %s run --objective x\n' "$S53_CARRIER_TOKEN"
+  printf '\n'
+  # ★주석 줄은 격리원이 될 수 없다(슬롯 1 A3 — 대조 노동에서 추가 발견).
+  printf 'NOISO commented-token probe\n'
+  printf '# ORCA_RPI_DRYRUN=1\n'
+  printf 'bash %s run --objective x\n' "$S53_CARRIER_TOKEN"
+  printf '\n'
+} > "$S53_TMP/fixture.md"
+S53_FIX=$(awk -f "$S53_TMP/s53.awk" "$S53_TMP/fixture.md" 2>/dev/null | cut -f1 | tr '\n' ',')
+if [ "$S53_FIX" != "ISO,NOISO,NOISO,NOISO,NOISO," ]; then
+  fail "부작용-차단 seal: 자기-시험 픽스처 판별 실패(기대 'ISO,NOISO,NOISO,NOISO,NOISO,' 실측 '${S53_FIX:-빈값}') — 탐지자가 죽었다면 위반 0 은 무의미하다"
+else
+  S53_LEDGER="$HOME/.claude/docs/superpowers/plans/2026-08-17-c22-orca-carrier-landing.md"
+  S53_ALL=$(awk -f "$S53_TMP/s53.awk" "$HOME/.claude/docs/superpowers/plans"/*.md "$HOME/.claude/docs/ai-context"/*.md 2>/dev/null)
+  S53_BAD=$(printf '%s\n' "$S53_ALL" | awk -F'\t' -v L="$S53_LEDGER" '$1=="NOISO" && $2!=L {print $2":"$3}' | tr '\n' ' ')
+  # 호출 텍스트는 마지막 필드다 — 앞 5필드를 잘라내 탭 포함 텍스트도 온전히 얻는다.
+  S53_LED_CK=$(printf '%s\n' "$S53_ALL" | awk -F'\t' -v L="$S53_LEDGER" '$1=="NOISO" && $2==L { l=$0; sub(/^([^\t]*\t){5}/, "", l); print l }' | sed 's/[[:space:]][[:space:]]*/ /g' | sort | cksum | tr -d ' ')
+  S53_LIVE_N=$(printf '%s\n' "$S53_ALL" | awk -F'\t' '$1=="LIVE"{print $2"\t"$5}' | sort -u | awk -F'\t' '{c[$1]++} END{for (f in c) printf "%s=%d ", f, c[f]}')
+  S53_CLAIM=$(printf '%s\n' "$S53_ALL" | awk -F'\t' '$1=="NOISO" && $4==1 {print $2"\t"$5}' | sort -u | wc -l)
+  S53_PARITY=""
+  for _f in $(printf '%s\n' "$S53_ALL" | awk -F'\t' '$1=="LIVE"{print $2}' | sort -u); do
+    # 계수 단위는 **증거 단위**다(호출 수가 아니라) — 한 블록 안의 여러 호출은 1건으로 센다.
+    _k=$(printf '%s\n' "$S53_ALL" | awk -F'\t' -v F="$_f" '$1=="LIVE" && $2==F {print $5}' | sort -u | wc -l)
+    _d=$(grep -oE 'LIVE-INTENT-총계: *[0-9]+' "$_f" 2>/dev/null | grep -oE '[0-9]+' | tail -1)
+    [ "${_d:-없음}" = "$_k" ] || S53_PARITY="$S53_PARITY $_f(선언=${_d:-부재}≠실측=$_k)"
+  done
+  rm -rf "$S53_TMP"
+  if [ -n "$S53_BAD" ]; then
+    fail "부작용-차단 주입 누락 — 격리 토큰도 LIVE-INTENT 도 없는 캐리어 호출: ${S53_BAD}(non-obvious #5 SMART ①)"
+  elif [ "$S53_LED_CK" != "3763352650710" ]; then
+    fail "1회성 예외 대장 drift — C22 plan 의 미격리 호출 줄 집합이 바뀌었다(동결=3763352650710 실측=$S53_LED_CK). 소급 편집·치환 모두 여기서 잡힌다"
+  elif [ -n "$S53_PARITY" ]; then
+    fail "LIVE-INTENT 총계 parity 불일치 —${S53_PARITY} (자기-면제는 같은 파일 안에서 'LIVE-INTENT-총계: k' 로 표면화해야 한다)"
+  else
+    ok "부작용-차단 주입 명시: 미격리 캐리어 호출 0 · 실행-주장 단위 ${S53_CLAIM} · LIVE-INTENT ${S53_LIVE_N:-0건} (non-obvious #5 SMART ①②)"
+  fi
+fi
+
 #     이 시점까지의 PASS+FAIL+1(이 체크 자신) == README "(현재 N PASS)" 선언. 체크 추가 시 README 미동기가 자동 FAIL.
 EXPECTED_TOTAL=$((PASS + FAIL + 1))
 README_DECL=$(grep -oE '현재 [0-9]+ PASS' "$HOME/.claude/README.md" 2>/dev/null | grep -oE '[0-9]+' | tail -1)

@@ -662,7 +662,7 @@ extra=(--retry-of "$retry_of")`(`:217`) → **삭제**(위 `:483-484` 로 이전
 
 ```bash
   assert_branch_not_merge_target current
-  is_dryrun && dryrun_emit orchestration worker-show --dispatch "$dispatch" --json
+  is_dryrun && dryrun_emit "handoff 1/2 (2번째 worker-start --terminal <handle> 는 이 응답에 의존 — 선-emit 불가):" orchestration worker-show --dispatch "$dispatch" --json
   require_jq; ensure_rundir
 ```
 
@@ -1247,16 +1247,25 @@ bash setup/verify-setup.sh 2>&1 | tail -3
 Expected (RED): `grep -c` → **0** · `verify-setup: PASS=90 FAIL=0` — 격리 없는 캐리어 호출 블록이
 코퍼스에 6건 있는데 아무도 보지 않는다.
 
-- [ ] **Step 2: 동결값 산출 순서를 확정 (순환 회피)**
+- [x] **Step 2: 동결값 산출 순서를 확정 (순환 회피)**
 
 대장 cksum 은 **스캐너가 존재해야** 계산할 수 있고, 스캐너는 seal 안에 인라인으로 들어간다.
 따라서 순서는 「Step 3 에서 스캐너 포함 seal 을 삽입하되 동결값 자리에 플레이스홀더
 `@@S53_LEDGER_CKSUM@@` 를 둔다 → Step 4 에서 그 스캐너를 임시 파일로 추출해 실행한 값으로 치환」이다.
 플레이스홀더가 남아 있으면 seal 은 반드시 FAIL 하므로(문자열 비교 불일치) **치환 누락이 침묵하지 않는다**.
 
-- [ ] **Step 3: seal #53 삽입**
+- [x] **Step 3: seal #53 삽입**
 
 `setup/verify-setup.sh` 의 `PP_*` 블록이 끝나는 `fi`(`:707`) 다음, `EXPECTED_TOTAL=` 줄(`:710`) 앞에 넣는다.
+
+★**셸 대입 계층까지 검증하라**(C23 Phase I 실발견). 아래 `S53_AWK='…'` 는 **단일-따옴표 영역**이므로
+그 안의 리터럴 `'` 는 대입을 깨뜨린다. 초안에는 awk 주석 끝(`# 양끝에서 벗길 따옴표(", ')`)에 정확히
+1개가 있었고, `bash -n` 이 `syntax error near unexpected token )` 로 결정적으로 실패했다. 아래 블록은
+그 1글자를 `'\''` 로 셸-이스케이프한 정정본이며 — **스캐너의 *값*은 이스케이프 전과 바이트 동일**하다
+(`'\''` 는 셸이 리터럴 `'` 로 환원한다). 동결 cksum 도 불변임을 실측했다.
+교훈: 이 결함이 Phase P 를 통과한 이유는 검증 경로가 `awk -f <파일>` 이어서 **셸 대입을 한 번도
+거치지 않았기** 때문이다. 인라인 인터프리터 소스는 *인터프리터 문법*만이 아니라 **호스트 셸의 인용
+계층**까지 통과시켜야 검증된 것이다(seal #52 의 선언된 잔여와 동형 클래스).
 
 ```bash
 # 53. 부작용-차단 주입 명시 (C23, non-obvious #5 SMART ①② — 기한 "C23 Phase P"):
@@ -1275,7 +1284,7 @@ S53_AWK='
 # (마크다운에서 선언은 보통 코드블록 다음 Expected 줄에 붙는다) 한 번에 판정할 수 없다.
 # 격리 토큰은 **같은 단위 + 앞 15줄**. LIVE-INTENT 는 **같은 단위이거나 앞 15줄** + **줄 전체가 선언**
 # 일 때만 인정한다(거리만으로는 *언급*과 *선언*이 구분되지 않는다 — spec §11.10 ③ 7차 정정).
-BEGIN { QQ = "[\"" sprintf("%c", 39) "]+" }   # 양끝에서 벗길 따옴표(", ')
+BEGIN { QQ = "[\"" sprintf("%c", 39) "]+" }   # 양끝에서 벗길 따옴표(", '\'')
 function classify(  i,j,d,cli,rd,iso,live,st) {
   for (i = 1; i <= nc; i++) {
     cli = 0; rd = 0; iso = 0; live = 0
@@ -1409,7 +1418,7 @@ else
 fi
 ```
 
-- [ ] **Step 4: 대장 cksum 동결값 산출 후 치환**
+- [x] **Step 4: 대장 cksum 동결값 산출 후 치환**
 
 ```bash
 cd "$HOME/.claude"
@@ -1447,7 +1456,7 @@ Expected: `호출 줄수=8` · `동결값=3763352650710` · 마지막 `grep -c` 
 실제로 무엇이 늘거나 줄었는지 `printf '%s\n' "$LINES"` 로 먼저 확인하고 이 숫자를 갱신할지
 판별식을 고칠지 판단한다.
 
-- [ ] **Step 5: C22 plan 부기 (왜곡 없는 공개)**
+- [x] **Step 5: C22 plan 부기 (왜곡 없는 공개)**
 
 `docs/superpowers/plans/2026-08-17-c22-orca-carrier-landing.md` 의 실행 절 머리(첫 `## ` 섹션 앞)에 넣는다:
 
@@ -1457,7 +1466,7 @@ Expected: `호출 줄수=8` · `동결값=3763352650710` · 마지막 `grep -c` 
 > 하지 않고 seal 의 1회성 예외 대장에 등재했다 — **재실행할 때는 반드시 격리 접두를 붙일 것.**
 ```
 
-- [ ] **Step 6: README 카운트 동기 + GREEN 확인**
+- [x] **Step 6: README 카운트 동기 + GREEN 확인**
 
 ```bash
 cd "$HOME/.claude"
@@ -1469,7 +1478,7 @@ bash setup/verify-setup.sh 2>&1 | tail -6
 Expected (GREEN): `verify-setup: PASS=91 FAIL=0` + `✓ 부작용-차단 주입 명시: 미격리 캐리어 호출 0 …`
 + `✓ verify-setup 카운트 seal: README 선언(91) == 런타임 실측(91)`.
 
-- [ ] **Step 7: 커밋**
+- [x] **Step 7: 커밋**
 
 ```bash
 cd "$HOME/.claude"

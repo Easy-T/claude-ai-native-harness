@@ -387,7 +387,11 @@ cmd_handoff() {
   [ -n "$task" ] && [ -n "$dispatch" ] || die "handoff: --task 와 --dispatch 필수"
   # handoff 는 --readonly 를 받지 않는다(정의상 편집 워커) — R→P→I→C 4단계 중 3단계가 이 경로다.
   assert_branch_not_merge_target current
-  is_dryrun && dryrun_emit orchestration worker-show --dispatch "$dispatch" --json
+  # ★handoff 는 2-call 이다 — 2번째(`worker-start --task … --terminal <handle>`)의 argv 는 1번째 응답의
+  #   `$handle` 에 **데이터 의존**해 선-emit 이 원리적으로 불가하다. `preflight` 와 동류의 예외이므로
+  #   emit 앞에 라벨을 박아 자기-표시한다(spec §11.10 ② 「묵시적 예외 금지」 — C23 Task 3 stage2 O2).
+  #   라벨은 접두사일 뿐 argv 토큰열은 실호출과 그대로 일치한다.
+  is_dryrun && dryrun_emit "handoff 1/2 (2번째 worker-start --terminal <handle> 는 이 응답에 의존 — 선-emit 불가):" orchestration worker-show --dispatch "$dispatch" --json
   require_jq; ensure_rundir
   # ★실측(C23 Task 1 Step 5): worker-show 는 중첩 snake_case **레코드**를 낸다 —
   # `.result.worker.agent_terminal_handle` 이 맞다(실측값 예: term_42a7b36b-…).

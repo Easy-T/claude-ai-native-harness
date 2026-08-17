@@ -16,6 +16,10 @@
 
 **spec delta 판정:** 없음(no-op). 기계적 증거: `git diff 39a1dea..HEAD -- docs/superpowers/specs/` = 0줄(직전 사이클 merge 커밋 `39a1dea` 이후 무변경). `docs/ai-context/c21-orca-mode-design.md`·`c22-orca-probe-measured.md` 는 이번 R phase 에서 read-only(git status 로 미변경 확인). CONTEXT.md 에 3개 용어(스폰 캐리어·워커 계약·승인 채널 층 분리)를 canonicalize 했으나 이는 기존 durable spec 어휘의 확인일 뿐 새 design 결정이 아니다.
 
+> ★C23 부기(2026-08-18): 아래 증거 블록 중 6건은 seal #53 착륙 **전**에 실행돼 격리 없이 라이브
+> 원장(`$HOME/.claude/.orca-rpi`)에 도달했다(non-obvious #5). 기록을 왜곡하지 않기 위해 소급 편집을
+> 하지 않고 seal 의 1회성 예외 대장에 등재했다 — **재실행할 때는 반드시 격리 접두를 붙일 것.**
+
 ## Global Constraints
 
 (전부 `c21-orca-mode-design.md` / `c22-orca-probe-measured.md` verbatim 근거 — 각 task 는 이 제약을 암묵 포함한다)
