@@ -152,7 +152,9 @@ assert_orca_exe() {
 }
 
 cmd_preflight() {
-  is_dryrun && dryrun_emit "preflight: status / orchestration run-list / repo list / worktree current / agent hooks status"
+  # ★preflight 만 argv 가 아니라 *요약*이다 — 6-call 시퀀스라 단일 argv 가 원리적으로 성립하지 않는다.
+  #   그래서 「(요약)」을 문자열 안에 박아, 다른 서브커맨드의 완전-argv 계약과 혼동되지 않게 한다.
+  is_dryrun && dryrun_emit "preflight (요약 — 단일 argv 불성립): status / orchestration run-list / repo list / worktree current / agent hooks status"
   require_jq
   ensure_rundir
   cp "$HOME/.claude/settings.json" "$RUNDIR/settings.pre-orca.json" || die "preflight: settings.json 백업 실패"
@@ -534,12 +536,12 @@ cmd_gpt() {
   case "$role" in
     executor)
       # 경로 B — 규율 아래 실행자(하네스 안, 설계 §4.3). 대상 문서는 stdin 으로 전달(호출자 책임).
-      is_dryrun && dryrun_emit claude-ocx -p "$prompt" --output-format json
+      is_dryrun && dryrun_emit "OCX_MODEL=$gpt_model" "$HOME/.claude/bin/claude-ocx" -p "$prompt" --output-format json
       OCX_MODEL="$gpt_model" "$HOME/.claude/bin/claude-ocx" -p "$prompt" --output-format json
       ;;
     verifier)
       [ -n "$out" ] || die "gpt --role verifier: --out 필수(cross-family-review.md -o 소비 규율)"
-      is_dryrun && dryrun_emit codex exec -m "$gpt_model" --sandbox read-only --skip-git-repo-check -o "$out" "$prompt"
+      is_dryrun && dryrun_emit codex exec -m "$gpt_model" -c model_reasoning_effort=ultra -c model_verbosity=high --sandbox read-only --skip-git-repo-check -o "$out" "$prompt"
       rm -f "$out"
       codex exec -m "$gpt_model" -c model_reasoning_effort=ultra -c model_verbosity=high \
         --sandbox read-only --skip-git-repo-check -o "$out" "$prompt"

@@ -87,7 +87,7 @@
 | `setup/install.sh` | 배포 계약(REQUIRED + 실행 비트) | 수정(Task 8) |
 | `skills/start-rpi-cycle/SKILL.md` | RPI 절차 정본 | 수정 — 옵션 (e) + §19.5 조항(Task 9) |
 | `opencode-harness/skill/start-rpi-cycle/SKILL.md` | 위 파일의 opencode 미러 | 수정 — 동반(Task 9) |
-| `docs/ai-context/c22-orca-probe-measured.md` | Orca 응답 shape 실측 SSOT | append(Task 1·3) |
+| `docs/ai-context/c22-orca-probe-measured.md` | Orca 응답 shape 실측 SSOT | append(Task 1 — Task 3 은 캐리어 코드만 만진다) |
 | `docs/ai-context/scaffold-registry.md` | 스캐폴드 노화 방지 대장 | append(Task 5) |
 | `docs/ai-context/review-yield.md` | 층별 리뷰 수율 글로벌 대장 | append(Task 10) |
 | `docs/superpowers/plans/2026-08-17-c22-orca-carrier-landing.md` | C22 실행 기록 | 부기 1줄(Task 6) |
@@ -547,7 +547,7 @@ git commit -m "feat(orca): C23 T2 — 브랜치 가드를 지시문에서 코드
 - Produces: `is_dryrun` → rc 0/1 · `dryrun_emit <argv…>` → `DRYRUN: <argv>` 1줄 + `exit 0`
 - Task 5 의 STAGE 2e 테스트가 이 계약(rc=0 · `DRYRUN:` 1줄 · rundir 델타 0)에 의존한다.
 
-- [ ] **Step 1: RED — DRYRUN 경로 부재 실측**
+- [x] **Step 1: RED — DRYRUN 경로 부재 실측**
 
 ```bash
 cd "$HOME/.claude"
@@ -559,7 +559,7 @@ ORCA_RPI_DRYRUN=1 ORCA_CLI_COMMAND="$D/no-such-orca" ORCA_RPI_RUNDIR="$D/rd" bas
 Expected (RED): `grep -c` → **0** · `rc=1` + `거부: $ORCA 실행 불가` — DRYRUN 을 줘도
 `assert_orca_exe` 가 먼저 죽인다. 이것이 §11.10 ② 가 정지 순서를 선언한 이유다.
 
-- [ ] **Step 2: 헬퍼 추가 (`die()` 정의 바로 뒤, `:24` 다음)**
+- [x] **Step 2: 헬퍼 추가 (`die()` 정의 바로 뒤, `:24` 다음)**
 
 ```bash
 # ── 검증-전용 경로 (§11.10 ②) ────────────────────────────────────────────────
@@ -570,7 +570,7 @@ is_dryrun() { [ -n "${ORCA_RPI_DRYRUN:-}" ]; }
 dryrun_emit() { printf 'DRYRUN: %s\n' "$*"; exit 0; }
 ```
 
-- [ ] **Step 3: `main()` — 실행자 존재 단언을 DRYRUN 뒤로 (`:486`)**
+- [x] **Step 3: `main()` — 실행자 존재 단언을 DRYRUN 뒤로 (`:486`)**
 
 ```bash
   # gpt 제외와 같은 이유로 DRYRUN 도 제외한다 — 외부 프로세스를 부르지 않는 경로가 그 실행자의
@@ -578,7 +578,7 @@ dryrun_emit() { printf 'DRYRUN: %s\n' "$*"; exit 0; }
   case "$cmd" in selfcheck|gpt) ;; *) is_dryrun || assert_orca_exe ;; esac
 ```
 
-- [ ] **Step 4: 9개 기동 서브커맨드에 정지 지점 삽입**
+- [x] **Step 4: 9개 기동 서브커맨드에 정지 지점 삽입**
 
 각 정지 지점은 **가드 뒤 · 첫 쓰기 앞**이다.
 
@@ -586,7 +586,7 @@ dryrun_emit() { printf 'DRYRUN: %s\n' "$*"; exit 0; }
 
 ```bash
 cmd_preflight() {
-  is_dryrun && dryrun_emit "preflight: status / orchestration run-list / repo list / worktree current / agent hooks status"
+  is_dryrun && dryrun_emit "preflight (요약 — 단일 argv 불성립): status / orchestration run-list / repo list / worktree current / agent hooks status"
   require_jq
 ```
 
@@ -692,20 +692,28 @@ load-bearing 하도록 필수 인자 검사를 함께 둔다:
   require_jq; ensure_rundir
 ```
 
+★**emit 문자열은 실호출 줄과 토큰열이 같아야 한다**(spec §11.10 ② 「완전한 argv」의 리터럴 축 —
+C23 Phase I 실측으로 추가된 조항). 초안은 `cmd_gpt` 두 아암에서 실호출에만 있는 리터럴을 빠뜨렸다:
+`verifier` 의 `-c model_reasoning_effort=ultra -c model_verbosity=high`, `executor` 의 `OCX_MODEL=` env
+접두와 `$HOME/.claude/bin/` 절대경로. 후-조립 인자가 아니라 **손으로 적은 문자열**이라 정지-지점
+규정으로는 안 잡히고, Task 5 의 검사자도 줄 수만 세므로 침묵한다. 아래 블록은 정정본이다.
+(`preflight` 은 6-call 시퀀스라 단일 argv 가 불성립 — 그 emit 만 `(요약 — 단일 argv 불성립)` 을
+문자열에 박아 계약 대상이 아님을 자기-표시한다. 묵시적 예외 금지.)
+
 `cmd_gpt` — 각 role 아암 안, 첫 부작용 앞(`verifier` 는 `rm -f "$out"` 이 부작용이므로 그 앞):
 
 ```bash
     executor)
-      is_dryrun && dryrun_emit claude-ocx -p "$prompt" --output-format json
+      is_dryrun && dryrun_emit "OCX_MODEL=$gpt_model" "$HOME/.claude/bin/claude-ocx" -p "$prompt" --output-format json
       OCX_MODEL="$gpt_model" "$HOME/.claude/bin/claude-ocx" -p "$prompt" --output-format json
       ;;
     verifier)
       [ -n "$out" ] || die "gpt --role verifier: --out 필수(cross-family-review.md -o 소비 규율)"
-      is_dryrun && dryrun_emit codex exec -m "$gpt_model" --sandbox read-only --skip-git-repo-check -o "$out" "$prompt"
+      is_dryrun && dryrun_emit codex exec -m "$gpt_model" -c model_reasoning_effort=ultra -c model_verbosity=high --sandbox read-only --skip-git-repo-check -o "$out" "$prompt"
       rm -f "$out"
 ```
 
-- [ ] **Step 5: GREEN 확인 — rc=0 · `DRYRUN:` 1줄 · 부작용 0줄**
+- [x] **Step 5: GREEN 확인 — rc=0 · `DRYRUN:` 1줄 · 부작용 0줄**
 
 ```bash
 cd "$HOME/.claude"
@@ -729,7 +737,7 @@ Expected (GREEN): 8개 전부 `rc=0` · `lines=1` · `first=DRYRUN:` ·
 `ack-일치 rc=0` + 출력 줄에 **`--ack d_x` 가 실려 있음**(argv 완전성 — 슬롯 1 B2) ·
 `rundir 파일 목록` 이 **`wt_sel` 하나뿐**(원장 무오염 — `active-nonreadonly.tasks` 미생성).
 
-- [ ] **Step 6: 커밋**
+- [x] **Step 6: 커밋**
 
 ```bash
 cd "$HOME/.claude"
@@ -847,7 +855,7 @@ executor 는 **바이트 그대로 통과**해야 하므로 임시 파일을 거
 
 ```bash
     executor)
-      is_dryrun && dryrun_emit claude-ocx -p "$prompt" --output-format json
+      is_dryrun && dryrun_emit "OCX_MODEL=$gpt_model" "$HOME/.claude/bin/claude-ocx" -p "$prompt" --output-format json
       local tf ercc cost
       tf=$(mktemp)
       OCX_MODEL="$gpt_model" "$HOME/.claude/bin/claude-ocx" -p "$prompt" --output-format json > "$tf"
