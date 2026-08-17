@@ -16,7 +16,8 @@
 
 **Tech Stack:** bash(POSIX + bash 배열) · awk(어휘 스캐너) · jq · git · Orca ADE CLI(`orca.exe`)
 
-**Spec:** `docs/ai-context/c21-orca-mode-design.md` — 특히 **§11.10**(C23 설계 결정 ①~⑧, 4차 정정 판본).
+**Spec:** `docs/ai-context/c21-orca-mode-design.md` — 특히 **§11.10**(C23 설계 결정 ①~⑨, **6차 정정 판본**
+= 교차패밀리 슬롯 1 트리아지 채택 30건 반영분).
 보조: `docs/ai-context/c22-orca-probe-measured.md`(P0 실측 SSOT) · `docs/ai-context/non-obvious.md` #5 ·
 `docs/superpowers/specs/2026-07-25-model-policy-design.md` §18.1·§19.5.
 
@@ -35,8 +36,13 @@
 이 절의 요구는 **모든 task 에 암묵적으로 포함**된다. 값은 spec/goal 에서 verbatim 복사했다.
 
 1. **라이브 Orca CLI 도달 금지(Task 1 제외)** — 모든 검증 명령은 `ORCA_RPI_DRYRUN=1` 또는
-   (`ORCA_CLI_COMMAND=<stub>` **및** `ORCA_RPI_RUNDIR=<임시>`)로 격리하고 **부작용 로그 0줄**을 단언한다.
+   (`ORCA_CLI_COMMAND=<stub>` **및** `ORCA_RPI_RUNDIR=<임시>`)로 격리한다.
    Task 1 만이 **의도-라이브**이며 그 블록에는 `LIVE-INTENT(<사유>)` 가 붙어 있다.
+   ★**이 제약이 세는 것은 「라이브 Orca 도달」이지 「stub 로그 줄 수」가 아니다**(슬롯 1 E3 정정).
+   stub 로그의 기대 줄 수는 **각 Step 의 Expected 가 정한다** — 가드가 발화해야 하는 경로는 0줄,
+   가드 부재를 실증하는 RED(Task 2 Step 1)와 정상 발행 양성 대조(Task 2 Step 5 feature 아암)는 **1줄**이
+   정답이다. 초안은 「부작용 로그 0줄을 단언한다」를 전역 요구로 적어, 자기 plan 의 RED 와 결정적으로
+   충돌했다. 어느 쪽이든 라이브 Orca 에는 도달하지 않는다(stub 이 흡수).
 2. **되돌릴 수 없음** — `run-delete`/`task-delete` 가 부재하고 `orchestration reset` 계열은 **금지**다.
    생성하는 Run/Task 는 영구 잔존하므로 objective/title 에 `[C23]` 를 반드시 박는다.
 3. **`orca agent hooks off` 발행 금지** · **CCS cliproxy 제거 금지** ·
@@ -47,9 +53,13 @@
 5. **머지는 사용자 명시 승인 없이 금지**(AskUserQuestion). 단 **워커 세션에서는 AskUserQuestion 금지**
    (영구 hang) — `orchestration ask`/`decision_gate` 사용.
 6. **seal-regression 실행 중 `~/.claude` 편집 금지** — witness cksum 불변이 물리 전제다(C21 26/1 전례).
-7. **혼합 개행 파일은 `Edit` 금지, `perl -0777 -i` 만** — `docs/superpowers/specs/2026-07-25-model-policy-design.md`
-   (CR=1823) · `docs/ai-context/c21-orca-mode-design.md`(CR=728). CR 계수는
-   `perl -ne '$n++ if /\r/; END{print "$n\n"}'` 만 신뢰한다(`grep -c` 는 MSYS 에서 조용히 틀린다).
+7. **혼합 개행 파일은 `Edit` 금지** — `docs/superpowers/specs/2026-07-25-model-policy-design.md`
+   (CR=1823) · `docs/ai-context/c21-orca-mode-design.md`(CR=728). 막으려는 위해는 **도구 이름이 아니라
+   in-place 전-파일 재작성**이다(`Edit` 은 전 파일을 LF 로 통일해 거대한 거짓 diff 를 만든다). 따라서
+   허용 수단은 **말미 append(`cat >> …`)** 또는 **`perl -0777 -i`** 둘 다이며, append 는 O_APPEND 라
+   기존 바이트를 건드리지 않아 CR 수가 보존된다(슬롯 1 E5 정정 — 초안의 「`perl` 만」은 Task 10 문면과
+   충돌했다). CR 계수는 `perl -ne '$n++ if /\r/; END{print "$n\n"}'` 만 신뢰한다(`grep -c` 는 MSYS 에서
+   조용히 틀린다).
 8. **경로는 argv/stdin 으로 전달** — 인라인 인터프리터 소스에 셸 변수 보간·리터럴 `/tmp/` 금지(non-obvious #3, seal #52).
 9. **기준선**: `setup/verify-setup.sh` 90 PASS / 0 FAIL · `hooks/tests/run-all.sh` 305/305 ·
    `setup/tests/seal-regression.test.sh` 27/0. **Task 6** 이 verify-setup 을 90→**91**(seal #53 1건),
@@ -87,8 +97,13 @@
 ## Task 1: Orca 라이브 측정 — `[P2]` 4종 해제
 
 **Files:**
-- Modify: `bin/orca-rpi.sh:232,234` (spawn dispatch id) · `:296,298` (wait delivery id) ·
-  `:323,326` (handoff handle) · `:352,353` (handoff dispatch id) · `:411,413` (gate id)
+- Modify(**마커 해제**): `bin/orca-rpi.sh:232,234` (spawn dispatch id) · `:296,298` (wait delivery id) ·
+  `:323,326` (worker-show handle) · `:411,413` (gate id) — **8사이트 / 4종 중 3종**
+- Modify(**마커 유지 + 사유 명시**): `:352,353` (handoff dispatch id) — **2사이트**. handoff 를 호출하지
+  않으므로 미측정이며, 「전부 해제」로 쓰면 추정을 실측으로 승격한다(슬롯 1 A6 · spec §11.10 ⑤).
+  goal 의 success criteria 「최소 3종」은 이 처분으로 충족된다(dispatch id·delivery id·handle·gate id 중
+  spawn 축 dispatch id + delivery id + handle + gate id = 실측 대상 4종 전부가 Step 4/5 로 관측되고,
+  미해제로 남는 것은 *같은 종의 다른 사이트*다).
 - Modify: `docs/ai-context/c22-orca-probe-measured.md` (append — 새 파일 금지)
 
 **Interfaces:**
@@ -102,29 +117,62 @@ C22 의 stub 검증이 라이브 `$HOME/.claude/.orca-rpi` 에 직접 써서 `t1
 
 ```bash
 cd "$HOME/.claude"
+# ★파괴 전 전제 확인 두 가지 — 순서가 load-bearing 이다(슬롯 1 D4·D5)
+BR=$(git rev-parse --abbrev-ref HEAD); echo "branch=$BR"
+case "$BR" in master|main) echo "✗ 머지 대상 브랜치 — 이 task 를 실행하지 않는다"; exit 1 ;; esac
 echo "--- BEFORE ---"; ls -la .orca-rpi/; cat .orca-rpi/active-nonreadonly.tasks
-cp .orca-rpi/active-nonreadonly.tasks "$HOME/.claude/.orca-rpi/stale-t1.evidence" 2>/dev/null
+grep -qx 't1' .orca-rpi/active-nonreadonly.tasks \
+  || { echo "✗ 원장 내용이 예상(t1)과 다르다 — 실제 활성 task 일 수 있으므로 지우지 않는다"; exit 1; }
+cp .orca-rpi/active-nonreadonly.tasks "$HOME/.claude/.orca-rpi/stale-t1.evidence" \
+  || { echo "✗ 증거 복사 실패 — 원장을 건드리지 않는다"; exit 1; }
 : > .orca-rpi/active-nonreadonly.tasks
 echo "--- AFTER ---"; wc -l < .orca-rpi/active-nonreadonly.tasks
 ```
 
-Expected: BEFORE 에 `t1` 1줄, AFTER 에 `0`. 이 출력을 Step 8 의 probe 문서 append 에 인용한다.
+Expected: `branch=orca-cycle-23` · BEFORE 에 `t1` 1줄 · AFTER 에 `0`. 이 출력을 Step 8 의 probe 문서
+append 에 인용한다.
+★세 가드가 **truncation 앞**에 있어야 하는 이유: 초안은 브랜치 확인을 Step 2 에, 내용 확인을 사후
+육안 대조에 뒀고 `cp` 의 rc 도 안 봤다. 그러면 「master 라서 중단」하기 *전에* 이미 라이브 동시-1 원장을
+0바이트로 만든 상태가 되고, 내용이 예상과 달라도(=진짜 활성 task) 되돌릴 근거가 사라진다. 지우는 것은
+라이브 안전 원장이므로 **파괴적 줄 앞에 전제를 세운다.**
 
-- [ ] **Step 2: preflight (라이브 · rc=0 확인)**
+- [ ] **Step 2: `--help` 실측(부작용 0) → preflight (라이브 · rc=0 확인)**
 
+★**먼저 `--help` 실측을 끝낸다**(슬롯 1 A5·D2). Task 4 의 배선 범위는 이 프로브의 산출물에 종속되는데,
+`--help` 는 **로컬 CLI 만으로 실행 가능**하고 부작용이 0 이다. 초안은 이것을 Step 5 말미에 뒀고 Step 2 는
+「rc≠0 이면 중단」이라, Orca 데몬만 내려가 있어도 Task 4 가 입력 없이 시작하게 돼 있었다.
+
+```bash
+cd "$HOME/.claude"
+ORCA="C:/Users/12132/AppData/Local/Programs/orca/resources/bin/orca.exe"
+for c in run-create task-create worker-start gate-create check; do
+  echo "=== $c ==="; "$ORCA" orchestration "$c" --help 2>&1 | grep -iE 'retry-request|exact recovery' || echo "(없음)"
+done
+```
+
+이 출력은 Step 8 의 probe 문서 append 에 **원문 그대로** 넣는다(§11.10 ④ — 현재 repo 안에 help 원문이
+없다). `orca.exe` 자체가 없어 이 루프가 전부 실패하면 그 사실을 기록하고, Task 4 의 `--retry-request`
+배선은 **이미 실측된 2개 명령(`run-create`·`worker-start`)에 한정**한 채 나머지는 미확인으로 남긴다.
+(위 블록은 캐리어 호출이 아니라 `$ORCA` 직접 호출이며 `--help` 라 부작용 0 이다 — seal #53 의 선언된
+미탐 잔여 ⓐ 에 해당하고, `LIVE-INTENT` 대상도 아니다.)
+
+여기부터가 라이브다:
 `LIVE-INTENT(응답 shape 실측이 이 사이클의 주축 산출물 — 스텁으로는 측정 불가)`
 
 ```bash
 cd "$HOME/.claude"
-git rev-parse --abbrev-ref HEAD          # orca-cycle-23 여야 한다(master 면 중단)
 bash bin/orca-rpi.sh preflight; echo "rc=$?"
 cat .orca-rpi/wt_sel; echo
 ```
 
 Expected: `preflight: OK worktree=<repoId>::<path>` + `rc=0`.
-rc=3 이면 **자동 재시도 금지** — Orca 미가동이므로 이 task 를 여기서 중단하고
-`docs/ai-context/c22-orca-probe-measured.md` 에 「preflight rc=3, 미측정 사유」를 append 한 뒤
+**rc≠0 이면 자동 재시도 금지** — 이 task 를 여기서 중단하고
+`docs/ai-context/c22-orca-probe-measured.md` 에 「preflight rc=<값>, 미측정 사유」를 append 한 뒤
 Task 2 로 넘어간다(goal: 실패해도 원문 기록이 산출물이다).
+★rc 값의 의미가 둘로 갈린다(실측): **rc=3 = Orca 설치돼 있으나 미가동/전제 미충족**(status 실패 ·
+`no active plan` 등 8종), **rc=1 = `assert_orca_exe` 탈락 = 실행자 부재·경로 오지정**. 둘 다 중단
+사유이며, 「rc=3 만 취급」하면 미설치 머신이 처분 밖에 놓인다(슬롯 1 A8 — Task 9 의 옵션 (e) 문면도
+같은 이유로 rc≠0 으로 쓴다).
 
 - [ ] **Step 3: Run + Task 생성 (라이브)**
 
@@ -141,6 +189,13 @@ jq '{envelope_id: .id, mutation_requestId: .result.mutation.requestId, run_id: .
 Expected: `RUN=run_…` · `TASK=task_…` · 마지막 jq 가 `.id`(요청 상관ID)와 `.result.run.id`(진짜 run id)가
 **다름**을 보인다(c22-probe P0-2 재확인). 셋 중 하나라도 비면 그 원문을 그대로 기록하고 중단한다.
 
+★**부분 실패 시 이 Step 을 재실행하지 않는다**(슬롯 1 D6). `run-create` 가 서버에서 커밋된 뒤 응답이
+끊기거나 후속 `task-create` 가 실패한 상태에서 다시 돌리면 **삭제 불가능한 `[C23]` Run 이 2개**가 된다.
+멱등 재발행 수단(`--retry-request`)은 **Task 4 에서야 착륙**하고 그 배선의 입력이 바로 이 측정이라,
+이 부트스트랩 순환은 순서를 바꿔 풀 수 없다. 따라서 처분은 「원문을 기록하고 멈춘다」이며 이것은
+「선언된 잔여 6」으로 명시돼 있다. 잔존물이 생기면 그 id 를 probe 문서에 남겨 다음 사이클이 식별할 수
+있게 한다(`run-delete` 부재라 정리가 아니라 **기록**이 유일한 처분이다).
+
 - [ ] **Step 4: 워커 spawn + 배치 수신 (라이브 — dispatch id · delivery id 측정)**
 
 `LIVE-INTENT(worker-start/check 응답 shape 는 실 워커 기동으로만 관측된다)`
@@ -156,6 +211,21 @@ jq 'paths(scalars) as $p | select($p[-1]|test("^(id|deliveryId|delivery_id)$")) 
 Expected: `DISPATCH=` 가 비어 있지 않으면 `.result.dispatch.id` 추정이 **맞은 것**이고,
 `spawn: dispatch id 추출 실패` 로 죽으면 **빗나간 것**이다 — 어느 쪽이든 위 `jq paths` 출력이
 실제 경로를 준다. 그것이 이번 사이클의 최대 수확이다. `wait` 도 동일하게 판정한다.
+
+★**빗나갔을 때의 복구 절차(슬롯 1 D7)** — `worker-start` 는 실 워커를 만든 **뒤** jq 추출에 실패하면
+`die` 하므로 부작용은 이미 났고 `$D` 만 비어 있다. 그 상태로 Step 5 의 `release` 를 부르면
+`release: --dispatch 필수` 로 즉사하고, `--readonly` 스폰이라 동시-1 슬롯도 잡히지 않아 **재실행이
+워커를 증식**시킨다. 복구 데이터는 이미 손에 있다 — 위 `jq paths` 가 `last-worker-start.json` 의 실경로를
+출력했다. 따라서 **재스폰하지 말고** 그 경로로 id 를 직접 뽑아 release 한다:
+
+```bash
+cd "$HOME/.claude"
+jq -r '<위 출력이 알려준 실경로>' .orca-rpi/last-worker-start.json   # 예: .result.worker.dispatchId
+D="$(jq -r '<그 실경로>' .orca-rpi/last-worker-start.json)"; echo "recovered DISPATCH=$D"
+```
+
+이 절차는 이미 출력 중인 데이터를 쓰는 것이라 스코프 확대가 아니다. `$D` 를 끝내 못 얻으면 워커가
+살아 있는 채로 남으므로, 그 사실과 `last-worker-start.json` 전문을 probe 문서에 기록한다.
 
 - [ ] **Step 5: handle · gate id 측정 + 릴리즈 (라이브)**
 
@@ -174,40 +244,45 @@ bash bin/orca-rpi.sh release --dispatch "$D" --task "$TASK"; echo "release rc=$?
 
 Expected: handle 경로와 gate id 경로가 확정된다. `gate create` 가 **완료된 Task** 에서 거부되면
 그 거부 원문을 기록하고 gate id 를 미해제로 남긴다(§11.10 ⑤ — 거절도 수확이다).
-`--retry-request` 수용 여부도 여기서 read-only 로 확인한다(부작용 0):
-
-```bash
-ORCA="C:/Users/12132/AppData/Local/Programs/orca/resources/bin/orca.exe"
-for c in run-create task-create worker-start gate-create check; do
-  echo "=== $c ==="; "$ORCA" orchestration "$c" --help 2>&1 | grep -iE 'retry-request|exact recovery' || echo "(없음)"
-done
-```
+(`--retry-request` help 실측은 **Step 2 로 이동**했다 — 라이브 발행보다 먼저 끝내야 Task 4 가 입력을
+갖는다.)
 
 - [ ] **Step 6: `[P2]` 주석 제거 + 실경로 반영**
 
 측정 결과가 추정과 **같으면** 주석만 지우고, **다르면** jq 경로를 실측값으로 바꾼다.
-아래는 추정이 전부 맞은 경우의 diff 형태다(다르면 경로 문자열만 교체).
+
+★**해제는 비대칭이다 — `handoff` 2사이트(`:352`·`:353`)는 남긴다**(슬롯 1 A6 · spec §11.10 ⑤).
+Step 4/5 가 호출하는 것은 `spawn`·`wait`·`worker-show`·`gate` 뿐이고 **`handoff` 는 한 번도 호출하지
+않는다**(호출하려면 워커를 한 기 더 띄워야 하고, 그것은 「read-only 1기동」이라는 이번 사이클의 라이브
+예산을 넘는다). `handoff` 의 `worker-start --terminal` 응답이 agent 기반 `worker-start` 와 **동형이라는
+보장이 없으므로**, 그 2사이트까지 마커를 떼면 **틀린 jq 경로를 실측값으로 승격**하게 된다. 침묵 잔여
+금지의 올바른 이행은 「전부 해제」가 아니라 **마커 유지 + 사유 명시**다.
 
 ```bash
 cd "$HOME/.claude"
 perl -0777 -i -pe '
+  # 해제군: spawn(:232,234) · wait(:296,298) · worker-show(:323,326) · gate(:411,413)
   s/^\s*# dispatch id 실제 응답 shape 미측정.*\n//m;
   s/^\s*# gate id 필드 경로 미측정.*\n//m;
   s/^\s*# worker\.agent_terminal_handle 실제 응답 shape 미측정.*\n//m;
   s/^\s*# delivery id 필드 경로 미측정.*\n//m;
-  s/\s*#\s*\[P2\]$//mg;
-  s/\s+\[P2\]$//mg;
+  s/(\.result\.dispatch\.id \/\/ empty.\)\s*)#\s*\[P2\]$/$1# 실측(C23 Step 4)/m;
+  s/(\.result\.delivery[^\n]*empty.[^\n]*?)\s*#\s*\[P2\]$/$1/m;
+  s/(agent_terminal_handle[^\n]*empty.\)\s*)#\s*\[P2\]$/$1# 실측(C23 Step 5)/m;
+  s/(\.result\.gate\.id \/\/ empty.\)\s*)#\s*\[P2\]$/$1# 실측(C23 Step 5)/m;
+  # 유지군: handoff 2사이트 — 사유를 명시로 바꾼다
+  s/^(\s*# stdout 계약 = dispatch id 1줄\(.*?\)) \[P2\]$/$1 [P2 미해제 사유: handoff 응답 미측정(C23) — terminal 기반 worker-start 가 agent 기반과 동형인지 미확인]/m;
+  s/^(\s*local dispatch_id; dispatch_id=\$\(printf .%s. "\$hresp".*)#\s*\[P2\]$/$1# [P2 미해제: 위 사유]/m;
 ' bin/orca-rpi.sh
-grep -c '\[P2\]' bin/orca-rpi.sh
+grep -n '\[P2' bin/orca-rpi.sh
 bash -n bin/orca-rpi.sh && echo "bash -n OK"
 ```
 
-Expected: `grep -c` → **0** · `bash -n OK`.
-★마지막 `s/\s+\[P2\]$//mg` 가 필수다 — `:352` 는 `# stdout 계약 = dispatch id 1줄(…깨진다) [P2]` 라
-**끝이 `# [P2]` 가 아니고**(마커 앞이 `)`), 4개 줄-삭제 패턴 어디에도 안 걸린다. 이 줄만 놓치면
-10→1 이 되고 「전부 해제」가 거짓이 된다(Gate P 실측 B3). 그 줄은 살아 있어야 할 실제 계약 설명이므로
-**줄을 지우지 않고 마커만** 뗀다.
-미해제분이 있으면 그 사이트의 `[P2]` 는 **남기고** 주석을 「미해제 사유: …」로 바꾼다(침묵 잔여 금지).
+Expected: `grep -n '\[P2'` → **정확히 2줄**(`:352`·`:353` 계열, 둘 다 「미해제 사유」 문구 동반) ·
+`bash -n OK`. 0줄이 나오면 유지군까지 지운 것이므로 되돌린다. 3줄 이상이면 해제군 치환이 빗나간 것이니
+그 줄을 직접 확인하고 손으로 고친다 — **정규식이 안 맞으면 정규식을 억지로 늘리지 말고 그 줄만 편집한다**
+(치환식 확장이 다른 줄을 삼키는 편이 더 위험하다).
+측정 경로가 추정과 **다르면** 위 치환 대신 해당 `jq -r '…'` 문자열 자체를 실측 경로로 바꾸고 마커를 뗀다.
 
 - [ ] **Step 7: `wait` 의 3중 폴백 축소**
 
@@ -272,6 +347,9 @@ D=$(mktemp -d); mkdir -p "$D/rd"
 printf '#!/usr/bin/env bash\nprintf "SIDE-EFFECT: %%s\\n" "$*" >> "$STUB_LOG"\nprintf %%s "{\\"id\\":\\"req\\",\\"ok\\":true,\\"result\\":{\\"dispatch\\":{\\"id\\":\\"d_stub\\"}}}"\n' > "$D/orca-stub"
 chmod +x "$D/orca-stub"; export STUB_LOG="$D/side.log"; : > "$STUB_LOG"
 git -C "$D" init -q; git -C "$D" checkout -q -b master
+# ★커밋 1건 필수 — unborn branch 에서 `rev-parse --abbrev-ref HEAD` 는 stdout 에 'HEAD' 를 내며 rc=128 이라
+#   가드가 「판정 불가」로 죽고 Expected 문안이 어긋난다(슬롯 1 B6 실측). RED/GREEN 은 같은 픽스처여야 한다.
+git -C "$D" -c user.email=c23@local -c user.name=c23 commit -q --allow-empty -m init
 printf 'r::%s' "$D" > "$D/rd/wt_sel"
 env -u WT_SEL ORCA_CLI_COMMAND="$D/orca-stub" ORCA_RPI_RUNDIR="$D/rd" bash bin/orca-rpi.sh spawn --run r1 --task t1 --worktree "r::$D"; echo "rc=$?"
 echo "부작용 줄수=$(wc -l < "$STUB_LOG")"
@@ -303,15 +381,23 @@ worktree_path_of() {   # $1 = --worktree 값('current' 또는 셀렉터) → std
   printf '%s' "${sel##*::}"
 }
 
+# ★ambient GIT_DIR/GIT_WORK_TREE 를 제거하고 묻는다 — `git -C <path>` 는 cwd 만 바꾸고 **저장소 결정은
+# GIT_DIR 이 이긴다**(실측: `GIT_DIR=<repoB>/.git git -C <repoA> rev-parse --abbrev-ref HEAD` → repoB 의
+# 브랜치, rc=0). 제거하지 않으면 가드가 다른 저장소를 보고 **무음 통과**한다(슬롯 1 B1).
+git_at() { env -u GIT_DIR -u GIT_WORK_TREE git -C "$@"; }
+
 # 판정 불가는 fail-closed — "커밋 대상이 머지 브랜치가 아님"을 단언할 수 없으면 스폰하지 않는다.
-# fail-open 약속은 Orca *가용성* 축(preflight rc=3)의 것이지 안전 가드의 것이 아니다.
+# fail-open 약속은 Orca *가용성* 축(preflight rc≠0)의 것이지 안전 가드의 것이 아니다.
 assert_branch_not_merge_target() {   # $1 = --worktree 값
   local p br
   p=$(worktree_path_of "$1")
   [ -n "$p" ] || p="$PWD"            # 문서화된 폴백 — 셀렉터 미획득 시에만
-  br=$(git -C "$p" rev-parse --abbrev-ref HEAD 2>/dev/null) \
-    || die "거부: 브랜치 판정 불가 — 'git -C $p rev-parse --abbrev-ref HEAD' 실패. 커밋 대상이 머지 브랜치가 아님을 단언할 수 없으면 스폰하지 않는다(fail-closed, 설계 §11.10 ①)"
-  [ -n "$br" ] || die "거부: 브랜치 판정 불가 — 빈 브랜치명($p). fail-closed(설계 §11.10 ①)"
+  # symbolic-ref 를 먼저 쓴다: unborn branch(커밋 0건)에서도 rc=0 으로 이름을 준다.
+  # rev-parse 는 그 경우 stdout='HEAD' + rc=128 이라 판정이 뒤집힌다(슬롯 1 B6).
+  br=$(git_at "$p" symbolic-ref --short HEAD 2>/dev/null) || br=""
+  # detached HEAD 는 symbolic-ref 가 실패한다 → rev-parse 가 'HEAD' 를 주고 아래 case 를 통과(허용).
+  [ -n "$br" ] || br=$(git_at "$p" rev-parse --abbrev-ref HEAD 2>/dev/null) || br=""
+  [ -n "$br" ] || die "거부: 브랜치 판정 불가 — '$p' 에서 브랜치명을 얻지 못했다(git 저장소가 아니거나 접근 불가). 커밋 대상이 머지 브랜치가 아님을 단언할 수 없으면 스폰하지 않는다(fail-closed, 설계 §11.10 ①)"
   case "$br" in
     master|main)
       die "거부: non-readonly 워커를 머지 대상 브랜치('$br' @ $p)에서 스폰할 수 없다 — 워커가 같은 체크아웃에 직접 커밋해 사람의 머지 승인이 사후 무력화된다. 사이클 브랜치를 만들어 체크아웃하라(설계 §11.10 ①)" ;;
@@ -319,6 +405,13 @@ assert_branch_not_merge_target() {   # $1 = --worktree 값
   return 0
 }
 ```
+
+★`handoff` 축의 **선언된 잔여**: 이 가드가 읽는 것은 `wt_sel` 인데, `handoff` 가 재사용하는 terminal 은
+**dispatch 소유**다(`bin/orca-rpi.sh:325` 가 `worker-show --dispatch` 로 얻은 handle 을 `:345` 에서 재사용).
+`spawn` 과 `handoff` 사이에 `wt_sel` 이 갈리면(`preflight` 가 매 실행 `:118` 에서 덮어쓴다) 가드는 실제
+워커가 뜰 워크트리가 아닌 곳을 판정한다. 이번 사이클에 닫지 못하는 이유는 dispatch→워크트리 바인딩이
+`[P2]` 미측정이기 때문이다 — Task 1 의 `jq paths` 전수 출력에 워크트리 필드가 나오면 차기 사이클에
+상향한다(슬롯 1 A1 · spec §11.10 ① · 「선언된 잔여 7」).
 
 - [ ] **Step 3: 호출 삽입 — `cmd_spawn`(non-readonly 만) · `cmd_handoff`(정의상 non-readonly)**
 
@@ -350,6 +443,9 @@ D=$(mktemp -d); mkdir -p "$D/rd"
 printf '#!/usr/bin/env bash\nprintf "SIDE-EFFECT: %%s\\n" "$*" >> "$STUB_LOG"\nprintf %%s "{\\"id\\":\\"req\\",\\"ok\\":true,\\"result\\":{\\"dispatch\\":{\\"id\\":\\"d_stub\\"}}}"\n' > "$D/orca-stub"
 chmod +x "$D/orca-stub"; export STUB_LOG="$D/side.log"; : > "$STUB_LOG"
 git -C "$D" init -q; git -C "$D" checkout -q -b master
+# ★커밋 1건 필수 — unborn branch 에서 `rev-parse --abbrev-ref HEAD` 는 stdout 에 'HEAD' 를 내며 rc=128 이라
+#   가드가 「판정 불가」로 죽고 Expected 문안이 어긋난다(슬롯 1 B6 실측). RED/GREEN 은 같은 픽스처여야 한다.
+git -C "$D" -c user.email=c23@local -c user.name=c23 commit -q --allow-empty -m init
 printf 'r::%s' "$D" > "$D/rd/wt_sel"
 env -u WT_SEL ORCA_CLI_COMMAND="$D/orca-stub" ORCA_RPI_RUNDIR="$D/rd" bash bin/orca-rpi.sh spawn --run r1 --task t1 --worktree "r::$D"; echo "non-readonly rc=$?"
 env -u WT_SEL ORCA_CLI_COMMAND="$D/orca-stub" ORCA_RPI_RUNDIR="$D/rd" bash bin/orca-rpi.sh handoff --task t1 --dispatch d1; echo "handoff rc=$?"
@@ -367,6 +463,9 @@ D=$(mktemp -d); mkdir -p "$D/rd"
 printf '#!/usr/bin/env bash\nprintf "SIDE-EFFECT: %%s\\n" "$*" >> "$STUB_LOG"\nprintf %%s "{\\"id\\":\\"req\\",\\"ok\\":true,\\"result\\":{\\"dispatch\\":{\\"id\\":\\"d_stub\\"}}}"\n' > "$D/orca-stub"
 chmod +x "$D/orca-stub"; export STUB_LOG="$D/side.log"; : > "$STUB_LOG"
 git -C "$D" init -q; git -C "$D" checkout -q -b master
+# ★커밋 1건 필수 — unborn branch 에서 `rev-parse --abbrev-ref HEAD` 는 stdout 에 'HEAD' 를 내며 rc=128 이라
+#   가드가 「판정 불가」로 죽고 Expected 문안이 어긋난다(슬롯 1 B6 실측). RED/GREEN 은 같은 픽스처여야 한다.
+git -C "$D" -c user.email=c23@local -c user.name=c23 commit -q --allow-empty -m init
 printf 'r::%s' "$D" > "$D/rd/wt_sel"
 env -u WT_SEL ORCA_CLI_COMMAND="$D/orca-stub" ORCA_RPI_RUNDIR="$D/rd" bash bin/orca-rpi.sh spawn --run r1 --task tro --readonly --worktree "r::$D"; echo "readonly rc=$?"
 git -C "$D" checkout -q -b feature-x
@@ -391,7 +490,30 @@ echo "부작용 줄수=$(wc -l < "$STUB_LOG")"
 
 Expected: `rc=1` + `거부: 브랜치 판정 불가` · **부작용 줄수=0**.
 
-- [ ] **Step 7: 커밋**
+- [ ] **Step 7: `GIT_DIR` 오염이 가드를 뚫지 못함을 단언 (슬롯 1 B1 회귀 봉인)**
+
+```bash
+cd "$HOME/.claude"
+D=$(mktemp -d); mkdir -p "$D/rd" "$D/A" "$D/B"
+printf '#!/usr/bin/env bash\nprintf "SIDE-EFFECT: %%s\\n" "$*" >> "$STUB_LOG"\n' > "$D/orca-stub"
+chmod +x "$D/orca-stub"; export STUB_LOG="$D/side.log"; : > "$STUB_LOG"
+for r in A B; do
+  git -C "$D/$r" init -q
+  git -C "$D/$r" -c user.email=c23@local -c user.name=c23 commit -q --allow-empty -m init
+done
+git -C "$D/A" checkout -q -b master
+git -C "$D/B" checkout -q -b feature-x
+printf 'r::%s' "$D/A" > "$D/rd/wt_sel"
+GIT_DIR="$D/B/.git" env -u WT_SEL ORCA_CLI_COMMAND="$D/orca-stub" ORCA_RPI_RUNDIR="$D/rd" \
+  bash bin/orca-rpi.sh spawn --run r1 --task t1 --worktree "r::$D/A"; echo "rc=$?"
+echo "부작용 줄수=$(wc -l < "$STUB_LOG")"
+```
+
+Expected: `rc=1` + `거부: … 머지 대상 브랜치('master' @ …/A)` · **부작용 줄수=0**.
+가드가 `feature-x`(=repo B)를 읽어 rc=0 으로 통과하면 `git_at` 의 `env -u` 가 빠진 것이다 — 실측으로
+그 형태는 **무음 통과**한다. 이 단언이 그 회귀의 유일한 탐지자다.
+
+- [ ] **Step 8: 커밋**
 
 ```bash
 cd "$HOME/.claude"
@@ -492,13 +614,37 @@ cmd_preflight() {
 extra=(--retry-of "$retry_of")`(`:217`) → **삭제**(위 `:483-484` 로 이전됨). `:216` 의 스키마 NOTE
 주석은 이전된 조립 줄 위로 함께 옮긴다 — 주석만 남으면 무엇을 설명하는지 사라진다.)
 
-`cmd_wait` — `[ -n "$run" ] || die`(`:250`) 뒤:
+`cmd_wait` — ★**ack 블록 전체를 정지점 앞으로 올린다**(슬롯 1 B2). 그 블록(`:252-265`)은 **읽기만**
+한다(`cat "$RUNDIR/pending-ack" 2>/dev/null || true` — 없는 경로를 읽어도 부작용 0)이므로 `ensure_rundir`
+앞에 둘 수 있고, 올려야 두 가지가 동시에 고쳐진다: ⓐ `DRYRUN:` 출력에 `--ack` 가 실린다(안 올리면
+「인자 파싱을 검증한다」는 ②의 존재 이유가 바로 그 인자에서 무너진다) ⓑ 미ack 불일치 거부가 dry
+경로에서도 발화한다. `:250` 의 `[ -n "$run" ] || die` 뒤 ~ `require_jq; ensure_rundir`(`:251`) 앞을
+아래로 교체한다:
 
 ```bash
   [ -n "$run" ] || die "wait: --run 필수"
-  is_dryrun && dryrun_emit orchestration check --run "$run" --wait --types worker_done,escalation,question,decision_gate --timeout-ms "$timeout" --json
+
+  # ★ack 강제(가이드: "A bound Run replays the same Delivery until --ack; process every message
+  #   before acknowledging") — 전건 순회 후 ack 를 문서가 아니라 코드로 만든다.
+  #   이 블록은 읽기 전용이라 DRYRUN 정지점 **앞**에 둔다(§11.10 ② argv 완전성).
+  local pending use_ack=""
+  pending=$(cat "$RUNDIR/pending-ack" 2>/dev/null || true)
+  if [ -n "$ack" ]; then
+    [ -n "$pending" ] || die "wait: --ack 거부 — 미ack 배치가 없다(이 캐리어가 전건 emit 한 배치만 ack 할 수 있다)"
+    [ "$ack" = "$pending" ] || die "wait: --ack 거부 — 미ack 배치($pending)와 불일치(받음: $ack)"
+    use_ack="$ack"
+  else
+    use_ack="$pending"   # 직전 배치를 전건 emit 했으므로 자동 ack
+  fi
+  local extra=()
+  [ -n "$use_ack" ] && extra=(--ack "$use_ack")
+
+  is_dryrun && dryrun_emit orchestration check --run "$run" --wait --types worker_done,escalation,question,decision_gate --timeout-ms "$timeout" "${extra[@]}" --json
   require_jq; ensure_rundir
 ```
+
+(원래 자리(`:252-265`)에 있던 같은 블록은 **삭제**한다 — 중복 선언이 남으면 `local extra=()` 가 위 값을
+지운다. `cmd_task` 의 중복 선언 처분과 동형이다.)
 
 `cmd_handoff` — 브랜치 가드 뒤:
 
@@ -552,15 +698,23 @@ load-bearing 하도록 필수 인자 검사를 함께 둔다:
 ```bash
 cd "$HOME/.claude"
 D=$(mktemp -d); mkdir -p "$D/rd"; git -C "$D" init -q; git -C "$D" checkout -q -b c23-fixture
+git -C "$D" -c user.email=c23@local -c user.name=c23 commit -q --allow-empty -m init   # ★unborn 금지(B6)
 printf 'r::%s' "$D" > "$D/rd/wt_sel"
 for s in "run --objective [C23]x" "task --title t --spec s" "spawn --run r --task t" "wait --run r" "handoff --task t --dispatch d" "release --dispatch d" "gate create --task t --question q" "preflight"; do
   OUT=$(env -u WT_SEL ORCA_RPI_DRYRUN=1 ORCA_CLI_COMMAND="$D/no-such-orca" ORCA_RPI_RUNDIR="$D/rd" bash bin/orca-rpi.sh $s 2>&1); RC=$?
   printf '%-40s rc=%s lines=%s first=%s\n' "$s" "$RC" "$(printf '%s\n' "$OUT" | wc -l)" "$(printf '%s\n' "$OUT" | head -1 | cut -c1-20)"
 done
+echo "--- argv 완전성(ack) ---"
+env -u WT_SEL ORCA_RPI_DRYRUN=1 ORCA_CLI_COMMAND="$D/no-such-orca" ORCA_RPI_RUNDIR="$D/rd" bash bin/orca-rpi.sh wait --run r --ack d_x; echo "ack-불일치 rc=$?"
+printf 'd_x' > "$D/rd/pending-ack"
+env -u WT_SEL ORCA_RPI_DRYRUN=1 ORCA_CLI_COMMAND="$D/no-such-orca" ORCA_RPI_RUNDIR="$D/rd" bash bin/orca-rpi.sh wait --run r --ack d_x; echo "ack-일치 rc=$?"
+rm -f "$D/rd/pending-ack"
 echo "rundir 파일 목록:"; ls -1 "$D/rd"
 ```
 
 Expected (GREEN): 8개 전부 `rc=0` · `lines=1` · `first=DRYRUN:` ·
+`ack-불일치 rc=1` + `wait: --ack 거부 — 미ack 배치가 없다…`(가드가 dry 에서도 발화) ·
+`ack-일치 rc=0` + 출력 줄에 **`--ack d_x` 가 실려 있음**(argv 완전성 — 슬롯 1 B2) ·
 `rundir 파일 목록` 이 **`wt_sel` 하나뿐**(원장 무오염 — `active-nonreadonly.tasks` 미생성).
 
 - [ ] **Step 6: 커밋**
@@ -594,23 +748,50 @@ git commit -m "feat(orca): C23 T3 — ORCA_RPI_DRYRUN 검증-전용 경로 (부�
       *) die "run: 인식하지 않는 인자 '$1'" ;;
 ```
 
-지역 변수 선언(`:137`)과 호출부(`:149`)도 함께 바꾼다:
+지역 변수 선언(`:137`)을 바꾼다:
 
 ```bash
   local objective="" retry_request=""
 ```
 
+★**`rr` 조립은 Task 3 이 넣은 DRYRUN 정지점보다 `.` `앞`이어야 한다**(슬롯 1 D1). `dryrun_emit` 은
+`exit 0` 하므로, 조립을 원래 호출부(`:149`) 자리에 두면 dry 경로에서 **도달조차 하지 않고** Step 5 의
+Expected(`DRYRUN: … --retry-request req_123 …`)가 결정적으로 불가능해진다. 배열 조립은 부작용이 아니므로
+정지점 앞이 옳다 — `cmd_task`·`cmd_spawn` 이 이미 그 형태다. 따라서 Task 3 이 만든 `cmd_run` 블록을
+아래로 **교체**한다(`rr` 조립 → 정지점 → 라이브 호출 순):
+
 ```bash
+  [ -n "$objective" ] || die "run: --objective 필수"
   local rr=()
   [ -n "$retry_request" ] && rr=(--retry-request "$retry_request")
+  is_dryrun && dryrun_emit orchestration run-create --objective "$objective" "${rr[@]}" --json
+  require_jq; ensure_rundir
+```
+
+그리고 호출부(`:149`)는 조립 없이 배열만 전달한다:
+
+```bash
   resp=$("$ORCA" orchestration run-create --objective "$objective" "${rr[@]}" --json)
 ```
 
-`cmd_spawn` 도 같은 형태로 `--retry-request` 아암·변수·`extra` 전달을 추가한다.
-Task 1 Step 5 에서 **수용이 확인되지 않은** 명령(`task-create`/`gate-create`/`check`)에는
-**넣지 않는다** — 받는다고 가정하고 배선하지 않는다(§11.10 ④).
+`cmd_spawn` 도 같은 형태로 `--retry-request` 아암·변수를 추가하되, **`extra` 조립은 Task 3 이 이미
+정지점 앞으로 올려 뒀으므로** 그 배열에 아암을 하나 더 붙이면 된다.
+**배선 범위**: Task 1 Step 2 의 help 실측에서 **수용이 확인된 명령에만** 넣는다. 확인되지 않은
+명령(`task-create`/`gate-create`/`check`)에는 넣지 않는다 — 받는다고 가정하고 배선하지 않는다(§11.10 ④).
+★help 실측 자체가 수행되지 않았으면(`orca.exe` 부재 등) 배선은 **이미 실측된 2개
+(`run-create`·`worker-start`)에 한정**하고 나머지는 미확인으로 남긴다 — 「확인된 명령만」이라는 조건을
+만족시킬 입력이 없다고 해서 추정 배선으로 넘어가지 않는다(슬롯 1 A5·D2).
 
 - [ ] **Step 2: 비-0 응답 시 정확 복구 명령 출력**
+
+먼저 `SELF` 선언(`bin/orca-rpi.sh:15`) 바로 뒤에 실행 가능한 경로 변수를 하나 추가한다.
+`SELF`(=`basename`)는 오류 접두사 용도라 그대로 두고, **안내 줄에 넣을 경로**만 따로 만든다:
+
+```bash
+SELF="$(basename "$0")"
+# 안내 줄에 붙여 넣을 용도 — basename 은 PATH 에 없어 그대로 복사하면 command-not-found 다(§11.10 ④).
+SELF_PATH="$0"
+```
 
 `cmd_run` 의 실패 분기(`:152`)를 아래로 교체한다. 봉투 최상위 `.id` 가 **요청 상관ID**이므로
 그것이 곧 `--retry-request` 인자다(c22-probe P0-2).
@@ -619,8 +800,10 @@ Task 1 Step 5 에서 **수용이 확인되지 않은** 명령(`task-create`/`gat
   if [ "$rc" -ne 0 ]; then
     local req_id; req_id=$(printf '%s' "$resp" | jq -r '.id // empty' 2>/dev/null)
     if [ -n "$req_id" ]; then
+      # ★붙여 넣으면 바로 도는 줄이어야 한다 — placeholder 를 쓰면 안내가 아니라 숙제다(§11.10 ④).
+      #   $SELF(=basename)는 PATH 에 없으므로 실제 경로를 쓴다(T17 은 실행 비트만 주지 PATH 는 안 건드린다).
       echo "run: 정확 복구(중복 레코드 없이 원 결과 회수) — 아래를 그대로 실행하라:" >&2
-      echo "  $SELF run --objective '<같은 objective>' --retry-request $req_id" >&2
+      printf '  bash %q run --objective %q --retry-request %q\n' "$SELF_PATH" "$objective" "$req_id" >&2
     else
       echo "run: 요청 id 를 응답에서 뽑지 못했다 — 정확 복구 명령을 제시할 수 없다. 그냥 재발행하면 중복 레코드가 생긴다(삭제 명령 부재). 응답 확인: $RUNDIR/last-run-create.json" >&2
     fi
@@ -674,20 +857,48 @@ verifier(codex)는 비용 필드를 내지 않으므로 `n/a` — **모르는 �
       return "$rc"
 ```
 
-- [ ] **Step 5: 검증 — 인자 수용 · 원장 형식 (부작용 0줄)**
+- [ ] **Step 5: 검증 — 인자 수용 · 실패 분기 · 원장 형식**
+
+DRYRUN 만으로는 이 task 의 산출물 3분기와 원장 append 를 **한 번도 실행하지 않는다**(슬롯 1 C2·C3).
+따라서 검증은 세 축이다: ⓐ dry 로 인자 수용/거부 ⓑ **비-0 stub** 으로 정확 복구 안내 ⓒ **비-dry stub**
+으로 원장 1행 형식.
 
 ```bash
 cd "$HOME/.claude"
 D=$(mktemp -d); mkdir -p "$D/rd"; git -C "$D" init -q; git -C "$D" checkout -q -b c23-fixture
+git -C "$D" -c user.email=c23@local -c user.name=c23 commit -q --allow-empty -m init
 printf 'r::%s' "$D" > "$D/rd/wt_sel"
+
+echo "--- ⓐ dry: 인자 수용·거부 ---"
 env -u WT_SEL ORCA_RPI_DRYRUN=1 ORCA_RPI_RUNDIR="$D/rd" bash bin/orca-rpi.sh run --objective "[C23]x" --retry-request req_123; echo "rc=$?"
 env -u WT_SEL ORCA_RPI_DRYRUN=1 ORCA_RPI_RUNDIR="$D/rd" bash bin/orca-rpi.sh run --objective "[C23]x" --retry-request; echo "빈값 rc=$?"
 env -u WT_SEL ORCA_RPI_DRYRUN=1 ORCA_RPI_RUNDIR="$D/rd" ORCA_RPI_LEDGER="$D/led.tsv" bash bin/orca-rpi.sh gpt --role verifier --prompt p --out "$D/o.txt"; echo "gpt rc=$?"
 echo "원장 존재? $([ -f "$D/led.tsv" ] && echo yes || echo 'no — DRYRUN 이 원장 앞에서 멈췄다(정상)')"
+
+echo "--- ⓑ 비-0 응답: 정확 복구 안내 3분기 ---"
+printf '#!/usr/bin/env bash\nprintf %%s "{\\"id\\":\\"req_abc\\",\\"ok\\":false}"\nexit 7\n' > "$D/orca-fail"; chmod +x "$D/orca-fail"
+env -u WT_SEL ORCA_CLI_COMMAND="$D/orca-fail" ORCA_RPI_RUNDIR="$D/rd" bash bin/orca-rpi.sh run --objective "[C23] O'Brien" 2>&1; echo "실패 rc=$?"
+printf '#!/usr/bin/env bash\nprintf %%s "{\\"ok\\":false}"\nexit 7\n' > "$D/orca-noid"; chmod +x "$D/orca-noid"
+env -u WT_SEL ORCA_CLI_COMMAND="$D/orca-noid" ORCA_RPI_RUNDIR="$D/rd" bash bin/orca-rpi.sh run --objective "[C23]y" 2>&1 | grep -c '요청 id 를 응답에서 뽑지 못했다'
+
+echo "--- ⓒ 비-dry: 원장 1행 형식 ---"
+printf '#!/usr/bin/env bash\nprintf %%s ""\n' > "$D/codex-stub"; chmod +x "$D/codex-stub"
+PATH="$D:$PATH" env -u WT_SEL ORCA_RPI_RUNDIR="$D/rd" ORCA_RPI_LEDGER="$D/led2.tsv" \
+  bash bin/orca-rpi.sh gpt --role verifier --prompt p --out "$D/o2.txt" 2>&1 | tail -1
+printf 'x' > "$D/o2.txt"   # -s 단언용 재시도가 필요하면 여기서 준비
+cat "$D/led2.tsv" 2>/dev/null | awk -F'\t' '{print NR": fields="NF" -> "$0}'
 ```
 
-Expected: 1번 `rc=0` + `DRYRUN: … --retry-request req_123 …` · 2번 `rc=1`(빈 값 거부) ·
-3번 `rc=0` + `DRYRUN: codex exec …` · 원장 미생성(DRYRUN 이 부작용 앞에서 멈춘 증거).
+Expected:
+- ⓐ 1번 `rc=0` + `DRYRUN: … --retry-request req_123 …` · 2번 `rc=1`(빈 값 거부) ·
+  3번 `rc=0` + `DRYRUN: codex exec …` · 원장 미생성.
+- ⓑ 첫 호출이 `실패 rc=1` 이면서 stderr 에 **`--objective '[C23] O'\''Brien' --retry-request req_abc`
+  형태의 붙여 넣기 가능한 줄**(placeholder `<같은 objective>` 가 **없어야** 한다 — 슬롯 1 A4) ·
+  둘째 호출의 `grep -c` → **1**(id 부재 경고 분기 도달).
+- ⓒ 원장 `led2.tsv` 가 **2줄**(헤더 + 1행) · 각 줄 `fields=5` · 데이터 행의 5번째 필드가 `n/a`.
+  `codex` stub 이 `-o` 파일을 안 만들어 `die` 하더라도 **원장 append 는 그 앞에서 일어난다** —
+  이 순서가 곧 「비용 부기가 검증 실패에 흡수되지 않는다」의 증거다. 원장이 아예 없으면
+  `gpt_ledger_append` 배선이 빠진 것이므로 FAIL.
 
 - [ ] **Step 6: 커밋**
 
