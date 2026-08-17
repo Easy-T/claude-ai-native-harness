@@ -882,12 +882,17 @@ printf '#!/usr/bin/env bash\nprintf %%s "{\\"ok\\":false}"\nexit 7\n' > "$D/orca
 env -u WT_SEL ORCA_CLI_COMMAND="$D/orca-noid" ORCA_RPI_RUNDIR="$D/rd" bash bin/orca-rpi.sh run --objective "[C23]y" 2>&1 | grep -c '요청 id 를 응답에서 뽑지 못했다'
 
 echo "--- ⓒ 비-dry: 원장 1행 형식 ---"
-printf '#!/usr/bin/env bash\nprintf %%s ""\n' > "$D/codex-stub"; chmod +x "$D/codex-stub"
-PATH="$D:$PATH" env -u WT_SEL ORCA_RPI_RUNDIR="$D/rd" ORCA_RPI_LEDGER="$D/led2.tsv" \
-  bash bin/orca-rpi.sh gpt --role verifier --prompt p --out "$D/o2.txt" 2>&1 | tail -1
-printf 'x' > "$D/o2.txt"   # -s 단언용 재시도가 필요하면 여기서 준비
-cat "$D/led2.tsv" 2>/dev/null | awk -F'\t' '{print NR": fields="NF" -> "$0}'
+mkdir -p "$D/bin"
+printf '#!/usr/bin/env bash\nprev=""; out=""\nfor a in "$@"; do [ "$prev" = "-o" ] && out="$a"; prev="$a"; done\n[ -n "$out" ] && printf "stub-review\\n" > "$out"\nexit 0\n' > "$D/bin/codex"; chmod +x "$D/bin/codex"
+PATH="$D/bin:$PATH" env -u WT_SEL ORCA_CLI_COMMAND="$D/no-such-orca" ORCA_RPI_RUNDIR="$D/rd" ORCA_RPI_LEDGER="$D/led2.tsv" bash bin/orca-rpi.sh gpt --role verifier --prompt p --out "$D/o2.txt"; echo "원장 rc=$?"
+awk -F'\t' '{print NR": fields="NF" -> "$0}' "$D/led2.tsv" 2>/dev/null
 ```
+
+★이 블록의 두 가지가 load-bearing 이다(둘 다 초고에서 틀렸고 seal #53 프로토타입 실행이 잡았다):
+① **스텁 파일명은 `codex`** — 캐리어가 `codex exec …` 를 맨 이름으로 부르므로 `codex-stub` 이라 지으면
+PATH 가 **실제 codex 를 잡아 진짜 API 를 때린다**. 스텁은 `-o` 대상 파일도 채워야 `[ -s "$out" ]` 를
+통과한다. ② **호출 줄 자신에 격리 토큰 2종**(`ORCA_CLI_COMMAND=` + `ORCA_RPI_RUNDIR=`) — 줄 이어쓰기(`\`)로
+토큰을 윗줄에 두면 seal 의 ⓑ 요건(두 토큰 동반)이 깨져 이 plan 자신이 NOISO 로 FAIL 한다.
 
 Expected:
 - ⓐ 1번 `rc=0` + `DRYRUN: … --retry-request req_123 …` · 2번 `rc=1`(빈 값 거부) ·
@@ -1405,8 +1410,14 @@ perl -pi -e "s/\@\@S53_LEDGER_CKSUM\@\@/$CK/g" setup/verify-setup.sh
 grep -c 'S53_LEDGER_CKSUM' setup/verify-setup.sh
 ```
 
-Expected: `호출 줄수=8` · `동결값=<숫자>`(빈 입력값 `42949672950` 이 아니어야 한다) ·
-마지막 `grep -c` → **0**(플레이스홀더 전부 치환).
+Expected: `호출 줄수=8` · `동결값=3763352650710` · 마지막 `grep -c` → **0**(플레이스홀더 전부 치환).
+
+★이 두 값은 **추정이 아니라 실측**이다 — Phase P 말미에 이 plan 의 `S53_AWK` 를 그대로 추출해
+실코퍼스에 돌려 얻었다(같은 실행에서 자기-시험 픽스처는 `ISO,NOISO,NOISO,NOISO,NOISO,`,
+대장 **밖** NOISO 는 **0건**, `LIVE` 단위는 이 plan 4건 = 선언 `LIVE-INTENT-총계: 4` 와 일치).
+그 실행이 잡아낸 실제 결함이 하나 있다 — Task 4 Step 5 ⓒ 의 초고가 stub 을 `codex-stub` 으로 지어
+실제 `codex` 를 가리지 못했고 격리 토큰도 줄 이어쓰기로 떨어져 있어 **이 plan 자신이 NOISO** 였다.
+동결값이 다르게 나오면 대장 파일이 바뀐 것이므로 **먼저 그 이유를 확인**하고 값을 갱신한다.
 ★줄 수가 8 이 아니면 **멈춘다** — 이 시점의 잘못된 동결값은 되돌리기 어렵다(다음 사이클이 그 값을
 정본으로 신뢰한다). B4 정정(따옴표 양끝 벗기기) 때문에 이전보다 더 잡힐 수도 있으니, 8 이 아니면
 실제로 무엇이 늘거나 줄었는지 `printf '%s\n' "$LINES"` 로 먼저 확인하고 이 숫자를 갱신할지
@@ -1645,8 +1656,10 @@ grep -n '^권장:' skills/start-rpi-cycle/SKILL.md   # 삽입 직전 실측 — 
 
 ```markdown
 - (e) **Orca 감독 사이클** — Phase 를 Orca ADE Task DAG 로 돌린다(포인터: `Skill(orca-rpi-cycle)`).
-      진입 전 `bash ~/.claude/bin/orca-rpi.sh preflight` 가 rc=0 이어야 하며, **rc=3(Orca 미가동)이면
-      자동으로 (a)/(d) 로 폴백**한다 — Orca 는 선택적 가속기이지 사이클의 전제가 아니다.
+      진입 전 `bash ~/.claude/bin/orca-rpi.sh preflight` 가 rc=0 이어야 하며, **rc≠0 이면(Orca
+      미설치·미가동 무관) 자동으로 (a)/(d) 로 폴백**한다 — Orca 는 선택적 가속기이지 사이클의 전제가
+      아니다. (rc=3 = 설치돼 있으나 미가동/전제 미충족 · rc=1 = 실행자 부재·경로 오지정. rc=3 만
+      폴백시키면 **설치가 금지된 환경의 미설치 머신이 폴백 밖에 놓여** 사이클이 멈춘다.)
       ★**사이클 브랜치에서만** — 캐리어가 `master`/`main` 에서 non-readonly 스폰을 코드로 거부한다
       (워커가 같은 체크아웃에 커밋해 머지 승인이 사후 무력화되는 것을 막는다).
       상세는 `docs/ai-context/c21-orca-mode-design.md` §7·§11.10.
