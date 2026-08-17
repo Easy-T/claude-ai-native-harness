@@ -174,7 +174,7 @@ _Avoid_: "훅 미발화"(훅 자체는 발화한다 — 공백은 매처의 *관
 _Avoid_: "세션 인식 실패"(두 축을 뭉갬), "미지 세션"(판별 실패인지 미지 티어인지 불명 — 어느 축인지 명시할 것), "모델 감지"(감지 후 계수까지 포함하는 것처럼 읽힘).
 
 ### 스폰 캐리어 (spawn carrier)
-Orca 워커 기동(`worker-start`)을 발행하는 **유일한** 경로로 지정된 스크립트(`bin/orca-rpi.sh`) — 금지 인자(`--model`/`--effort`/`--on`/`new-child`/`new-top-level`)·금지 명령(`orchestration reset` 등)·non-readonly 동시 spawn 제한을 코드로 강제해, 경계가 문서 규약이 아니라 실행 경로 자체다(c21-orca-mode-design.md §7 T1).
+Orca 워커 기동(`worker-start`)을 발행하는 **유일한** 경로로 지정된 스크립트(`bin/orca-rpi.sh`) — 금지 인자(`--model`/`--effort`/`--on`/`new-child`/`new-top-level`)·금지 명령(`orchestration reset` 등)·non-readonly 동시 spawn 제한을 코드로 강제해, 경계가 문서 규약이 아니라 실행 경로 자체다(c21-orca-mode-design.md §7 T1). [[브랜치 가드]]와 [[검증-전용 경로]]는 같은 강제선에 얹히도록 설계됐으나 **C23 Phase I 착륙 예정이며 현재 캐리어에 미구현**이다(실측 — 캐리어에 해당 토큰 0건).
 _Avoid_: "오케스트레이터"(Orca 자신과 혼동 — 이 스크립트는 Orca 를 호출하는 하네스 쪽 래퍼일 뿐), "런처"(단순 실행보다 강제 스코프가 넓음).
 
 ### 워커 계약 (worker contract)
@@ -184,3 +184,27 @@ _Avoid_: "워커 가이드"(Orca 자체 CLI 가이드와 혼동), "preamble 재�
 ### 승인 채널 층 분리 (approval-channel layering)
 워커(dispatched, preamble RULE#1 적용)는 `AskUserQuestion` 이 금지되며 `orchestration ask`/`decision_gate` 로 코디네이터에 묻고, 코디네이터(사람과 같은 화면)는 `AskUserQuestion` 을 유지해 머지 승인을 사람이 소유한다 — 두 계층이 물리적으로 다른 프로세스라 혼동하면 워커 영구 hang(워커가 아무도 못 보는 TUI 를 열고 대기) 또는 무승인 머지(gate 로 대체) 중 하나가 난다(c22-orca-probe-measured.md P0-4).
 _Avoid_: "gate 로 대체"(머지 승인의 gate 대체는 금지), "AskUserQuestion 전면 금지"(코디네이터 층에는 여전히 유효 — 워커 층에만 적용).
+
+### 브랜치 가드 (branch guard)
+non-readonly 워커 스폰을 **머지 대상 브랜치**(`master`/`main`)에서 거부하는 [[스폰 캐리어]] 불변식 — **C23 Phase I 착륙 예정, 현재 미강제**(지시문 층에만 존재). `--worktree current` 로 뜬 워커는 코디네이터와 같은 체크아웃에서 커밋하므로, 그 체크아웃이 머지 대상이면 사람의 머지 승인이 *사후* 무력화된다 — 거절해도 이미 착륙해 있다(c21-orca-mode-design.md §11.9 ⑤). 측정 대상 브랜치는 코디네이터의 cwd 가 아니라 **워커가 실제로 뜨는 워크트리**다 — 둘은 다를 수 있고 cwd 를 재면 오탐·미탐이 양방향으로 난다. 판정 불가(브랜치를 못 읽음)는 fail-closed: "커밋 대상이 머지 브랜치가 아님"을 단언할 수 없으면 스폰하지 않는다. **정직한 상한**: 코드가 막는 것은 *선언되지 않은* non-readonly 스폰이며, [[읽기전용 자기-선언]] 오용은 그 상한을 그대로 상속한다.
+_Avoid_: "master 보호"(git branch protection 과 혼동 — 이것은 워커 스폰 시점의 거부), "브랜치 검사"(처분이 불명 — 거부인지 경고인지 명시할 것).
+
+### 읽기전용 자기-선언 (readonly self-declaration)
+[[스폰 캐리어]] `spawn --readonly` 의 정확한 의미 — Orca 에 전달되지 않고 권한 제한도 Task 내용 검증도 동반하지 않는, **코디네이터가 로컬 동시-1 카운터를 우회하겠다는 선언**이다(c21-orca-mode-design.md §11.9 ⑧). 병렬 안전성은 Task spec 이 실제로 read-only 인지에 달려 있고 그 판단은 코디네이터 책임이다.
+_Avoid_: "read-only 샌드박스"(Orca 가 제공하지 않는 것 — overclaim), "읽기 전용 모드"(강제된 권한으로 오독).
+
+### 검증-전용 경로 (verification-only path)
+[[스폰 캐리어]]가 인자 검증까지만 수행하고 **부작용 경계 직전에 정지**하는 실행 모드 — **C23 Phase I 착륙 예정, 현재 미구현**. 파싱·가드를 검증하려면 부작용 단계까지 실행하는 수밖에 없던 비대칭(non-obvious #5 Why-2)의 설계-층 대응이며, 처방이 "호출자가 매번 stub 을 주입하라" 한쪽으로만 가지 않게 한다. 성공 응답과 **형태적으로 구분되는** stdout 계약을 갖는 것이 이 용어의 요건이다(조용한 오진행 차단).
+_Avoid_: "dry-run"(Orca 자신의 `dispatch --dry-run` 과 혼동 — 그건 런타임이 판정하고 이건 캐리어가 프로세스 안에서 멈춘다), "테스트 모드"(테스트 하네스와 혼동).
+
+### 정확 복구 (exact recovery)
+mutation 결과가 unknown 일 때 **같은 요청 id** 로 재발행해 중복 레코드 없이 원 결과를 회수하는 경로(`--retry-request <id>`) — Orca CLI 가 제공하나 [[스폰 캐리어]]의 수용은 **C23 Phase I 착륙 예정**이다. CLI Notes verbatim: *"`--retry-request` is only for exact recovery after an unknown mutation result."* [[재시도 스폰]](`--retry-of`)과 **축이 다르다**: 이쪽은 같은 mutation 을 멱등 재발행해 레코드를 1개로 유지하고, 저쪽은 실패한 dispatch 를 대체하는 *새* 시도를 만든다. 삭제 수단이 부재한 시스템에서 이 둘을 혼동하면 되돌릴 수 없는 중복이 생긴다.
+_Avoid_: "재시도"(두 축을 뭉갠다 — 어느 쪽인지 반드시 명시), "멱등 호출"(호출자가 id 를 재사용해야 성립하는 것을 서버 성질로 오독).
+
+### 재시도 스폰 (retry dispatch)
+실패한 dispatch 를 대체하는 **새 시도**를 만드는 경로(`worker-start --retry-of <dispatch_id>`) — 배치(placement)를 상속하지 않으므로 `--worktree`/`--agent` 를 매번 재지정해야 한다. 자동 [[재시도 스폰]]은 금지이며 코디네이터가 원인을 판정한 뒤 이 경로로만 승인된다. [[정확 복구]]와 혼동 금지.
+_Avoid_: "재실행"(같은 레코드를 다시 돌린다는 오독 — 새 dispatch 가 생긴다).
+
+### 의도-라이브 / 사고-라이브 (intentional-live / accidental-live)
+되돌릴 수 없는 외부 부작용을 내는 CLI 에 검증·측정 명령이 **도달하는** 두 경우를 가르는 축. 판별자는 결과가 아니라 **선언의 존재**다 — 측정 목적을 `LIVE-INTENT(<사유>)` 로 명시했으면 의도-라이브, 명시 없이 도달했으면 사고-라이브다(non-obvious #5 — 관측은 전부 정확했는데 측정 행위 자체가 파괴적이었다). 사고-라이브의 기전은 "부작용 차단 주입 지점을 *요구*하는 규약의 부재"이므로 대응도 주의력이 아니라 [[검증-전용 경로]]와 seal 이다.
+_Avoid_: "실수로 실행"(사람 귀책 프레이밍 — 시스템 원인 판정과 충돌), "라이브 테스트"(두 경우를 뭉갠다).
