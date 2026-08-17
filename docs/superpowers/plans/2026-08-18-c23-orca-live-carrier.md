@@ -52,7 +52,8 @@
    `perl -ne '$n++ if /\r/; END{print "$n\n"}'` 만 신뢰한다(`grep -c` 는 MSYS 에서 조용히 틀린다).
 8. **경로는 argv/stdin 으로 전달** — 인라인 인터프리터 소스에 셸 변수 보간·리터럴 `/tmp/` 금지(non-obvious #3, seal #52).
 9. **기준선**: `setup/verify-setup.sh` 90 PASS / 0 FAIL · `hooks/tests/run-all.sh` 305/305 ·
-   `setup/tests/seal-regression.test.sh` 27/0. Task 7 이 verify-setup 을 **91**, seal-regression 을 **29** 로 올린다.
+   `setup/tests/seal-regression.test.sh` 27/0. **Task 6** 이 verify-setup 을 90→**91**(seal #53 1건),
+   **Task 7** 이 seal-regression 을 27→**29**(뮤테이터 2건) 로 올린다.
 10. **범위 밖**: T6~T14 · T20/T21. 특히 `modes/`·`setup/lib/modepack-oracle.sh` 삭제는 T10~T12 와
     같은 커밋이어야 하므로 **무접촉**.
 
@@ -1453,7 +1454,7 @@ Expected: CR=**1823**(불변 — 혼합 개행 보존 확인).
 | 4 | `bash setup/tests/seal-regression.test.sh` | 27/0 | **29/0** (full 필수 — setup/ diff 존재) |
 | 5 | `bash setup/verify-all.sh` | ALL PASS | ALL PASS (STAGE 2e 포함) |
 
-4번은 **Task 10 까지 전부 끝난 뒤** 1회 돈다 — Task 8(`setup/install.sh`, replica 복제 대상)·
+4번은 **Task 8·9 완료 후, Task 10 Step 1-2 뒤** 1회 돈다 — Task 8(`setup/install.sh`, replica 복제 대상)·
 Task 9(`skills/start-rpi-cycle/SKILL.md`, **witness `:19`**)가 seal-regression 의 입력을 바꾸므로
 그 전에 돌린 full 은 최종 트리를 인증하지 못한다(Task 7 Step 4 는 표적 부분집합 4/0 만).
 4번 실행 중에는 **`~/.claude` 를 편집하지 않는다**(witness cksum 불변이 물리 전제 — C22 에서
