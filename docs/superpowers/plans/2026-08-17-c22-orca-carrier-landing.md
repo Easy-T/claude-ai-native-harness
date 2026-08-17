@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Status:** active
+**Status:** completed
 **RPI-Cycle:** 73
 **Started:** 2026-08-17
 
@@ -806,4 +806,4 @@ bash setup/tests/seal-regression.test.sh   # setup/+입력집합 diff 없으면 
 
 - `setup/verify-setup.sh` → **PASS=90 FAIL=0** (정정 전 89/1 — seal #37 scaffold-registry 미등재)
 - `hooks/tests/run-all.sh` → **305/305**
-- `setup/tests/seal-regression.test.sh` → **full 실행**(`skills/` diff 존재 → SKIP 불가)
+- `setup/tests/seal-regression.test.sh` → **PASS=27 FAIL=0** (full 실행 — `skills/` diff 존재로 SKIP 불가 · `✓ live ~/.claude untouched (witness cksum stable across run)`)
