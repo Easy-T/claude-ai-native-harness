@@ -1817,7 +1817,7 @@ git commit -m "feat(rpi): C23 T15 — Phase I 옵션 (e) Orca 감독 사이클 +
 - Consumes: §18.1 트리거 (b)(C22 에서 성립 — 「차기 floor 한정 재심 1회 예약」) · §19.5 반증 조건
 - Produces: floor 재심 판정 1건. 이 사이클의 layer-yield 행.
 
-- [ ] **Step 1: 재심 입력 실측**
+- [x] **Step 1: 재심 입력 실측**
 
 ```bash
 cd "$HOME/.claude"
@@ -1830,7 +1830,7 @@ grep -n '^#\+ *§2[0-9]' docs/superpowers/specs/2026-07-25-model-policy-design.m
 Expected: `§19.5`(`:2348`)와 `§19.6 검증 계획`(`:2374`)이 보이고, 마지막 `grep` 의 최대 번호가
 **`§20.7`**(`:2599`) 다. `§21` 이 출력에 있으면 이미 누가 쓴 것이므로 **다음 빈 번호로 올린다**.
 
-- [ ] **Step 2: 판정 작성 — §21 을 spec 말미에 append**
+- [x] **Step 2: 판정 작성 — §21 을 spec 말미에 append**
 
 판정의 뼈대는 이미 실측으로 정해져 있다(§11.10 ⑧): §19.5 의 처분이 **미착륙**이었으므로 반증 조건
 (「지시문 보강 착륙 후 같은 클래스 재발」)이 아직 **평가 불가**였고, 따라서 C21·C22 의 BLOCKER 는
@@ -1938,17 +1938,27 @@ witness 파일이므로 **4번이 끝난 뒤**에 한다(실행 전/후는 무�
    잡는 것은 *침묵의* 추가이지 의식적 확장이 아니다.
 4. **DRYRUN 은 원장 뮤텍스를 검증하지 않는다** — 동시-1 상한은 본질적으로 쓰기라 dry 경로로 검증
    불가. 그 축은 stub `$ORCA` + `ORCA_RPI_RUNDIR` 격리 경로가 계속 담당한다.
-5. **`--retry-request` 는 실측 확인된 명령에만 배선** — `task-create`/`gate-create`/`check` 는
-   **Task 1 Step 2** 의 `--help` 결과에 따라 확장하거나 **미확인으로 남긴다**. help 실측 자체가
-   불가능하면(`orca.exe` 부재) 이미 실측된 `run-create`·`worker-start` 2개에 한정한다.
+5. **`--retry-request` 배선 — 실측으로 확정됨(C23 Phase I 종결).** Task 1 Step 2 의 `--help` 는
+   `run-create`·`task-create`·`worker-start`·`gate-create`·`check` **5개 전부** 수용을 보였다
+   (미확인 잔여 0). 배선은 **변이 4개**(`cmd_run`·`cmd_task`·`cmd_spawn`·`cmd_gate create`)이고,
+   `check` 는 **의도적 미배선**이다 — help Notes 가 `only for exact recovery after an unknown
+   **mutation** result` 로 한정하고 `check` 는 조회라 회수할 mutation 이 없다(사유를 `cmd_wait` 에
+   주석으로 명시 — 침묵 배제 금지).
+   **잔존 비대칭**: 실패-분기의 *복구 안내 출력*은 `cmd_run`·`cmd_spawn` **2개에만** 있다.
+   파서 배선(4)과 안내 생성(2)이 다른 기능이라 이번 스코프를 넘기지 않았다 — `task`/`gate create` 가
+   unknown result 로 실패하면 사용자가 안내 없이 스스로 복구 명령을 조립해야 한다(차기 후보).
 6. **Task 1 부분 실패 시 `[C23]` Run 이 잔존할 수 있다** — `run-create` 커밋 후 응답 유실이나 후속
    `task-create` 실패가 나면 재실행 없이 멈춘다. 멱등 재발행 수단(`--retry-request`)이 Task 4 에서야
    착륙하고 그 배선의 입력이 이 측정이라, 이 부트스트랩 순환은 순서로 풀 수 없다. `run-delete` 가
    부재하므로 처분은 정리가 아니라 **기록**이다(잔존 id 를 probe 문서에 남긴다 — 슬롯 1 D6).
 7. **`handoff` 브랜치 가드는 `wt_sel` 축의 근사** — 실제 워커가 뜨는 워크트리는 **dispatch 소유**인데
    가드는 `wt_sel` 을 읽는다. 둘이 갈리면(`preflight` 가 매 실행 덮어쓴다) 가드가 다른 곳을 판정한다.
-   dispatch→워크트리 바인딩이 `[P2]` 미측정이라 이번 사이클에 닫지 못한다 — Task 1 의 `jq paths`
-   전수 출력에 워크트리 필드가 나오면 차기 사이클에 상향한다(슬롯 1 A1 · spec §11.10 ①).
+   dispatch→워크트리 바인딩이 `[P2]` 미측정이라 이번 사이클에 닫지 못한다(슬롯 1 A1 · spec §11.10 ①).
+   ★**차기 사이클 상향 조건이 충족됐다(C23 Task 1 실측)** — `worker-show` 응답에 워크트리 필드가
+   실재한다: `.result.worker.worktree_id` · `.result.terminal.worktreePath` · `.result.terminal.branch`
+   (실측값 `refs/heads/orca-cycle-23`). 즉 가드를 `wt_sel` 근사가 아니라 **dispatch 실물**로 옮길
+   경로가 열렸다. 다만 그 조회는 `worker-show` 를 요구하는데 가드는 **spawn 이전**에 돌아야 하므로
+   (아직 dispatch 가 없다) 단순 치환이 아니다 — 차기 사이클의 설계 과제로 남긴다.
 8. **`handoff` 의 `[P2]` 2사이트는 미해제로 남는다** — `handoff` 를 호출하지 않으므로 미측정이고,
    terminal 기반 `worker-start` 응답이 agent 기반과 동형이라는 보장이 없다. 「전부 해제」로 쓰면
    추정을 실측으로 승격하게 되므로 마커를 유지하고 사유를 명시한다(슬롯 1 A6 · spec §11.10 ⑤).
