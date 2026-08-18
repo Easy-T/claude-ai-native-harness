@@ -342,7 +342,11 @@ Usage: orca orchestration worker-start --task <task_id> [--on <saved-environment
 ```
 
 즉 「exact recovery after an unknown mutation result」 = 응답을 못 받은 변이의 **정확 복구** 전용.
-C23 Task 4 의 배선 범위는 이 실측으로 **5개 명령 전부**가 되었다(미확인 잔여 0).
+이 실측으로 **CLI 수용 범위 = 5개 명령 전부**가 확정됐다(미확인 잔여 0). 다만 이것이 곧 캐리어의
+배선 범위는 아니다 — **배선은 변이 4개**(`cmd_run`·`cmd_task`·`cmd_spawn`·`cmd_gate create`)이고,
+`check` 는 수용은 하지만 **선언된 미배선**이다(`bin/orca-rpi.sh:378-380` — help Notes 의 "unknown
+**mutation** result" 와 §11.10 ④ⓐ 의 「변이 서브커맨드」 한정. 대기/조회에는 회수할 mutation 이 없다).
+★「수용 5」와 「배선 4」를 한 문장으로 뭉개면 `check` 의 미배선이 *누락*으로 오독된다.
 
 ## 미해제 `[P2]` — 2사이트 (`cmd_handoff`)
 

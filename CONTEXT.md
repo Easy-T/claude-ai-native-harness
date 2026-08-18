@@ -174,7 +174,7 @@ _Avoid_: "훅 미발화"(훅 자체는 발화한다 — 공백은 매처의 *관
 _Avoid_: "세션 인식 실패"(두 축을 뭉갬), "미지 세션"(판별 실패인지 미지 티어인지 불명 — 어느 축인지 명시할 것), "모델 감지"(감지 후 계수까지 포함하는 것처럼 읽힘).
 
 ### 스폰 캐리어 (spawn carrier)
-Orca 워커 기동(`worker-start`)을 발행하는 **유일한** 경로로 지정된 스크립트(`bin/orca-rpi.sh`) — 금지 인자(`--model`/`--effort`/`--on`/`new-child`/`new-top-level`)·금지 명령(`orchestration reset` 등)·non-readonly 동시 spawn 제한을 코드로 강제해, 경계가 문서 규약이 아니라 실행 경로 자체다(c21-orca-mode-design.md §7 T1). [[브랜치 가드]]와 [[검증-전용 경로]]는 같은 강제선에 얹히도록 설계됐으나 **C23 Phase I 착륙 예정이며 현재 캐리어에 미구현**이다(실측 — 캐리어에 해당 토큰 0건).
+Orca 워커 기동(`worker-start`)을 발행하는 **유일한** 경로로 지정된 스크립트(`bin/orca-rpi.sh`) — 금지 인자(`--model`/`--effort`/`--on`/`new-child`/`new-top-level`)·금지 명령(`orchestration reset` 등)·non-readonly 동시 spawn 제한을 코드로 강제해, 경계가 문서 규약이 아니라 실행 경로 자체다(c21-orca-mode-design.md §7 T1). [[브랜치 가드]]와 [[검증-전용 경로]]도 **C23 Phase I 에 같은 강제선으로 착륙**했다(`assert_branch_not_merge_target` · `ORCA_RPI_DRYRUN` — `setup/tests/orca-carrier.test.sh` 가 verify-all STAGE 2e 에서 불변식을 지킨다).
 _Avoid_: "오케스트레이터"(Orca 자신과 혼동 — 이 스크립트는 Orca 를 호출하는 하네스 쪽 래퍼일 뿐), "런처"(단순 실행보다 강제 스코프가 넓음).
 
 ### 워커 계약 (worker contract)
@@ -186,7 +186,7 @@ _Avoid_: "워커 가이드"(Orca 자체 CLI 가이드와 혼동), "preamble 재�
 _Avoid_: "gate 로 대체"(머지 승인의 gate 대체는 금지), "AskUserQuestion 전면 금지"(코디네이터 층에는 여전히 유효 — 워커 층에만 적용).
 
 ### 브랜치 가드 (branch guard)
-non-readonly 워커 스폰을 **머지 대상 브랜치**(`master`/`main`)에서 거부하는 [[스폰 캐리어]] 불변식 — **C23 Phase I 착륙 예정, 현재 미강제**(지시문 층에만 존재). `--worktree current` 로 뜬 워커는 코디네이터와 같은 체크아웃에서 커밋하므로, 그 체크아웃이 머지 대상이면 사람의 머지 승인이 *사후* 무력화된다 — 거절해도 이미 착륙해 있다(c21-orca-mode-design.md §11.9 ⑤). 측정 대상 브랜치는 코디네이터의 cwd 가 아니라 **워커가 실제로 뜨는 워크트리**다 — 둘은 다를 수 있고 cwd 를 재면 오탐·미탐이 양방향으로 난다. 판정 불가(브랜치를 못 읽음)는 fail-closed: "커밋 대상이 머지 브랜치가 아님"을 단언할 수 없으면 스폰하지 않는다. **정직한 상한**: 코드가 막는 것은 *선언되지 않은* non-readonly 스폰이며, [[읽기전용 자기-선언]] 오용은 그 상한을 그대로 상속한다.
+non-readonly 워커 스폰을 **머지 대상 브랜치**(`master`/`main`)에서 거부하는 [[스폰 캐리어]] 불변식 — **C23 Phase I 에 코드로 착륙**(`assert_branch_not_merge_target`; `spawn` 의 non-readonly 아암과 `handoff` 에서 **부작용보다 앞**에 호출). `--worktree current` 로 뜬 워커는 코디네이터와 같은 체크아웃에서 커밋하므로, 그 체크아웃이 머지 대상이면 사람의 머지 승인이 *사후* 무력화된다 — 거절해도 이미 착륙해 있다(c21-orca-mode-design.md §11.9 ⑤). 측정 대상 브랜치는 코디네이터의 cwd 가 아니라 **워커가 실제로 뜨는 워크트리**다 — 둘은 다를 수 있고 cwd 를 재면 오탐·미탐이 양방향으로 난다. 판정 불가(브랜치를 못 읽음)는 fail-closed: "커밋 대상이 머지 브랜치가 아님"을 단언할 수 없으면 스폰하지 않는다. **정직한 상한**: 코드가 막는 것은 *선언되지 않은* non-readonly 스폰이며, [[읽기전용 자기-선언]] 오용은 그 상한을 그대로 상속한다.
 _Avoid_: "master 보호"(git branch protection 과 혼동 — 이것은 워커 스폰 시점의 거부), "브랜치 검사"(처분이 불명 — 거부인지 경고인지 명시할 것).
 
 ### 읽기전용 자기-선언 (readonly self-declaration)
@@ -194,11 +194,11 @@ _Avoid_: "master 보호"(git branch protection 과 혼동 — 이것은 워커 �
 _Avoid_: "read-only 샌드박스"(Orca 가 제공하지 않는 것 — overclaim), "읽기 전용 모드"(강제된 권한으로 오독).
 
 ### 검증-전용 경로 (verification-only path)
-[[스폰 캐리어]]가 인자 검증까지만 수행하고 **부작용 경계 직전에 정지**하는 실행 모드 — **C23 Phase I 착륙 예정, 현재 미구현**. 파싱·가드를 검증하려면 부작용 단계까지 실행하는 수밖에 없던 비대칭(non-obvious #5 Why-2)의 설계-층 대응이며, 처방이 "호출자가 매번 stub 을 주입하라" 한쪽으로만 가지 않게 한다. 성공 응답과 **형태적으로 구분되는** stdout 계약을 갖는 것이 이 용어의 요건이다(조용한 오진행 차단).
+[[스폰 캐리어]]가 인자 검증까지만 수행하고 **부작용 경계 직전에 정지**하는 실행 모드 — **C23 Phase I 착륙**(`ORCA_RPI_DRYRUN` 격리 토큰 1개 · 기동 아암 12곳). 파싱·가드를 검증하려면 부작용 단계까지 실행하는 수밖에 없던 비대칭(non-obvious #5 Why-2)의 설계-층 대응이며, 처방이 "호출자가 매번 stub 을 주입하라" 한쪽으로만 가지 않게 한다. 성공 응답과 **형태적으로 구분되는** stdout 계약을 갖는 것이 이 용어의 요건이다(조용한 오진행 차단).
 _Avoid_: "dry-run"(Orca 자신의 `dispatch --dry-run` 과 혼동 — 그건 런타임이 판정하고 이건 캐리어가 프로세스 안에서 멈춘다), "테스트 모드"(테스트 하네스와 혼동).
 
 ### 정확 복구 (exact recovery)
-mutation 결과가 unknown 일 때 **같은 요청 id** 로 재발행해 중복 레코드 없이 원 결과를 회수하는 경로(`--retry-request <id>`) — Orca CLI 가 제공하나 [[스폰 캐리어]]의 수용은 **C23 Phase I 착륙 예정**이다. CLI Notes verbatim: *"`--retry-request` is only for exact recovery after an unknown mutation result."* [[재시도 스폰]](`--retry-of`)과 **축이 다르다**: 이쪽은 같은 mutation 을 멱등 재발행해 레코드를 1개로 유지하고, 저쪽은 실패한 dispatch 를 대체하는 *새* 시도를 만든다. 삭제 수단이 부재한 시스템에서 이 둘을 혼동하면 되돌릴 수 없는 중복이 생긴다.
+mutation 결과가 unknown 일 때 **같은 요청 id** 로 재발행해 중복 레코드 없이 원 결과를 회수하는 경로(`--retry-request <id>`) — [[스폰 캐리어]]는 **C23 Phase I 에서 변이 4개**(`run`·`task`·`spawn`·`gate create`)에 이를 배선했다 — `check` 는 변이가 아니므로 **선언된 미배선**이다(CLI 는 5개 명령 전부 수용하므로, 수용 범위 5 와 배선 범위 4 를 혼동하지 말 것). CLI Notes verbatim: *"`--retry-request` is only for exact recovery after an unknown mutation result."* [[재시도 스폰]](`--retry-of`)과 **축이 다르다**: 이쪽은 같은 mutation 을 멱등 재발행해 레코드를 1개로 유지하고, 저쪽은 실패한 dispatch 를 대체하는 *새* 시도를 만든다. 삭제 수단이 부재한 시스템에서 이 둘을 혼동하면 되돌릴 수 없는 중복이 생긴다.
 _Avoid_: "재시도"(두 축을 뭉갠다 — 어느 쪽인지 반드시 명시), "멱등 호출"(호출자가 id 를 재사용해야 성립하는 것을 서버 성질로 오독).
 
 ### 재시도 스폰 (retry dispatch)

@@ -8,9 +8,9 @@
 
 교차 리뷰가 걸린 사이클의 Verify 단계에서:
 
-1. **경로 A — Codex CLI (우선; CCS 불필요·이식성 높음)**: `command -v codex` 존재 **+** `codex login status`가 로그인 표시 → 가용. 스모크 1회(저비용): `echo probe | codex exec --sandbox read-only --skip-git-repo-check "Reply: OK"`.
+1. **경로 A — Codex CLI (우선; CCS 불필요·이식성 높음)**: `command -v codex` 존재 **+** `codex login status`가 로그인 표시 → *후보*. **판정자는 스모크 1회**(저비용): `echo probe | codex exec --sandbox read-only --skip-git-repo-check "Reply: OK"`. ★`login status` 단독은 **가용성을 과대 보고한다**(C23 실측: `Logged in using ChatGPT` 인데 본호출이 로컬 cliproxy 에서 `401 … account pool has no usable account credential` 로 죽음). 직전 사이클/직전 슬롯에서 성공했다는 이유로 스모크를 건너뛰지 말 것 — 크레덴셜 상태는 사이클 사이에 바뀐다.
 2. **경로 B — opencodex 브리지 (폴백; ocx 프록시 있는 PC만)**: A 불가 시 `OCX_MODEL=gpt-5.6-sol ~/.claude/bin/claude-ocx -p "Reply: OK" --output-format json` 1회 → **`modelUsage`에 `gpt-*` 키 존재 = 가용**. 모델명은 `OCX_MODEL` env가 SSOT(버전-무관 — GPT 세대 교체 시 이 값만 갱신; 무지정 시 `claude-ocx` 기본값 `gpt-5.6-sol`). ★A·B 인증 공통모드: ocx `openai` provider 는 `authMode=forward` 라 codex CLI 인증(`~/.codex/auth.json`)을 전달한다 — codex 로그인 만료 시 A·B 가 동시에 불가해지며, 그때 SKIP 사유는 "GPT 경로 부재"가 아니라 **"codex 인증 만료"** 여야 정직하다. ★판별은 modelUsage만 — 응답 텍스트의 자가보고("나는 GPT다")는 불인정.
-3. **둘 다 불가 → SKIP + 사유 1줄** 기록("이 머신 GPT 경로 부재(codex CLI 미설치/미로그인·opencodex 프록시 미가동)" 또는 "codex 인증 만료") — 기존 자가-표면화 관행.
+3. **둘 다 불가 → SKIP + 사유 1줄** 기록 — 관측된 3가지 모드를 구별해 적는다: ⓐ"이 머신 GPT 경로 부재(codex CLI 미설치/미로그인·opencodex 프록시 미가동)" ⓑ"codex 인증 만료" ⓒ**"로컬 cliproxy 계정 풀 고갈"**(C23 실측 — A·B 가 *동시에* `401 OpenAI account pool has no usable account credential`, A 는 `ws 426 Upgrade Required` 동반, B 의 `modelUsage` 는 `{}`. codex 자체 인증은 살아 있으므로 ⓑ로 적으면 부정직하다). 기존 자가-표면화 관행. **어느 모드든 복구 시도는 금지**(아래 ★) — 사유만 적고 사이클은 진행한다.
 
 **★설치·로그인·인증·업데이트 시도 절대 금지** — 탐지는 read-only 확인만. 근거: ChatGPT OAuth 공유 시 reuse-detection 토큰 패밀리 전체 revoke 사고 이력·블라인드 `--update`/`--latest` 금지(바이너리 삭제 위험). codex-plugin-cc류의 자동 설치 제안(`/codex:setup`)도 이 금지에 걸린다.
 
