@@ -36,6 +36,9 @@ echo
 echo "=== STAGE 2d: RPI prereq gate meta-test ==="
 bash "$HOME/.claude/setup/tests/rpi-prereq-gate.test.sh" || { echo "FAIL rpi-prereq-gate"; exit 1; }
 echo
+echo "=== STAGE 2e: orca carrier DRYRUN 불변식 ==="
+bash "$HOME/.claude/setup/tests/orca-carrier.test.sh" || { echo "FAIL orca-carrier"; exit 1; }
+echo
 echo "=== STAGE 3: hook unit tests ==="
 bash "$HOME/.claude/hooks/tests/run-all.sh"    || { echo "FAIL hook tests"; exit 1; }
 echo

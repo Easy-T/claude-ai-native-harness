@@ -963,7 +963,7 @@ git commit -m "feat(orca): C23 T4 — --retry-request 정확 복구 안내 + gpt
 - Consumes: Task 3 의 `is_dryrun`/`dryrun_emit` 계약 · Task 2 의 브랜치 가드
 - Produces: STAGE 2e. 「인자 표에 없는 신규 서브커맨드 → FAIL」이 드리프트 앵커다.
 
-- [ ] **Step 1: 테스트 신설**
+- [x] **Step 1: 테스트 신설**
 
 ```bash
 #!/usr/bin/env bash
@@ -1118,6 +1118,11 @@ for g in "spawn|--run|r1|--task|t1" "handoff|--task|t1|--dispatch|d1"; do
   GS="${g%%|*}"; GA="${g#*|}"
   RD="$ROOT/rd_guard_$GS"; mkdir -p "$RD"
   OLDIFS="$IFS"; IFS='|'; read -r -a GARGS <<< "$GA"; IFS="$OLDIFS"
+  # ★선-기록 필수 — 아암 루프(`:118`)와 같은 idiom 이다(C23 Phase I 실측 정정).
+  #   `run_dry()` 의 첫 문장이 rundir 에 `wt_sel` 을 쓴다. 이 줄이 없으면 그 쓰기가 AFTER 에만 잡혀
+  #   델타가 **캐리어 동작과 무관하게 항상 ≠0** → conjunct3(`BEFORE = AFTER`)가 무조건 거짓이 되어
+  #   이 블록 2건이 영구 FAIL 한다(초안의 Expected `PASS=20 FAIL=0` 이 원리적으로 도달 불가였다).
+  printf 'c23fixture::%s' "$MFIX" > "$RD/wt_sel"
   BEFORE=$(snapshot "$RD")
   OUT=$(run_dry "$RD" "$MFIX" "$GS" "${GARGS[@]}")
   RC=$?
@@ -1168,7 +1173,7 @@ echo "orca-carrier: PASS=$PASS FAIL=$FAIL"
 exit $FAIL
 ```
 
-- [ ] **Step 2: 실행 — 전 서브커맨드 GREEN 확인**
+- [x] **Step 2: 실행 — 전 서브커맨드 GREEN 확인**
 
 ```bash
 cd "$HOME/.claude"
@@ -1192,7 +1197,7 @@ Expected: `PASS=20 FAIL=0` · `rc=0`.
 아암마다 정지점을 갖기 때문이다. 함수당 1샘플이면 `gate resolve`·`gpt executor` 의 정지점 삭제가
 무발화한다.
 
-- [ ] **Step 3: 드리프트 앵커 RED 확인 — 표에 없는 서브커맨드**
+- [x] **Step 3: 드리프트 앵커 RED 확인 — 표에 없는 서브커맨드**
 
 ```bash
 cd "$HOME/.claude"
@@ -1210,7 +1215,7 @@ Expected (RED): 출력에 `✗ 인자 표에 없는 신규 서브커맨드 'newt
 이 Step 이 보는 것은 오직 위 문자열의 존재와 비-0 종료다(`rc=1` 을 정확히 요구하지 않는다. FAIL 이
 여러 건이면 `exit $FAIL` 이 그 개수를 반환한다).
 
-- [ ] **Step 4: verify-all 배선 (STAGE 2d 와 STAGE 3 사이)**
+- [x] **Step 4: verify-all 배선 (STAGE 2d 와 STAGE 3 사이)**
 
 ```bash
 echo "=== STAGE 2e: orca carrier DRYRUN 불변식 ==="
@@ -1218,7 +1223,7 @@ bash "$HOME/.claude/setup/tests/orca-carrier.test.sh" || { echo "FAIL orca-carri
 echo
 ```
 
-- [ ] **Step 5: scaffold-registry 등재**
+- [x] **Step 5: scaffold-registry 등재**
 
 `docs/ai-context/scaffold-registry.md` 표에 1행 추가:
 
@@ -1226,7 +1231,7 @@ echo
 | `setup/tests/orca-carrier.test.sh` | 캐리어의 외부-기동 서브커맨드가 DRYRUN 을 예외 없이 존중함을 코드-유도 목록으로 증명(게이트 없는 신규 서브커맨드 추가를 fail-closed 로 차단) | C23 |
 ```
 
-- [ ] **Step 6: 커밋**
+- [x] **Step 6: 커밋**
 
 ```bash
 cd "$HOME/.claude"

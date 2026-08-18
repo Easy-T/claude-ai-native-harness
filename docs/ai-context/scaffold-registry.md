@@ -109,3 +109,4 @@
 | `setup/tests/rpi-prereq-gate.test.sh` | 트리오 부재 시 verify-all이 "ALL PASS" 미출력(플러그인 false-green 봉인) | rev2 #1 |
 | `hooks/.runlog` + `runlog_summary` | 게이트 발화·차단·우회 구조화 관측(gen_ai.* 정렬) | **C2 (GAP-003)** |
 | `opencode-harness/_oracle/diff-parsers.mjs` | 미러 lib 파서가 canonical과 byte-일치 차등검증 | opencode 마이그레이션 |
+| `setup/tests/orca-carrier.test.sh` | 캐리어의 외부-기동 서브커맨드가 DRYRUN 을 예외 없이 존중함을 코드-유도 목록으로 증명(게이트 없는 신규 서브커맨드 추가를 fail-closed 로 차단) | C23 |
