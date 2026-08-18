@@ -16,7 +16,7 @@ ok()  { echo "✓ $1"; PASS=$((PASS+1)); }
 bad() { echo "✗ $1"; FAIL=$((FAIL+1)); }
 
 # --- live immutability witnesses: cksum files any mutator could touch, before & after ---
-witness() { local f; for f in state.json state.schema.json README.md settings.json CLAUDE.md hooks/tests/cases.tsv hooks/tests/run-all.sh skills/ui-design/design.md opencode-harness/skill/ui-design/design.md agents/explore-strict.md agents/execute-strict.md agents/review-strict.md settings.example.json setup/doctor.sh skills/start-rpi-cycle/SKILL.md setup/verify-setup.sh hooks/surface-model-policy.sh docs/ai-context/review-yield.md docs/ai-context/cross-family-review.md docs/ai-context/model-policy.md; do
+witness() { local f; for f in state.json state.schema.json README.md settings.json CLAUDE.md hooks/tests/cases.tsv hooks/tests/run-all.sh skills/ui-design/design.md opencode-harness/skill/ui-design/design.md agents/explore-strict.md agents/execute-strict.md agents/review-strict.md settings.example.json setup/doctor.sh skills/start-rpi-cycle/SKILL.md setup/verify-setup.sh hooks/surface-model-policy.sh docs/ai-context/review-yield.md docs/ai-context/cross-family-review.md docs/ai-context/model-policy.md docs/superpowers/plans/2026-08-17-c22-orca-carrier-landing.md docs/ai-context/c21-orca-mode-design.md; do
               cksum "$SRC/$f" 2>/dev/null; done; }
 LIVE_BEFORE="$(witness)"
 
@@ -172,6 +172,32 @@ mut_pathpass_interp() {
   printf '%s\n' "PPV=\$(mktemp -d); node -e ${q}console.log(\$PPV)${q}" >> "$1/hooks/tests/run-all.sh"
 }
 
+# Mutator 24 (C23) — seal #53 의 RED ⓐ: 대장 **밖** plan 에 격리 없는 캐리어 호출을 1건 주입한다.
+# ★호출 문자열은 **런타임 조립**한다 — 소스에 리터럴로 적으면 이 파일이 스캔 대상은 아니지만
+#   (코퍼스는 plans/ + docs/ai-context/) 같은 클래스의 자기-오염을 습관으로 만들지 않기 위함이다.
+mut_s53_unisolated() {
+  local p; p="$1/docs/superpowers/plans/c23-mutant-probe.md"
+  # ★`**Status:** completed` 는 장식이 아니라 **판별력 격리**다: 이 줄이 없으면 프로브가 seal #27
+  #   (plan lifecycle — `NOSTAT27`)까지 동반 발화시켜, 「exit≠0」축만 보는 독자가 #53 없이도 통과
+  #   가능하다고 오해할 여지를 남긴다. 단언 자체는 #53 고유 needle 로 판정하므로 오염은 없었으나,
+  #   뮤테이터는 **표적 seal 하나만** 깨우는 것이 옳다(C23 Task 7 실측 후속).
+  { printf '# mutant\n\n'; printf '**Status:** completed\n\n';
+    printf 'bash bin/orca-%s.sh spawn --run r --task t\n' "rpi"; printf '\n'; } > "$p"
+}
+# Mutator 25 (C23) — seal #53 의 RED ⓑ: 대장 파일에서 **개수를 유지한 채 치환**한다(기존 위반 1건에
+# 격리 접두를 붙이고 텍스트가 다른 새 위반 1건을 추가). 개수 동결이면 6→6 이라 무발화하고,
+# 호출 줄 집합 cksum 동결에서만 RED 가 된다 — 「개수가 아니라 동일성」이 load-bearing 함의 증명.
+mut_s53_substitute() {
+  local p; p="$1/docs/superpowers/plans/2026-08-17-c22-orca-carrier-landing.md"
+  perl -0777 -i -pe 's{^(bin/orca-rpi\.sh spawn --run run_x --task task_x --model opus; echo "rc=\$\?")$}{ORCA_CLI_COMMAND=/x ORCA_RPI_RUNDIR=/y $1}m' "$p"
+  # ★치환 성공을 스스로 단언한다(슬롯 1 C5). 대상 줄의 공백·인자 순서가 미래에 바뀌면 치환이 0건이 되고
+  #   append 만 남아 **6→7 순증**이 된다 — cksum 은 어차피 바뀌므로 테스트는 계속 PASS 하는데
+  #   「개수 유지 치환을 잡는다」는 이 뮤테이터의 존재 이유만 조용히 거짓이 된다.
+  grep -q 'ORCA_CLI_COMMAND=/x ORCA_RPI_RUNDIR=/y bin/orca-rpi.sh spawn' "$p" \
+    || { echo "  (mut_s53_substitute: 치환 0건 — 대상 줄이 바뀌었다. 개수-유지 변이를 만들지 못했다)"; return 1; }
+  { printf '\n'; printf 'bash bin/orca-%s.sh gate create --task t9 --question q9\n' "rpi"; printf '\n'; } >> "$p"
+}
+
 assert_seal_fires "state_schema"    mut_state_count_string "state.json schema 위반"
 assert_seal_fires "settings_parity" mut_settings_matcher   "settings/example harness-hook drift"
 assert_seal_fires "readme_cases"    mut_readme_cases       "README cases drift"
@@ -197,6 +223,8 @@ assert_seal_fires "old_assertion_revival" mut_old_assertion_revival "집필-위�
 assert_seal_fires "mp_model_flip"        mut_mp_model_flip        "역할×모델 매트릭스 봉인 붕괴"
 assert_seal_fires "schema_required_empty" mut_schema_required_empty "state.json schema 위반"
 assert_seal_fires "pathpass_interp"       mut_pathpass_interp       "경로-전달 규약 위반"
+assert_seal_fires "s53_unisolated"  mut_s53_unisolated  "부작용-차단 주입 누락"
+assert_seal_fires "s53_substitute"  mut_s53_substitute  "1회성 예외 대장 drift"
 
 # === Live immutability: witnessed files byte-identical (all mutation stayed in replicas) ===
 LIVE_AFTER="$(witness)"

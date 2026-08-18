@@ -1514,7 +1514,7 @@ git commit -m "feat(seal): C23 T6 — seal #53 부작용-차단 주입 명시 (n
 - Consumes: Task 6 의 seal #53 FAIL 문자열(`부작용-차단 주입 누락` · `1회성 예외 대장 drift`)
 - Produces: 단언 27 → **29**
 
-- [ ] **Step 1: witness 확장 — 뮤테이터가 건드릴 수 있는 파일 2개 추가**
+- [x] **Step 1: witness 확장 — 뮤테이터가 건드릴 수 있는 파일 2개 추가**
 
 `witness()` 의 파일 목록 끝(`docs/ai-context/model-policy.md` 뒤)에 추가:
 
@@ -1522,7 +1522,7 @@ git commit -m "feat(seal): C23 T6 — seal #53 부작용-차단 주입 명시 (n
 docs/superpowers/plans/2026-08-17-c22-orca-carrier-landing.md docs/ai-context/c21-orca-mode-design.md
 ```
 
-- [ ] **Step 2: 뮤테이터 2개 추가 (`mut_pathpass_interp` 정의 뒤)**
+- [x] **Step 2: 뮤테이터 2개 추가 (`mut_pathpass_interp` 정의 뒤)**
 
 ```bash
 # Mutator 24 (C23) — seal #53 의 RED ⓐ: 대장 **밖** plan 에 격리 없는 캐리어 호출을 1건 주입한다.
@@ -1547,14 +1547,14 @@ mut_s53_substitute() {
 }
 ```
 
-- [ ] **Step 3: 단언 2줄 추가 (`pathpass_interp` 줄 뒤, `:199` 다음)**
+- [x] **Step 3: 단언 2줄 추가 (`pathpass_interp` 줄 뒤, `:199` 다음)**
 
 ```bash
 assert_seal_fires "s53_unisolated"  mut_s53_unisolated  "부작용-차단 주입 누락"
 assert_seal_fires "s53_substitute"  mut_s53_substitute  "1회성 예외 대장 drift"
 ```
 
-- [ ] **Step 4: 표적 부분집합 실행 — 신규 뮤테이터 2건만 (~6분)**
+- [x] **Step 4: 표적 부분집합 실행 — 신규 뮤테이터 2건만 (~6분)**
 
 ★**여기서 full 을 돌리지 않는다.** Task 8 이 `setup/install.sh`(replica 복제 대상)를, Task 9 가
 `skills/start-rpi-cycle/SKILL.md`(**witness 목록 `:19` 에 실재**)를 편집한다. 지금 40분짜리 full 을
@@ -1584,7 +1584,7 @@ Expected: `grep -c` → **2**(s53 둘만 살아남음) · `seal-regression: PASS
 둘 중 하나라도 `rc=0, missing «…»` 으로 떨어지면 Task 6 의 seal 이 그 변이를 못 잡는 것이므로
 뮤테이터가 아니라 **seal 쪽을 고친다**(뮤테이터를 seal 에 맞추면 판별력 공백이 그대로 봉인된다).
 
-- [ ] **Step 5: 커밋**
+- [x] **Step 5: 커밋**
 
 ```bash
 cd "$HOME/.claude"
