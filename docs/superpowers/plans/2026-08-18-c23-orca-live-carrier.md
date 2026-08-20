@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Status:** active
+**Status:** completed
 **RPI-Cycle:** 74
 **Started:** 2026-08-18
 
@@ -1253,7 +1253,7 @@ git commit -m "test(orca): C23 T5 — STAGE 2e orca-carrier DRYRUN 불변식 검
 - Consumes: `ok()`/`fail()`(verify-setup 내부)
 - Produces: seal #53. Task 7 의 뮤테이터 2건이 이 seal 의 발화를 증명한다.
 
-- [ ] **Step 1: RED — seal 부재 실측**
+- [x] **Step 1: RED — seal 부재 실측**
 
 ```bash
 cd "$HOME/.claude"
@@ -1680,7 +1680,7 @@ git commit -m "feat(install): C23 T17 — REQUIRED 에 bin/orca-rpi.sh 등재 + 
 - Consumes: `bin/orca-rpi.sh preflight` 의 **rc≠0 폴백 계약**(rc=3 만이 아니다 — Step 2 본문 참조)
 - Produces: RPI 절차에 Orca 진입점. §11.10 ⑧ 의 TO-BE 이행.
 
-- [ ] **Step 1: RED — 현 상태 실측**
+- [x] **Step 1: RED — 현 상태 실측**
 
 ```bash
 cd "$HOME/.claude"
@@ -1692,7 +1692,7 @@ grep -rniE '자기 산출물|실행 가능성' skills/ | wc -l
 
 Expected (RED): 앞 둘 **0** — RPI 절차에 Orca 진입점이 없다. 뒤 둘 **0** — C20 §19.5 처분이 미착륙이다.
 
-- [ ] **Step 2: 정본에 옵션 (e) 추가 — (d) 블록 **뒤**, `권장:` 앞**
+- [x] **Step 2: 정본에 옵션 (e) 추가 — (d) 블록 **뒤**, `권장:` 앞**
 
 ★삽입 위치는 **(d) 뒤**다. (c) 뒤에 넣으면 목록이 a,b,c,e,d 순이 되고, 무엇보다 (d) 는
 `- (d) …` 한 줄이 아니라 `:152`–`:166` 의 **15줄 블록**(※ 주석 9개 포함)이라 「(c) 줄 뒤」와
@@ -1715,7 +1715,7 @@ grep -n '^권장:' skills/start-rpi-cycle/SKILL.md   # 삽입 직전 실측 — 
       상세는 `docs/ai-context/c21-orca-mode-design.md` §7·§11.10.
 ```
 
-- [ ] **Step 3: 미러에 옵션 (e) 추가 — 미착륙으로 명시**
+- [x] **Step 3: 미러에 옵션 (e) 추가 — 미착륙으로 명시**
 
 `opencode-harness/skill/start-rpi-cycle/SKILL.md` — 정본과 같은 규칙으로 **(d) 블록(`:162`–`:175`) 뒤,
 `권장:`(`:177`) 앞**에 넣는다(미러의 (d) 는 정본과 내용이 다르다 — Workflow 도구 부재라 「순차
@@ -1727,7 +1727,7 @@ execute-strict→review-strict」다. 번호만 맞추고 본문은 각자 것�
       Claude Code 하네스에서는 가용하다 — `~/.claude/skills/start-rpi-cycle/SKILL.md` 옵션 (e).
 ```
 
-- [ ] **Step 4: §19.5 조항을 3개 게이트 기준 블록에 착륙 (정본 + 미러)**
+- [x] **Step 4: §19.5 조항을 3개 게이트 기준 블록에 착륙 (정본 + 미러)**
 
 ★**두 파일의 앵커 이름이 다르다.** 정본은 `Agent(...)` 호출이라 `success_criteria="` 이지만, 미러는
 opencode 의 `task` 도구 디스패치를 산문으로 적은 것이라 `success: "` 다. 「미러에서
@@ -1775,7 +1775,7 @@ Gate P 에는 `LIVE-INTENT` 검토 조항도 함께 넣는다(§11.10 ③ 의 �
 삽입 지점은 각 블록의 **마지막 기준 불릿 뒤**(정본 Gate R/P 는 `FAIL with:` 앞, Closeout 은
 `finishing-a-development-branch …` 줄 뒤). 줄 번호는 앞선 삽입으로 밀리므로 **매 삽입 직전 재측정**한다.
 
-- [ ] **Step 5: seal #50 미러 conjunct 무회귀 + 정합 확인**
+- [x] **Step 5: seal #50 미러 conjunct 무회귀 + 정합 확인**
 
 ```bash
 cd "$HOME/.claude"
@@ -1793,7 +1793,7 @@ Expected: `FABLE-TAKEOVER` ≥1 · `위임 X` **0** · `자기 산출물의 전�
 정본/미러 어느 쪽이든 **3 이 아니면** Step 4 의 삽입이 게이트가 아닌 블록(미러 `:55` explore-strict ·
 `:81` 리터럴 예시)에 떨어졌거나 한 게이트를 빠뜨린 것이다 — 앵커를 재측정해 다시 넣는다.
 
-- [ ] **Step 6: 커밋**
+- [x] **Step 6: 커밋**
 
 ```bash
 cd "$HOME/.claude"
@@ -1868,7 +1868,7 @@ perl -ne '$n++ if /\r/; END{print "CR=$n\n"}' docs/superpowers/specs/2026-07-25-
 Expected: 첫 `grep -c` → **1**(신설 절 1개) · 둘째 → **1**(C20 §19.6 이 살아 있음 — 덧쓰기 안 함) ·
 `CR=1823`(불변 — `Edit` 이 아니라 append 를 썼다는 증거).
 
-- [ ] **Step 3: `review-yield.md` 에 C23 절 append**
+- [x] **Step 3: `review-yield.md` 에 C23 절 append**
 
 Closeout 직전에 층별 실측을 채워 넣는다(§15.3 S19 — 말미 층 실측 후 append).
 
@@ -1895,7 +1895,7 @@ grep -c '트리거 대조' docs/ai-context/review-yield.md
 Expected: 첫 `grep -c` → **1** · 둘째 → **≥1**(§18.1 판정 3 의 트리거 대조 1줄이 실재).
 `…` 자리표시자가 하나라도 남아 있으면 이 Step 은 미완이다 — 실측 수치로 전부 치환한다.
 
-- [ ] **Step 4: 커밋**
+- [x] **Step 4: 커밋**
 
 ```bash
 cd "$HOME/.claude"

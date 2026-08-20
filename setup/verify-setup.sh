@@ -901,7 +901,11 @@ else
   for _f in $(printf '%s\n' "$S53_ALL" | awk -F'\t' '$1=="LIVE"{print $2}' | sort -u); do
     # 계수 단위는 **증거 단위**다(호출 수가 아니라) — 한 블록 안의 여러 호출은 1건으로 센다.
     _k=$(printf '%s\n' "$S53_ALL" | awk -F'\t' -v F="$_f" '$1=="LIVE" && $2==F {print $5}' | sort -u | wc -l)
-    _d=$(grep -oE 'LIVE-INTENT-총계: *[0-9]+' "$_f" 2>/dev/null | grep -oE '[0-9]+' | tail -1)
+    # ★선언은 **줄 전체**일 때만 인정한다 — LIVE-INTENT *사용* 쪽에 이미 적용한 줄-형태 판별(7차 정정)이
+    #   총계 *선언* 쪽에는 빠져 있었다(C23 Closeout 통합 리뷰 SR-08). 그대로 두면 산문 속 인용
+    #   (plan:1467 「선언 `LIVE-INTENT-총계: 4` 와 일치」)이 `tail -1` 로 선언을 이기고, 언급을 고치면
+    #   판정이 조용히 따라 움직인다. 마크다운 강조(**…**)와 들여쓰기만 허용한다.
+    _d=$(grep -E '^[ \t]*\*{0,2}LIVE-INTENT-총계: *[0-9]+\*{0,2}[ \t]*$' "$_f" 2>/dev/null | grep -oE '[0-9]+' | tail -1)
     [ "${_d:-없음}" = "$_k" ] || S53_PARITY="$S53_PARITY $_f(선언=${_d:-부재}≠실측=$_k)"
   done
   rm -rf "$S53_TMP"
