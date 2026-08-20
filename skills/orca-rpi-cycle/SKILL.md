@@ -175,8 +175,13 @@ bin/orca-rpi.sh wait --run "$RUN" --timeout-ms 900000
   `worker_done`/`escalation`, **the terminal exits or disappears**, or the user explicitly asks you to
   stop."* 따라서 **연속 3회 timeout 이면** 생존을 확인한다:
 
+  캐리어에는 `worker-show` 서브커맨드가 **없다**(`preflight`·`run`·`task`·`spawn`·`wait`·`handoff`·
+  `release`·`gate`·`gpt`·`selfcheck` 뿐 — 그 외는 `die`). 생존 확인은 **read-only 조회**(레코드를 만들거나
+  상태를 바꾸지 않는다)이므로 캐리어 강제 대상이 아니며, 위 `reply` 와 같이 **orca.exe 절대경로**로 직접 부른다:
+
   ```bash
-  bin/orca-rpi.sh worker-show --dispatch "$D_R"
+  "C:/Users/12132/AppData/Local/Programs/orca/resources/bin/orca.exe" orchestration worker-show \
+    --dispatch "$D_R" --json
   ```
 
   터미널이 소멸했으면 대기를 끝내고(추가 `wait` 금지) 어느 Phase 에서 소멸했는지 사용자에게 보고한다.

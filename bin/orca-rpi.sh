@@ -13,6 +13,8 @@ set -u
 ORCA="${ORCA_CLI_COMMAND:-C:/Users/12132/AppData/Local/Programs/orca/resources/bin/orca.exe}"
 RUNDIR="${ORCA_RPI_RUNDIR:-$HOME/.claude/.orca-rpi}"
 SELF="$(basename "$0")"
+# 안내 줄에 붙여 넣을 용도 — basename 은 PATH 에 없어 그대로 복사하면 command-not-found 다(§11.10 ④).
+SELF_PATH="$0"
 
 # hang 하는 CLI 는 rc 를 주지 않는다 — "사이클은 절대 멈추지 않는다"는 fail-open 약속이 깨진다.
 # timeout(1) 이 있으면 상한을 씌우고, 없으면 그대로 호출한다(가용성 의존 금지).
@@ -23,6 +25,13 @@ orca_t() {
 
 die() { echo "$SELF: $*" >&2; exit 1; }
 
+# ── 검증-전용 경로 (§11.10 ②) ────────────────────────────────────────────────
+# 인자·금지 플래그·워크트리·브랜치 가드를 전부 통과한 뒤 **부작용 경계 직전**에 정지한다.
+# 정지 지점이 원장/설정 쓰기와 외부 호출 **양쪽 앞**이라 격리 토큰 1개로 충분하다.
+# 상한: 원장 뮤텍스(동시-1 상한)는 본질적으로 쓰기라 이 경로로 검증되지 않는다.
+is_dryrun() { [ -n "${ORCA_RPI_DRYRUN:-}" ]; }
+dryrun_emit() { printf 'DRYRUN: %s\n' "$*"; exit 0; }
+
 # mkdir -p / touch 실패를 무시하면 동시성 원장이 침묵 무효화된다(ORCA_RPI_RUNDIR=/dev/null 재현) —
 # 원장은 동시-1 불변식의 유일한 저장소이므로 여기서 즉시 죽는다.
 ensure_rundir() {
@@ -30,6 +39,17 @@ ensure_rundir() {
   touch "$RUNDIR/active-nonreadonly.tasks" || die "원장 파일 생성 실패: $RUNDIR/active-nonreadonly.tasks"
 }
 require_jq() { command -v jq >/dev/null 2>&1 || die "jq 미설치 — 이 캐리어는 jq 에 의존한다"; }
+
+# ── gpt 비용 원장 (§11.10 ⑥ — §4.3·§9 시나리오 2 supersede) ─────────────────
+# 캐리어는 사이클 번호를 모르므로 _goal/<cycle>-… 을 스스로 구성할 수 없다. 기본은 런타임 경로,
+# 사이클이 원하면 ORCA_RPI_LEDGER 로 _goal/<cycle>-ocx-ledger.tsv 를 지정한다.
+# 상한: 강제자는 없다 — 호출자가 env 를 줄 때만 _goal/ 에 착지한다.
+LEDGER="${ORCA_RPI_LEDGER:-$RUNDIR/gpt-ledger.tsv}"
+gpt_ledger_append() {   # $1=role $2=model $3=rc $4=cost(모르면 n/a)
+  mkdir -p "$(dirname "$LEDGER")" 2>/dev/null || return 0
+  [ -s "$LEDGER" ] || printf 'ts\trole\tmodel\trc\ttotal_cost_usd\n' >> "$LEDGER" 2>/dev/null
+  printf '%s\t%s\t%s\t%s\t%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$1" "$2" "$3" "$4" >> "$LEDGER" 2>/dev/null || true
+}
 
 # ── 동시성 원장 뮤텍스 ────────────────────────────────────────────────────────
 # 읽기-검사-추가 사이에 잠금이 없으면 두 프로세스가 동시에 0을 읽고 둘 다 워커를 띄운다.
@@ -76,6 +96,81 @@ assert_worktree_arg() {
   die "거부: --worktree 는 'current' 또는 \$WT_SEL / $RUNDIR/wt_sel 값만 허용됩니다(받음: $v) — 설계 §5.3/§5.4"
 }
 
+# ── 브랜치 가드 (§11.10 ①) ───────────────────────────────────────────────────
+# non-readonly 워커는 코디네이터와 같은 체크아웃에서 커밋한다 — 그 체크아웃이 머지 대상이면
+# 사람의 머지 승인이 *사후* 무력화된다(거절해도 이미 착륙해 있다). 지시문이 아니라 여기서 거부한다.
+# 측정 대상은 cwd 가 아니라 **워커가 뜨는 워크트리**다 — cwd 를 재면 오탐·미탐이 양방향으로 난다.
+worktree_path_of() {   # $1 = --worktree 값('current' 또는 셀렉터) → stdout = path(없으면 빈 문자열)
+  local v="$1" sel=""
+  if [ "$v" = "current" ]; then
+    if [ -n "${WT_SEL:-}" ]; then sel="$WT_SEL"
+    elif [ -s "$RUNDIR/wt_sel" ]; then sel=$(cat "$RUNDIR/wt_sel" 2>/dev/null)
+    fi
+  else
+    sel="$v"
+  fi
+  [ -n "$sel" ] || return 0
+  # 셀렉터는 '<repoId>::<path>' — 마지막 '::' 뒤가 path(재조립 금지, 절단만 한다).
+  printf '%s' "${sel##*::}"
+}
+
+# ★ambient GIT_DIR/GIT_WORK_TREE 를 제거하고 묻는다 — `git -C <path>` 는 cwd 만 바꾸고 **저장소 결정은
+# GIT_DIR 이 이긴다**(실측: `GIT_DIR=<repoB>/.git git -C <repoA> rev-parse --abbrev-ref HEAD` → repoB 의
+# 브랜치, rc=0). 제거하지 않으면 가드가 다른 저장소를 보고 **무음 통과**한다(슬롯 1 B1).
+git_at() { env -u GIT_DIR -u GIT_WORK_TREE git -C "$@"; }
+
+# **브랜치 판정 불가**(측정 대상 경로는 정해졌는데 그 경로에서 브랜치명을 못 얻음)는 fail-closed —
+# "커밋 대상이 머지 브랜치가 아님"을 단언할 수 없으면 스폰하지 않는다.
+# fail-open 약속은 Orca *가용성* 축(preflight rc≠0)의 것이지 안전 가드의 것이 아니다.
+# ★「판정 불가」와 「셀렉터 미획득」은 **다른 상태**이고 처분도 다르다 — 후자는 fail-closed 가 아니다:
+#   거부하면 preflight 미실행(= $RUNDIR/wt_sel 미기록) 상태의 모든 spawn 이 깨져 실사용이 성립하지 않는다.
+#   그래서 $PWD 폴백을 **유지하되**, 그 판정이 측정이 아니라 *추측*임을 stderr 1줄로 표면화한다
+#   (침묵 대체 금지 — 추측이 빗나가는 경우 = 워커가 뜨는 워크트리와 cwd 가 다른 체크아웃일 때).
+assert_branch_not_merge_target() {   # $1 = --worktree 값
+  local p br
+  p=$(worktree_path_of "$1")
+  if [ -z "$p" ]; then               # 문서화된 폴백 — 셀렉터 미획득 시에만
+    p="$PWD"
+    echo "$SELF: 경고 — 워크트리 셀렉터 미획득(\$WT_SEL 도 $RUNDIR/wt_sel 도 없음) → 브랜치 가드를 cwd '$p' 로 **추측** 판정한다. 워커가 다른 체크아웃에 뜨면 이 판정은 대상이 다르다 — 'preflight' 를 먼저 실행해 셀렉터를 기록하라" >&2
+  fi
+  # symbolic-ref 를 먼저 쓴다: unborn branch(커밋 0건)에서도 rc=0 으로 이름을 준다.
+  # rev-parse 는 그 경우 stdout='HEAD' + rc=128 이라 판정이 뒤집힌다(슬롯 1 B6).
+  br=$(git_at "$p" symbolic-ref --short HEAD 2>/dev/null) || br=""
+  # detached HEAD 는 symbolic-ref 가 실패한다 → rev-parse 가 'HEAD' 를 주고 아래 case 를 통과(허용).
+  [ -n "$br" ] || br=$(git_at "$p" rev-parse --abbrev-ref HEAD 2>/dev/null) || br=""
+  [ -n "$br" ] || die "거부: 브랜치 판정 불가 — '$p' 에서 브랜치명을 얻지 못했다(git 저장소가 아니거나 접근 불가). 커밋 대상이 머지 브랜치가 아님을 단언할 수 없으면 스폰하지 않는다(fail-closed, 설계 §11.10 ①)"
+  case "$br" in
+    master|main)
+      die "거부: non-readonly 워커를 머지 대상 브랜치('$br' @ $p)에서 스폰할 수 없다 — 워커가 같은 체크아웃에 직접 커밋해 사람의 머지 승인이 사후 무력화된다. 사이클 브랜치를 만들어 체크아웃하라(설계 §11.10 ①)" ;;
+  esac
+  return 0
+}
+
+# ── 슬롯 유지 시의 정리 안내 (§11.10 ④ 「복사해서 바로 실행 가능한 명령줄」) ──────
+# ★구 안내 `release --task <t>` 는 **두 겹으로 실행 불가능**이었다(실측):
+#   ⓐ 이 캐리어의 `cmd_release` 파서가 `--dispatch` 를 필수로 요구해 그 줄 자체를 거부한다.
+#   ⓑ `--dispatch` 를 붙여도 슬롯 제거는 worker-release rc=0 일 때만인데, settle 되지 않은 워커의
+#      worker-release 는 `dispatch_inactive` 로 실패한다("only a settled worker can release. Use
+#      worker-stop to cancel an active worker." — docs/ai-context/c22-orca-probe-measured.md:290-297).
+#      즉 슬롯이 남는 바로 그 상황에서 그 경로는 구조적으로 rc≠0 이다.
+#   실측된 정리 경로는 **worker-stop → release** 다(같은 문서 :297). dispatch id 를 못 뽑은 경우의
+#   유일한 탈출구는 원장 직접 편집이므로(C22→C23 실사례), $RUNDIR 를 전개한 **실경로**로 낸다.
+advise_slot_cleanup() {   # $1=서브커맨드명 $2=task $3=dispatch id(모르면 빈 문자열)
+  local pfx="$1" t="$2" d="$3" led="$RUNDIR/active-nonreadonly.tasks"
+  echo "$pfx: 원장 슬롯 유지 — outcome_unknown 가능성(워커 생존 가능). 슬롯을 비우려면 아래를 그대로 실행하라:" >&2
+  if [ -n "$d" ]; then
+    printf '  %q orchestration worker-stop --dispatch %q --json\n' "$ORCA" "$d" >&2
+    printf '  bash %q release --dispatch %q --task %q\n' "$SELF_PATH" "$d" "$t" >&2
+  else
+    echo "$pfx: dispatch id 를 응답에서 뽑지 못했다 — worker-stop 경로를 쓸 수 없다. 원장에서 이 task 줄만 직접 지운다:" >&2
+    # ★`{ … || true; }` 가 필수다 — 이 분기가 발화하는 시점의 원장은 **항상 정확히 1줄**이고
+    #   (:336 이 active≥1 이면 die 하므로 spawn 은 append 후 1줄, handoff 는 prev 제거 후 append 로 1줄),
+    #   `grep -v` 는 선택된 줄이 0이면 rc=1 이라 `&& mv` 가 실행되지 않는다 = **100% 실패 경로**.
+    #   가드 없는 형태는 원장을 그대로 두고 `.tmp` 만 남긴 채 침묵한다(정정 전 실측).
+    printf '  { grep -vFx %q %q || true; } > %q && mv %q %q\n' "$t" "$led" "$led.tmp" "$led.tmp" "$led" >&2
+  fi
+}
+
 # 호출자가 캐리어에 줄 수 없는 인자 — "명령 리터럴"이 아니라 "거부 로직의 패턴 문자열"이므로
 # 여기 포함은 T1 TDD ⓓ("소스에 금지 명령 리터럴 0건")의 대상이 아니다(설계 근거 2번 참조).
 # ★위치-인식: 각 파서 루프의 첫 줄에서만 호출한다(= 옵션 자리). 값 토큰까지 무차별 스캔하면
@@ -103,6 +198,12 @@ assert_orca_exe() {
 }
 
 cmd_preflight() {
+  # ★preflight 만 argv 가 아니라 *요약*이다 — 7-call 시퀀스라 단일 argv 가 원리적으로 성립하지 않는다.
+  #   그래서 「(요약)」을 문자열 안에 박아, 다른 서브커맨드의 완전-argv 계약과 혼동되지 않게 한다.
+  #   ★요약은 **실호출 전건**을 열거한다(실측 7회: status · orchestration run-list · repo list ·
+  #   worktree current · agent hooks status · agent-context · skills get orchestration). 뒤 2개를 빠뜨리면
+  #   예외의 취지(「리뷰어가 emit 만 보고 무엇이 돌 것인가를 안다」)가 절반만 충족된다.
+  is_dryrun && dryrun_emit "preflight (요약 — 단일 argv 불성립): status / orchestration run-list / repo list / worktree current / agent hooks status / agent-context / skills get orchestration"
   require_jq
   ensure_rundir
   cp "$HOME/.claude/settings.json" "$RUNDIR/settings.pre-orca.json" || die "preflight: settings.json 백업 실패"
@@ -134,22 +235,40 @@ cmd_preflight() {
 }
 
 cmd_run() {
-  local objective=""
+  local objective="" retry_request=""
   while [ $# -gt 0 ]; do
     reject_forbidden_flag "$1"
     case "$1" in
       --objective) objective="${2:-}"; [ -n "$objective" ] || die "run: --objective 필수"; shift 2 ;;
+      # 정확 복구 — 같은 요청 id 로 멱등 재발행해 중복 레코드 없이 원 결과를 회수한다(§11.10 ④).
+      --retry-request) retry_request="${2:-}"; [ -n "$retry_request" ] || die "run: --retry-request 값(요청 id) 필요"; shift 2 ;;
       *) die "run: 인식하지 않는 인자 '$1'" ;;
     esac
   done
   [ -n "$objective" ] || die "run: --objective 필수"
+  # 선택 인자 배열은 DRYRUN 정지점 **앞**에서 조립한다 — 뒤에서 조립하면 emit 이 부분집합 argv 가 된다(§11.10 ②).
+  local rr=()
+  [ -n "$retry_request" ] && rr=(--retry-request "$retry_request")
+  is_dryrun && dryrun_emit orchestration run-create --objective "$objective" "${rr[@]}" --json
   require_jq; ensure_rundir
   # 응답은 die 이전에 항상 저장한다 — 실패 시 증거가 사라지면 진단이 불가능하다.
   local resp rc
-  resp=$("$ORCA" orchestration run-create --objective "$objective" --json)
+  resp=$("$ORCA" orchestration run-create --objective "$objective" "${rr[@]}" --json)
   rc=$?
   printf '%s' "$resp" > "$RUNDIR/last-run-create.json"
-  [ "$rc" -eq 0 ] || die "run: run-create 실패(rc=$rc) — 응답: $RUNDIR/last-run-create.json"
+  if [ "$rc" -ne 0 ]; then
+    # 봉투 최상위 .id 는 요청 상관ID(c22-probe P0-2) — 그것이 곧 --retry-request 인자다.
+    local req_id; req_id=$(printf '%s' "$resp" | jq -r '.id // empty' 2>/dev/null)
+    if [ -n "$req_id" ]; then
+      # ★붙여 넣으면 바로 도는 줄이어야 한다 — placeholder 를 쓰면 안내가 아니라 숙제다(§11.10 ④).
+      #   $SELF(=basename)는 PATH 에 없으므로 실제 경로를 쓴다(T17 은 실행 비트만 주지 PATH 는 안 건드린다).
+      echo "run: 정확 복구(중복 레코드 없이 원 결과 회수) — 아래를 그대로 실행하라:" >&2
+      printf '  bash %q run --objective %q --retry-request %q\n' "$SELF_PATH" "$objective" "$req_id" >&2
+    else
+      echo "run: 요청 id 를 응답에서 뽑지 못했다 — 정확 복구 명령을 제시할 수 없다. 그냥 재발행하면 중복 레코드가 생긴다(삭제 명령 부재). 응답 확인: $RUNDIR/last-run-create.json" >&2
+    fi
+    die "run: run-create 실패(rc=$rc) — 응답: $RUNDIR/last-run-create.json"
+  fi
   # ★함정(c22-probe P0-2) — 봉투 최상위 .id 는 요청 상관ID(run id 아님). result.run.id 만 채택.
   local run_id; run_id=$(printf '%s' "$resp" | jq -r '.result.run.id // empty')
   [ -n "$run_id" ] || die "run: result.run.id 추출 실패 — 응답: $RUNDIR/last-run-create.json"
@@ -157,7 +276,7 @@ cmd_run() {
 }
 
 cmd_task() {
-  local title="" spec="" deps="" run=""
+  local title="" spec="" deps="" run="" retry_request=""
   while [ $# -gt 0 ]; do
     reject_forbidden_flag "$1"
     case "$1" in
@@ -166,14 +285,18 @@ cmd_task() {
       --deps) deps="${2:-}"; [ -n "$deps" ] || die "task: --deps 값 필요(json 배열)"; shift 2 ;;
       # run 바인딩이 프로세스 경계를 넘는지 미보장 — 명시 전달 경로를 둔다(실측 help 에 존재).
       --run) run="${2:-}"; [ -n "$run" ] || die "task: --run 값 필요"; shift 2 ;;
+      # 정확 복구 — task-create 수용은 C23 Task 1 --help 실측(§11.10 ④ 「확인된 명령만」).
+      --retry-request) retry_request="${2:-}"; [ -n "$retry_request" ] || die "task: --retry-request 값(요청 id) 필요"; shift 2 ;;
       *) die "task: 인식하지 않는 인자 '$1'" ;;
     esac
   done
   [ -n "$title" ] && [ -n "$spec" ] || die "task: --title 와 --spec 필수"
-  require_jq; ensure_rundir
   local extra=()
   [ -n "$deps" ] && extra=(--deps "$deps")
   [ -n "$run" ] && extra+=(--run "$run")
+  [ -n "$retry_request" ] && extra+=(--retry-request "$retry_request")
+  is_dryrun && dryrun_emit orchestration task-create --task-title "$title" --spec "$spec" "${extra[@]}" --json
+  require_jq; ensure_rundir
   local resp rc
   resp=$("$ORCA" orchestration task-create --task-title "$title" --spec "$spec" "${extra[@]}" --json)
   rc=$?
@@ -185,7 +308,7 @@ cmd_task() {
 }
 
 cmd_spawn() {
-  local readonly_flag=0 task="" worktree="current" run="" retry_of=""
+  local readonly_flag=0 task="" worktree="current" run="" retry_of="" retry_request=""
   while [ $# -gt 0 ]; do
     reject_forbidden_flag "$1"
     case "$1" in
@@ -195,10 +318,19 @@ cmd_spawn() {
       --worktree) [ -n "${2:-}" ] || die "spawn: --worktree 값 필요"; assert_worktree_arg "$2"; worktree="$2"; shift 2 ;;
       # 승인된 유일 재시도 경로 — 실패 안내가 --retry-of 를 지시하므로 파서가 반드시 받아야 한다.
       --retry-of) retry_of="${2:-}"; [ -n "$retry_of" ] || die "spawn: --retry-of 값(dispatch id) 필요"; shift 2 ;;
+      # ★--retry-of 와 다른 축이다 — 저쪽은 *새* 시도(레코드 증가), 이쪽은 같은 mutation 의 멱등 재발행(§11.10 ④).
+      --retry-request) retry_request="${2:-}"; [ -n "$retry_request" ] || die "spawn: --retry-request 값(요청 id) 필요"; shift 2 ;;
       *) die "spawn: 인식하지 않는 인자 '$1'" ;;
     esac
   done
   [ -n "$task" ] && [ -n "$run" ] || die "spawn: --run 과 --task 필수"
+  # read-only 팬아웃은 브랜치 무관 허용 — 커밋하지 않기로 *선언*된 경로다(§11.9 ⑧ 자기-선언 상한 상속).
+  [ "$readonly_flag" -eq 1 ] || assert_branch_not_merge_target "$worktree"
+  local extra=()
+  # --retry-of 는 배치(placement)를 상속하지 않는다(스키마 NOTE) — --worktree/--agent 를 매번 재지정한다.
+  [ -n "$retry_of" ] && extra=(--retry-of "$retry_of")
+  [ -n "$retry_request" ] && extra+=(--retry-request "$retry_request")
+  is_dryrun && dryrun_emit orchestration worker-start --run "$run" --task "$task" --worktree "$worktree" --agent claude "${extra[@]}" --json
   require_jq; ensure_rundir
 
   if [ "$readonly_flag" -eq 0 ]; then
@@ -212,9 +344,7 @@ cmd_spawn() {
     slot_unlock
   fi
 
-  local resp rc extra=()
-  # --retry-of 는 배치(placement)를 상속하지 않는다(스키마 NOTE) — --worktree/--agent 를 매번 재지정한다.
-  [ -n "$retry_of" ] && extra=(--retry-of "$retry_of")
+  local resp rc
   resp=$("$ORCA" orchestration worker-start --run "$run" --task "$task" --worktree "$worktree" --agent claude "${extra[@]}" --json)
   rc=$?
   printf '%s' "$resp" > "$RUNDIR/last-worker-start.json"
@@ -224,14 +354,33 @@ cmd_spawn() {
     #   outcome_unknown 은 워커가 살아있을 수 있으므로, 슬롯을 푸는 순간 동시-1 불변식이 깨진다.
     echo "spawn: worker-start 비-0(rc=$rc, ready 아님) — 자동 재시도 금지, --retry-of <dispatch_id> 로만 재시도(설계 §3.3)" >&2
     if [ "$readonly_flag" -eq 0 ]; then
-      echo "spawn: 원장 슬롯 유지 — outcome_unknown 가능성(워커 생존 가능). 재시도 전 'release --task $task' 로 명시 해제 필요" >&2
+      local stop_id; stop_id=$(printf '%s' "$resp" | jq -r '.result.dispatchId // empty' 2>/dev/null)
+      advise_slot_cleanup spawn "$task" "$stop_id"
     fi
     echo "spawn: 응답 JSON(stage/failedStage/setup/effects/residualResources/recovery): $RUNDIR/last-worker-start.json" >&2
+    # 정확 복구 안내 — 봉투 최상위 .id 가 요청 상관ID다(c22-probe P0-2). 위 --retry-of 안내는 유지한다:
+    # --retry-of 는 *새* 시도, --retry-request 는 같은 mutation 의 멱등 재발행이라 축이 다르다(§11.10 ④).
+    local req_id; req_id=$(printf '%s' "$resp" | jq -r '.id // empty' 2>/dev/null)
+    if [ -n "$req_id" ]; then
+      # ★붙여 넣으면 바로 도는 줄이어야 한다 — placeholder 금지. $SELF(=basename)는 PATH 에 없다.
+      #   원 호출의 선택 인자(--readonly/--retry-of)를 그대로 싣는다 — 빠뜨리면 재발행이 *다른* mutation 이 된다.
+      local line; line="  bash $(printf '%q' "$SELF_PATH") spawn"
+      [ "$readonly_flag" -eq 1 ] && line="$line --readonly"
+      line="$line --run $(printf '%q' "$run") --task $(printf '%q' "$task") --worktree $(printf '%q' "$worktree")"
+      [ -n "$retry_of" ] && line="$line --retry-of $(printf '%q' "$retry_of")"
+      line="$line --retry-request $(printf '%q' "$req_id")"
+      echo "spawn: 정확 복구(중복 dispatch 없이 원 결과 회수) — 아래를 그대로 실행하라:" >&2
+      printf '%s\n' "$line" >&2
+    else
+      echo "spawn: 요청 id 를 응답에서 뽑지 못했다 — 정확 복구 명령을 제시할 수 없다. 그냥 재발행하면 중복 dispatch 가 생긴다(삭제 명령 부재). 응답 확인: $RUNDIR/last-worker-start.json" >&2
+    fi
     exit "$rc"
   fi
-  # dispatch id 실제 응답 shape 미측정(워커를 실제로 띄워야 확인 — c22-probe 잔여) [P2]
+  # ★실측(C23 Task 1 Step 4): worker-start 응답은 dispatch 를 중첩 객체가 아니라 **평면 camelCase**
+  # `.result.dispatchId` 로 낸다(실측값 예: ctx_b35f37d7e59e). 추정이던 `.result.dispatch.id` 는
+  # worker-**show** 의 shape 였다 — 같은 축의 *다른 명령* 에서 온 경로라 코드 독해로는 구분되지 않았다.
   # 객체 폴백(.result.dispatch)은 객체 직렬화를 id 로 출력하므로 쓰지 않는다.
-  local dispatch_id; dispatch_id=$(printf '%s' "$resp" | jq -r '.result.dispatch.id // empty')  # [P2]
+  local dispatch_id; dispatch_id=$(printf '%s' "$resp" | jq -r '.result.dispatchId // empty')
   [ -n "$dispatch_id" ] || die "spawn: dispatch id 추출 실패 — 응답 확인: $RUNDIR/last-worker-start.json"
   printf '%s\n' "$dispatch_id"
 }
@@ -248,10 +397,10 @@ cmd_wait() {
     esac
   done
   [ -n "$run" ] || die "wait: --run 필수"
-  require_jq; ensure_rundir
 
   # ★ack 강제(가이드: "A bound Run replays the same Delivery until --ack; process every message
   #   before acknowledging") — 전건 순회 후 ack 를 문서가 아니라 코드로 만든다.
+  #   이 블록은 읽기 전용이라 DRYRUN 정지점 **앞**에 둔다(§11.10 ② argv 완전성).
   local pending use_ack=""
   pending=$(cat "$RUNDIR/pending-ack" 2>/dev/null || true)
   if [ -n "$ack" ]; then
@@ -263,6 +412,12 @@ cmd_wait() {
   fi
   local extra=()
   [ -n "$use_ack" ] && extra=(--ack "$use_ack")
+  # ★--retry-request 는 여기 배선하지 않는다(선언된 미배선 — 침묵 잔여 금지): `check` 도 수용은 하지만
+  #   (C23 Task 1 --help 실측) help Notes 가 "only for exact recovery after an unknown **mutation** result"
+  #   이고 §11.10 ④ⓐ 의 배선 대상은 「변이 서브커맨드」다. check 는 대기/조회라 회수할 mutation 이 없다.
+
+  is_dryrun && dryrun_emit orchestration check --run "$run" --wait --types worker_done,escalation,question,decision_gate --timeout-ms "$timeout" "${extra[@]}" --json
+  require_jq; ensure_rundir
 
   # ★--types 에 decision_gate 필수 — 워커 preamble RULE#1 이 'send --type decision_gate' 를 명시
   #   허용하므로, 이 타입이 wake 목록에서 빠지면 워커가 게이트를 올린 채 영구 hang 한다.
@@ -293,9 +448,12 @@ cmd_wait() {
 
   # 배치 emit 이 성공한 뒤에만 ack 자격을 기록한다(rc 비-0 이면 배치 미확정 — pending 을 건드리지 않는다).
   if [ "$rc" -eq 0 ]; then
-    # delivery id 필드 경로 미측정(배치 수신을 실제로 해야 확인 — c22-probe 잔여) [P2]
+    # ★실측(C23 Task 1 Step 4): check 응답의 실경로는 평면 camelCase `.result.deliveryId` 다
+    # (worker-start 축과 동형). 3중 폴백의 나머지 둘(`.result.delivery.id`·`.result.delivery_id`)은
+    # 스키마에 없다 — 배치가 비어도 `deliveryId` 필드는 존재하고 값만 null 이므로, 필드 부재와
+    # 빈 배치는 이 한 경로로 구분된다.
     local delivery_id
-    delivery_id=$(printf '%s' "$out" | jq -r '.result.delivery.id // .result.deliveryId // .result.delivery_id // empty' 2>/dev/null)  # [P2]
+    delivery_id=$(printf '%s' "$out" | jq -r '.result.deliveryId // empty' 2>/dev/null)
     if [ -n "$delivery_id" ]; then
       printf '%s' "$delivery_id" > "$RUNDIR/pending-ack"
     else
@@ -319,11 +477,21 @@ cmd_handoff() {
     esac
   done
   [ -n "$task" ] && [ -n "$dispatch" ] || die "handoff: --task 와 --dispatch 필수"
+  # handoff 는 --readonly 를 받지 않는다(정의상 편집 워커) — R→P→I→C 4단계 중 3단계가 이 경로다.
+  assert_branch_not_merge_target current
+  # ★handoff 는 2-call 이다 — 2번째(`worker-start --task … --terminal <handle>`)의 argv 는 1번째 응답의
+  #   `$handle` 에 **데이터 의존**해 선-emit 이 원리적으로 불가하다. `preflight` 와 동류의 예외이므로
+  #   emit 앞에 라벨을 박아 자기-표시한다(spec §11.10 ② 「묵시적 예외 금지」 — C23 Task 3 stage2 O2).
+  #   라벨은 접두사일 뿐 argv 토큰열은 실호출과 그대로 일치한다.
+  is_dryrun && dryrun_emit "handoff 1/2 (2번째 worker-start --terminal <handle> 는 이 응답에 의존 — 선-emit 불가):" orchestration worker-show --dispatch "$dispatch" --json
   require_jq; ensure_rundir
-  # worker.agent_terminal_handle 실제 응답 shape 미측정(worker-show 는 dispatch 선행 필요 — c22-probe 잔여) [P2]
+  # ★실측(C23 Task 1 Step 5): worker-show 는 중첩 snake_case **레코드**를 낸다 —
+  # `.result.worker.agent_terminal_handle` 이 맞다(실측값 예: term_42a7b36b-…).
+  # 동값 별칭 3종이 함께 존재하지만(.result.dispatch.assignee_handle · .result.terminal.handle ·
+  # .result.terminalResource.terminalHandle) 계약 경로 하나만 쓴다 — 별칭 폴백은 "모른다"의 표기다.
   local resp handle
   resp=$("$ORCA" orchestration worker-show --dispatch "$dispatch" --json) || die "handoff: worker-show 실패"
-  handle=$(printf '%s' "$resp" | jq -r '.result.worker.agent_terminal_handle // empty')  # [P2]
+  handle=$(printf '%s' "$resp" | jq -r '.result.worker.agent_terminal_handle // empty')
   [ -n "$handle" ] || die "handoff: agent_terminal_handle 획득 실패 — 응답 확인 필요"
 
   # 원장 원자 교체(prev-task 제거 + task 추가) — handoff 도 편집 워커이므로 동시-1 원장을 유지해야 한다.
@@ -346,11 +514,20 @@ cmd_handoff() {
   hrc=$?
   printf '%s' "$hresp" > "$RUNDIR/last-handoff.json"
   if [ "$hrc" -ne 0 ]; then
-    echo "handoff: worker-start 비-0(rc=$hrc, ready 아님) — 원장 슬롯 유지(outcome_unknown 가능). 재시도 전 'release --task $task' 로 명시 해제 필요" >&2
+    echo "handoff: worker-start 비-0(rc=$hrc, ready 아님)" >&2
+    local stop_id; stop_id=$(printf '%s' "$hresp" | jq -r '.result.dispatchId // empty' 2>/dev/null)
+    advise_slot_cleanup handoff "$task" "$stop_id"
     die "handoff: worker-start 실패 — 응답: $RUNDIR/last-handoff.json"
   fi
-  # stdout 계약 = dispatch id 1줄(봉투 JSON 전문을 흘리면 호출자의 D=$(... handoff ...) 가 결정적으로 깨진다) [P2]
-  local dispatch_id; dispatch_id=$(printf '%s' "$hresp" | jq -r '.result.dispatch.id // empty')  # [P2]
+  # stdout 계약 = dispatch id 1줄(봉투 JSON 전문을 흘리면 호출자의 D=$(... handoff ...) 가 결정적으로 깨진다)
+  # [P2 미해제 사유: terminal 기반 worker-start(--terminal) 응답은 C23 에서 **미측정**이다 — handoff 를
+  #  호출하려면 워커를 한 기 더 띄워야 하고 그것은 이번 사이클의 라이브 예산(read-only 1기동) 밖이다.
+  #  경로는 agent 기반 실측(`.result.dispatchId`, C23 Step 4)에서 **유추해 갱신**했다: 같은 CLI 명령이라
+  #  동형일 가능성이 높다. 그럼에도 마커를 남기는 이유는 유추가 실측이 아니기 때문이고, 경로를
+  #  갱신하는 이유는 알려진-틀린 `.result.dispatch.id` 를 그대로 두는 것이 「미측정」의 정직한 표현이
+  #  아니기 때문이다(C23 Task 1 Step 6 처분 — plan 은 마커 유지만 지시했으나 실측이 형제 사이트의
+  #  경로까지 반증했으므로 「유지 + 유추 반영」으로 강화).]
+  local dispatch_id; dispatch_id=$(printf '%s' "$hresp" | jq -r '.result.dispatchId // empty')  # [P2 미해제: 위 사유]
   [ -n "$dispatch_id" ] || die "handoff: dispatch id 추출 실패 — 응답 확인: $RUNDIR/last-handoff.json"
   printf '%s\n' "$dispatch_id"
 }
@@ -366,6 +543,7 @@ cmd_release() {
     esac
   done
   [ -n "$dispatch" ] || die "release: --dispatch 필수"
+  is_dryrun && dryrun_emit orchestration worker-release --dispatch "$dispatch" --json
   ensure_rundir
   "$ORCA" orchestration worker-release --dispatch "$dispatch" --json
   local rc=$?
@@ -388,7 +566,7 @@ cmd_release() {
 
 cmd_gate() {
   local action="${1:-}"; [ $# -gt 0 ] && shift
-  local task="" question="" id="" resolution=""
+  local task="" question="" id="" resolution="" retry_request=""
   while [ $# -gt 0 ]; do
     reject_forbidden_flag "$1"
     case "$1" in
@@ -396,21 +574,47 @@ cmd_gate() {
       --question) question="${2:-}"; [ -n "$question" ] || die "gate: --question 값 필요"; shift 2 ;;
       --id) id="${2:-}"; [ -n "$id" ] || die "gate: --id 값 필요"; shift 2 ;;
       --resolution) resolution="${2:-}"; [ -n "$resolution" ] || die "gate: --resolution 값 필요"; shift 2 ;;
+      # 정확 복구 — gate-create 수용은 C23 Task 1 --help 실측(§11.10 ④ 「확인된 변이 명령만」).
+      --retry-request) retry_request="${2:-}"; [ -n "$retry_request" ] || die "gate: --retry-request 값(요청 id) 필요"; shift 2 ;;
       *) die "gate: 인식하지 않는 인자 '$1'" ;;
     esac
   done
+  # ★파서는 서브액션과 무관하게 --retry-request 를 받지만 배선은 create 아암 하나뿐이다 —
+  #   resolve/list 에서 조용히 버리면 호출자가 "정확 복구를 걸었다"고 오신한 채 진행한다.
+  #   cmd_wait 이 세운 「선언된 미배선 — 침묵 잔여 금지」와 같은 규범을 여기서는 *거부*로 집행한다
+  #   (CONTEXT.md 배선 범위 = run·task·spawn·gate create 4개).
+  case "$action" in
+    resolve|list)
+      [ -z "$retry_request" ] || die "gate $action: --retry-request 거부 — 배선 대상은 'gate create' 뿐이다. gate-$action 은 변이가 아니라 회수할 mutation 이 없다(§11.10 ④ⓐ · CONTEXT.md 배선 범위 4). 침묵 폐기 대신 거부한다" ;;
+  esac
+  # DRYRUN 정지점 앞에서 조립한다 — 뒤면 emit 이 부분집합 argv 가 된다(§11.10 ②).
+  local rr=()
+  [ -n "$retry_request" ] && rr=(--retry-request "$retry_request")
+  if is_dryrun; then
+    case "$action" in
+      create)  [ -n "$task" ] && [ -n "$question" ] || die "gate create: --task 와 --question 필수"
+               dryrun_emit orchestration gate-create --task "$task" --question "$question" --options '["PASS","FAIL"]' "${rr[@]}" --json ;;
+      resolve) [ -n "$id" ] && [ -n "$resolution" ] || die "gate resolve: --id 와 --resolution 필수"
+               dryrun_emit orchestration gate-resolve --id "$id" --resolution "$resolution" --json ;;
+      list)    [ -n "$task" ] || die "gate list: --task 필수"
+               dryrun_emit orchestration gate-list --task "$task" --json ;;
+      *) die "gate: 서브액션은 create|resolve|list 중 하나(받음: '$action')" ;;
+    esac
+  fi
   require_jq; ensure_rundir
   case "$action" in
     create)
       [ -n "$task" ] && [ -n "$question" ] || die "gate create: --task 와 --question 필수"
       local resp rc
-      resp=$("$ORCA" orchestration gate-create --task "$task" --question "$question" --options '["PASS","FAIL"]' --json)
+      resp=$("$ORCA" orchestration gate-create --task "$task" --question "$question" --options '["PASS","FAIL"]' "${rr[@]}" --json)
       rc=$?
       printf '%s' "$resp" > "$RUNDIR/last-gate-create.json"
       [ "$rc" -eq 0 ] || die "gate create: 실패(rc=$rc) — 응답: $RUNDIR/last-gate-create.json"
-      # gate id 필드 경로 미측정(gate-create 미실행 — c22-probe 잔여) [P2]
+      # ★실측(C23 Task 1 Step 5): gate-create 는 생성 레코드를 **타입 키 아래 중첩**해 낸다 —
+      # `.result.gate.id` 가 맞다(실측값 예: gate_7153aa08d7e0). run-create/task-create 와 동형이고
+      # worker-start 축(평면 camelCase)과는 다르다 — 이 갈림이 dispatch id 추정을 빗나가게 했다.
       # .id 폴백 금지 — 최상위 .id 는 요청 상관ID라 gate-resolve 가 영구 미해소된다(c22-probe P0-2).
-      local gate_id; gate_id=$(printf '%s' "$resp" | jq -r '.result.gate.id // empty')  # [P2]
+      local gate_id; gate_id=$(printf '%s' "$resp" | jq -r '.result.gate.id // empty')
       [ -n "$gate_id" ] || die "gate create: gate id 추출 실패 — 응답 확인: $RUNDIR/last-gate-create.json"
       printf '%s\n' "$gate_id"
       ;;
@@ -429,7 +633,9 @@ cmd_gate() {
 cmd_gpt() {
   # 모델 인자 이름이 '--gpt-model' 인 이유: "이 캐리어의 어느 서브커맨드도 '--model' 리터럴을
   # 수용하지 않는다"는 불변식을 예외 없이 만들기 위함(예외가 있으면 가드가 조건부가 된다).
-  local role="" prompt="" gpt_model="gpt-5.6-sol" out=""
+  # 기본 슬롯을 변수에 둔다 — 아래 경고 판정이 초기값과 같은 리터럴을 두 번 적으면 드리프트한다.
+  local gpt_model_default="gpt-5.6-sol"
+  local role="" prompt="" gpt_model="$gpt_model_default" out=""
   while [ $# -gt 0 ]; do
     case "$1" in
       --role) role="${2:-}"; [ -n "$role" ] || die "gpt: --role 값 필요(executor|verifier)"; shift 2 ;;
@@ -440,17 +646,37 @@ cmd_gpt() {
     esac
   done
   [ -n "$prompt" ] || die "gpt: --prompt 필수"
+  # ★비차단 경고 — verifier 아암은 model_reasoning_effort=ultra 를 **하드코딩**하는데 --gpt-model 은
+  #   슬롯을 바꾼다. SSOT(docs/ai-context/cross-family-review.md)가 이 조합을 경고한다:
+  #   "sol 이외 슬롯으로 바꾸려면 이 절 전체 재검증 필수(luna=ultra 침묵 강등·5.5/5.4=max/ultra 400)".
+  #   모델 선택은 호출자 권한이므로 차단하지 않는다 — 조용히 나가는 것만 막는다.
+  [ "$gpt_model" = "$gpt_model_default" ] || \
+    echo "$SELF: 경고(비차단) — --gpt-model '$gpt_model' 는 기본 슬롯('$gpt_model_default')이 아니다. verifier 아암이 model_reasoning_effort=ultra 를 하드코딩하므로 슬롯 교체 시 조합 재검증 필수(luna=ultra 침묵 강등 · 5.5/5.4=max/ultra 400 — docs/ai-context/cross-family-review.md)" >&2
   case "$role" in
     executor)
       # 경로 B — 규율 아래 실행자(하네스 안, 설계 §4.3). 대상 문서는 stdin 으로 전달(호출자 책임).
-      OCX_MODEL="$gpt_model" "$HOME/.claude/bin/claude-ocx" -p "$prompt" --output-format json
+      is_dryrun && dryrun_emit "OCX_MODEL=$gpt_model" "$HOME/.claude/bin/claude-ocx" -p "$prompt" --output-format json
+      # stdout·rc 를 바이트 그대로 통과시켜야 하므로 임시 파일을 거친다($( ) 는 후행 개행을 먹는다).
+      local tf ercc cost
+      tf=$(mktemp)
+      OCX_MODEL="$gpt_model" "$HOME/.claude/bin/claude-ocx" -p "$prompt" --output-format json > "$tf"
+      ercc=$?
+      cat "$tf"
+      cost=$(jq -r '.total_cost_usd // empty' < "$tf" 2>/dev/null)
+      rm -f "$tf"
+      gpt_ledger_append executor "$gpt_model" "$ercc" "${cost:-n/a}"
+      return "$ercc"
       ;;
     verifier)
       [ -n "$out" ] || die "gpt --role verifier: --out 필수(cross-family-review.md -o 소비 규율)"
+      is_dryrun && dryrun_emit codex exec -m "$gpt_model" -c model_reasoning_effort=ultra -c model_verbosity=high --sandbox read-only --skip-git-repo-check -o "$out" "$prompt"
       rm -f "$out"
       codex exec -m "$gpt_model" -c model_reasoning_effort=ultra -c model_verbosity=high \
         --sandbox read-only --skip-git-repo-check -o "$out" "$prompt"
       local rc=$?
+      # codex 는 비용 필드를 내지 않으므로 n/a — 모르는 값을 0 으로 적지 않는다(§11.10 ⑥).
+      # ★부기는 [ -s "$out" ] 검증 **앞**이다 — 비용 부기가 검증 실패에 흡수되면 안 된다.
+      gpt_ledger_append verifier "$gpt_model" "$rc" "n/a"
       [ -s "$out" ] || die "gpt --role verifier: 출력 파일 미생성 — API 실패 가능성(cross-family-review.md -o 소비 규율)"
       return "$rc"
       ;;
@@ -483,7 +709,9 @@ main() {
   # selfcheck 는 진단 전용이라 assert 로 죽는 대신 스스로 FAIL 을 보고한다.
   # selfcheck 제외: 죽는 대신 보고하는 진단 커맨드다(C-20 이 여기서 실재·실행가능을 검사).
   # gpt 제외: 교차패밀리 리뷰 경로는 $ORCA 를 전혀 쓰지 않는다 — Orca 미설치 머신에서도 가용해야 한다.
-  case "$cmd" in selfcheck|gpt) ;; *) assert_orca_exe ;; esac
+  # gpt 제외와 같은 이유로 DRYRUN 도 제외한다 — 외부 프로세스를 부르지 않는 경로가 그 실행자의
+  # 존재를 요구할 근거가 없고, Orca 미설치 머신에서도 인자·가드를 시험할 수 있어야 한다(§11.10 ②).
+  case "$cmd" in selfcheck|gpt) ;; *) is_dryrun || assert_orca_exe ;; esac
   case "$cmd" in
     preflight) cmd_preflight "$@" ;;
     run) cmd_run "$@" ;;
