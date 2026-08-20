@@ -48,7 +48,7 @@
 |---|---|---|
 | `rpi-implement.js` | RPIC Phase I (d) canonical 2-stage 파이프라인 — stage1 execute(opus·heavy분기) → stage2 review(opus 명시 — 작업자 티어); 역할×모델 매트릭스의 코드 캐리어 | tri-model C12 (2026-07-26) |
 
-## Drift Seals (verify-setup.sh #17~#50, −#26 소각 = 33)
+## Drift Seals (verify-setup.sh #17~#53, −#26 소각 = 36)
 
 거버넌스 사실의 재드리프트를 막는 특정-인스턴스 봉인(안정 앵커 있는 것만; generalized 프레임워크 아님).
 
@@ -87,6 +87,9 @@
 | #48 | skill context_paths 조건부 선언 봉인 (스캐폴드 산출물 경로) | C14 (2026-07-28) |
 | #49 | layer-yield 절차/필드 앵커(구별 리터럴 2종 — sub-step 9 표제 · CP 필드 정의행) + review-yield.md 대장 존재 | **C16 (2026-08-02)**; C18 슬롯2 앵커 경화, 변이 M19 |
 | #50 | 집필-위임 규약 토큰 봉인 (start-rpi-cycle 토큰 4종 · cross-family-review 긍정-구절 · opencode 미러 토큰 · 구 단정 '위임 X' 부정-단언+긍정-토큰('집필-위임 가능'·'FABLE-TAKEOVER')(C19 create-orchestrator 정본+미러 확장)) | **C18 (cycle 69)**; 변이 M17·M18·M20 |
+| #51 | 모드팩 L3 정책 오라클 (Orca 워커 CLI `--model` 은 Rule A/B/C 매처 사각 — review-only 워커 floor max(작업자,opus) + 대상 0 vacuous 방지) | **C20 (cycle 71)**; 변이 없음 |
+| #52 | 경로-전달 규약 (setup/tests·hooks/tests 인라인 인터프리터 소스에 리터럴 `/tmp/`·셸 변수 보간 금지 — non-obvious #3 SMART ①) | **C21 (cycle 72)**; 변이 M23(pathpass_interp) |
+| #53 | 부작용-차단 주입 명시 (plans·ai-context 증거 단위의 캐리어 호출에 DRYRUN 또는 CLI_COMMAND+RUNDIR 필수 · 자기-시험 픽스처 · 1회성 예외 대장 호출-줄 cksum 동결) | **C23 (cycle 74)**; 변이 M24(s53_unisolated)·M25(s53_substitute)·M26(s53_cmdpos)·M27(s53_varindirect) |
 
 ### 거버넌스 문서 (seal이 지키는 대상 — hook/skill 아님)
 

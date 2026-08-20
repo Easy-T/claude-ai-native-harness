@@ -697,7 +697,7 @@ C23 Phase I 실측으로 추가된 조항). 초안은 `cmd_gpt` 두 아암에서
 `verifier` 의 `-c model_reasoning_effort=ultra -c model_verbosity=high`, `executor` 의 `OCX_MODEL=` env
 접두와 `$HOME/.claude/bin/` 절대경로. 후-조립 인자가 아니라 **손으로 적은 문자열**이라 정지-지점
 규정으로는 안 잡히고, Task 5 의 검사자도 줄 수만 세므로 침묵한다. 아래 블록은 정정본이다.
-(`preflight` 은 6-call 시퀀스라 단일 argv 가 불성립 — 그 emit 만 `(요약 — 단일 argv 불성립)` 을
+(`preflight` 은 7-call 시퀀스라 단일 argv 가 불성립 — 그 emit 만 `(요약 — 단일 argv 불성립)` 을
 문자열에 박아 계약 대상이 아님을 자기-표시한다. 묵시적 예외 금지.)
 
 `cmd_gpt` — 각 role 아암 안, 첫 부작용 앞(`verifier` 는 `rm -f "$out"` 이 부작용이므로 그 앞):
@@ -1878,7 +1878,7 @@ Closeout 직전에 층별 실측을 채워 넣는다(§15.3 S19 — 말미 층 �
 - Gate R: FAIL→정정 · 실발견 10 · 발견
 - Gate R 델타 재심 ×5: `1 PASS/4 FAIL` · 실발견 20(7+7+2+4+0, 5회차 0으로 종결) · 발견
 - Gate P: FAIL→정정 · 실발견 9(BLOCKER 4 · MEDIUM 2 · MINOR 3) · 발견
-- Gate P 델타 재심 ×1: `1 PASS/0 FAIL` · 실발견 0(지목 9건 전건 해소 확인) · 확인
+- Gate P 델타 재심 ×3: `2 PASS/1 FAIL` · 실발견 9(#1 0[unknown 2건 정리 — `0562ee9`] · #2 6[M1~M3+U1~U3 — `160ee73`] · #3 advisory 3[`1bdd635`]) · 발견
 - stage2 ×N: … · 통합(senior+drift): … · 교차패밀리 슬롯2: …
 - 교차패밀리 슬롯1(GPT sol/ultra, Gate P 델타 재심 PASS 직후): 실행 · 실발견 30 · 발견
   (제기 33 → 트리아지 채택 30 / 기각 3. 2단계 트리아지 — 1단계 증거 수집 opus ×5 병렬, 2단계 판정 메인)

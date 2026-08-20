@@ -710,22 +710,40 @@ fi
 #     docs/superpowers/plans/*.md + docs/ai-context/*.md 의 **증거 단위**(연속 비-공백 줄의 최대 런)에
 #     커맨드-위치 캐리어 부작용 호출이 있으면, 그 호출 줄 자신 또는 **앞 15줄 이내**에
 #     ⓐ ORCA_RPI_DRYRUN= (단독 충분) 또는 ⓑ ORCA_CLI_COMMAND= + ORCA_RPI_RUNDIR=(동반 필수)
+#     또는 ⓒ PATH= 프리펜드 + 그 stub 을 만드는 흔적(printf/cat/tee 리다이렉트 또는 chmod +x, 동반 필수)
 #     가 있어야 한다. 없으면 FAIL. 라이브가 *목적*인 단위는 LIVE-INTENT(<6자 이상 사유>) 로 면제된다.
+#     ★ⓒ가 필요한 이유: cmd_gpt 는 "$ORCA" 가 아니라 codex/claude-ocx 를 부르므로(bin/orca-rpi.sh:607·:619)
+#       ORCA_CLI_COMMAND 로는 **구조적으로 격리 불가**다. PATH 프리펜드 stub 이 그 아암의 유일한 격리 수단이고,
+#       ⓐⓑ만 인정하면 실제로 격리된 gpt 원장 검사 블록이 NOISO 로 **오발화**한다(C23 슬롯 A 실측).
+#       PATH= 단독은 격리 증거가 아니다(stub 없는 PATH 프리펜드는 실 codex 를 그대로 탄다) — 결합 필수.
 #     ★문단 단위인 이유: 펜스 모델은 중첩 펜스로 패리티가 깨진다(C22 plan 실측 — 오탐 1건).
 #     ★근접 창인 이유: 공백줄 없는 긴 절에서 토큰 1개가 절 전체를 세탁한다(non-obvious.md 실측 87줄 단일 문단).
 #     ★vacuous 방지: TOTAL=0 → FAIL 을 쓰지 않는다(캐리어 호출 없는 미래 사이클을 거짓 FAIL).
-#       대신 **런타임 조립 자기-시험 픽스처**(ISO 1 + NOISO 1)로 탐지자가 양방향 판별함을 매번 증명한다.
+#       대신 **런타임 조립 자기-시험 픽스처**(ISO 2 + NOISO 7 — ⓐⓑⓒ 격리 아암 · 커맨드-위치 · 변수-간접 ·
+#       빈 대입 · 주석 세탁 · PATH 단독을 각각 1건씩)로 탐지자가 양방향 판별함을 매번 증명한다.
 #     ★1회성 예외 대장: C22 plan 6단위는 *이미 실행된 기록*이라 소급 편집이 왜곡/허위 재분류다.
 #       개수가 아니라 **호출 줄 집합의 cksum 을 동결**한다(치환 우회 차단).
+#     ★선언된 미탐 잔여(침묵 금지 — 이 목록 밖을 덮는다고 주장하지 않는다. spec §11.10 ③ 등재 대상):
+#       ㉠ 간접 서브커맨드: `bash "$CARRIER" "$@"` · `… "$s" "${ARGS[@]}"` — 다음 토큰이 변수라
+#          화이트리스트 대조가 불가능하다(C23 plan :1065 실측). 리터럴 서브커맨드만 판정한다.
+#       ㉡ 셸 함수 간접: `run_dry …` 처럼 래퍼 함수로 감싼 호출은 **정의부의 실제 호출 줄**에서만 잡힌다.
+#       ㉢ 줄 선두 백틱 줄 · 주석(`#`) 줄 전체 스킵 — 산문 내 인라인 코드 오탐 억제의 대가.
+#       ㉣ 화이트리스트 드리프트: 부작용 서브커맨드가 새로 생기면 목록에 추가되기 전까지 미탐
+#          (`selfcheck` 는 외부 기동이 없어 의도적 제외 — bin/orca-rpi.sh cmd_selfcheck 실측).
+#       ㉤ 코퍼스 범위: plans/*.md + docs/ai-context/*.md 밖(스킬·훅·테스트 소스)은 스캔하지 않는다.
+#       ㉥ 줄-연속(`bash "$CARRIER" \` 다음 줄 `run …`): 이 스캐너는 **줄 단위**라 이어붙이지 않는다.
+#          잇는 순간 보고 줄번호·15줄 근접 판정의 기준선이 함께 바뀌므로 구조 변경이다.
+#          라이브 코퍼스 실사례 **0건**(C23 Closeout 실측)이라 선언으로 처분하고, 사례가 생기면 그때
+#          구조를 바꾼다 — 「0건이라 안 고쳤다」를 침묵으로 두지 않기 위해 여기 적는다.
 S53_AWK='
 # 파일 단위 2-상 처리: 수집(라인 순회) → 분류(파일 끝). LIVE-INTENT 는 호출 **뒤**에도 올 수 있어
 # (마크다운에서 선언은 보통 코드블록 다음 Expected 줄에 붙는다) 한 번에 판정할 수 없다.
 # 격리 토큰은 **같은 단위 + 앞 15줄**. LIVE-INTENT 는 **같은 단위이거나 앞 15줄** + **줄 전체가 선언**
 # 일 때만 인정한다(거리만으로는 *언급*과 *선언*이 구분되지 않는다 — spec §11.10 ③ 7차 정정).
-BEGIN { QQ = "[\"" sprintf("%c", 39) "]+" }   # 양끝에서 벗길 따옴표(", '\'')
-function classify(  i,j,d,cli,rd,iso,live,st) {
+BEGIN { QQ = "[\"" sprintf("%c", 39) "]+"; SEP = sprintf("%c", 1) }   # 벗길 따옴표(", '\'') · 커맨드-구분 센티넬
+function classify(  i,j,d,cli,rd,pp,sb,iso,live,st) {
   for (i = 1; i <= nc; i++) {
-    cli = 0; rd = 0; iso = 0; live = 0
+    cli = 0; rd = 0; pp = 0; sb = 0; iso = 0; live = 0
     for (j = 1; j <= nt; j++) {
       if (tu[j] != cu[i]) continue
       d = cl[i] - tl[j]
@@ -733,46 +751,67 @@ function classify(  i,j,d,cli,rd,iso,live,st) {
       if (tk[j] == "DRY") iso = 1
       else if (tk[j] == "CLI") cli = 1
       else if (tk[j] == "RD") rd = 1
+      else if (tk[j] == "PP") pp = 1
+      else if (tk[j] == "SB") sb = 1
     }
     for (j = 1; j <= nv; j++) {
       d = cl[i] - vl[j]
       if (vu[j] == cu[i] || (d >= 0 && d <= 15)) live = 1
     }
-    st = (iso || (cli && rd)) ? "ISO" : (live ? "LIVE" : "NOISO")
+    st = (iso || (cli && rd) || (pp && sb)) ? "ISO" : (live ? "LIVE" : "NOISO")
     # 필드: STATUS \t FILE \t LINE \t RC \t UNIT \t TEXT (TEXT 가 마지막 — 탭 포함 시에도 잘리지 않게)
     printf "%s\t%s\t%d\t%d\t%d\t%s\n", st, CURF, cl[i], (rcu[cu[i]] ? 1 : 0), cu[i], ct[i]
   }
   nc = 0; nt = 0; nv = 0; unit = 0; split("", rcu, ":")
 }
-function callof(line,  s,n,a,i,t,nx,em,sk) {
+# 커맨드-위치는 **전수**로 잰다(cycle-37 install/rsync 앵커 `(^|[;&|()])\s*(install|rsync)\s+` 동형).
+# 종전 구현은 첫 실토큰이 캐리어가 아니면 `return ""` 로 **줄 전체를 포기**해, 토큰화만 `[;&|()]` 로 하고
+# 실제로는 첫 세그먼트만 쟀다 — `cd X && bash …` · `( cd X && bash … )` · `timeout 60 bash …` ·
+# `echo … | bash …` · `nohup bash …` 5형태가 전부 침묵 미탐이었다(C23 슬롯 A 실측: 출력 0줄).
+# 지금은 구분자를 센티넬로 바꿔 커맨드 위치를 재설정하고, 비-래퍼 명령을 만나면 그 위치만 소진(cp=0)한다
+# — 「인자 위치의 경로 언급」(`grep bin/orca-rpi.sh …`)은 여전히 비-호출로 남는다(오탐 억제).
+function callof(line,  s,n,a,i,t,nx,cp,wr,tmo,sk) {
   s = line
   sub(/^[ \t]*/, "", s)
   if (s ~ /^#/) return ""
   if (substr(s, 1, 1) == "`") return ""
-  gsub(/\$\(/, " ", s)
-  n = split(s, a, /[ \t]+|[;&|()]+/)
-  em = 0; sk = 0
+  gsub(/\$\(/, " " SEP " ", s)     # 명령치환 시작 = 새 커맨드 위치
+  gsub(/[;&|()]+/, " " SEP " ", s) # 구분자 = 새 커맨드 위치
+  n = split(s, a, /[ \t]+/)
+  cp = 1; wr = 0; tmo = 0; sk = 0
   for (i = 1; i <= n; i++) {
+    t = a[i]
+    if (t == SEP) { cp = 1; wr = 0; tmo = 0; sk = 0; continue }
     # ★따옴표는 **양끝** 모두 벗긴다(슬롯 1 B4 실측). 선두만 벗기면
     # `bash "$HOME/.claude/bin/orca-rpi.sh" run …` 이 닫는 따옴표 때문에 경로 정규식에서 탈락해
-    # **호출 자체가 스캔에 들어오지 않는다**(awk 실행으로 출력 0줄 확인). 이건 고의 우회가 아니라
-    # 관용적 표기이고 — 이 plan 의 Task 5 도 `bash "$CARRIER"` 형태다 — 통째로 침묵하는 미탐이다.
-    t = a[i]; gsub("^" QQ, "", t); gsub(QQ "$", "", t)
-    if (t == "") continue
-    # env 의 자기 옵션은 건너뛴다 — `env -u WT_SEL bash …/orca-rpi.sh spawn` 을 놓치면
+    # **호출 자체가 스캔에 들어오지 않는다**(awk 실행으로 출력 0줄 확인).
+    gsub("^" QQ, "", t); gsub(QQ "$", "", t)
+    if (t == "" || t == "\\") continue
+    if (!cp) continue
+    # env/timeout 의 자기 옵션·인자는 건너뛴다 — `env -u WT_SEL bash …/orca-rpi.sh spawn` 을 놓치면
     # 격리 없는 호출이 통째로 미탐된다(C23 Phase P 실측: 이 형태가 코퍼스에 다수).
     if (sk) { sk = 0; continue }
-    if (t == "env") { em = 1; continue }
-    if (em && t == "-u") { sk = 1; continue }
-    if (em && t ~ /^-/) continue
-    if (t == "bash" || t == "sh" || t == "exec" || t == "time") continue
     if (t ~ /^[A-Za-z_][A-Za-z0-9_]*=/) continue
-    if (t ~ /(^|\/)orca-rpi\.sh$/) {
-      nx = a[i+1]; gsub("^" QQ, "", nx); gsub(QQ "$", "", nx)
-      if (nx ~ /^(run|task|spawn|wait|handoff|release|gate|preflight|gpt)$/) return line
-      return ""
+    # 셸 키워드는 커맨드 위치를 **소진하지 않고 여는** 토큰이다 — `if true; then bash …/orca-rpi.sh run`
+    # 에서 `then` 을 일반 명령으로 처리하면 뒤따르는 bash 가 인자 영역으로 밀려 통째로 미탐된다
+    # (C23 Closeout 통합 리뷰 F1 실측: 출력 0줄).
+    if (t ~ /^(then|do|else|elif|if|while|until|\{|!)$/) { cp = 1; wr = 0; tmo = 0; sk = 0; continue }
+    if (t ~ /^(bash|sh|exec|time|env|timeout|nohup|sudo|command|stdbuf|xargs)$/) {
+      wr = 1; if (t == "timeout") tmo = 1
+      continue
     }
-    return ""
+    if (wr && t == "-u") { sk = 1; continue }
+    if (wr && t ~ /^-/) continue
+    if (tmo && t ~ /^[0-9]+(\.[0-9]+)?[smhd]?$/) continue
+    nx = a[i+1]; gsub("^" QQ, "", nx); gsub(QQ "$", "", nx)
+    # ★변수-간접 경로(`bash "$CARRIER" run …`)도 캐리어 호출로 인정한다. 리터럴 경로 정규식만으로는
+    #   따옴표를 벗겨도 토큰이 `$CARRIER` 라 탈락해 통째로 침묵했다 — 그런데 이 표기가 C23 하우스
+    #   스타일이라(orca-carrier.test.sh · plan Task 5) 복사될수록 커버리지가 0 에 수렴하던 미탐이다.
+    #   오탐은 **다음 토큰 = 캐리어 서브커맨드 화이트리스트** 결합으로 억제한다(단독 `$VAR` 는 무시).
+    if (t ~ /(^|\/)orca-rpi\.sh$/ || t ~ /\$/) {
+      if (nx ~ /^(run|task|spawn|wait|handoff|release|gate|preflight|gpt)$/) return line
+    }
+    cp = 0; wr = 0; tmo = 0   # 이 커맨드 위치는 소진 — 다음 구분자까지는 인자 영역
   }
   return ""
 }
@@ -790,6 +829,9 @@ FNR == 1 { if (NR > 1) classify(); CURF = FILENAME; nc = 0; nt = 0; nv = 0; unit
     if ($0 ~ /ORCA_RPI_DRYRUN=[^ \t]/)  { nt++; tl[nt] = FNR; tu[nt] = unit; tk[nt] = "DRY" }
     if ($0 ~ /ORCA_CLI_COMMAND=[^ \t]/) { nt++; tl[nt] = FNR; tu[nt] = unit; tk[nt] = "CLI" }
     if ($0 ~ /ORCA_RPI_RUNDIR=[^ \t]/)  { nt++; tl[nt] = FNR; tu[nt] = unit; tk[nt] = "RD" }
+    # ⓒ PATH 프리펜드 + stub 생성 흔적(결합 필수) — cmd_gpt 아암의 유일한 격리 수단.
+    if ($0 ~ /(^|[ \t;&|(])PATH=[^ \t]*\$\{?PATH/) { nt++; tl[nt] = FNR; tu[nt] = unit; tk[nt] = "PP" }
+    if ($0 ~ /chmod[ \t]+\+x/ || $0 ~ /(printf|cat|tee)[ \t].*[^0-9>]>[ \t]*[^ \t>&]/) { nt++; tl[nt] = FNR; tu[nt] = unit; tk[nt] = "SB" }
   }
   # ★LIVE-INTENT 는 **줄 전체가 선언**일 때만 센다(공백·백틱 제외 후 그것 하나만 남아야 한다).
   #   거리로는 언급과 선언이 안 갈린다 — 「예시 문자열은 `LIVE-INTENT(…)` 이다」 같은 산문이
@@ -824,10 +866,29 @@ S53_CARRIER_TOKEN="bin/orca-rpi.sh"
   printf '# ORCA_RPI_DRYRUN=1\n'
   printf 'bash %s run --objective x\n' "$S53_CARRIER_TOKEN"
   printf '\n'
+  # ★커맨드-위치 전수(C23 슬롯 A): 첫 실토큰이 캐리어가 아니어서 줄 전체를 포기하던 미탐.
+  printf 'NOISO command-position probe\n'
+  printf 'cd /tmp && bash %s run --objective x\n' "$S53_CARRIER_TOKEN"
+  printf '\n'
+  # ★변수-간접 경로(C23 슬롯 A): 하우스 스타일 `bash "$CARRIER" <sub>` 가 통째로 침묵하던 미탐.
+  printf 'NOISO var-indirect probe\n'
+  printf 'timeout 60 bash "$CARRIER" spawn --run r --task t\n'
+  printf '\n'
+  # ★ⓒ 제3 격리(PATH 프리펜드 + stub 생성): cmd_gpt 아암은 ORCA_CLI_COMMAND 로 격리 불가.
+  printf 'ISO path-stub probe\n'
+  printf 'printf stub > "$ROOT/bin/codex"\n'
+  printf 'chmod +x "$ROOT/bin/codex"\n'
+  printf 'PATH="$ROOT/bin:$PATH" bash "$CARRIER" gpt --role verifier --prompt p\n'
+  printf '\n'
+  # ★PATH 단독은 격리 증거가 아니다 — 결합 조건이 load-bearing 함의 부정-단언.
+  printf 'NOISO path-only probe\n'
+  printf 'PATH="$ROOT/bin:$PATH" bash "$CARRIER" gpt --role verifier --prompt p\n'
+  printf '\n'
 } > "$S53_TMP/fixture.md"
 S53_FIX=$(awk -f "$S53_TMP/s53.awk" "$S53_TMP/fixture.md" 2>/dev/null | cut -f1 | tr '\n' ',')
-if [ "$S53_FIX" != "ISO,NOISO,NOISO,NOISO,NOISO," ]; then
-  fail "부작용-차단 seal: 자기-시험 픽스처 판별 실패(기대 'ISO,NOISO,NOISO,NOISO,NOISO,' 실측 '${S53_FIX:-빈값}') — 탐지자가 죽었다면 위반 0 은 무의미하다"
+S53_FIX_EXP="ISO,NOISO,NOISO,NOISO,NOISO,NOISO,NOISO,ISO,NOISO,"
+if [ "$S53_FIX" != "$S53_FIX_EXP" ]; then
+  fail "부작용-차단 seal: 자기-시험 픽스처 판별 실패(기대 '$S53_FIX_EXP' 실측 '${S53_FIX:-빈값}') — 탐지자가 죽었다면 위반 0 은 무의미하다"
 else
   S53_LEDGER="$HOME/.claude/docs/superpowers/plans/2026-08-17-c22-orca-carrier-landing.md"
   S53_ALL=$(awk -f "$S53_TMP/s53.awk" "$HOME/.claude/docs/superpowers/plans"/*.md "$HOME/.claude/docs/ai-context"/*.md 2>/dev/null)
@@ -851,7 +912,7 @@ else
   elif [ -n "$S53_PARITY" ]; then
     fail "LIVE-INTENT 총계 parity 불일치 —${S53_PARITY} (자기-면제는 같은 파일 안에서 'LIVE-INTENT-총계: k' 로 표면화해야 한다)"
   else
-    ok "부작용-차단 주입 명시: 미격리 캐리어 호출 0 · 실행-주장 단위 ${S53_CLAIM} · LIVE-INTENT ${S53_LIVE_N:-0건} (non-obvious #5 SMART ①②)"
+    ok "부작용-차단 주입 명시: 미격리 캐리어 호출 0(커맨드-위치 전수 · 리터럴+변수-간접 경로 · 선언된 미탐 잔여 ㉠~㉥ 제외) · 실행-주장 단위 ${S53_CLAIM} · LIVE-INTENT ${S53_LIVE_N:-0건} (non-obvious #5 SMART ①②)"
   fi
 fi
 

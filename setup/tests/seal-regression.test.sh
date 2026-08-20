@@ -198,6 +198,26 @@ mut_s53_substitute() {
   { printf '\n'; printf 'bash bin/orca-%s.sh gate create --task t9 --question q9\n' "rpi"; printf '\n'; } >> "$p"
 }
 
+# Mutator 26 (C23) — seal #53 의 RED ⓒ **커맨드-위치**: 캐리어가 줄의 첫 실토큰이 **아닌** 형태.
+# M24/M25 는 둘 다 맨 `bash bin/orca-rpi.sh …` 리터럴이라, 탐지자가 첫 세그먼트만 재도 전건 GREEN 이었다
+# (실측: 정정 전 코드에서 이 프로브는 출력 0줄 = 침묵 미탐). cycle-37 install/rsync 앵커와 동형으로
+# **모든 커맨드 위치**를 재야만 RED 가 된다.
+# ★`**Status:** completed` 는 판별력 격리(M24 와 동일 이유 — seal #27 공발화 차단).
+mut_s53_cmdpos() {
+  local p; p="$1/docs/superpowers/plans/c23-cmdpos-probe.md"
+  { printf '# mutant\n\n'; printf '**Status:** completed\n\n';
+    printf 'cd /tmp && bash bin/orca-%s.sh run --objective x\n' "rpi"; printf '\n'; } > "$p"
+}
+# Mutator 27 (C23) — seal #53 의 RED ⓓ **변수-간접 경로**: `bash "$CARRIER" <sub>` 하우스 스타일.
+# 리터럴 경로 정규식만으로는 따옴표를 벗겨도 토큰이 `$CARRIER` 라 탈락한다(정정 전 실측 출력 0줄).
+# ★이 프로브에는 캐리어 경로 리터럴이 **한 글자도 없다** — 경로 아암이 살아 있어도 잡히지 않으므로,
+#   변수-간접 아암이 실재할 때만 RED 가 된다(아암 격리).
+mut_s53_varindirect() {
+  local p; p="$1/docs/superpowers/plans/c23-varindirect-probe.md"
+  { printf '# mutant\n\n'; printf '**Status:** completed\n\n';
+    printf 'bash "$CARRIER" %s --run r --task t\n' "spawn"; printf '\n'; } > "$p"
+}
+
 assert_seal_fires "state_schema"    mut_state_count_string "state.json schema 위반"
 assert_seal_fires "settings_parity" mut_settings_matcher   "settings/example harness-hook drift"
 assert_seal_fires "readme_cases"    mut_readme_cases       "README cases drift"
@@ -225,6 +245,8 @@ assert_seal_fires "schema_required_empty" mut_schema_required_empty "state.json 
 assert_seal_fires "pathpass_interp"       mut_pathpass_interp       "경로-전달 규약 위반"
 assert_seal_fires "s53_unisolated"  mut_s53_unisolated  "부작용-차단 주입 누락"
 assert_seal_fires "s53_substitute"  mut_s53_substitute  "1회성 예외 대장 drift"
+assert_seal_fires "s53_cmdpos"      mut_s53_cmdpos      "부작용-차단 주입 누락"
+assert_seal_fires "s53_varindirect" mut_s53_varindirect "부작용-차단 주입 누락"
 
 # === Live immutability: witnessed files byte-identical (all mutation stayed in replicas) ===
 LIVE_AFTER="$(witness)"

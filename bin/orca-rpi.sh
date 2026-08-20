@@ -119,12 +119,20 @@ worktree_path_of() {   # $1 = --worktree 값('current' 또는 셀렉터) → std
 # 브랜치, rc=0). 제거하지 않으면 가드가 다른 저장소를 보고 **무음 통과**한다(슬롯 1 B1).
 git_at() { env -u GIT_DIR -u GIT_WORK_TREE git -C "$@"; }
 
-# 판정 불가는 fail-closed — "커밋 대상이 머지 브랜치가 아님"을 단언할 수 없으면 스폰하지 않는다.
+# **브랜치 판정 불가**(측정 대상 경로는 정해졌는데 그 경로에서 브랜치명을 못 얻음)는 fail-closed —
+# "커밋 대상이 머지 브랜치가 아님"을 단언할 수 없으면 스폰하지 않는다.
 # fail-open 약속은 Orca *가용성* 축(preflight rc≠0)의 것이지 안전 가드의 것이 아니다.
+# ★「판정 불가」와 「셀렉터 미획득」은 **다른 상태**이고 처분도 다르다 — 후자는 fail-closed 가 아니다:
+#   거부하면 preflight 미실행(= $RUNDIR/wt_sel 미기록) 상태의 모든 spawn 이 깨져 실사용이 성립하지 않는다.
+#   그래서 $PWD 폴백을 **유지하되**, 그 판정이 측정이 아니라 *추측*임을 stderr 1줄로 표면화한다
+#   (침묵 대체 금지 — 추측이 빗나가는 경우 = 워커가 뜨는 워크트리와 cwd 가 다른 체크아웃일 때).
 assert_branch_not_merge_target() {   # $1 = --worktree 값
   local p br
   p=$(worktree_path_of "$1")
-  [ -n "$p" ] || p="$PWD"            # 문서화된 폴백 — 셀렉터 미획득 시에만
+  if [ -z "$p" ]; then               # 문서화된 폴백 — 셀렉터 미획득 시에만
+    p="$PWD"
+    echo "$SELF: 경고 — 워크트리 셀렉터 미획득(\$WT_SEL 도 $RUNDIR/wt_sel 도 없음) → 브랜치 가드를 cwd '$p' 로 **추측** 판정한다. 워커가 다른 체크아웃에 뜨면 이 판정은 대상이 다르다 — 'preflight' 를 먼저 실행해 셀렉터를 기록하라" >&2
+  fi
   # symbolic-ref 를 먼저 쓴다: unborn branch(커밋 0건)에서도 rc=0 으로 이름을 준다.
   # rev-parse 는 그 경우 stdout='HEAD' + rc=128 이라 판정이 뒤집힌다(슬롯 1 B6).
   br=$(git_at "$p" symbolic-ref --short HEAD 2>/dev/null) || br=""
@@ -136,6 +144,31 @@ assert_branch_not_merge_target() {   # $1 = --worktree 값
       die "거부: non-readonly 워커를 머지 대상 브랜치('$br' @ $p)에서 스폰할 수 없다 — 워커가 같은 체크아웃에 직접 커밋해 사람의 머지 승인이 사후 무력화된다. 사이클 브랜치를 만들어 체크아웃하라(설계 §11.10 ①)" ;;
   esac
   return 0
+}
+
+# ── 슬롯 유지 시의 정리 안내 (§11.10 ④ 「복사해서 바로 실행 가능한 명령줄」) ──────
+# ★구 안내 `release --task <t>` 는 **두 겹으로 실행 불가능**이었다(실측):
+#   ⓐ 이 캐리어의 `cmd_release` 파서가 `--dispatch` 를 필수로 요구해 그 줄 자체를 거부한다.
+#   ⓑ `--dispatch` 를 붙여도 슬롯 제거는 worker-release rc=0 일 때만인데, settle 되지 않은 워커의
+#      worker-release 는 `dispatch_inactive` 로 실패한다("only a settled worker can release. Use
+#      worker-stop to cancel an active worker." — docs/ai-context/c22-orca-probe-measured.md:290-297).
+#      즉 슬롯이 남는 바로 그 상황에서 그 경로는 구조적으로 rc≠0 이다.
+#   실측된 정리 경로는 **worker-stop → release** 다(같은 문서 :297). dispatch id 를 못 뽑은 경우의
+#   유일한 탈출구는 원장 직접 편집이므로(C22→C23 실사례), $RUNDIR 를 전개한 **실경로**로 낸다.
+advise_slot_cleanup() {   # $1=서브커맨드명 $2=task $3=dispatch id(모르면 빈 문자열)
+  local pfx="$1" t="$2" d="$3" led="$RUNDIR/active-nonreadonly.tasks"
+  echo "$pfx: 원장 슬롯 유지 — outcome_unknown 가능성(워커 생존 가능). 슬롯을 비우려면 아래를 그대로 실행하라:" >&2
+  if [ -n "$d" ]; then
+    printf '  %q orchestration worker-stop --dispatch %q --json\n' "$ORCA" "$d" >&2
+    printf '  bash %q release --dispatch %q --task %q\n' "$SELF_PATH" "$d" "$t" >&2
+  else
+    echo "$pfx: dispatch id 를 응답에서 뽑지 못했다 — worker-stop 경로를 쓸 수 없다. 원장에서 이 task 줄만 직접 지운다:" >&2
+    # ★`{ … || true; }` 가 필수다 — 이 분기가 발화하는 시점의 원장은 **항상 정확히 1줄**이고
+    #   (:336 이 active≥1 이면 die 하므로 spawn 은 append 후 1줄, handoff 는 prev 제거 후 append 로 1줄),
+    #   `grep -v` 는 선택된 줄이 0이면 rc=1 이라 `&& mv` 가 실행되지 않는다 = **100% 실패 경로**.
+    #   가드 없는 형태는 원장을 그대로 두고 `.tmp` 만 남긴 채 침묵한다(정정 전 실측).
+    printf '  { grep -vFx %q %q || true; } > %q && mv %q %q\n' "$t" "$led" "$led.tmp" "$led.tmp" "$led" >&2
+  fi
 }
 
 # 호출자가 캐리어에 줄 수 없는 인자 — "명령 리터럴"이 아니라 "거부 로직의 패턴 문자열"이므로
@@ -165,9 +198,12 @@ assert_orca_exe() {
 }
 
 cmd_preflight() {
-  # ★preflight 만 argv 가 아니라 *요약*이다 — 6-call 시퀀스라 단일 argv 가 원리적으로 성립하지 않는다.
+  # ★preflight 만 argv 가 아니라 *요약*이다 — 7-call 시퀀스라 단일 argv 가 원리적으로 성립하지 않는다.
   #   그래서 「(요약)」을 문자열 안에 박아, 다른 서브커맨드의 완전-argv 계약과 혼동되지 않게 한다.
-  is_dryrun && dryrun_emit "preflight (요약 — 단일 argv 불성립): status / orchestration run-list / repo list / worktree current / agent hooks status"
+  #   ★요약은 **실호출 전건**을 열거한다(실측 7회: status · orchestration run-list · repo list ·
+  #   worktree current · agent hooks status · agent-context · skills get orchestration). 뒤 2개를 빠뜨리면
+  #   예외의 취지(「리뷰어가 emit 만 보고 무엇이 돌 것인가를 안다」)가 절반만 충족된다.
+  is_dryrun && dryrun_emit "preflight (요약 — 단일 argv 불성립): status / orchestration run-list / repo list / worktree current / agent hooks status / agent-context / skills get orchestration"
   require_jq
   ensure_rundir
   cp "$HOME/.claude/settings.json" "$RUNDIR/settings.pre-orca.json" || die "preflight: settings.json 백업 실패"
@@ -318,7 +354,8 @@ cmd_spawn() {
     #   outcome_unknown 은 워커가 살아있을 수 있으므로, 슬롯을 푸는 순간 동시-1 불변식이 깨진다.
     echo "spawn: worker-start 비-0(rc=$rc, ready 아님) — 자동 재시도 금지, --retry-of <dispatch_id> 로만 재시도(설계 §3.3)" >&2
     if [ "$readonly_flag" -eq 0 ]; then
-      echo "spawn: 원장 슬롯 유지 — outcome_unknown 가능성(워커 생존 가능). 재시도 전 'release --task $task' 로 명시 해제 필요" >&2
+      local stop_id; stop_id=$(printf '%s' "$resp" | jq -r '.result.dispatchId // empty' 2>/dev/null)
+      advise_slot_cleanup spawn "$task" "$stop_id"
     fi
     echo "spawn: 응답 JSON(stage/failedStage/setup/effects/residualResources/recovery): $RUNDIR/last-worker-start.json" >&2
     # 정확 복구 안내 — 봉투 최상위 .id 가 요청 상관ID다(c22-probe P0-2). 위 --retry-of 안내는 유지한다:
@@ -477,7 +514,9 @@ cmd_handoff() {
   hrc=$?
   printf '%s' "$hresp" > "$RUNDIR/last-handoff.json"
   if [ "$hrc" -ne 0 ]; then
-    echo "handoff: worker-start 비-0(rc=$hrc, ready 아님) — 원장 슬롯 유지(outcome_unknown 가능). 재시도 전 'release --task $task' 로 명시 해제 필요" >&2
+    echo "handoff: worker-start 비-0(rc=$hrc, ready 아님)" >&2
+    local stop_id; stop_id=$(printf '%s' "$hresp" | jq -r '.result.dispatchId // empty' 2>/dev/null)
+    advise_slot_cleanup handoff "$task" "$stop_id"
     die "handoff: worker-start 실패 — 응답: $RUNDIR/last-handoff.json"
   fi
   # stdout 계약 = dispatch id 1줄(봉투 JSON 전문을 흘리면 호출자의 D=$(... handoff ...) 가 결정적으로 깨진다)
@@ -540,6 +579,14 @@ cmd_gate() {
       *) die "gate: 인식하지 않는 인자 '$1'" ;;
     esac
   done
+  # ★파서는 서브액션과 무관하게 --retry-request 를 받지만 배선은 create 아암 하나뿐이다 —
+  #   resolve/list 에서 조용히 버리면 호출자가 "정확 복구를 걸었다"고 오신한 채 진행한다.
+  #   cmd_wait 이 세운 「선언된 미배선 — 침묵 잔여 금지」와 같은 규범을 여기서는 *거부*로 집행한다
+  #   (CONTEXT.md 배선 범위 = run·task·spawn·gate create 4개).
+  case "$action" in
+    resolve|list)
+      [ -z "$retry_request" ] || die "gate $action: --retry-request 거부 — 배선 대상은 'gate create' 뿐이다. gate-$action 은 변이가 아니라 회수할 mutation 이 없다(§11.10 ④ⓐ · CONTEXT.md 배선 범위 4). 침묵 폐기 대신 거부한다" ;;
+  esac
   # DRYRUN 정지점 앞에서 조립한다 — 뒤면 emit 이 부분집합 argv 가 된다(§11.10 ②).
   local rr=()
   [ -n "$retry_request" ] && rr=(--retry-request "$retry_request")
@@ -586,7 +633,9 @@ cmd_gate() {
 cmd_gpt() {
   # 모델 인자 이름이 '--gpt-model' 인 이유: "이 캐리어의 어느 서브커맨드도 '--model' 리터럴을
   # 수용하지 않는다"는 불변식을 예외 없이 만들기 위함(예외가 있으면 가드가 조건부가 된다).
-  local role="" prompt="" gpt_model="gpt-5.6-sol" out=""
+  # 기본 슬롯을 변수에 둔다 — 아래 경고 판정이 초기값과 같은 리터럴을 두 번 적으면 드리프트한다.
+  local gpt_model_default="gpt-5.6-sol"
+  local role="" prompt="" gpt_model="$gpt_model_default" out=""
   while [ $# -gt 0 ]; do
     case "$1" in
       --role) role="${2:-}"; [ -n "$role" ] || die "gpt: --role 값 필요(executor|verifier)"; shift 2 ;;
@@ -597,6 +646,12 @@ cmd_gpt() {
     esac
   done
   [ -n "$prompt" ] || die "gpt: --prompt 필수"
+  # ★비차단 경고 — verifier 아암은 model_reasoning_effort=ultra 를 **하드코딩**하는데 --gpt-model 은
+  #   슬롯을 바꾼다. SSOT(docs/ai-context/cross-family-review.md)가 이 조합을 경고한다:
+  #   "sol 이외 슬롯으로 바꾸려면 이 절 전체 재검증 필수(luna=ultra 침묵 강등·5.5/5.4=max/ultra 400)".
+  #   모델 선택은 호출자 권한이므로 차단하지 않는다 — 조용히 나가는 것만 막는다.
+  [ "$gpt_model" = "$gpt_model_default" ] || \
+    echo "$SELF: 경고(비차단) — --gpt-model '$gpt_model' 는 기본 슬롯('$gpt_model_default')이 아니다. verifier 아암이 model_reasoning_effort=ultra 를 하드코딩하므로 슬롯 교체 시 조합 재검증 필수(luna=ultra 침묵 강등 · 5.5/5.4=max/ultra 400 — docs/ai-context/cross-family-review.md)" >&2
   case "$role" in
     executor)
       # 경로 B — 규율 아래 실행자(하네스 안, 설계 §4.3). 대상 문서는 stdin 으로 전달(호출자 책임).
