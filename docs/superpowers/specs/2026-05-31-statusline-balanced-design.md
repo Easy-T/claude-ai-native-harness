@@ -1,10 +1,30 @@
 # Status line — design spec (durable, statusline subsystem)
 
-**Date:** 2026-05-31 (v1, RPI cycle 11) — **revised in-place 2026-06-11 (v2, RPI cycle 22); v2.1 live-feedback corrections 2026-06-12 (same cycle); v2.2 GPT-slot window remap 2026-07-12 (gpt-5.6 Sol/Luna swap)**
+**Date:** 2026-05-31 (v1, RPI cycle 11) — **revised in-place 2026-06-11 (v2, RPI cycle 22); v2.1 live-feedback corrections 2026-06-12 (same cycle); v2.2 GPT-slot window remap 2026-07-12 (gpt-5.6 Sol/Luna swap); v3 native rate_limits 2026-09-28 (RPI cycle 76 — CCS retired)**
 **Source authority:** https://code.claude.com/docs/en/statusline + live OAuth usage API probe (2026-06-11)
 **v2 rationale:** user requested screenshot-parity multiline redesign (Desktop/statusline.png) with
 5h/7d rate-limit bars, Fable 5 mapping, icons/colors. v1 "Out of scope" items (multi-line,
 rate limits) are now in scope by explicit user request; v1 single-line layout is **superseded**.
+
+## v3 (2026-09-28, RPI cycle 76): L4/L5 from Claude Code's own `rate_limits` — supersedes "Lines 4/5" data source, the usage-cache half of caching item 1 (the jq pass now reads stdin only — no `--slurpfile` caches, no refresh flag), caching items 2, 3, 5, 6, and verification items 4–6
+
+- **Trigger.** CCS was retired on 2026-09-28 (memory `project_ccs_routing.md`). The two CCS token files under
+  `~/.ccs/cliproxy/auth` stopped refreshing on 2026-08-21, and both usage caches had been `{}` since 2026-09-26,
+  so L4/L5 showed only `…`.
+- **Measured (2026-09-28, Claude Code 2.1.283).** The statusline stdin now carries
+  `rate_limits.five_hour.used_percentage` (integer), `rate_limits.five_hour.resets_at` (epoch seconds), and the same
+  two fields under `rate_limits.seven_day`. This is the logged-in account's own data.
+- **Decision.** L4/L5 render from stdin `rate_limits`, one account, no tag:
+  `🕐 5H Limit ████░░░░ 18% (1h23m)` · `📅 7D Limit ███░░░░░ 27% (10/2 6am)`. The 8-cell bar, thresholds, reset
+  formats, and the 5-line layout are unchanged, so no new visual decision is made. If a field is missing (API-key
+  auth, an older Claude Code, or before the first API response), the line shows the `…` placeholder.
+  `resets_at` is accepted as epoch seconds (current) or as an ISO-8601 string (robustness). An unparseable
+  value drops only the reset suffix (the bar still renders; field alignment is kept).
+- **Removed.** Account config (`ACCTS`), credential-file reads, the OAuth usage API call, the background refresh
+  subshell, its lock, the cache files, and the `(stale)` marker. The statusline no longer reads any credential file
+  and makes no network call.
+- **Tests.** Fixtures carry `rate_limits`; the cache seeding is gone; a fixture without `rate_limits` pins the
+  placeholder; the ≤1000-byte budget is kept.
 
 ## v2 Decision (user-approved 2026-06-11): 5-line layout, emoji icons, two accounts side-by-side
 

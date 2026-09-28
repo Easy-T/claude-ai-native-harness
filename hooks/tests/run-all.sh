@@ -587,7 +587,7 @@ test_acw_model() {
   echo "$out" | grep -q "/$want_win" && PASSED=$((PASSED+1)) || FAILED_LIST+=("auto-compact-watch/$name (want win=$want_win, got: $out)")
 }
 test_acw_model "60-opus48-1M"   claude-opus-4-8   480000 1000000
-test_acw_model "61-sonnet-200k" claude-sonnet-4-6 100000 200000
+test_acw_model "61-haiku-200k"  claude-haiku-4-5  100000 200000
 
 # rot-timing (GAP-018): 350K(rot-zone, opus 1M)에서 PCT=55는 무경고(WARN 45%→THRESHOLD 450K>350K)=재캘리브 前 문제,
 # PCT=40은 경고(WARN 30%→THRESHOLD 300K<350K)=rot 이전 조기 발화. auto-compact-watch 파라메트릭(WARN=PCT-10) 관계 가드.
@@ -766,9 +766,12 @@ PS_TILDE=$(mktemp "$SCRATCH/ps-XXXXXX.md"); printf '# Plan\n~~~\n**Status:** act
 test_lib "144-planstatus-tilde-fence-skip" "completed" "$(bash -c 'source "$HOME/.claude/hooks/_common.sh"; plan_status "$1"' _ "$PS_TILDE")"
 # model-window.js: 모델명 -> 컨텍스트 창 (CONTEXT_LIMIT override)
 test_lib "78-modelwin-opus"     "1000000" "$(node "$LIB/model-window.js" claude-opus-4-8)"
-test_lib "79-modelwin-default"  "200000"  "$(node "$LIB/model-window.js" claude-sonnet-4-6)"
+test_lib "79-modelwin-default"  "200000"  "$(node "$LIB/model-window.js" claude-haiku-4-5)"
 test_lib "80-modelwin-override" "300000"  "$(CONTEXT_LIMIT=300000 node "$LIB/model-window.js" claude-sonnet-4-6)"
 test_lib "121-modelwin-fable"   "1000000" "$(node "$LIB/model-window.js" claude-fable-5)"
+# C25 spec §22.2: 세대 규칙 영구 회귀 — Opus 5.5(사용자 결정) + 규칙이 200K→1M 으로 뒤집은 Sonnet 4.6 양성
+test_lib "212-modelwin-opus55"   "1000000" "$(node "$LIB/model-window.js" claude-opus-5-5)"
+test_lib "213-modelwin-sonnet46" "1000000" "$(node "$LIB/model-window.js" claude-sonnet-4-6)"
 # GAP-010 (C9): /1m/ 행 커버 (opus/fable 미매칭·"1m" 토큰만으로 1M 해소) + 프로덕션 [1m] suffix ID (autocompact 워크어라운드 load-bearing)
 test_lib "193-modelwin-1m"            "1000000" "$(node "$LIB/model-window.js" claude-neo-1m)"
 test_lib "194-modelwin-opus-1m-suffix" "1000000" "$(node "$LIB/model-window.js" 'claude-opus-4-8[1m]')"
@@ -1179,6 +1182,14 @@ test_smp "24-rule-c3-fanout-declared" 0 0 "$(mk_wf_event script "$WF_FANOUT_OK" 
 test_smp "25-rule-c3-nonfable-ok" 0 0 "$(mk_wf_event script "$WF_FANOUT" "$SMP_SONNET_T" "smp25-$$")"
 # 26: floor — sonnet 세션 + 실행자 opus 상향 + 검증자 sonnet → 작업자 floor 3 > 2 위반 ALERT (C16 임무-분리 — 산식 결과 동일)
 test_smp "26-rule-c2-floor-worker" 0 1 "$(mk_wf_event script "$WF_EX_UP" "$SMP_SONNET_T" "smp26-$$")"
+# 86/87 (C25 spec §22.1): opencodex 생성 래퍼 ocx-* 는 model 을 고정 선언 → C3 비대상. 패턴이 다른 무선언 스폰을 가리면 안 됨
+WF_OCX="export const meta = {name: 'x', description: 'x'}
+await agent('r', {agentType: 'ocx-gpt-6-sol'})"
+WF_OCX_MIX="export const meta = {name: 'x', description: 'x'}
+await agent('r', {agentType: 'ocx-gpt-6-sol'})
+await agent('s', {agentType: 'general-purpose'})"
+test_smp "86-rule-c3-ocx-generated-exempt" 0 0 "$(mk_wf_event script "$WF_OCX" "$SMP_FABLE_T" "smp86-$$")"
+test_smp "87-rule-c3-ocx-no-mask" 0 1 "$(mk_wf_event script "$WF_OCX_MIX" "$SMP_FABLE_T" "smp87-$$")"
 
 # --- C13 closeout: GPT 교차패밀리 리뷰 [C] REAL 정정 (spec §12.6) ---
 WF_EX_UP_INHERIT="export const meta = {name: 'x', description: 'x'}

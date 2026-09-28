@@ -6,6 +6,7 @@
 #
 # 안전 불변식(데이터손실 0): cwd 가 */.claude/worktrees/<name> 안일 때만 + git rev-parse 로 *링크된*
 #  워크트리(git-dir≠git-common-dir)임이 확인될 때만 동작. reparse 잔존/powershell 부재 시 rm 생략(잔존).
+#  + 미커밋 작업(ignored 제외)이 없을 때만(GUARD 6, cycle-76) — status 실패도 보존.
 #  `git worktree remove --force` 절대 사용 안 함(repo non-obvious #61 1차 범인). SessionEnd 는 차단 불가 → 항상 exit 0.
 # matcher(settings.json)로 clear/resume/bypass_permissions_disabled 제외(세션 지속·모호 → 활성 워크트리 삭제 위험).
 source "$HOME/.claude/hooks/_common.sh"
@@ -89,6 +90,18 @@ if [ -d "$_WT_MK_DIR" ]; then
       hook_log "worktree-teardown" "$WT_ROOT" "PASS" "noop:concurrent-owner=$(basename "$_omk")"; exit 0
     fi
   done
+fi
+
+# GUARD 6 (cycle-76, spec §12): 미커밋 작업이 있는 워크트리는 지우지 않는다 — 식별 경로(cwd/마커) 무관 불변식.
+#  2026-09-28 사고: 워크트리 안에서 띄운 headless 자식 `claude -p` 의 SessionEnd(reason=other, cwd=워크트리, 부모 마커 없음)가
+#  부모 세션의 활성 워크트리를 삭제. ignored 파일(node_modules 등)은 dirty 로 세지 않는다. status 실패 = dirty(fail-safe).
+#  leftover ≠ data loss (C5 와 같은 편향).
+_WT_ST=$(git -C "$WT_ROOT" status --porcelain --untracked-files=normal 2>/dev/null); _WT_RC=$?
+if [ "$_WT_RC" -ne 0 ]; then
+  hook_log "worktree-teardown" "$WT_ROOT" "PASS" "noop:status-failed rc=$_WT_RC"; exit 0
+fi
+if [ -n "$_WT_ST" ]; then
+  hook_log "worktree-teardown" "$WT_ROOT" "PASS" "noop:dirty-worktree n=$(printf '%s\n' "$_WT_ST" | wc -l | tr -d ' ')"; exit 0
 fi
 
 BRANCH=$(git -C "$WT_ROOT" rev-parse --abbrev-ref HEAD 2>/dev/null)

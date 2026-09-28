@@ -124,6 +124,15 @@ mut_skill_conditional() { sed -i 's/실재하는/존재하는/g' "$1/skills/star
 #   *주석은 남기고 실효 라인만* 지우므로, 마스킹이 살아있으면 GREEN(=테스트 실패)이 된다.
 mut_verify_item16_drop() { sed -i -E 's/^(for j in [a-z-]+ [a-z-]+ [a-z-]+ [a-z-]+) workflow-spawns; do/\1; do/' "$1/setup/verify-setup.sh"; }
 mut_c3_exclude_drop()    { sed -i -E "s/^([[:space:]]*)explore-strict\|execute-strict\|review-strict\|'\\*'\\)/\\1execute-strict|review-strict|'*')/" "$1/hooks/surface-model-policy.sh"; }
+# Mutator C25-a/b/c — seal #47 패턴 면제 (C25 spec §22.1): 라이브 디스크에 ocx 래퍼가 없어도 vacuous 가 되지 않게
+# 변이가 직접 합성 래퍼를 심는다. a = 패턴 arm 삭제(생성 래퍼 미커버 drift), b = 마커 없는 ocx-*(전제 ① 위반),
+# c = 마커는 있으나 model: inherit(전제 ② 위반).
+mut_c3_ocx_pattern_drop() {
+  printf -- '---\nname: "ocx-zz-synth"\nmodel: "ocx-claude-native--zz"\n---\n<!-- generated-by: opencodex -->\n' > "$1/agents/ocx-zz-synth.md"
+  sed -i '/^[[:space:]]*ocx-\*) ;;/d' "$1/hooks/surface-model-policy.sh"
+}
+mut_c3_ocx_unmarked() { printf -- '---\nname: "ocx-zz-handmade"\nmodel: sonnet\n---\nhand-written\n' > "$1/agents/ocx-zz-handmade.md"; }
+mut_c3_ocx_marked_inherit() { printf -- '---\nname: "ocx-zz-inh"\nmodel: inherit\n---\n<!-- generated-by: opencodex -->\n' > "$1/agents/ocx-zz-inh.md"; }
 # Mutator 14 — seal #49 (C16 §15.3): layer-yield 축적 대장을 삭제하면 발화해야 한다
 #   (필드 parity 만 있고 대장이 없으면 per-layer 수율이 축적되지 않아 floor·배분 재심 데이터가 죽는다).
 mut_yield_ledger_drop() { rm -f "$1/docs/ai-context/review-yield.md"; }
@@ -231,6 +240,9 @@ assert_seal_fires "explore_websearch" mut_explore_websearch  "역할×모델 매
 assert_seal_fires "skill_conditional" mut_skill_conditional  "skill context_paths 무조건 지시"
 assert_seal_fires "verify_item16_drop" mut_verify_item16_drop "hooks/lib 매니페스트 drift"
 assert_seal_fires "c3_exclude_drop"    mut_c3_exclude_drop    "Rule C3 제외목록 drift"
+assert_seal_fires "c3_ocx_pattern_drop" mut_c3_ocx_pattern_drop "Rule C3 제외목록 drift"
+assert_seal_fires "c3_ocx_unmarked"     mut_c3_ocx_unmarked     "Rule C3 패턴 면제 전제 위반"
+assert_seal_fires "c3_ocx_marked_inherit" mut_c3_ocx_marked_inherit "Rule C3 패턴 면제 전제 위반"
 assert_seal_fires "seal49_ledger_missing" mut_yield_ledger_drop "layer-yield drift"
 assert_seal_fires "exec_fm_model_s5"    mut_exec_model    "execute-strict model"
 assert_seal_fires "exec_fm_model_s45"   mut_exec_model    "역할×모델 매트릭스 봉인 붕괴"

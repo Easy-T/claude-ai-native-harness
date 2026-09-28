@@ -29,9 +29,12 @@
   - `doctor.sh`가 권한이 느슨하면(POSIX) 경고한다.
 - 모델 트래픽은 **Anthropic API 직결**이다(C20 컷오버, 2026-08-11 — `settings.json` `env` 에
   `ANTHROPIC_BASE_URL` 부재로 확인). 과거의 로컬 CCS 프록시(`127.0.0.1:8317`) 경유는 **종료**됐다.
-  CCS 프로세스는 생존하나 모델 트래픽 경로가 아니며 statusline 의 rate-limit 조회에만 쓰인다.
+  CCS(CLIProxy)는 2026-09-28 **퇴역** — 스케줄 3종 Disable·프로세스 중지·방화벽 허용 규칙 비활성
+  (`0.0.0.0:8317` 바인드 + 공개 기본 키 노출 해소). `~/.ccs` 는 롤백·`ccs-websearch` MCP 용으로만 보존.
+  statusline 은 v3(cycle-76)부터 Claude Code stdin `rate_limits` 만 읽는다 — 자격증명 파일 읽기·네트워크 호출 0.
+  교차패밀리 리뷰 경로 A 의 codex CLI 트래픽은 opencodex(`127.0.0.1:10100`)를 경유한다.
 - **브리지 실행**(`bin/claude-ocx`)을 쓰는 경우에 한해 트래픽이 로컬 opencodex 프록시
-  (`127.0.0.1:10100`) 경유가 된다 — 그 경로의 신뢰·가용성은 하네스 범위 밖에서 관리되며,
+  (`127.0.0.1:10100`, loopback 전용·Task Scheduler 서비스 `opencodex-proxy` 로 로그온/잠금해제 시 기동) 경유가 된다 — 그 경로의 신뢰·가용성은 하네스 범위 밖에서 관리되며,
   프록시 미가동 시 `/healthz` 프로브가 **exit 1 로 실패**해 네이티브로 조용히 새지 않는다.
 
 ## `enforce-secret-scan` 가드
@@ -57,8 +60,9 @@
   - **POSIX `rm -rf`만** · **`git worktree remove --force` 절대 미사용**(정션 추종 1차 범인).
   - **cd-out 정리(fallback) — 마커는 삭제권한 아님**: 세션이 워크트리 밖으로 cd해도(RPI closeout가 메인루트 이동) 정리되도록 SessionStart가 `session_id`-키 마커(`~/.claude/worktrees-marker/<sid>`=WT_ROOT)를 기록하고 SessionEnd가 *자기 SID* 마커만 소비. 소비 경로도 위 가드(linked-worktree `--absolute-git-dir` 증명 등)를 **동일 통과해야만** `rm`(마커 맹신 금지 — 스테일/위조 경로는 비-worktree로 해소→no-op). 빈/`unknown` SID는 마커 write·consume 모두 skip(동시 세션의 'unknown' 마커 공유 → 타 세션 *활성* 워크트리 오정리 방지).
   - **세션-지속 보호**: matcher가 `clear`/`resume`/`bypass_permissions_disabled` 제외(세션이 같은 cwd로 계속될 수 있어 활성 워크트리 삭제 위험) — `prompt_input_exit`/`logout`/`other`만. stdin에 `reason` 있으면 자가-게이트 추가.
+  - **미커밋 보존(GUARD 6, cycle-76)**: 식별 경로(cwd·마커)와 무관하게 `git status --porcelain` 이 비어 있지 않거나(미커밋 수정·ignore 안 된 미추적 파일·정션) status 가 실패하면 삭제하지 않는다. 계기=워크트리 안에서 띄운 headless 자식 세션의 SessionEnd 가 부모 워크트리를 지운 라이브 사고(2026-09-28). 수용 잔여: ignore 된 비-재생성 파일(로컬 .env 등)은 clean 워크트리 삭제 시 여전히 소실.
 - **실패 모드는 전부 "잔존"(악화 없음)**: crash 미발화·cwd 락·powershell 부재 → 삭제 안 함(오늘의 수동 상태와 동일). SessionEnd는 종료를 막을 수 없어 항상 exit 0·멱등.
-- **검증**: `hooks/tests/worktree-teardown.test.sh`(격리 temp repo E2E)가 메인 target 무사·메인/비-worktree no-op·reason 게이트·멱등·dev서버 kill·**cd-out 마커 fallback 정리·빈 SID 마커 미사용**을 실측(13/13). SessionStart 마커 write/skip/prune 은 `hooks/tests/run-all.sh`(156-160). 설계기록: `docs/superpowers/specs/2026-06-21-worktree-teardown-sessionend-design.md`(§9 cd-out 개정, 2026-06-22).
+- **검증**: `hooks/tests/worktree-teardown.test.sh`(격리 temp repo E2E)가 메인 target 무사·메인/비-worktree no-op·reason 게이트·멱등·dev서버 kill·**cd-out 마커 fallback 정리·빈 SID 마커 미사용·미커밋·미추적 정션·status 실패 보존**을 실측(35/35, cycle-76). SessionStart 마커 write/skip/prune 은 `hooks/tests/run-all.sh`(156-160). 설계기록: `docs/superpowers/specs/2026-06-21-worktree-teardown-sessionend-design.md`(§9 cd-out 개정, 2026-06-22).
 
 ## 동시-세션 격리 (concurrent-session isolation)
 - 단일 운영자라도 **병렬 Claude 세션**은 ambient 싱글톤을 공유한다: Playwright MCP chrome user-data-dir,

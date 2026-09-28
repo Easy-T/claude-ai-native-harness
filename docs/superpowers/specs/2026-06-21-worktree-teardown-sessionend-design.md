@@ -383,3 +383,56 @@ path + #61/C1–C5 invariants **unchanged**.
 After N real cycles: `git worktree list` prunable = 0 **and** `git branch --list 'worktree-*'` orphan = 0. The
 test suite pins the "marker-not-found + dir-already-removed" scenario (the harness-removed-dir case) so the sweep
 is proven to clean registration + branch while protecting active state.
+
+## 12. Uncommitted-work guard — identification-independent (2026-09-28, cycle-76)
+
+### 12.1 Incident (live, 2026-09-28 23:48)
+
+A session (B) had a linked worktree `.claude/worktrees/ops-closeout` with uncommitted changes and was working
+in it. B ran a headless child `bash ~/.claude/bin/claude-ocx -p …` (i.e. `claude -p`) **from inside that
+worktree**. The child is a full Claude Code session: its `SessionEnd` fired with `cwd` = B's worktree
+(authoritative path, §4) and `reason=other` (not excluded by the matcher), and B had **no marker** — its tool
+inputs used `~`/relative paths, so `wt_root_from_path` never matched. C5 (§10.3) therefore found nothing and the
+hook removed B's worktree (`done:rm_ok=0 branch-skip reason=other`; the dir survived only as an empty
+cwd-locked shell, and `git worktree prune` dropped the registration). No work was lost only because B's files were
+copies. This is the §10.3 residual window ("#61 disruption class — lose an active peer worktree's uncommitted
+work"), reached through a **new, common trigger**: nested headless sessions inherit the parent's cwd.
+
+### 12.2 Why not fix identification again
+
+Every earlier fix (§9 marker, §10 PreToolUse WRITE, C5) made *identification* better, and each one left a window
+because the ending session's ownership is inferred from signals that can be missing or can point at a peer. A
+child that edits a file in the parent's worktree would even write its **own** marker and look like the owner.
+cycle-41 (§11) drew the lesson: **safety comes from invariants, not identification.**
+
+### 12.3 Decision — never delete a worktree that holds uncommitted work
+
+After GUARD 5 and before any destructive step:
+
+- `git -C "$WT_ROOT" status --porcelain --untracked-files=normal`
+  - **non-empty** (modified/staged tracked files or untracked, non-ignored files) → `noop:dirty-worktree`, exit 0.
+  - **the command fails** → `noop:status-failed` (fail-safe: an unreadable state is treated as dirty).
+- Ignored files (`node_modules`, build output) do not count: real projects ignore them because they are
+  regenerable. **Accepted residual:** an ignored file that is *not* regenerable (a local `.env`, say) is still
+  lost when a clean worktree is removed — the same exposure as before this guard, now confined to files the
+  project itself chose to keep out of version control.
+- Clean worktrees (all work committed, or nothing done) are removed exactly as before; branch policy (§4 STEP D)
+  is unchanged.
+
+Consequence: a session that ends with uncommitted work in its worktree now leaves the worktree behind
+(**leftover ≠ data loss**, the bias C5 already chose). The worktree can be resumed or removed by hand. The
+SessionStart sweep (§11) still handles only registrations whose dir is gone, so it never touches these.
+
+### 12.4 Tests (E2E, `hooks/tests/worktree-teardown.test.sh`)
+
+- Fixture realism: the fixture repo ignores `node_modules` (the junction) and commits the worktree's own file,
+  as real projects do. The existing deletion cases (T1/Ta/Tb) therefore still exercise the junction-safety path
+  on a *clean* worktree.
+- **Tf** (new): dirty worktree (an untracked file + a modified tracked file) with `cwd`-authoritative input →
+  worktree, files, and branch preserved; log `noop:dirty-worktree`.
+- **Tg** (new): dirty worktree reached through the owner's **own marker** (the §9 fallback path) → also
+  preserved. The guard does not depend on the identification path. After the work is reverted (clean), the
+  same worktree is removed normally — the clean path does not regress.
+- **Th** (new): a worktree whose only content is a *non-ignored* junction (untracked) → preserved, and the
+  junction target (the simulated main tree) is untouched.
+- **Ti** (new): `git status` fails (corrupted worktree index) → preserved, log `noop:status-failed`.

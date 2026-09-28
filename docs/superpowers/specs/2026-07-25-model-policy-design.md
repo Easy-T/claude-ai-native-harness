@@ -741,6 +741,7 @@ p3 **SILENT** · p4 ALERT · p5 **ALERT** · p6 ALERT · p7 SILENT(기지 잔여
 | `Plan` (builtin) | 파일 부재 | **세션 상속** (C15 실측: 동일) | 있음 |
 | `Explore` (builtin) | 파일 부재 | **★opus 티어 — 상속 아님** (C15 실측: fable 세션에서 `claude-opus-5[1m]`, Workflow+Agent 2경로 일치) | **없음**(오히려 하향) |
 | `claude-code-guide` | 파일 부재(플러그인/빌트인) | **★haiku 티어 — 상속 아님** (C15 실측: `gpt-5.6-luna` = 이 머신 haiku 티어 라우팅) | 없음(하향) |
+| `ocx-*` (opencodex 생성 래퍼) | 프록시 라우트 고정 선언(`ocx-claude-native--…`·`opus`) + `generated-by: opencodex` 마커 | 선언 model(프록시가 고정) | **없음** — ④ 생성기-소유 패턴 면제(2026-09-28 C25 개정, §22.1) |
 
 ※ C15 실측 방법·신뢰성 근거·바인딩의 버전 의존성(수용 잔여)은 §14.2.
 
@@ -1392,7 +1393,7 @@ Gate P 델타 재심 2회가 이 규약으로 실행됨(1회차 4항 → 2회차
    test-driven-development 78줄) + 문구 정련 10건. 판정 근거 = **보안 표면 0**(위임 agent명/allowed-tools/
    권한/원격조작 명령 변경 없음) + 정상 릴리스 채널. skill-creator 8버전 디렉터리 byte-동일. → 핀 재실측 갱신.
    구버전 6.1.1 캐시 잔존은 cksum 계산에 포함(결정론 유지 — find|sort|cat 전량 해시).
-2. **[P1] model-window.js opus-4-(7|8) regex = 유지(사유)**: 사실로서 정확(실제 1M 창 모델)·이 머신
+2. **[P1] model-window.js opus-4-(7|8) regex = 유지(사유)** — *(2026-09-28 C25: 세대 규칙으로 supersede, §22.2)*: 사실로서 정확(실제 1M 창 모델)·이 머신
    라우팅 이력상 재등장 가능·제거 이득 0 vs 소비자 4건(픽스처 78·60·189·190) + README 동반 비용.
    model-window는 "아는 모델의 창 목록"이지 "현행 라우팅 목록"이 아니다. settings.example은 opus-5로
    이미 무관(실측 — opus-4 리터럴 0건).
@@ -2685,3 +2686,55 @@ C23 은 조항이 착륙하기 *전에* 그 조항의 내용을 **게이트 프�
 **수용 잔여**: 이 판정은 C21·C22 BLOCKER 를 「반증 입력 아님」으로 **처분**하지만, 그것들이 실재
 결함이었다는 사실은 부정하지 않는다. 지시문-축 보강이 그 결함들을 잡았을지는 **미측정**이며 —
 소급 재현이 불가능하므로 — 앞으로의 사이클로만 검증된다.
+
+## §22. C25 설계 결정 (cycle 76, in-place 개정, 2026-09-28 — opencodex 로스터 정합)
+
+**배경.** CCS 가 퇴역하고 opencodex(`ocx`)가 상시 가동되면서 두 가지가 실측됐다
+(메모리 `project_ccs_routing.md`·`project_opencodex_service.md`).
+
+1. opencodex 의 `ocx claude` 는 `injectAgents` 로 `~/.claude/agents/ocx-<route>.md` 래퍼를 **생성**한다.
+   - 이 래퍼들은 frontmatter 에 프록시 라우트 model(`ocx-claude-native--gpt-6-sol` 등, `ocx-self` 는 `opus`)을
+     **고정 선언**하고, 본문에 `<!-- generated-by: opencodex -->` 마커를 단다.
+   - 로스터는 opencodex 업데이트마다 바뀐다. 같은 날 세션 중 `gpt-5.x` 래퍼가 `gpt-6-{sol,luna,astra}` 로
+     교체되는 것을 실측했다.
+2. Claude 5 세대(`claude-opus-5-5`, Sonnet 4.6+)가 1M 창으로 나왔다. 세션 모델은 alias 가 해소된 ID 로
+   기록되며 `[1m]` 이 붙지 않는다.
+
+### §22.1 Rule C3 — 생성기-소유 패턴 면제 (§13.3 ④ 신설)
+
+- **판정 축은 §13.3 그대로다**(model 선언의 존재). ocx-* 래퍼는 model 을 선언하므로 세션을 상속하지 않고,
+  C3 대상이 아니다. 지금까지 seal #47 이 이 래퍼들을 "hook 미등재"로 FAIL 시킨 것은 제외 목록이
+  **이름 나열**이라서였다.
+- **채택 = 패턴 arm `ocx-*) ;;`**: 제외 목록 ①축(explore-strict 등 이름)에 **생성기-소유 패턴**을 하나 추가한다.
+  명명 정리: §13.3 표에서는 새 행 ④이고, hook 의 제외 사유 분류로는 ①축("model 선언 보유")의 패턴형 인스턴스다.
+  - 기각한 대안 ⓐ **이름 나열 유지**: opencodex 업데이트마다 hook·seal 을 사람이 고쳐야 한다. 로스터가
+    회전하는 동안 #47 이 계속 빨갛다(이번 세션 실측).
+  - 기각한 대안 ⓑ **hook 이 frontmatter 를 런타임에 읽기**: 사용자 결정 7(2026-09-28, 생성기-소유 패턴 면제)이
+    먼저 이 방향을 확정했다. 기술적으로도 이 안은 판정 축을 바꾸지 않은 채(둘 다 "model 선언 존재") hook 이
+    에이전트 레지스트리 해소(프로젝트·플러그인·사용자 디렉터리 우선순위)를 재구현하게 만들어, 새 오판정 표면만 늘린다.
+- **패턴 면제의 전제(seal #47 이 봉인)**: 디스크의 `agents/ocx-*.md` 는 전부 ① 생성기 마커를 갖고
+  ② `inherit` 이 아닌 model 을 선언해야 한다. 둘 중 하나라도 어긋난 `ocx-*` 파일은 **FAIL** 이다 — 이름을 따로
+  등재해도 면제되지 않는다(`ocx-` 접두는 생성 래퍼 전용). 손으로 쓴 `ocx-foo` 가 model 없이 들어와 C3 를 조용히
+  빠져나가는 경로를 막는다. 해소 방법은 이름 변경뿐이다(model 을 선언해도 마커가 없으면 FAIL).
+- **수용 잔여**:
+  - 디스크에 파일이 없는 `agentType: 'ocx-…'` 스폰(오타 등)도 패턴으로 면제된다. 이 경우 Claude Code 가
+    스폰 자체를 거부하므로 역류는 일어나지 않는다.
+  - ocx-* 스폰에 `model:'inherit'` 를 명시해도 면제된다. 제외 목록 ①축(explore-strict 등)의 기존 동작과 같다 —
+    생성 래퍼의 frontmatter model 이 호출 인자보다 우선하는지는 이 사이클 범위 밖이다.
+- seal-regression 변이(3종): 합성 생성기 래퍼를 심고 패턴 arm 을 지우면 #47 이 발화해야 한다. 마커 없는
+  `ocx-*` 래퍼(전제 ①)와 마커는 있으나 `model: inherit` 인 래퍼(전제 ②)를 심어도 발화해야 한다. 라이브 디스크에 ocx 래퍼가 없는 머신에서도 vacuous 가 되지 않도록
+  변이가 직접 심는다.
+
+### §22.2 model-window — 세대 규칙 (§P1 "opus-4-(7|8) 유지" 판정의 supersede)
+
+- 종전 MAP `[/opus-4-(7|8)/, 1M]` 은 새 세대마다 한 줄씩 추가해야 했다. 그래서 `claude-opus-5-5` 세션이
+  200K 로 오판정됐고, autocompact 안내가 틀렸다(2026-09-28 Phase A 실측).
+- **채택 = 세대 규칙** `(opus|sonnet)-(4-[6-9]|[5-9]|[1-9]\d)(?!\d)` → 1M. 여기에 `fable|mythos` → 1M 을 더한다.
+  - 새 릴리스를 자동으로 수용하고, 새 **계열**일 때만 MAP 을 추가한다.
+  - Haiku 는 규칙 밖(200K 기본값)으로 둔다. 기본값 회귀 케이스(79)는 `claude-haiku-4-5` 로 옮긴다.
+    autocompact 창 케이스 61 도 같은 이유로 sonnet → haiku(`61-haiku-200k`)로 옮긴다(Sonnet 4.6 이 1M 이 되어
+    200K 단언의 대표가 Haiku 로 바뀜).
+- **영구 회귀 케이스**:
+  - `212-modelwin-opus55`: `claude-opus-5-5` → 1M. 사용자 결정이 요구한 케이스다.
+  - `213-modelwin-sonnet46`: `claude-sonnet-4-6` → 1M. 세대 규칙이 뒤집은 판정(종전 79 는 200K 단언)을
+    양성으로 고정한다.

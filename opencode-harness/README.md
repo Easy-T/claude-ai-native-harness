@@ -16,7 +16,7 @@ clean copy to a temp dir (keeping `package.json` â€” required for plugin load â€
 stripping the canonical exclusion set: build-box tooling + generated/VCS files; see
 Ship) and inject a TEST-ONLY model backend at runtime:
 
-    bash _oracle/oc-test.sh "say hello"                  # via the CCS proxy backend
+    bash _oracle/oc-test.sh "say hello"                  # via the opencodex proxy backend
     node _oracle/capture-server.mjs out.jsonl 8319 &     # capture outbound requests
     bash _oracle/oc-capture.sh 8319 "say OK"             # ground-truth system-prompt check
 

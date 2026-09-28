@@ -8,16 +8,27 @@
 
 | 플러그인 | version | gitCommitSha |
 |---|---|---|
-| superpowers | 6.2.0 | `6efe32c9e2dd002d0c394e861e0529675d1ab32e` |
-| context7 | ba53b2ab03ad | `ba53b2ab03add41f11894c9326d8ff98fe4b5192` |
-| skill-creator | ba53b2ab03ad | `ba53b2ab03add41f11894c9326d8ff98fe4b5192` |
-| playwright | ba53b2ab03ad | `ba53b2ab03add41f11894c9326d8ff98fe4b5192` |
+| superpowers | 6.4.1 | `5bf4e78011075bcfc0dc295f0724994cd123ee71` |
+| context7 | fa59bc903774 | `fa59bc9037741ecfa131aa27938272605710d7b2` |
+| skill-creator | fa59bc903774 | `fa59bc9037741ecfa131aa27938272605710d7b2` |
+| playwright | fa59bc903774 | `fa59bc9037741ecfa131aa27938272605710d7b2` |
 | claude-md-management | 1.0.0 | `7bc347b89aaa7f1e02c03617b8d163243d86ecce` |
 
 <!-- 기계검증: 아래 skill-cksum 은 session-start-audit 드리프트 검사와 verify-setup seal #40 이 소비. 캐시 SKILL.md 전체 결정론 해시(`find plugins/cache/claude-plugins-official -name SKILL.md | sort | xargs cat | cksum`). -->
-skill-cksum: 1583290756
-skill-count: 37
+skill-cksum: 252811375
+skill-count: 33
 
+<!-- 핀 갱신 이력: 2026-09-29 (C25 T6) — 절차 ② 정당 업데이트 판정(explore-strict opus 보안 표면 diff 리뷰, LEGIT-UPDATE):
+  superpowers 6.2.0→6.3.0→6.4.1(installed_plugins.json lastUpdated 09-25T15:38 · 6.3.0 캐시 orphaned_at 동시각 = 정상
+  마켓플레이스 교체) + context7/skill-creator/playwright fa59bc903774 교체(lastUpdated 09-28). 판정 근거: hooks.json·
+  run-hook.cmd 동일, session-start 는 Muse 분기만 추가(자기 SKILL.md 만 읽음), 신규 스크립트(task-start/task-done·
+  sdd-workspace 등)는 자기 작업공간 쓰기만 — 네트워크·자격증명 접근·우회 플래그·프롬프트 인젝션 0, 외부 전송
+  (`gh issue create`)은 승인 게이트 뒤. 행동 변화(보안 무관): executing-plans 가 task 사이 확인 없이 연속 실행
+  (파괴적·보안·merge/push·계획 붕괴에서만 정지) — 하네스 Phase I (b) 경로에 영향, 사이클 보고에 표면화.
+  한계: 6.2.0 캐시는 이미 삭제돼 6.2.0→6.3.0 구간은 릴리스 노트로만 재구성. context7·playwright 는 SKILL.md 없음,
+  skill-creator 캐시 3개 dir byte-동일. ★명명 특성 재관찰: fa59bc9…·5bf4e78… 는 이 하네스 repo 에 **없는 객체**
+  (`git cat-file -t` 실패) — 07-17 관찰("캐시 버전명 = 로컬 하네스 커밋 sha")은 이번에 성립하지 않는다. cksum 이
+  유일한 실검증이라는 결론은 불변. -->
 <!-- 핀 갱신 이력: 2026-08-02 (C16-F-1) — 절차 ② 정당 업데이트 판정: superpowers 6.1.1→6.2.0(lastUpdated
   07-25) + context7/skill-creator/playwright 캐시 버전 디렉터리 추가(디렉터리명=하네스 repo sha — C10 명명
   특성 재확인). 콘텐츠 diff 실측(cmp 14/14 전수, C16 stage2 정정): 13/14 변경(byte-동일은 using-superpowers만)

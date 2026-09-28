@@ -38,7 +38,7 @@ _Avoid_: "stale spec"(드리프트로 오인).
 _Avoid_: "강제"(advisory 표면과 혼동 금지).
 
 ### worktree teardown (정션-안전 삭제)
-SessionEnd hook `worktree-teardown.sh`가 종료 세션의 *링크된* 워크트리를 삭제하는 절차. 불변식=데이터손실 0: 삭제 대상은 `git rev-parse --absolute-git-dir`로 링크 워크트리(`/worktrees/` 세그먼트 + basename==NAME)임이 증명된 단 하나; reparse point(정션)는 `rm` 전 *링크-only 선제거*(PowerShell 비재귀 `[IO.Directory]::Delete($false)`)로 제거해 정션이 `rm`에 도달 못 하게 한다. `git worktree remove --force` 미사용(정션 추종 사고 1차 범인). matcher가 `clear`/`resume` 제외(세션 지속 보호). SessionStart/End hook cwd는 항상 CLI 실행디렉터리(메인루트)지 워크트리가 아니므로(cycle-40 정정, spec §10), 워크트리 절대경로가 실제 도달하는 **PreToolUse**(enforce-rpi-cycle/bash)가 `session_id`-키 마커(`~/.claude/worktrees-marker/<sid>`=WT_ROOT)를 기록하고 SessionEnd가 자기 SID 마커를 소비하는 **fallback**을 둔다(SessionStart는 launched-from-worktree 보조; cwd가 authoritative·마커는 GUARD2/3 통과 후에만 삭제·빈 SID는 마커 skip·다른 SID 마커가 같은 WT_ROOT면 정리 보류=C5 동시성 가드). 워크트리 *디렉터리*가 harness/외부에 의해 제거돼 SessionEnd가 식별 못 하는 잔여(git 등록 prunable + `worktree-*` 브랜치 누적)는 `session-start-audit`의 **self-healing sweep**(`git worktree prune` + live worktree 미점유 고아 `worktree-*` 브랜치만 `-D`)가 식별-무관하게 청소; 활성 워크트리/타세션 브랜치/비-컨벤션 브랜치 보호(C5 원리), `.claude/worktrees` 존재 프로젝트로 게이트(spec §11).
+SessionEnd hook `worktree-teardown.sh`가 종료 세션의 *링크된* 워크트리를 삭제하는 절차. 불변식=데이터손실 0: 삭제 대상은 `git rev-parse --absolute-git-dir`로 링크 워크트리(`/worktrees/` 세그먼트 + basename==NAME)임이 증명된 단 하나; reparse point(정션)는 `rm` 전 *링크-only 선제거*(PowerShell 비재귀 `[IO.Directory]::Delete($false)`)로 제거해 정션이 `rm`에 도달 못 하게 한다. `git worktree remove --force` 미사용(정션 추종 사고 1차 범인). matcher가 `clear`/`resume` 제외(세션 지속 보호). SessionStart/End hook cwd는 항상 CLI 실행디렉터리(메인루트)지 워크트리가 아니므로(cycle-40 정정, spec §10), 워크트리 절대경로가 실제 도달하는 **PreToolUse**(enforce-rpi-cycle/bash)가 `session_id`-키 마커(`~/.claude/worktrees-marker/<sid>`=WT_ROOT)를 기록하고 SessionEnd가 자기 SID 마커를 소비하는 **fallback**을 둔다(SessionStart는 launched-from-worktree 보조; cwd가 authoritative·마커는 GUARD2/3 통과 후에만 삭제·빈 SID는 마커 skip·다른 SID 마커가 같은 WT_ROOT면 정리 보류=C5 동시성 가드). 워크트리 *디렉터리*가 harness/외부에 의해 제거돼 SessionEnd가 식별 못 하는 잔여(git 등록 prunable + `worktree-*` 브랜치 누적)는 `session-start-audit`의 **self-healing sweep**(`git worktree prune` + live worktree 미점유 고아 `worktree-*` 브랜치만 `-D`)가 식별-무관하게 청소; 활성 워크트리/타세션 브랜치/비-컨벤션 브랜치 보호(C5 원리), `.claude/worktrees` 존재 프로젝트로 게이트(spec §11). **삭제 전 GUARD 6(cycle-76, spec §12)**: 식별 경로(cwd·마커)와 무관하게 `git status --porcelain` 이 비어 있지 않으면(미커밋 수정·ignore 안 된 미추적 파일) 또는 status 가 실패하면 보존(`noop:dirty-worktree`/`noop:status-failed`) — 워크트리 안에서 띄운 headless 자식 세션의 SessionEnd 가 부모 워크트리를 지운 라이브 사고의 봉인. 안전은 식별이 아니라 불변식에서 온다(leftover ≠ data loss).
 _Avoid_: "워크트리 정리"(`git worktree prune`와 혼동), "rm 워크트리"(가드 생략 함의), "마커=삭제권한"(마커는 fallback 식별자일 뿐, GUARD2/3가 authoritative).
 
 ### anti-slop floor
@@ -108,6 +108,10 @@ _Avoid_: "무선언 취급"(C15 이전 안전-방향 붕괴 — Rule C3 오탐�
 ### builtin 자체 바인딩 (builtin self-binding)
 `agents/*.md` frontmatter 없이 CC 바이너리가 자체적으로 모델을 정하는 builtin agentType의 성질 — C15 실측: `Explore`=opus 티어·`claude-code-guide`=haiku 티어(≠세션 상속). "파일 부재 → 세션 상속" 구조 추론을 반증한 클래스(spec §14.2). CC 버전-의존 경험 사실이라 정책 계층(제외목록)에 넣지 않는다 — 업그레이드로 조용히 뒤집히면 미탐이 되므로.
 _Avoid_: "builtin 상속"(2종은 상속하지 않는다 — 과잉 일반화), "builtin frontmatter"(파일이 없다).
+
+### 생성기-소유 패턴 면제 (generator-owned pattern exemption)
+Rule C3 제외 목록의 ①축(model 을 선언하는 wrapper)을 이름 나열이 아니라 **외부 생성기가 소유한 이름 패턴**으로 커버하는 방식 — 현재 유일 인스턴스는 opencodex `injectAgents` 가 생성하는 `ocx-*`(로스터가 opencodex 업데이트마다 회전, C25 spec §22.1). 패턴은 전제(파일마다 생성기 마커 `<!-- generated-by: opencodex -->` + `inherit` 아닌 model 선언)를 seal #47 이 디스크 대조로 봉인할 때만 성립한다 — 전제가 깨진 `ocx-*` 파일은 이름 등재로도 면제되지 않는다(접두 자체가 생성기 전용).
+_Avoid_: "ocx 예외"(패턴이 아니라 개별 예외로 읽힘), "와일드카드 면제"(전제 봉인 없는 면제로 읽힘).
 
 ### 재현 픽스처 동반 (fixture-paired registration)
 non-obvious 등록 항목이 **재현 픽스처 경로를 필수 필드로** 갖는 규약(GAP-012). 등록만 있고 재현자가 없으면 다음 사이클이 같은 가정을 반복한다 — C13이 "goal은 없을 것"을 확인 없이 승격한 실패(spec §13.1)가 그 실증. 픽스처는 "테스트 통과"가 아니라 **요구 충족**을 겨눈다.

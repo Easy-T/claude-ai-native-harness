@@ -5,6 +5,7 @@
 #   T2(②)  cwd=메인 repo 루트 → no-op   T3(④) /,$HOME,빈,비-worktree 경로 → no-op
 #   T5     reason=clear → no-op(세션 지속 보호)   T6 마커일치 비-worktree(메인 repo 해소) → no-op(메인 보호)
 #   T4     idempotency: 삭제된 경로 재구동 → clean no-op
+#   Tf/Tg/Th/Ti(cycle-76) 미커밋·미추적 정션·status 실패 → 보존(GUARD 6), clean 복귀 시 정상 삭제
 set -u
 HOOK="$HOME/.claude/hooks/worktree-teardown.sh"
 PASS=0; FAIL=0
@@ -21,7 +22,8 @@ MAIN_NM="$TMP/main_nm"          # 정션 target = "메인 node_modules" 모사 (
 MARK="TEARDOWN_TESTPROC_$$"
 
 mkdir -p "$REPO"
-( cd "$REPO" && git init -q && git -c user.email=t@t -c user.name=t commit -q --allow-empty -m init )
+( cd "$REPO" && git init -q && printf 'node_modules\n' > .gitignore && git add .gitignore \
+  && git -c user.email=t@t -c user.name=t commit -q -m init )
 mkdir -p "$REPO/.claude/worktrees"
 mkdir -p "$MAIN_NM"; echo s1 >"$MAIN_NM/keep1.txt"; echo s2 >"$MAIN_NM/keep2.txt"; echo s3 >"$MAIN_NM/keep3.txt"
 TARGET_BEFORE=$(ls -1 "$MAIN_NM" | wc -l | tr -d ' ')
@@ -29,6 +31,7 @@ TARGET_BEFORE=$(ls -1 "$MAIN_NM" | wc -l | tr -d ' ')
 make_worktree(){   # 링크 워크트리 + 중첩 정션 + 가짜 dev서버 재생성
   git -C "$REPO" worktree add -q -b worktree-cycle-_test "$WT" 2>/dev/null
   mkdir -p "$WT/app/frontend/src"; echo "own" >"$WT/app/frontend/src/own.txt"
+  git -C "$WT" add app/frontend/src/own.txt && git -C "$WT" -c user.email=t@t -c user.name=t commit -q -m own
   powershell -NoProfile -Command "New-Item -ItemType Junction -Path '$(winpath "$WT/app/frontend/node_modules")' -Target '$(winpath "$MAIN_NM")' | Out-Null" >/dev/null 2>&1
   # 가짜 dev서버: 워크트리 Windows 경로 + 고유 마커를 argv 에 → STEP A 가 매칭(name=node)·kill 대상. cwd 는 워크트리 밖(락 회피).
   ( cd "$TMP" && node -e "setTimeout(function(){},60000)" "$(winpath "$WT")__${MARK}" >/dev/null 2>&1 & )
@@ -118,6 +121,42 @@ printf '{"session_id":"%s","cwd":"%s","reason":"prompt_input_exit"}' "$OWN_SID" 
 [ ! -f "$MK_DIR/$OWN_SID" ] && ok "Tc: 본 세션 마커 소비" || no "Tc: 본 세션 마커 미소비"
 rm -f "$MK_DIR/$OTHER_SID" 2>/dev/null
 printf '{"session_id":"wtjtest_cleanup2_%s","cwd":"%s","reason":"prompt_input_exit"}' "$$" "$WT" | bash "$HOOK" >/dev/null 2>&1  # 정리: 단독이 됐으니 teardown
+
+RL="$TMP/runlog"; mkdir -p "$RL"   # 이 블록의 hook 사유 로그(격리 — 실 runlog 오염 없음)
+echo "== Tf: 미커밋 작업(추적 수정 + 미추적 파일) → 보존 — 식별 무관 불변식(§12, 2026-09-28 사고 재현: reason=other·cwd=워크트리·마커 없음) =="
+make_worktree
+echo "edit" >> "$WT/app/frontend/src/own.txt"; echo "new" > "$WT/app/frontend/src/new.txt"
+printf '{"session_id":"wtjtest_f_%s","cwd":"%s","reason":"other"}' "$$" "$WT" | RUNLOG_DIR="$RL" bash "$HOOK" >/dev/null 2>&1
+{ [ -f "$WT/app/frontend/src/new.txt" ] && grep -q edit "$WT/app/frontend/src/own.txt"; } && ok "Tf: dirty 워크트리 보존(수정+미추적 유지)" || no "Tf: ★DATA LOSS — dirty 워크트리 삭제됨"
+[ -n "$(git -C "$REPO" branch --list worktree-cycle-_test)" ] && ok "Tf: 브랜치 보존" || no "Tf: 브랜치 삭제됨"
+grep -q 'noop:dirty-worktree' "$RL"/*.jsonl 2>/dev/null && ok "Tf: 사유 noop:dirty-worktree 기록" || no "Tf: dirty 사유 미기록"
+
+echo "== Tg: 같은 dirty 워크트리를 자기 마커(§9 fallback)로 도달 → 역시 보존, 마커 소비; clean 복귀 후 정상 삭제 =="
+G_SID="wtjtest_g_$$"; mkdir -p "$MK_DIR"; printf '%s\n' "$WT" > "$MK_DIR/$G_SID"
+printf '{"session_id":"%s","cwd":"%s","reason":"prompt_input_exit"}' "$G_SID" "$REPO" | RUNLOG_DIR="$RL" bash "$HOOK" >/dev/null 2>&1
+[ -f "$WT/app/frontend/src/new.txt" ] && ok "Tg: 마커 경로로도 dirty 보존" || no "Tg: ★DATA LOSS — 마커 경로에서 삭제됨"
+[ ! -f "$MK_DIR/$G_SID" ] && ok "Tg: 마커 소비" || no "Tg: 마커 미소비"
+git -C "$WT" checkout -q -- . ; rm -f "$WT/app/frontend/src/new.txt"
+printf '{"session_id":"wtjcleanup_g_%s","cwd":"%s","reason":"prompt_input_exit"}' "$$" "$WT" | RUNLOG_DIR="$RL" bash "$HOOK" >/dev/null 2>&1
+[ ! -e "$WT" ] && ok "Tg: clean 복귀 후 정상 삭제(clean 경로 무회귀)" || no "Tg: clean 인데 미삭제"
+
+echo "== Th: ignore 되지 않은 정션(미추적)만 있는 워크트리 → 보존 + 정션 target 무사 =="
+make_worktree
+powershell -NoProfile -Command "New-Item -ItemType Junction -Path '$(winpath "$WT/app/frontend/vendorlink")' -Target '$(winpath "$MAIN_NM")' | Out-Null" >/dev/null 2>&1
+printf '{"session_id":"wtjtest_h_%s","cwd":"%s","reason":"prompt_input_exit"}' "$$" "$WT" | RUNLOG_DIR="$RL" bash "$HOOK" >/dev/null 2>&1
+[ -d "$WT/app/frontend/vendorlink" ] && ok "Th: 미추적 정션 워크트리 보존" || no "Th: 미추적 정션 워크트리 삭제됨"
+[ "$(ls -1 "$MAIN_NM" 2>/dev/null | wc -l | tr -d ' ')" = "$TARGET_BEFORE" ] && ok "Th: 정션 target(main) 무사" || no "Th: ★DATA LOSS — 정션 target 손상"
+powershell -NoProfile -Command "[IO.Directory]::Delete('$(winpath "$WT/app/frontend/vendorlink")', \$false)" >/dev/null 2>&1   # 링크-only 제거 → clean
+printf '{"session_id":"wtjcleanup_h_%s","cwd":"%s","reason":"prompt_input_exit"}' "$$" "$WT" | bash "$HOOK" >/dev/null 2>&1
+
+echo "== Ti: git status 실패(손상 index) → 보존 + noop:status-failed (fail-safe) =="
+make_worktree
+IDX="$(git -C "$WT" rev-parse --absolute-git-dir)/index"; printf 'corrupt' > "$IDX"
+printf '{"session_id":"wtjtest_i_%s","cwd":"%s","reason":"prompt_input_exit"}' "$$" "$WT" | RUNLOG_DIR="$RL" bash "$HOOK" >/dev/null 2>&1
+[ -d "$WT" ] && ok "Ti: status 실패 워크트리 보존" || no "Ti: status 실패인데 삭제됨"
+grep -q 'noop:status-failed' "$RL"/*.jsonl 2>/dev/null && ok "Ti: 사유 noop:status-failed 기록" || no "Ti: status-failed 사유 미기록"
+rm -f "$IDX"; git -C "$WT" reset -q 2>/dev/null   # index 재생성 → clean
+printf '{"session_id":"wtjcleanup_i_%s","cwd":"%s","reason":"prompt_input_exit"}' "$$" "$WT" | bash "$HOOK" >/dev/null 2>&1
 
 echo "== Td: self-healing sweep (SessionStart 배선) — dir-제거 등록/고아 worktree-* 청소, 활성/비-컨벤션 보호 =="
 git -C "$REPO" worktree add -q -b worktree-cycle-swA "$REPO/.claude/worktrees/swA" 2>/dev/null; rm -rf "$REPO/.claude/worktrees/swA"   # dir 제거 → prunable+고아
