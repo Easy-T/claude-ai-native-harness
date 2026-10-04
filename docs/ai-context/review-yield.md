@@ -263,3 +263,18 @@
 - **트리거 대조(§18.1 판정 3 — 판정 시점 2026-09-29, C24·C25 기록 전)**: (a) 불성립[stage2 0 은 1사이클 — C23 stage2 실발견 1] · (b) 불성립[GPT 슬롯 미실행] · (c) 불성립[티어·프레이밍·게이트 빈도 무변경] · (d) 불성립[C23 (c) 발동 후 1사이클]. C23 (c) 예약분(검증 프레이밍 층 재심)은 하네스 사이클 소관 — 본 사이클 미소비·이월.
 - (부기) FABLE-TAKEOVER 0 · 교훈 = **완결 플래그는 완전성의 증거가 아니다** — 순회가 기준점에 닿았다는 사실(completed=true)은 시작점이 옳았는지를 말하지 않는다. 누락 0을 입증한 층은 독립 완전성 감사(목록↔원장 대조)뿐이었다. 다만 이것은 이 사이클 plan O6 에 넣어 **저장소 밖 일회성 스크립트로 돌린 감사**(2026-09-29, 5개 게시판 누락 0·못 읽음 0)이지 상설 운영 절차가 아니다 — 정기 분기 절차(`cafe-archiver/CLAUDE.md`)에는 목록↔원장 감사가 아직 없다(non-obvious A2 오라클 편입·A5 절차 편입 미완, 기한 2026-12-15).
 - (부기 2) non-obvious 처분 — **시작 글 결함 등록 완료**(Closeout 뒤 2026-09-30: 사용자 등록 지시 → 5 Whys[3관점 review-strict + 게이트 PASS, 델타 재심 PASS] → 프로젝트 `docs/ai-context/non-obvious.md` 등재, 프로젝트 커밋 `46b30c4`). root cause(시스템) = 완결 계약이 수집 구간의 아래쪽 끝만 검증 · 확정 관문에 목록↔원장 오라클 부재 · '모름(미로드)'을 '없음'으로 흘림. 미완 action A1~A5(기한 2026-12-15) · 재현 픽스처 F1(확정 관문 `ok:true` 재현)·F3(보정 한도).
+
+## second_brain_project RPI86 Bulk-Readiness (대상-프로젝트 cycle 86, 2026-10-05) — 대량 적재 선행 게이트 W1 전송 경계·W2 ingest 스케일·W3 Class D (PR #147)
+
+- Gate R ×3: `1 PASS/2 FAIL→정정` · 실발견 6(3+3) · 발견 (1차: OPEN 결정 대안 비교 누락[랭킹·계수·opus 핀·effort 전송]·`/build` 파라미터 의미 모호·용어 정합 / 델타 1: 포화 N 산술[k=10 포화점 오산]·용어(빌드→Full rebuild/구조 계산)·`/build` 지정 판정 기준) → 델타 2 PASS
+- Gate P: PASS · 실발견 Minor 8 · 발견 (경로·줄번호·V3 패치 대상·V4 PR 계약 항목 등 — 전부 정정)
+- stage2 ×8 (rpi-implement 캐리어, review-strict opus): 8 PASS · 실발견 0 · 확인 (plan TDD-verbatim — RED/GREEN 증거 동반)
+- 메인 감수(Phase I 직후): 실행 · 실발견 1 · 발견 (`/build?brain_id=default` 명시 실패의 500 계약 테스트 공백 → 뮤테이션 `== "default"` RED 확인 후 추가)
+- 운영 실측(실모델 스모크 V2 ×2 · V3 select 비교 — 비판정 층, 직결 Max OAuth 최소 N): 실행 · 실발견 2 · 발견 (빈 `sample.pdf` 픽스처가 vision 성공→위키화 경로를 가림[`wikified=False`] · out-of-scope 질의로 웹 ask 미검증[`web_used=False`] → 스캔형 PDF·도메인-내 질의로 보강 재실행 green)
+- 통합(senior+drift, review-strict opus): FAIL→정정 · 실발견 10(Important 1 · Minor 9) · 발견 (**I-1 배치 컨셉 예산 공유 → recall 0.886** — Gate R/P·stage2 ×8·메인 실모델 V3 비교를 모두 통과한 설계 결함: recall 근거를 단건 surface로만 측정했는데 운영 주경로는 CONCEPT_BATCH · ADR 수치 drift·vision timeout 계약 예외·30K 보장 전제·스타터 절단 미기재·RC1 골든셋 게이트 미기록[메인 실측 sha256 동일로 해소]·빈 `brain_id` 경계·docstring·결정론 테스트 약함[수용])
+- 통합 델타 재심 ×3 (review-strict opus): `2 PASS/1 FAIL` · 실발견 10(6+3+1, 마지막 1 비차단 수용) · 발견 (1회: PR 문구 2·k 의존 서술·새 상수 미고정[12K 회귀 GREEN]·테스트 전제·spec §6-4 / 2회: BACKLOG 전파 누락 FAIL·주석 수치 2 / 3회: 요약 행 "≈185개" 전제 생략)
+- 정정-위임 미니-사이클(execute-strict opus): T1 코드·테스트(TDD RED 0.886→GREEN)·T2 문서 21항목·T3 Minor 7+2 — 전부 COMPLETE, 메인 diff 통독 후 승인
+- 교차패밀리 슬롯 1/2: SKIP(사유: 대상-프로젝트 기능 사이클 — 하네스 거버넌스·루브릭·하네스 spec 고-스테이크 아님. 선례 cafe-archiver C1)
+- seal-regression: SKIP(사유: 대상-프로젝트 사이클 — 하네스 setup/+입력 집합 diff 0)
+- **트리거 대조(§18.1 판정 3)**: (a) 불성립[stage2 실발견 0 연속 = cafe-archiver C1·RPI86 2사이클 — 3사이클 미달. 차기 stage2 실행 사이클이 다시 0이면 성립] · (b) 불성립[GPT 슬롯 미실행] · (c) 불성립[티어·프레이밍·게이트 빈도 무변경] · **(d) 성립**[C23 (c) 발동 후 C24·C25·cafe-archiver C1·RPI86 4사이클 연속 (a)~(c) 무발동 → 다음 Closeout 배분 재심 1회 예약 — 하네스 거버넌스 소관, 대상-프로젝트 사이클은 미소비·이월]
+- (부기) 교훈 = **측정 단위가 운영 단위와 다르면 측정은 통과해도 운영은 실패한다.** recall은 surface 1개로 쟀고 Gate R/P·stage2·실모델 비교가 모두 그 수치를 승인했지만, 실제 호출은 surface k개가 예산 하나를 나눠 쓰는 배치였다. 적대 통합 리뷰가 호출부(`concepts.py:151`)에서 측정 단위를 역추적해 적발. non-obvious 후보 3건(셸 `ANTHROPIC_BASE_URL` 통과·빈 PDF 픽스처 은닉·생성 스크립트 CRLF 거부)은 CLAUDE.md §4 사용자 확인 대기 — 명시 보류.
