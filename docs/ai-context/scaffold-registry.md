@@ -24,7 +24,7 @@
 | `surface-model-policy.sh` | 실행자 fable 누출·검증자 기준선(임무-분리 v2 floor, §16) 미달을 advisory 환기(역할×모델 매트릭스 L2) | tri-model C11 (2026-07-25), C12/C13 확장, **C17 v2** |
 | (`_common.sh`) | 위 전 hook의 공유 함수(json 파서·hook_log·plan_status·resolve_project_root·run_log_event·surface_bypass 등) | 지속 진화; **C2 run_log_event 추가** |
 
-## Skills (11 — `ls skills/*/SKILL.md`; grill-with-docs·ccs-delegation은 비추적 설치 산물)
+## Skills (11 — `ls skills/*/SKILL.md`; grill-with-docs·ccs-delegation·Orca 심링크 3종은 비추적 설치 산물)
 
 | Skill | 존재 이유 | 추적 |
 |---|---|---|
@@ -41,6 +41,9 @@
 | `orca-rpi-cycle` | Orca ADE 로 RPI 4-Task DAG(R→P→I→C) 구동 — 스폰은 `bin/orca-rpi.sh`(유일 스폰 캐리어) 경유만, preflight 실패 시 기존 (a)/(d) 로 폴백(선택적 가속기) | **C22 T2 (2026-08-17)**; 설계 `docs/ai-context/c21-orca-mode-design.md` §7 |
 | (grill-with-docs) | 도메인 어휘 stress-test — doctor.sh 자동설치(gitignored), 벤더링 | 미추적(설치 산물) |
 | (ccs-delegation) | CCS CLI 위임(로컬 정션, 비추적) — 하네스 게이트 무관 | 미추적 |
+| (computer-use) | Orca 앱이 설치한 GUI 조작 skill — `~/.agents/skills/computer-use` 심링크, 하네스 소유 아님·게이트 무관 | 미추적(외부 설치 2026-10-04, seal #37 발화 백필) |
+| (orca-cli) | Orca 앱이 설치한 `orca` CLI 조작 skill — `~/.agents/skills/orca-cli` 심링크, 하네스 소유 아님·게이트 무관 | 미추적(외부 설치 2026-10-04, seal #37 발화 백필) |
+| (orchestration) | Orca 앱이 설치한 감독형 워커 조율 skill — `~/.agents/skills/orchestration` 심링크, 하네스 소유 아님·게이트 무관 | 미추적(외부 설치 2026-10-04, seal #37 발화 백필) |
 
 ## Workflows (1 — `ls workflows/*.js`)
 
