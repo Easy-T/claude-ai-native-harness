@@ -22,7 +22,9 @@ TOOL_INPUT="$(echo "$INPUT" | node -e '
 # "- ❌ " 마커 줄에서 패턴 추출 후 substring 매칭
 while IFS= read -r pattern; do
   [ -z "$pattern" ] && continue
-  if echo "$TOOL_INPUT" | grep -qiF -- "$pattern"; then
+  # NOTE: grep -i -F 동시 사용 금지 — GNU grep 3.0(Git Bash)에서 SIGABRT(134)로 죽어
+  # 모든 패턴이 조용히 미매칭 → 훅이 항상 통과. tr 상향치환 + -F 로 대소문자 무시 구현.
+  if echo "$TOOL_INPUT" | tr 'a-z' 'A-Z' | grep -qF -- "$(printf '%s' "$pattern" | tr 'a-z' 'A-Z')"; then
     echo "[deny-pattern] 차단: $pattern" >&2
     echo "[deny-pattern] 출처: $DENY_FILE" >&2
     exit 2
