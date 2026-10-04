@@ -104,10 +104,14 @@ if [ "$TOOL" = "Workflow" ]; then
       #   ② 리터럴 agentType 중 frontmatter 에 model 을 선언하지 않는 것(builtin general-purpose/Explore/
       #      Plan 등 — agents/*.md 파일 자체가 없다)도 **통상** 상속한다(예외: 일부 builtin 은 CC 자체
       #      바인딩 — Explore=opus·claude-code-guide=haiku, spec §14.2 실측).
-      # 제외(3 사유): explore-strict=frontmatter model 선언 보유 / execute·review-strict=Rule C·C2 전담 /
+      # 제외(3 사유): explore-strict=frontmatter model 선언 보유(ocx-* 생성 래퍼도 같은 사유 — 생성기-소유 패턴, C25 §22.1) / execute·review-strict=Rule C·C2 전담 /
       #   '*'=동적이라 상속 단언 불가(GPT [C]4). 제외목록 ①축은 seal #47 이 디스크와 ⊆ 대조한다.
       case "$SP_TYPE" in
         explore-strict|execute-strict|review-strict|'*') ;;
+        # 생성기-소유 패턴 면제 (C25 spec §22.1 = §13.3 ④): opencodex `ocx claude` 가 생성하는 ocx-<route> 래퍼는
+        # frontmatter 에 프록시 라우트 model 을 고정 선언한다(세션 비상속). 로스터가 opencodex 업데이트마다 바뀌므로
+        # (gpt-5.x→gpt-6 실측) 이름이 아니라 패턴으로 면제한다. 전제(생성기 마커+model 선언)는 seal #47 이 봉인.
+        ocx-*) ;;
         # ★C14 GPT 교차리뷰 정정: 명시 `model:'inherit'` 도 세션 상속이다(§13.3 표가 그렇게 규정).
         # '-'(무선언)만 보면 `{agentType:'general-purpose', model:'inherit'}` 가 빠져나갔다.
         *) [ "$WF_TIER" = "4" ] && { [ "$SP_MODEL" = "-" ] || [ "$SP_MODEL" = "inherit" ]; } && C3_HIT=1 ;;

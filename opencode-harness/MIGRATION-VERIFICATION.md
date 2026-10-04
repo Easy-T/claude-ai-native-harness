@@ -72,7 +72,7 @@ bash ~/.claude/setup/verify-setup.sh        # 30 guards; exit == FAIL count (exp
 
 **Skills**: **21** SKILL.md (14 superpowers + 7 custom incl. `init-ai-ready-project`) → opencode `<available_skills>`. **Ship invariants**: `package.json` **MUST ship** (type:module; opencode HANGS at plugin load without it) but `node_modules`/lockfiles **MUST NOT** (regenerated; plugin is node:-builtins + relative only); `@opencode-ai/plugin` is a **types-only devDependency**; offline-safe (first-run "WARN background dependency install failed" is harmless); no `skills.urls`.
 
-**Build-box-only** (`_oracle/`, zip-excluded): `verify-all.sh`, `acceptance.sh`, `_stage.sh`, `diff-parsers.mjs` (the C′ keystone — refactored libs vs CC source parsers, `diff==0`), `skill-discovery.mjs` (MIN_SKILLS=21), `init-emission.mjs`, and the **live** tools `capture-server.mjs` + `oc-capture.sh` (L1 ground-truth) + `oc-test.sh` (CCS proxy backend). Ship assets: `install.sh`, `PREREQUISITES.md`, `README.md`.
+**Build-box-only** (`_oracle/`, zip-excluded): `verify-all.sh`, `acceptance.sh`, `_stage.sh`, `diff-parsers.mjs` (the C′ keystone — refactored libs vs CC source parsers, `diff==0`), `skill-discovery.mjs` (MIN_SKILLS=21), `init-emission.mjs`, and the **live** tools `capture-server.mjs` + `oc-capture.sh` (L1 ground-truth) + `oc-test.sh` (opencodex proxy backend). Ship assets: `install.sh`, `PREREQUISITES.md`, `README.md`.
 
 **Run the build-box suite** (offline, non-destructive — never mutates `~/.config/opencode`):
 ```
@@ -144,9 +144,9 @@ Adversarially: open `_oracle/diff-parsers.mjs` and confirm it really diffs the r
 cd ~/.claude/opencode-harness
 node _oracle/capture-server.mjs /tmp/cap.jsonl 8319 &     # ground-truth outbound capture
 bash _oracle/oc-capture.sh 8319 "say OK"                  # L1: is AGENTS.md (8 §N markers) in the system prompt?
-bash _oracle/oc-test.sh "write a file foo.py without a plan"   # L2: is the plan-less write DENIED?  (CCS proxy backend, locally)
+bash _oracle/oc-test.sh "write a file foo.py without a plan"   # L2: is the plan-less write DENIED?  (opencodex proxy backend, locally)
 ```
-Headless `opencode run` waits on stdin → the scripts pass `</dev/null`. **L1 must use capture, NOT the proxy** (the proxy rewrites the system prompt to Claude Code's).
+Headless `opencode run` waits on stdin → the scripts pass `</dev/null`. **L1 must use capture, NOT a model proxy** (CCS was measured to rewrite the system prompt to Claude Code's; opencodex not re-measured).
 
 **C. Close the gaps you can (§5.1 is highest value):**
 - §5.1 project-level read: use the `init-ai-ready-project` skill to scaffold a temp project, run opencode from inside it, capture (a) whether the project `AGENTS.md` is injected and (b) whether the project `opencode.json` `permission.bash` denies `rm -rf x`.

@@ -217,3 +217,35 @@
   스모크를 건너뛰었고, 그 결과 197KB 입력이 프록시 401 에 부딪혔다. 규약이 스모크를 이미 적어 두었는데
   「어제 됐으니까」가 그것을 건너뛰게 했다 — 규약을 고친 게 아니라 **판정자를 규약이 원래 지정한
   자리로 되돌린** 정정이다.
+
+## C24 (cycle 75, 2026-09-28) — opencodex 유지보수 자동화 (산출물 repo 밖)
+
+- Gate R+P 합본(경량): FAIL→정정 · 실발견 8건 · 발견 (config 원복 절차 부재·원시 config 병합 쓰기=무선언 열화·사후 검증 조건 누락·타임아웃 합계 초과·R3 픽스처·시점 의존 기대값·읽기 허용목록 — 코드 전 차단)
+- Gate 델타 재심 ×3: 2 FAIL/1 PASS · 실발견 4건 + 관측 2건 · 발견 (#1 테스트 이름 1건[정정-전파 공백] · #2 예산 29분 전파·ⓑ 단독 픽스처·§6 미탐 방향 3건 · #3 PASS + 비차단 관측 2건[`^best$`·`claude` 토큰 단독 변이 생존 → 음성 케이스 추가로 사멸])
+- stage2: SKIP(사유: Phase I Native — 메인 직접 실행 + 단위 150/0·변이 27/27 이 준수-확인 대체)
+- 통합(Closeout 리뷰 — drift 합본): FAIL→정정 · 실발견 1건 · 발견 (plan 134행 중복 손상 = JS `String.replace` 의 `$`+백틱 치환 — 커밋 전 차단) + 비차단 권고 2건 반영
+- Closeout 델타 재심 ×2: 2 FAIL · 실발견 3건 · 발견 (README R4 주소 3종 누락·임시 파일 위치 오기·logs 폴더 읽기 누락) — 3번째 정정은 C25 통합 리뷰 G 항목이 재심(PASS)
+- 교차패밀리 슬롯 1/2: SKIP(사유: 산출물이 하네스 거버넌스 밖 운영 스크립트 — 고-스테이크 호출 지점 아님; 변이 테스트 27/27 가 판별력 증거)
+- 운영 실측(비판정 층): 09-30 실행이 opencodex 2.69.0→2.73.0 자동 업데이트·사후 검증 완료 · 10-03 12:06 실행은 업스트림 `update check`(2.76.0 있음)↔`update run`(`latest_unavailable` exit 5) 불일치로 `failed` → LastTaskResult=1(스크립트는 설계대로 실패 보고·알림·프록시 무손상) — 다음 정기 실행으로 재확인
+- **트리거 대조(§18.1 판정 3)**: (a) 불성립[실행 층 전부 실발견 ≥1] · (b) 불성립[슬롯 2 미실행] · (c) 불성립[검증 프레이밍 변경 없음] · (d) 불성립[C23 (c) 발동 후 연속 무발동 4사이클 미달]
+
+## C25 (cycle 76, 2026-09-28~10-03) — opencodex 전환 후 하네스 정합 6건
+
+- Gate R+P 합본: FAIL→정정 · 실발견 7건 + 권고 8건(7 반영·1 정보) · 발견 (spec §22.1↔plan PRE47 불일치·CONTEXT 갱신 누락·전파 task 부재·README 카운트 중간상태 #20 FAIL·STG 누락·Task 0 이관·Th/Ti 부재 — 권고 중 jq `epoch` 빈 스트림 필드 밀림은 **코드 전 실버그 차단**)
+- Gate 델타 재심 ×2: 2 FAIL · 실발견 7건 · 발견 (#1 D1 spec 개행 오염[non-obvious #4 재발]·D2 거짓 reason 조건 서술·D3/D4 줄 번호·D5 grep/`$d` 5건 · #2 N1 "4 사유" 명명 모순·N2 산술 전파 누락 2건 + 경미 3건 반영)
+- 교차패밀리 슬롯 1: SKIP(사유: 무인 진행 — Gate 델타 재심 2회가 계획-층 결함 14건을 소진; 슬롯 2 는 실행)
+- stage2: SKIP(사유: Phase I Native 메인 직접 — 각 task RED→GREEN 실측을 plan 결과 줄로 기록)
+- 통합(Closeout 리뷰 — senior+drift, review-strict opus): PASS · 실발견 12건(Important 4 · Minor 8) · 발견 (README 모델 창 서술 낡음·세대 규칙 음성 경계 부재·clean 워크트리 브랜치 `-D` 가 미머지 커밋 소실[수용 잔여·차기 후보]·plan 미완료 사유 부재 / 값 정규화 누락·T8 봉인 범위<주장·T4 공허 단언·opencode README CCS 서술·plugin-pins 과잉 일반화·non-obvious 라벨·보존 워크트리 로그 누적·PR 본문 누락) + G(저장소 밖 README) PASS
+- **교차패밀리 슬롯 2(경로 A `gpt-5.6-sol` ultra, 12,147B): 실행 · 실발견 16 · 기각 1** (GPT 라벨 BLOCKER 2 · MAJOR 5 · MINOR 10 → 메인 판정 BLOCKER 2건[index 플래그 은폐·삭제 직전 TOCTOU]은 Important 로 강등했으나 둘 다 정정. **슬롯 2 고유 11건**[frontmatter 밖 `model:` 인정·세대 규칙 4.10+·ISO 음수 오프셋·`resets_at` 부재 동작·project/plugin 범위 `ocx-*`·index 플래그 은폐·marker+무 model 뮤테이터·tracked-only/staged-only 증인·T5 `Z` 전용·SKILL 픽스처 수·"데이터손실 0" 절대 주장] · 내부와 중복 5건[값 정규화·음성 경계·T8 범위·README 모델 창·TOCTOU 일부]. 기각 C1 = 뮤테이터 집합 단위 판별력 성립[RED 31/3 실측])
+- 정정-위임 미니-사이클(§17.3, 파일-배타 3그룹 S·T·L, execute-strict opus): 3 COMPLETE · 작업자 자기-표면화 1 (L: T5d 판별력이 지시서 예상 변이로는 안 서고 `// empty` 변이로 섬 — 정직 보고)
+- 미니-사이클 검증(2026-09-30, 적대 반증 워크플로 — API ENOTFOUND 로 반증 3·critic 유실, 메인이 journal 회수): 실발견 6 · 발견 (전파 누락 3곳[CONTEXT GUARD 6 서술·statusline SKILL `resets_at`·MIGRATION-VERIFICATION 프록시 서술] · **정정이 만든 회귀 1건**[seal #47 frontmatter 한정이 BOM 1행 파일을 건너뜀 — HEAD grep 은 잡던 것] · 수용 잔여 (f) 서술 부정확[파일 링크는 `abort-rm` 경로] · 재검사 보존 시 STEP A/B 선행 부작용 미선언) — 세션 강제 종료(10-01~03)로 정정 미착수 상태였고, 10-03 재개 시 메인이 되돌리지 않고 마무리
+- 델타 재심 1회차(review-strict opus, 10-03): FAIL · 실발견 2 + Minor 1 · 발견 (plan 착륙-verbatim 스니펫 5곳 무언 통과[§18.3 ② 범주] · `--- `(구분자 뒤 공백) 1행 = BOM 과 같은 회귀 부류[unknown 으로 제기 → 메인 REAL 판정] / 주석 방향 서술)
+- 델타 재심 2회차(review-strict opus, 10-03): PASS · 실발견 0 · 확인 (plan 주석 5곳 실물 대조 일치 · 픽스처 28종 × 현행/1회차/HEAD 3버전 대조 의도 외 결과 0 · `---x`·`----` 등은 frontmatter 아님 유지 · FM5 파서 무변경) + 선언 2건: 닫는 구분자 공백 허용을 지키는 뮤테이터 부재(차기 보강 후보 — 1행 쪽은 결합 뮤테이터가 증언) · Claude Code 실제 구분자 규칙(BOM·`--- ` 허용 여부) 미실측(수용 잔여)
+- seal-regression: full 실행 ×3(setup/ diff 존재 — SKIP 불가 창, 정정이 setup/ 를 두 번 다시 건드림) — 34/0 → 38/0(뮤테이터 4 추가) → **39/0**(BOM 1 추가, 이후 BOM+공백 결합으로 교체 — 단일 뮤테이터가 두 동작을 증언, 판별력 변이 2종 생존 실측)
+- 최종 스위트: verify-setup **91/0** · seal-regression **39/0** · run-all **315/315** · teardown **47/0** · integration 8/0 · statusline **37/0** · verify-all ALL PASS
+- 플러그인 핀: 09-29 판정(superpowers 6.4.1 외 3종 LEGIT-UPDATE) 후 머지 전 09-30 마켓플레이스 재버전(`2a8ad9f74633`)으로 드리프트 재발 → 10-03 재판정(`diff -rq` 콘텐츠 0) → `413615869`/34
+- **트리거 대조(§18.1 판정 3)**: (a) 불성립[실행 층 전부 실발견 ≥1] · (b) **불성립 — 단 1사이클째**[GPT 슬롯 2 가 BLOCKER 라벨 2건을 내부-통과 결함으로 적발(라벨 기준 Critical 급) — 직전 C24 는 슬롯 SKIP 이라 2사이클 연속 조건 미충족. 차기 사이클 슬롯 2 가 다시 BLOCKER 급을 적발하면 성립] · (c) 불성립[티어·프레이밍·게이트 빈도 무변경] · (d) 불성립[C23 (c) 발동 후 연속 무발동 4사이클 미달]
+- **C23 (c) 예약분(검증 프레이밍 층 한정 재심) — 미소비·이월**: C24/C25 는 무인 운영 마감 사이클이라 판정 주권이 걸린 재심을 넣지 않았다(선언 이월 — 차기 하네스 사이클 소관).
+- (부기) FABLE-TAKEOVER 0 · fable 위임 토큰 0 · 집필-위임 미사용(무인 모드 — 메인 직접) · 사이클 라벨 정정 C76→C25(C 번호 = cycle − 51; 커밋 전 정정) · **세션 강제 종료 2회**(09-30 workflow API ENOTFOUND, 10-01~03 세션 크래시 — 미커밋 정정 무손실, 재개 시 조사 턴에서 코드·테스트로 재개 지점 확정)
+- (부기 2) non-obvious 처분 — 신규 실패 클래스 3건 「명시 면제 + 차기 등록 후보」(CLAUDE.md §4 — 사용자 확인 + 5 Whys 필요, 선언 이월): ⓐ JS 치환 패턴 손상 ⓑ Edit 도구 혼합-개행 CRLF 정규화(non-obvious #4 재발) ⓒ worktree 안 headless 자식 세션의 SessionEnd 가 부모 worktree 삭제(GUARD 6 이 구조 대응)
+- **★교훈 — 정정의 범위 축소는 회귀 방향을 점검해야 한다.** A1 정정("frontmatter 안에서만 읽어라")은 판정을 *좁혔고*, 좁힌 쪽 경계(BOM·구분자 뒤 공백)에서 HEAD 가 잡던 파일이 시야 밖으로 빠졌다 — 미탐 방향 회귀. 정정 리뷰가 원 발견 해소만 대조하면 이 클래스는 통과한다. C15 「계약에 값 추가 시 과분류 방향 반전」의 역방향(계약 축소 시 미분류 방향 반전)이다.

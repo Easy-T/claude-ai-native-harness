@@ -4,8 +4,10 @@
 #  ② reparse point(정션/심링크) 링크-only 선제거 → 잔존 0 단언 (데이터손실 방지 핵심; rm 의 전제조건)
 #  ③ POSIX `rm -rf` (정션-free 가 된 워크트리) ④ `git worktree prune` + 컨벤션 브랜치(worktree-*) `branch -D`
 #
-# 안전 불변식(데이터손실 0): cwd 가 */.claude/worktrees/<name> 안일 때만 + git rev-parse 로 *링크된*
+# 안전 불변식(데이터손실 0)(수용 잔여: spec §12.3): cwd 가 */.claude/worktrees/<name> 안일 때만 + git rev-parse 로 *링크된*
 #  워크트리(git-dir≠git-common-dir)임이 확인될 때만 동작. reparse 잔존/powershell 부재 시 rm 생략(잔존).
+#  + 미커밋 작업(ignored 제외; 서브모듈·assume-unchanged/skip-worktree index 플래그 포함)이 없을 때만(GUARD 6, cycle-76·C25)
+#  — status/ls-files 실패도 보존, rm 직전 재검사.
 #  `git worktree remove --force` 절대 사용 안 함(repo non-obvious #61 1차 범인). SessionEnd 는 차단 불가 → 항상 exit 0.
 # matcher(settings.json)로 clear/resume/bypass_permissions_disabled 제외(세션 지속·모호 → 활성 워크트리 삭제 위험).
 source "$HOME/.claude/hooks/_common.sh"
@@ -91,6 +93,29 @@ if [ -d "$_WT_MK_DIR" ]; then
   done
 fi
 
+# GUARD 6 (cycle-76, spec §12): 미커밋 작업이 있는 워크트리는 지우지 않는다 — 식별 경로(cwd/마커) 무관 불변식.
+#  2026-09-28 사고: 워크트리 안에서 띄운 headless 자식 `claude -p` 의 SessionEnd(reason=other, cwd=워크트리, 부모 마커 없음)가
+#  부모 세션의 활성 워크트리를 삭제. ignored 파일(node_modules 등)은 dirty 로 세지 않는다. status 실패 = dirty(fail-safe).
+#  leftover ≠ data loss (C5 와 같은 편향).
+# C25(spec §12.3): status 가 숨기는 수정도 dirty — `--ignore-submodules=none`(submodule.<n>.ignore=all config 무력화) +
+#  index 플래그(ls-files -v 태그 소문자=assume-unchanged, S=skip-worktree). ls-files 실패도 보존.
+#  판정은 wt_keep_reason 하나(아래 STEP C 직전 재검사가 재사용). 출력=보존 사유(빈 문자열=clean).
+wt_keep_reason(){
+  local st rc lv n
+  st=$(git -C "$1" status --porcelain --untracked-files=normal --ignore-submodules=none 2>/dev/null); rc=$?
+  if [ "$rc" -ne 0 ]; then printf 'status-failed rc=%s' "$rc"; return 0; fi
+  if [ -n "$st" ]; then printf 'dirty-worktree n=%s' "$(printf '%s\n' "$st" | wc -l | tr -d ' ')"; return 0; fi
+  lv=$(git -C "$1" ls-files -v 2>/dev/null); rc=$?
+  if [ "$rc" -ne 0 ]; then printf 'ls-files-failed rc=%s' "$rc"; return 0; fi
+  n=$(printf '%s\n' "$lv" | grep -c '^[a-zS] ')
+  if [ "$n" -gt 0 ]; then printf 'hidden-index-flags n=%s' "$n"; fi
+  return 0
+}
+_WT_WHY=$(wt_keep_reason "$WT_ROOT")
+if [ -n "$_WT_WHY" ]; then
+  hook_log "worktree-teardown" "$WT_ROOT" "PASS" "noop:$_WT_WHY"; exit 0
+fi
+
 BRANCH=$(git -C "$WT_ROOT" rev-parse --abbrev-ref HEAD 2>/dev/null)
 cd "$REPO_ROOT" 2>/dev/null || cd "$HOME" 2>/dev/null || cd / 2>/dev/null
 
@@ -134,6 +159,12 @@ fi
 # STEP C: POSIX rm -rf (정션-free) + 락 해제 재시도
 RM_OK=0
 if [ "$SAFE_TO_RM" = "1" ]; then
+  # C25(spec §12.3): 삭제 직전 재검사 — GUARD 6 은 STEP A/B(powershell 2회) 전 스냅숏이라 그 사이 쓰기를 못 봄.
+  #  창을 초→ms 로 줄일 뿐 닫지 못함(락 없음; 수용 잔여 (c)).
+  _WT_WHY=$(wt_keep_reason "$WT_ROOT")
+  if [ -n "$_WT_WHY" ]; then
+    hook_log "worktree-teardown" "$WT_ROOT" "PASS" "noop:dirty-recheck $_WT_WHY"; exit 0
+  fi
   for _att in 1 2 3 4 5; do
     [ -e "$WT_ROOT" ] || { RM_OK=1; break; }
     rm -rf "$WT_ROOT" 2>/dev/null

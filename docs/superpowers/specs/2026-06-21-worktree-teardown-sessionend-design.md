@@ -383,3 +383,108 @@ path + #61/C1–C5 invariants **unchanged**.
 After N real cycles: `git worktree list` prunable = 0 **and** `git branch --list 'worktree-*'` orphan = 0. The
 test suite pins the "marker-not-found + dir-already-removed" scenario (the harness-removed-dir case) so the sweep
 is proven to clean registration + branch while protecting active state.
+
+## 12. Uncommitted-work guard — identification-independent (2026-09-28, cycle-76)
+
+### 12.1 Incident (live, 2026-09-28 23:48)
+
+A session (B) had a linked worktree `.claude/worktrees/ops-closeout` with uncommitted changes and was working
+in it. B ran a headless child `bash ~/.claude/bin/claude-ocx -p …` (i.e. `claude -p`) **from inside that
+worktree**. The child is a full Claude Code session: its `SessionEnd` fired with `cwd` = B's worktree
+(authoritative path, §4) and `reason=other` (not excluded by the matcher), and B had **no marker** — its tool
+inputs used `~`/relative paths, so `wt_root_from_path` never matched. C5 (§10.3) therefore found nothing and the
+hook removed B's worktree (`done:rm_ok=0 branch-skip reason=other`; the dir survived only as an empty
+cwd-locked shell, and `git worktree prune` dropped the registration). No work was lost only because B's files were
+copies. This is the §10.3 residual window ("#61 disruption class — lose an active peer worktree's uncommitted
+work"), reached through a **new, common trigger**: nested headless sessions inherit the parent's cwd.
+
+### 12.2 Why not fix identification again
+
+Every earlier fix (§9 marker, §10 PreToolUse WRITE, C5) made *identification* better, and each one left a window
+because the ending session's ownership is inferred from signals that can be missing or can point at a peer. A
+child that edits a file in the parent's worktree would even write its **own** marker and look like the owner.
+cycle-41 (§11) drew the lesson: **safety comes from invariants, not identification.**
+
+### 12.3 Decision — never delete a worktree that holds uncommitted work
+
+*(Revised in place 2026-09-29 — basis: C25 Closeout integrated review + cross-family review slot 2. Added the
+submodule override, the index-flag check, the pre-`rm` recheck, and the accepted-residual list (a)–(f). Revised again
+2026-10-03 — basis: the Closeout delta review. Residual (f) now separates directory links from file links, and the
+Consequence paragraph declares what STEP A/B have already done when the recheck keeps a worktree.)*
+
+After GUARD 5 and before any destructive step, one verdict function (`wt_keep_reason`) decides:
+
+- `git -C "$WT_ROOT" status --porcelain --untracked-files=normal --ignore-submodules=none`
+  - **non-empty** (modified/staged tracked files, untracked non-ignored files, or a changed submodule) →
+    `noop:dirty-worktree`, exit 0. `--ignore-submodules=none` overrides a `submodule.<n>.ignore=all` setting,
+    which would otherwise hide a changed submodule from `status`.
+  - **the command fails** → `noop:status-failed` (fail-safe: an unreadable state is treated as dirty).
+- `git -C "$WT_ROOT" ls-files -v` — `status` does not show edits to files flagged `assume-unchanged`
+  (lower-case tag) or `skip-worktree` (tag `S`). One or more such entries → `noop:hidden-index-flags n=<count>`,
+  exit 0. If `ls-files` fails → `noop:ls-files-failed` (the same fail-safe as `status-failed`).
+- **Recheck before `rm`.** The checks above are a snapshot taken before STEP A/B (two PowerShell calls). The same
+  function runs again right after STEP B (reparse links removed, zero remaining) and immediately before the
+  STEP C `rm -rf` loop. A non-empty verdict → `noop:dirty-recheck <reason>`, exit 0, no `rm`.
+- Ignored files (`node_modules`, build output) do not count: real projects ignore them because they are
+  regenerable.
+- Clean worktrees (all work committed, or nothing done) are removed exactly as before; branch policy (§4 STEP D)
+  is unchanged.
+
+**Accepted residuals** (the guard does not cover these):
+
+- **(a)** An ignored file that is *not* regenerable (a local `.env`, say) is still lost when a clean worktree is
+  removed — the same exposure as before this guard, now confined to files the project itself chose to keep out
+  of version control.
+- **(b)** A clean worktree's `worktree-*` branch is removed with `branch -D`. Work that was committed but not
+  merged disappears with the branch ref when a non-owning child session (the §12.1 case) tears the worktree
+  down. This is the existing §4 STEP D policy, which this cycle did not change; the cycle-41 sweep (§11) uses the
+  same `-D`. Candidate for a later cycle.
+- **(c)** The recheck shrinks the write-then-delete window from seconds to milliseconds but does not close it
+  (there is no lock). A write that lands between the recheck and `rm -rf` is still lost.
+- **(d)** A preserved worktree is recorded only as `PASS noop:<reason>` and stays until someone removes it by
+  hand.
+- **(e)** A sparse-checkout worktree is always preserved: paths outside the cone are flagged `skip-worktree`, so
+  the index-flag check always fires (leftover, not data loss).
+- **(f)** With `core.symlinks=true`, a tracked symlink is a reparse point. A link to a *directory* is removed by
+  STEP B (`Directory.Delete($false)`); the recheck then sees it as deleted and preserves the worktree, which stays
+  behind with only those links missing (`git checkout -- <link>` restores them; before C25 such a worktree was
+  deleted as a whole). A link to a *file* cannot be removed by `Directory.Delete`, so STEP B counts it as
+  remaining and the run stops at `abort-rm:reparse-remaining` with the worktree intact (unchanged by C25). Both
+  paths keep the worktree. This item is derived from code reading only: creating a symlink needs
+  `SeCreateSymbolicLinkPrivilege` (Developer Mode or admin), which the verification machine does not have, so
+  there is no E2E fixture for it.
+
+Consequence: a session that ends with uncommitted work in its worktree now leaves the worktree behind
+(**leftover ≠ data loss**, the bias C5 already chose). The worktree can be resumed or removed by hand. The
+SessionStart sweep (§11) still handles only registrations whose dir is gone, so it never touches these. When it
+is the **recheck** (not the first check) that keeps the worktree, STEP A and STEP B have already run: dev
+servers started from the worktree are stopped and its junctions/directory links are removed (link targets are
+untouched). The files are intact; links come back with `git checkout` (tracked) or with the tool that made them
+(`npm install`, say).
+
+### 12.4 Tests (E2E, `hooks/tests/worktree-teardown.test.sh`)
+
+- Fixture realism: the fixture repo ignores `node_modules` (the junction) and commits the worktree's own file,
+  as real projects do. The existing deletion cases (T1/Ta/Tb) therefore still exercise the junction-safety path
+  on a *clean* worktree.
+- **Tf** (new): dirty worktree (an untracked file + a modified tracked file) with `cwd`-authoritative input →
+  worktree, files, and branch preserved; log `noop:dirty-worktree`.
+- **Tg** (new): dirty worktree reached through the owner's **own marker** (the §9 fallback path) → also
+  preserved. The guard does not depend on the identification path. After the work is reverted (clean), the
+  same worktree is removed normally — the clean path does not regress.
+- **Th** (new): a worktree whose only content is a *non-ignored* junction (untracked) → preserved, and the
+  junction target (the simulated main tree) is untouched.
+- **Ti** (new): `git status` fails (corrupted worktree index) → preserved, log `noop:status-failed`.
+- **Tj** (C25): only a tracked file is modified (no untracked file) → worktree preserved, edit intact, log
+  `noop:dirty-worktree`. Discrimination: a mutation that preserves only when `status` shows `??` makes Tj fail
+  while Tf still passes.
+- **Tk** (C25): only a staged new file (`git add`, no further working-tree change) → preserved, file intact, log
+  `noop:dirty-worktree`. The same mutation makes it fail.
+- **Tl** (C25): a committed file flagged with `git update-index --assume-unchanged` and then modified (`status`
+  is empty) → preserved, edit intact, log `noop:hidden-index-flags`. RED before the index-flag check.
+- **Tm** (C25): race right before deletion. A fake `powershell` placed first on `PATH` creates an untracked file
+  on its first call (STEP A, after GUARD 6 has passed) and then runs the real PowerShell with the same
+  arguments → the worktree and the new file survive, log `noop:dirty-recheck`. RED before the recheck.
+- Tj–Tm each log to their own `RUNLOG_DIR`, so a reason written by Tf–Ti cannot satisfy their log assertion.
+  Not fixtured: `skip-worktree` (tag `S`) and a submodule with `ignore=all`; both share the code paths above and
+  were checked ad hoc in C25 (`hidden-index-flags` and `dirty-worktree`).

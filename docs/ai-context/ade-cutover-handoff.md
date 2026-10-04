@@ -1,5 +1,8 @@
 # 인계 프롬프트 — CCS → 네이티브 전환 (Claude Code 라우팅)
 
+> ⚠ **역사 문서 (2026-09-28 CCS 퇴역).** §4 "CCS는 아직 제거하지 않는다"와 §5 롤백(8317 생존 전제)은 **무효**다.
+> 현 상태 = `SECURITY.md` 네트워크 절 · 메모리 `project_ccs_routing.md`(CCS 롤백은 거기 절차).
+
 > **용도**: Claude Code 세션이 전환 중 끊겨서 스스로 마무리하지 못할 때,
 > **codex CLI(또는 다른 에이전트)에 이 파일을 통째로 주어** 작업을 완결시킨다.
 > **작성**: 2026-08-09 · **대상 머신**: Windows 11, `C:\Users\12132`
@@ -145,6 +148,8 @@ claude /login
 
 ## 4. 완료 후 (선택, 급하지 않음)
 
+> ⚠ (2026-09-28) CCS 는 퇴역했다 — 아래 "CCS는 아직 제거하지 않는다" 는 무효. 기대 카운트도 당시 값이다.
+
 ```bash
 # 하네스 검증 — 회귀 없는지
 bash ~/.claude/setup/verify-setup.sh          # 기대 88/0
@@ -159,6 +164,8 @@ dangling 된다 — 이건 별도 작업.)
 ---
 
 ## 5. 롤백 (문제 발생 시 즉시)
+
+> ⚠ (2026-09-28) CCS(8317)가 퇴역해 이 롤백은 더 이상 즉시 원복되지 않는다 — `project_ccs_routing.md` 의 롤백 절차를 따른다.
 
 ```bash
 cp ~/.claude/backups/ade-migration-20260808/claude-settings.json ~/.claude/settings.json

@@ -73,7 +73,7 @@ enforce-rpi-cycle	53-s7-6x6-block	2	gen_erc_s7_6x6
 enforce-orchestrator	14-s3-gut-via-edit	2	gen_eo_s3_gut
 enforce-orchestrator	15-s4-commented-agent	2	gen_eo_s4_comment
 auto-compact-watch	60-opus48-1M	alert-win-1000000	gen_acw_opus48
-auto-compact-watch	61-sonnet-200k	alert-win-200000	gen_acw_sonnet
+auto-compact-watch	61-haiku-200k	alert-win-200000	gen_acw_haiku
 auto-compact-watch	189-rot-pct55-silent	silent	inline_acw_rot
 auto-compact-watch	190-rot-pct40-warn	alert	inline_acw_rot
 # Patch F (2026-05-30) — hooks/lib extracted-parser unit tests (cycle-8 [3])
@@ -91,6 +91,14 @@ hooks-lib	78-modelwin-opus	output	gen_lib_78
 hooks-lib	79-modelwin-default	output	gen_lib_79
 hooks-lib	80-modelwin-override	output	gen_lib_80
 hooks-lib	121-modelwin-fable	output	gen_lib_121
+hooks-lib	212-modelwin-opus55	output	gen_lib_212
+hooks-lib	213-modelwin-sonnet46	output	gen_lib_213
+hooks-lib	214-modelwin-sonnet45-neg	output	gen_lib_214
+hooks-lib	215-modelwin-opus41-date-neg	output	gen_lib_215
+hooks-lib	216-modelwin-sonnet4-date-neg	output	gen_lib_216
+hooks-lib	217-modelwin-legacy35-neg	output	gen_lib_217
+hooks-lib	218-modelwin-opus61	output	gen_lib_218
+hooks-lib	219-modelwin-sonnet410	output	gen_lib_219
 # Patch H (2026-06-02) — spec-before-plan gate (enforce-rpi-cycle)
 enforce-rpi-cycle	28-plan-no-spec-block	2	gen_erc_plan_nospec
 enforce-rpi-cycle	29-plan-with-spec-pass	0	gen_erc_plan_spec
@@ -232,6 +240,8 @@ surface-model-policy	23-rule-c3-fanout-inherit	0	mk_wf_event
 surface-model-policy	24-rule-c3-fanout-declared	0	mk_wf_event
 surface-model-policy	25-rule-c3-nonfable-ok	0	mk_wf_event
 surface-model-policy	26-rule-c2-floor-worker	0	mk_wf_event
+surface-model-policy	86-rule-c3-ocx-generated-exempt	0	mk_wf_event
+surface-model-policy	87-rule-c3-ocx-no-mask	0	mk_wf_event
 hooks-lib	179-ws-string-noise	0	test_lib
 hooks-lib	180-ws-decl-not-call	0	test_lib
 hooks-lib	181-ws-member-call	0	test_lib

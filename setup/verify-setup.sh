@@ -516,19 +516,42 @@ fi
 #     포함되어야 한다(⊆ 방향; 등호 아님 — execute/review-strict 는 Rule C·C2 전담이라는 설계 결정이고
 #     '*' 는 동적 판정이라 디스크 대응물이 없다). 새 wrapper 가 하위 모델을 선언하며 추가될 때
 #     hook 갱신 누락을 발화한다. bash 파일옵스만.
-MISS47=""
+#     C25: ocx-* 는 생성기-소유 패턴 arm 으로 커버하고, 그 전제(마커·model 선언)를 함께 검사한다(spec §22.1).
+MISS47=""; PRE47=""
+SMP_HOOK="$HOME/.claude/hooks/surface-model-policy.sh"
+OCX_ARM=0; grep -qE "^[[:space:]]*ocx-\*\)[[:space:]]*;;" "$SMP_HOOK" 2>/dev/null && OCX_ARM=1
 for af in "$HOME/.claude/agents/"*.md; do
+  [ -f "$af" ] || continue
   an=$(basename "$af" .md)
-  am=$(grep -m1 -E '^model:' "$af" 2>/dev/null | sed -E 's/^model:[[:space:]]*//' | tr -d '\r')
+  # C25 Closeout (A1·A2): model 은 **YAML frontmatter 안**(1행 `---` ~ 다음 `---`)에서만 읽는다 — 닫는 `---` 뒤
+  # 본문의 `model:` 줄은 Claude Code 가 무시한다(=무선언·세션 상속). 값은 CR → 뒤쪽 주석(공백+#) → 앞뒤 공백 →
+  # 감싼 따옴표 순으로 정규화한다(`model: 'inherit'`·`model: inherit # x` 는 inherit 으로 판정). 1행의 UTF-8 BOM 은
+  # 벗기고 구분자 `---` 뒤 공백은 허용한다 — HEAD 의 전문 grep 이 보던 선언 wrapper 를 시야에서 빠뜨리지 않기 위해서다
+  # (비-ocx 는 과탐 방향, ocx-* 는 HEAD 와 같은 판정).
+  am=$(awk 'NR==1 { sub(/^\357\273\277/, ""); if ($0 !~ /^---[ \t]*\r?$/) exit; next } /^---[ \t]*\r?$/ { exit } /^model:/ { sub(/^model:/, ""); print; exit }' "$af" 2>/dev/null \
+       | tr -d '\r' | sed -E -e 's/[[:space:]]+#.*$//' -e 's/^[[:space:]]+//' -e 's/[[:space:]]+$//' \
+                          -e "s/^\"(.*)\"\$/\\1/" -e "s/^'(.*)'\$/\\1/")
+  # C25 §22.1: ocx-* 는 패턴 arm 으로 면제 — 단 opencodex 생성 래퍼(마커 + inherit 아닌 model 선언)만.
+  # 전제가 깨진 ocx-* 는 이름 등재로도 면제되지 않는다(접두 자체가 생성기 전용).
+  case "$an" in
+    ocx-*)
+      if grep -q '<!-- generated-by: opencodex -->' "$af" 2>/dev/null && [ -n "$am" ] && [ "$am" != "inherit" ]; then
+        [ "$OCX_ARM" = "1" ] || MISS47="$MISS47 $an(ocx-* 패턴 arm 부재)"
+      else
+        PRE47="$PRE47 $an"
+      fi
+      continue ;;
+  esac
   { [ -n "$am" ] && [ "$am" != "inherit" ]; } || continue
   # ★C14 GPT 교차리뷰 정정: 전문 grep 은 hook 의 설명 주석이 제외목록을 가린다(주석에도 explore-strict 가
   # 있어 실제 case arm 에서 지워도 통과했다). **실효 case arm** 에서만 찾는다.
-  grep -qE "^[[:space:]]*[a-z|'*-]*${an}[a-z|'*-]*\)[[:space:]]*;;" "$HOME/.claude/hooks/surface-model-policy.sh" 2>/dev/null || MISS47="$MISS47 $an"
+  grep -qE "^[[:space:]]*[a-z|'*-]*${an}[a-z|'*-]*\)[[:space:]]*;;" "$SMP_HOOK" 2>/dev/null || MISS47="$MISS47 $an"
 done
-if [ -z "$MISS47" ]; then
-  ok "Rule C3 제외목록 봉인: model 선언 wrapper 가 hook 제외 목록에 등재됨"
+if [ -z "$MISS47$PRE47" ]; then
+  ok "Rule C3 제외목록 봉인: model 선언 wrapper 가 hook 제외 목록(이름 또는 ocx-* 생성기 패턴)에 등재됨"
 else
-  fail "Rule C3 제외목록 drift (C14-D): hook 미등재 —$MISS47. model 을 선언하는 wrapper 는 세션 상속이 아니므로 C3 제외 목록에 추가해야 함(spec §13.3)"
+  [ -n "$MISS47" ] && fail "Rule C3 제외목록 drift (C14-D): hook 미등재 —$MISS47. model 을 선언하는 wrapper 는 세션 상속이 아니므로 C3 제외 목록에 추가해야 함(spec §13.3)"
+  [ -n "$PRE47" ] && fail "Rule C3 패턴 면제 전제 위반 (C25 §22.1): —$PRE47. ocx- 접두는 opencodex 생성 래퍼(generated-by 마커 + model 선언) 전용 — 손으로 쓴 에이전트는 이름을 바꿀 것"
 fi
 
 # 48. skill context_paths 조건부 선언 봉인 (C14-J, spec §13.8): 부재가 정상인 스캐폴드 산출물 경로를

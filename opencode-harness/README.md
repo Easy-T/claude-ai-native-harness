@@ -16,13 +16,14 @@ clean copy to a temp dir (keeping `package.json` — required for plugin load �
 stripping the canonical exclusion set: build-box tooling + generated/VCS files; see
 Ship) and inject a TEST-ONLY model backend at runtime:
 
-    bash _oracle/oc-test.sh "say hello"                  # via the CCS proxy backend
+    bash _oracle/oc-test.sh "say hello"                  # via the opencodex proxy backend
     node _oracle/capture-server.mjs out.jsonl 8319 &     # capture outbound requests
     bash _oracle/oc-capture.sh 8319 "say OK"             # ground-truth system-prompt check
 
 Headless `opencode run` waits on stdin — pass `</dev/null` so it exits cleanly.
-Verifying L1 (AGENTS.md injection) must use capture, NOT the CCS proxy: the proxy
-rewrites the system prompt to Claude Code's, so it cannot witness opencode's.
+Verifying L1 (AGENTS.md injection) must use capture, NOT a model proxy (CCS was
+measured to rewrite the system prompt to Claude Code's; opencodex not re-measured),
+so a proxy cannot be relied on to witness opencode's.
 
 ## Ship
 opencode **HANGS at plugin load when no `package.json` exists in the config dir**,

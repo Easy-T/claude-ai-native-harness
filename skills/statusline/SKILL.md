@@ -1,13 +1,13 @@
 ---
 name: statusline
 description: >-
-  Claude Code 커스텀 상태줄(~/.claude/statusline.sh, v2.1 5-line: 모델/effort ·
+  Claude Code 커스텀 상태줄(~/.claude/statusline.sh, v3 5-line: 모델/effort ·
   워크스페이스/비용 · 컨텍스트 바 · 5h/7d 레이트리밋 바) 유지보수 orchestrator.
   상태줄을 바꾸거나("상태줄에 X 추가/제거", "색상·아이콘 바꿔줘", "바 길이 조절"),
   고치거나("상태줄 깨졌어", "% 안 맞아", "리밋 바 이상해", "잘려 보여"),
   복원하거나("상태줄 원래대로", "새 PC에 상태줄 설치") 할 때 — statusline/status line/
   상태줄/상태바가 언급되면 항상 이 skill 사용. 하드 제약(1KB 절단, 프록시 창
-  과소보고, OAuth usage API, 토큰 read-only)을 모르고 고치면 조용히 망가지기 때문.
+  과소보고, stdin rate_limits 계약)을 모르고 고치면 조용히 망가지기 때문.
   강제 하네스 아님 — 상태줄 작업이 아닐 땐 무관.
 orchestrator_skill: true
 generated_by: create-orchestrator-skill
@@ -18,8 +18,8 @@ orchestrator_version: 1.0
 
 SSOT (복사 금지 — 항상 원본을 읽고 원본을 수정):
 - 스크립트: `~/.claude/statusline.sh`
-- 테스트: `~/.claude/tests/statusline/run-tests.sh` + `fixtures/` (4종)
-- 설계 spec: `~/.claude/docs/superpowers/specs/2026-05-31-statusline-balanced-design.md` (v2.1 corrections 섹션 필독)
+- 테스트: `~/.claude/tests/statusline/run-tests.sh` + `fixtures/` (5종)
+- 설계 spec: `~/.claude/docs/superpowers/specs/2026-05-31-statusline-balanced-design.md` (v3 절 · v2.1 corrections 섹션 필독)
 - 등록: `~/.claude/settings.json` → `"statusLine": {"type":"command","command":"bash $HOME/.claude/statusline.sh","padding":0}`
 
 # Phase 1 — Load Context
@@ -33,13 +33,14 @@ SSOT (복사 금지 — 항상 원본을 읽고 원본을 수정):
      (base Fable·Opus → 실제 1M인데 200K로 옴). `model.id`의 `[1m]` 접미사 = 1M SSOT.
      gpt 라우팅 슬롯 = GPT-5.6(Sol/Luna) 372k · legacy GPT-5.5/mini 272k (v2.2).
      FLOOR는 올리기만 — 절대 내리지 않는다.
-   - **usage API 계약.** `GET https://api.anthropic.com/api/oauth/usage`,
-     헤더 `Authorization: Bearer <access_token>` + `anthropic-beta: oauth-2025-04-20`.
-     필드: `five_hour`/`seven_day`의 `.utilization`(0–100 float)·`.resets_at`(ISO8601, offset-aware 파싱).
-   - **토큰 read-only.** `~/.ccs/cliproxy/auth/*.json`의 `access_token`은 읽기만.
-     refresh 시도 금지 — CCS와 refresh grant가 충돌하면 토큰 패밀리 전체 폐기 위험.
+   - **rate_limits 계약 (v3).** L4/L5 데이터는 Claude Code 가 stdin 으로 주는
+     `.rate_limits.{five_hour,seven_day}.{used_percentage,resets_at}` 뿐이다(로그인 계정 자체 데이터,
+     CC 2.1.283 실측). `resets_at` 은 epoch 초(현행) 또는 ISO8601 문자열을 받는다. `used_percentage` 가
+     없으면(API 키 인증·구버전·첫 응답 전) `…` placeholder, `resets_at` 만 없거나 파싱 불가면 막대는 그리고 리셋
+     접미사만 생략(필드 정렬 유지). **자격증명 파일 읽기·네트워크 호출 0 — 추가 금지**
+     (테스트 T8 이 대표 네트워크 클라이언트·자격증명 경로 패턴을 봉인 — 전수 증명은 아님).
    - **포그라운드 비용.** ~300ms마다 재실행되므로: 단일 jq pass, epoch/tz는
-     `printf '%(%s)T'` 빌트인, usage는 60s 캐시 + mkdir-lock 백그라운드 refresh.
+     `printf '%(%s)T'` 빌트인, 백그라운드 서브셸 없음.
      이모지 폭 주의: ✚✖ 같은 글자는 2칸 렌더되어 숫자와 겹침 → ASCII 사용.
 
 # Phase 2 — Modify
@@ -47,7 +48,7 @@ SSOT (복사 금지 — 항상 원본을 읽고 원본을 수정):
 요청 유형별 경로:
 - **복원/설치**: `git -C ~/.claude log --oneline -- statusline.sh`로 버전 확인 →
   `git checkout <sha> -- statusline.sh`. 새 환경이면 settings.json에 위 등록 블록 추가
-  + `jq`/`curl` 존재 확인. CCS 계정 구성이 다르면 스크립트 상단 `ACCTS` 배열만 수정.
+  + `jq` 존재 확인.
 - **수정/확장**: spec을 먼저 in-place 개정(개정일+근거 한 줄) → 스크립트 수정 →
   `run-tests.sh`에 새 동작의 단언 추가. 테스트 없는 세그먼트 추가 금지.
 - **격상**: 설계가 바뀌는 큰 변경(레이아웃 개편, 새 데이터 소스)은 start-rpi-cycle로
@@ -64,7 +65,7 @@ SSOT (복사 금지 — 항상 원본을 읽고 원본을 수정):
          context_paths=["~/.claude/statusline.sh",
                         "~/.claude/docs/superpowers/specs/2026-05-31-statusline-balanced-design.md"],
          success_criteria="run-tests.sh fail=0; 총 출력 ≤1000 bytes; FLOOR 테이블·
-           run-length mkbar·토큰 read-only·60s 캐시 구조가 수정 후에도 유지; spec
+           run-length mkbar·자격증명·네트워크 0(T8 대표 패턴 봉인 — 전수 증명 아님)·rate_limits 부재 시 placeholder 가 수정 후에도 유지; spec
            개정 기록이 변경과 일치")
 4. 실화면 확인을 사용자에게 요청 (이모지 폭·색은 터미널 의존이라 기계 검증 불가).
 

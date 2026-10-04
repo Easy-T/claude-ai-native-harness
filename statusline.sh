@@ -4,34 +4,27 @@
 #   L1 model [1M] · effort · output-style · thinking
 #   L2 path · git(branch +staged~mod) · cost · duration · lines±
 #   L3 context gradient bar (floor-mapped window, autocompact-55% ramp)
-#   L4/L5 Claude 5h/7d rate limits for BOTH CCS accounts (OAuth usage API, async cache)
+#   L4/L5 Claude 5h/7d rate limits from Claude Code's own stdin rate_limits (v3, spec v3 2026-09-28)
 # Constraints: ~300ms refresh cadence on Windows Git Bash → no new foreground spawns:
-#   one jq pass for everything; epoch/tz via printf builtins; git cached 5s/session;
-#   usage fetched by a detached bg subshell (mkdir lock, atomic mv, 60s TTL).
+#   one jq pass for everything; epoch/tz via printf builtins; git cached 5s/session.
+#   No credential file is read and no network call is made (v3).
 in=$(cat)
 
 # ---------- config ----------
-ACCTS=(biz:claude-bizdev@nice.co.kr indie:claude-indietogo@gmail.com)  # tag:email (auth file stem)
-AUTH_DIR="$HOME/.ccs/cliproxy/auth"
 TMP="${TMPDIR:-/tmp}"
-USAGE_TTL=60 STALE_AT=900 LOCK="$TMP/ccstatus-usage.lock"
 
 printf -v NOW '%(%s)T' -1
 printf -v TZOFF '%(%z)T' -1                    # e.g. +0900
 TZSEC=$(( 10#${TZOFF:1:2} * 3600 + 10#${TZOFF:3:2} * 60 ))
 [ "${TZOFF:0:1}" = "-" ] && TZSEC=$(( -TZSEC ))
 
-BC="$TMP/ccstatus-usage-biz.json"; IC="$TMP/ccstatus-usage-indie.json"
-[ -s "$BC" ] || printf '{}' >"$BC"
-[ -s "$IC" ] || printf '{}' >"$IC"
-
-# ---------- single jq pass: stdin fields + both usage caches ----------
-# resets_at arrives as ISO8601 with fractional seconds and an offset (+00:00 observed,
-# but parse offset-aware rather than assuming UTC). 7d reset renders as LOCAL M/D via
-# epoch+TZSEC+gmtime (mingw jq localtime is unreliable).
+# ---------- single jq pass: stdin fields incl. rate_limits ----------
+# rate_limits.*.resets_at arrives as epoch seconds (CC 2.1.283); an ISO8601 string (fractional
+# seconds, offset-aware) is also accepted. An unparseable value drops only the reset suffix.
+# 7d reset renders as LOCAL M/D via epoch+TZSEC+gmtime (mingw jq localtime is unreliable).
 JQ='
 def parsedate:
-  try (capture("^(?<d>[0-9T:-]+)(\\.[0-9]+)?(?<o>Z|[+-][0-9]{2}:[0-9]{2})?$")
+  try (capture("^(?<d>[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2})(\\.[0-9]+)?(?<o>Z|[+-][0-9]{2}:[0-9]{2})?$")
        | ((.d + "Z") | fromdateiso8601)
          - (if .o == null or .o == "Z" then 0
             else (if .o[0:1] == "-" then -1 else 1 end) * ((.o[1:3]|tonumber)*3600 + (.o[4:6]|tonumber)*60)
@@ -41,15 +34,11 @@ def relfmt: ((./3600)|floor) as $h | (((. % 3600)/60)|floor) as $m
   | if . <= 0 then "now" elif $h > 0 then "\($h)h\($m)m" else "\($m)m" end;
 def datefmt: . + $tz | gmtime as $t | $t[3] as $h
   | "\($t[1]+1)/\($t[2]) \(if $h % 12 == 0 then 12 else $h % 12 end)\(if $h < 12 then "am" else "pm" end)";
-def age($c): ($c[0] // {}) | if .fetched_at then ($now - .fetched_at) else 999999 end;
-def acct($c): (($c[0] // {}).data // {}) as $d
-  | [ ($d.five_hour.utilization  // -1 | floor),
-      (($d.five_hour.resets_at  // null | if . then parsedate else null end) as $r
-        | if $r then (($r - $now) | relfmt) else "" end),
-      ($d.seven_day.utilization  // -1 | floor),
-      (($d.seven_day.resets_at  // null | if . then parsedate else null end) as $r
-        | if $r then ($r | datefmt) else "" end),
-      age($c) ];
+def epoch: if type == "number" then . elif type == "string" then parsedate else null end;
+def rlim($w; fmt): ((.rate_limits // {})[$w] // {}) as $x
+  | [ ($x.used_percentage // -1 | floor),
+      (([$x.resets_at // null | if . == null then null else epoch end][0] // null) as $r
+        | if $r then ($r | fmt) else "" end) ];
 [ .model.display_name // "",
   .model.id // "",
   (.workspace.current_dir // .cwd // ""),
@@ -65,39 +54,12 @@ def acct($c): (($c[0] // {}).data // {}) as $d
   ((.cost.total_duration_ms // 0) / 1000 | floor),
   (.cost.total_lines_added // 0),
   (.cost.total_lines_removed // 0) ]
-+ acct($B) + acct($I)
-+ [ (if (age($B) > '$USAGE_TTL') or (age($I) > '$USAGE_TTL') then 1 else 0 end) ]
++ rlim("five_hour"; (. - $now) | relfmt) + rlim("seven_day"; datefmt)
 | map(tostring) | join("")'
 
 IFS=$'\037' read -r MODEL MID DIR PCT USED SIZE COST CENTS SID EFFORT OSTYLE THINK DSEC ADDED REMOVED \
-  B5 B5R B7 B7R BAGE I5 I5R I7 I7R IAGE REFRESH \
-  <<<"$(jq -r --slurpfile B "$BC" --slurpfile I "$IC" --argjson now "$NOW" --argjson tz "$TZSEC" "$JQ" <<<"$in")"
-
-# ---------- background usage refresh (never blocks rendering) ----------
-if [ "${REFRESH:-0}" = "1" ]; then
-  if mkdir "$LOCK" 2>/dev/null; then
-    (
-      trap 'rmdir "$LOCK" 2>/dev/null' EXIT
-      for spec in "${ACCTS[@]}"; do
-        tag=${spec%%:*}; email=${spec#*:}
-        f="$AUTH_DIR/$email.json"; cache="$TMP/ccstatus-usage-$tag.json"
-        [ -f "$f" ] || continue
-        tok=$(jq -r '.access_token // empty' "$f" 2>/dev/null)
-        [ -n "$tok" ] || continue
-        resp=$(curl -fs --max-time 8 \
-                 -H "Authorization: Bearer $tok" \
-                 -H "anthropic-beta: oauth-2025-04-20" \
-                 https://api.anthropic.com/api/oauth/usage) || continue
-        printf -v fnow '%(%s)T' -1
-        printf '{"fetched_at":%s,"data":%s}' "$fnow" "$resp" >"$cache.tmp" \
-          && mv -f "$cache.tmp" "$cache"        # atomic; failures keep last good cache
-      done
-    ) </dev/null >/dev/null 2>&1 & disown 2>/dev/null
-  else  # contended/stuck lock: rare path, stat spawn acceptable here
-    lm=$(stat -c %Y "$LOCK" 2>/dev/null || echo "$NOW")
-    [ $(( NOW - lm )) -gt 300 ] && rm -rf "$LOCK" 2>/dev/null
-  fi
-fi
+  R5 R5R R7 R7R \
+  <<<"$(jq -r --argjson now "$NOW" --argjson tz "$TZSEC" "$JQ" <<<"$in")"
 
 # ---------- ANSI palette ----------
 B=$'\033[1m'; D=$'\033[2m'; R=$'\033[0m'
@@ -192,28 +154,13 @@ UK=$(( USED / 1000 ))
 if (( SIZE >= 1000000 )); then SK="1M"; else SK="$(( SIZE / 1000 ))k"; fi
 L3="⚡ ${B}Context${R}  ${BAR} ${PCT}% ${D}(${UK}k/${SK})${R}"
 
-# ---------- L4/L5: Claude rate limits, both accounts ----------
-# Reset time is INLINE per account (v2.1): the merged trailing display was ambiguous
-# when the two accounts reset at different times.
-acct_seg() { # acct_seg <tag> <tagcolor> <util> <reset>  -> $SEG
-  local tag=$1 tc=$2 u=$3 rst=$4
-  if [ "${u:--1}" -lt 0 ] 2>/dev/null; then SEG="${tc}${tag}${R} ${D}…${R}"
-  else
-    mkbar "$u" 8 50 80
-    SEG="${tc}${tag}${R} ${BAR} ${u}%"
-    [ -n "$rst" ] && SEG+=" ${D}(${rst})${R}"
-  fi
+# ---------- L4/L5: Claude rate limits (stdin rate_limits — v3) ----------
+lim_seg() { # lim_seg <util> <reset> -> $SEG
+  local u=$1 rst=$2
+  if [ "${u:--1}" -lt 0 ] 2>/dev/null; then SEG="${D}…${R}"
+  else mkbar "$u" 8 50 80; SEG="${BAR} ${u}%"; [ -n "$rst" ] && SEG+=" ${D}(${rst})${R}"; fi
 }
-STALE=""
-{ [ "${B5:--1}" -ge 0 ] && [ "${BAGE:-0}" -gt "$STALE_AT" ]; } 2>/dev/null && STALE=" ${D}(stale)${R}"
-{ [ "${I5:--1}" -ge 0 ] && [ "${IAGE:-0}" -gt "$STALE_AT" ]; } 2>/dev/null && STALE=" ${D}(stale)${R}"
-
-acct_seg biz "$BLU" "$B5" "$B5R"; S1=$SEG
-acct_seg indie "$MAG" "$I5" "$I5R"; S2=$SEG
-L4="🕐 ${B}5H Limit${R} $S1 ${D}·${R} $S2$STALE"
-
-acct_seg biz "$BLU" "$B7" "$B7R"; S1=$SEG
-acct_seg indie "$MAG" "$I7" "$I7R"; S2=$SEG
-L5="📅 ${B}7D Limit${R} $S1 ${D}·${R} $S2$STALE"
+lim_seg "$R5" "$R5R"; L4="🕐 ${B}5H Limit${R} $SEG"
+lim_seg "$R7" "$R7R"; L5="📅 ${B}7D Limit${R} $SEG"
 
 printf '%s\n%s\n%s\n%s\n%s\n' "$L1" "$L2" "$L3" "$L4" "$L5"

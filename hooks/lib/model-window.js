@@ -1,6 +1,6 @@
 // hooks/lib/model-window.js <model>
 // 모델명 → 컨텍스트 창 토큰 수 (auto-compact-watch 가 사용). 'which models have which window' 단일 소스.
-// CONTEXT_LIMIT env 가 양수면 우선(override). 새 모델 출시 시 MAP 에 한 줄만 추가.
+// CONTEXT_LIMIT env 가 양수면 우선(override). Opus/Sonnet 은 세대 규칙으로 신규 릴리스 자동 수용 — 새 '계열'일 때만 MAP 추가.
 // 주의: `node model-window.js <model>` 이므로 모델명은 argv[2] (argv[1]은 스크립트 경로).
 const model = (process.argv[2] || "").toLowerCase();
 const env = parseInt(process.env.CONTEXT_LIMIT || "", 10);
@@ -8,8 +8,8 @@ if (Number.isFinite(env) && env > 0) {
   process.stdout.write(String(env));
 } else {
   const MAP = [
-    [/opus-4-(7|8)/, 1000000],  // Opus 4.7 / 4.8 — 1M context
-    [/fable/, 1000000],         // Fable 5 — 1M (공식 docs; statusline.sh 실측 368k>200k 동근거)
+    [/(opus|sonnet)-(4-(?:[6-9]|[1-9]\d)|[5-9]|[1-9]\d)(?!\d)/, 1000000],  // 세대 규칙: Opus/Sonnet 4.6+(4.10 등 두 자리 마이너 포함)·5+ = 1M (4.7/4.8 포함, 신규 릴리스 자동 수용 — alias 해소 ID는 [1m] 미부착; (?!\d)가 날짜 접미사 -2025… 차단)
+    [/fable|mythos/, 1000000],  // Fable/Mythos 전 세대 — 1M (공식 docs; statusline.sh 실측 368k>200k 동근거)
     [/1m/, 1000000],            // 명시적 1M 계열
   ];
   const hit = MAP.find(([re]) => re.test(model));
