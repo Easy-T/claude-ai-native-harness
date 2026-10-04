@@ -772,6 +772,14 @@ test_lib "121-modelwin-fable"   "1000000" "$(node "$LIB/model-window.js" claude-
 # C25 spec §22.2: 세대 규칙 영구 회귀 — Opus 5.5(사용자 결정) + 규칙이 200K→1M 으로 뒤집은 Sonnet 4.6 양성
 test_lib "212-modelwin-opus55"   "1000000" "$(node "$LIB/model-window.js" claude-opus-5-5)"
 test_lib "213-modelwin-sonnet46" "1000000" "$(node "$LIB/model-window.js" claude-sonnet-4-6)"
+# C25 Closeout (A3·C3): 세대 규칙 경계 — 음성 4건(4.6 미만·날짜 접미사·구 명명 3-5-sonnet → 200K)과
+# 규칙 프로브 2건(6.x 마이너·4.10 두 자리 마이너 → 1M). 음성은 규칙 확장·(?!\d) 삭제 변이의 판별자다.
+test_lib "214-modelwin-sonnet45-neg"      "200000"  "$(node "$LIB/model-window.js" claude-sonnet-4-5)"
+test_lib "215-modelwin-opus41-date-neg"   "200000"  "$(node "$LIB/model-window.js" claude-opus-4-1-20250805)"
+test_lib "216-modelwin-sonnet4-date-neg"  "200000"  "$(node "$LIB/model-window.js" claude-sonnet-4-20250514)"
+test_lib "217-modelwin-legacy35-neg"      "200000"  "$(node "$LIB/model-window.js" claude-3-5-sonnet-20241022)"
+test_lib "218-modelwin-opus61"            "1000000" "$(node "$LIB/model-window.js" claude-opus-6-1)"
+test_lib "219-modelwin-sonnet410"         "1000000" "$(node "$LIB/model-window.js" claude-sonnet-4-10)"
 # GAP-010 (C9): /1m/ 행 커버 (opus/fable 미매칭·"1m" 토큰만으로 1M 해소) + 프로덕션 [1m] suffix ID (autocompact 워크어라운드 load-bearing)
 test_lib "193-modelwin-1m"            "1000000" "$(node "$LIB/model-window.js" claude-neo-1m)"
 test_lib "194-modelwin-opus-1m-suffix" "1000000" "$(node "$LIB/model-window.js" 'claude-opus-4-8[1m]')"

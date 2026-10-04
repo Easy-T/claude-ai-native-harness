@@ -6,6 +6,7 @@
 #   T5     reason=clear → no-op(세션 지속 보호)   T6 마커일치 비-worktree(메인 repo 해소) → no-op(메인 보호)
 #   T4     idempotency: 삭제된 경로 재구동 → clean no-op
 #   Tf/Tg/Th/Ti(cycle-76) 미커밋·미추적 정션·status 실패 → 보존(GUARD 6), clean 복귀 시 정상 삭제
+#   Tj/Tk/Tl/Tm(C25) 수정-only·staged-only·assume-unchanged 숨은 수정·삭제 직전 경합(재검사) → 보존
 set -u
 HOOK="$HOME/.claude/hooks/worktree-teardown.sh"
 PASS=0; FAIL=0
@@ -157,6 +158,58 @@ printf '{"session_id":"wtjtest_i_%s","cwd":"%s","reason":"prompt_input_exit"}' "
 grep -q 'noop:status-failed' "$RL"/*.jsonl 2>/dev/null && ok "Ti: 사유 noop:status-failed 기록" || no "Ti: status-failed 사유 미기록"
 rm -f "$IDX"; git -C "$WT" reset -q 2>/dev/null   # index 재생성 → clean
 printf '{"session_id":"wtjcleanup_i_%s","cwd":"%s","reason":"prompt_input_exit"}' "$$" "$WT" | bash "$HOOK" >/dev/null 2>&1
+
+# Tj~Tm(C25): 블록별 격리 로그 — Tf~Ti 가 남긴 사유가 공유 로그에서 vacuous 통과시키지 않도록.
+echo "== Tj: 추적 파일 수정만(미추적 없음) → 보존 + noop:dirty-worktree =="
+make_worktree
+RLJ="$TMP/runlog-j"
+echo "editj" >> "$WT/app/frontend/src/own.txt"
+printf '{"session_id":"wtjtest_j_%s","cwd":"%s","reason":"other"}' "$$" "$WT" | RUNLOG_DIR="$RLJ" bash "$HOOK" >/dev/null 2>&1
+[ -d "$WT" ] && ok "Tj: 수정-only 워크트리 보존" || no "Tj: ★DATA LOSS — 수정-only 워크트리 삭제됨"
+grep -q editj "$WT/app/frontend/src/own.txt" 2>/dev/null && ok "Tj: 수정 내용 무사" || no "Tj: 수정 내용 소실"
+grep -q 'noop:dirty-worktree' "$RLJ"/*.jsonl 2>/dev/null && ok "Tj: 사유 noop:dirty-worktree 기록" || no "Tj: dirty 사유 미기록"
+git -C "$WT" checkout -q -- . 2>/dev/null   # clean 복귀 → 정리
+printf '{"session_id":"wtjcleanup_j_%s","cwd":"%s","reason":"prompt_input_exit"}' "$$" "$WT" | bash "$HOOK" >/dev/null 2>&1
+
+echo "== Tk: staged 만(새 파일 git add, 워킹트리 추가 변경 없음) → 보존 + noop:dirty-worktree =="
+make_worktree
+RLK="$TMP/runlog-k"
+echo "stagedk" > "$WT/app/frontend/src/staged.txt"; git -C "$WT" add app/frontend/src/staged.txt 2>/dev/null
+printf '{"session_id":"wtjtest_k_%s","cwd":"%s","reason":"other"}' "$$" "$WT" | RUNLOG_DIR="$RLK" bash "$HOOK" >/dev/null 2>&1
+[ -d "$WT" ] && ok "Tk: staged-only 워크트리 보존" || no "Tk: ★DATA LOSS — staged-only 워크트리 삭제됨"
+grep -q stagedk "$WT/app/frontend/src/staged.txt" 2>/dev/null && ok "Tk: staged 파일 무사" || no "Tk: staged 파일 소실"
+grep -q 'noop:dirty-worktree' "$RLK"/*.jsonl 2>/dev/null && ok "Tk: 사유 noop:dirty-worktree 기록" || no "Tk: dirty 사유 미기록"
+git -C "$WT" reset -q 2>/dev/null; rm -f "$WT/app/frontend/src/staged.txt"   # clean 복귀 → 정리
+printf '{"session_id":"wtjcleanup_k_%s","cwd":"%s","reason":"prompt_input_exit"}' "$$" "$WT" | bash "$HOOK" >/dev/null 2>&1
+
+echo "== Tl: assume-unchanged 추적 파일 수정(git status 에 안 보임) → 보존 + noop:hidden-index-flags =="
+make_worktree
+RLL="$TMP/runlog-l"
+git -C "$WT" update-index --assume-unchanged app/frontend/src/own.txt 2>/dev/null; echo "hiddenl" >> "$WT/app/frontend/src/own.txt"
+printf '{"session_id":"wtjtest_l_%s","cwd":"%s","reason":"other"}' "$$" "$WT" | RUNLOG_DIR="$RLL" bash "$HOOK" >/dev/null 2>&1
+[ -d "$WT" ] && ok "Tl: 숨은 수정 워크트리 보존" || no "Tl: ★DATA LOSS — assume-unchanged 수정 워크트리 삭제됨"
+grep -q hiddenl "$WT/app/frontend/src/own.txt" 2>/dev/null && ok "Tl: 숨은 수정 내용 무사" || no "Tl: 숨은 수정 내용 소실"
+grep -q 'noop:hidden-index-flags' "$RLL"/*.jsonl 2>/dev/null && ok "Tl: 사유 noop:hidden-index-flags 기록" || no "Tl: hidden-index-flags 사유 미기록"
+git -C "$WT" update-index --no-assume-unchanged app/frontend/src/own.txt 2>/dev/null; git -C "$WT" checkout -q -- . 2>/dev/null   # clean 복귀 → 정리
+printf '{"session_id":"wtjcleanup_l_%s","cwd":"%s","reason":"prompt_input_exit"}' "$$" "$WT" | bash "$HOOK" >/dev/null 2>&1
+
+echo "== Tm: 삭제 직전 경합 — GUARD 6 통과 뒤(STEP A) 새 파일 생성 → 재검사로 rm 생략 + noop:dirty-recheck =="
+make_worktree
+RLM="$TMP/runlog-m"; SHIM="$TMP/psshim"; mkdir -p "$SHIM"
+REAL_PS=$(command -v powershell)   # 셤 설치 *전* 실제 경로 해석(MSYS 형태 — bash→bash→exe 로 hook 직접 호출과 같은 1회 변환)
+cat > "$SHIM/powershell" <<EOF
+#!/usr/bin/env bash
+# Tm 가짜 powershell: 첫 호출(STEP A) 때 워크트리에 미추적 파일 생성(부모 세션 쓰기 모사) → 실제 powershell 에 인자 그대로 전달
+if [ ! -f "$SHIM/.fired" ]; then : > "$SHIM/.fired"; echo racem > "$WT/app/frontend/src/race.txt"; fi
+exec "$REAL_PS" "\$@"
+EOF
+chmod +x "$SHIM/powershell"
+printf '{"session_id":"wtjtest_m_%s","cwd":"%s","reason":"other"}' "$$" "$WT" | PATH="$SHIM:$PATH" RUNLOG_DIR="$RLM" bash "$HOOK" >/dev/null 2>&1
+[ -d "$WT" ] && ok "Tm: 경합 워크트리 보존" || no "Tm: ★DATA LOSS — 경합 중 워크트리 삭제됨"
+grep -q racem "$WT/app/frontend/src/race.txt" 2>/dev/null && ok "Tm: 경합 중 생성된 새 파일 무사" || no "Tm: 경합 중 생성된 새 파일 소실(또는 셤 미발화)"
+grep -q 'noop:dirty-recheck' "$RLM"/*.jsonl 2>/dev/null && ok "Tm: 사유 noop:dirty-recheck 기록" || no "Tm: dirty-recheck 사유 미기록"
+rm -f "$WT/app/frontend/src/race.txt"   # clean 복귀 → 정리(셤 없이)
+printf '{"session_id":"wtjcleanup_m_%s","cwd":"%s","reason":"prompt_input_exit"}' "$$" "$WT" | bash "$HOOK" >/dev/null 2>&1
 
 echo "== Td: self-healing sweep (SessionStart 배선) — dir-제거 등록/고아 worktree-* 청소, 활성/비-컨벤션 보호 =="
 git -C "$REPO" worktree add -q -b worktree-cycle-swA "$REPO/.claude/worktrees/swA" 2>/dev/null; rm -rf "$REPO/.claude/worktrees/swA"   # dir 제거 → prunable+고아

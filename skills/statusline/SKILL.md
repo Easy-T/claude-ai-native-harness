@@ -18,7 +18,7 @@ orchestrator_version: 1.0
 
 SSOT (복사 금지 — 항상 원본을 읽고 원본을 수정):
 - 스크립트: `~/.claude/statusline.sh`
-- 테스트: `~/.claude/tests/statusline/run-tests.sh` + `fixtures/` (4종)
+- 테스트: `~/.claude/tests/statusline/run-tests.sh` + `fixtures/` (5종)
 - 설계 spec: `~/.claude/docs/superpowers/specs/2026-05-31-statusline-balanced-design.md` (v3 절 · v2.1 corrections 섹션 필독)
 - 등록: `~/.claude/settings.json` → `"statusLine": {"type":"command","command":"bash $HOME/.claude/statusline.sh","padding":0}`
 
@@ -35,9 +35,10 @@ SSOT (복사 금지 — 항상 원본을 읽고 원본을 수정):
      FLOOR는 올리기만 — 절대 내리지 않는다.
    - **rate_limits 계약 (v3).** L4/L5 데이터는 Claude Code 가 stdin 으로 주는
      `.rate_limits.{five_hour,seven_day}.{used_percentage,resets_at}` 뿐이다(로그인 계정 자체 데이터,
-     CC 2.1.283 실측). `resets_at` 은 epoch 초(현행) 또는 ISO8601 문자열을 받는다. 필드가 없으면
-     (API 키 인증·구버전·첫 응답 전) `…` placeholder. **자격증명 파일 읽기·네트워크 호출 0 — 추가 금지**
-     (테스트 T8 이 봉인).
+     CC 2.1.283 실측). `resets_at` 은 epoch 초(현행) 또는 ISO8601 문자열을 받는다. `used_percentage` 가
+     없으면(API 키 인증·구버전·첫 응답 전) `…` placeholder, `resets_at` 만 없거나 파싱 불가면 막대는 그리고 리셋
+     접미사만 생략(필드 정렬 유지). **자격증명 파일 읽기·네트워크 호출 0 — 추가 금지**
+     (테스트 T8 이 대표 네트워크 클라이언트·자격증명 경로 패턴을 봉인 — 전수 증명은 아님).
    - **포그라운드 비용.** ~300ms마다 재실행되므로: 단일 jq pass, epoch/tz는
      `printf '%(%s)T'` 빌트인, 백그라운드 서브셸 없음.
      이모지 폭 주의: ✚✖ 같은 글자는 2칸 렌더되어 숫자와 겹침 → ASCII 사용.
@@ -64,7 +65,7 @@ SSOT (복사 금지 — 항상 원본을 읽고 원본을 수정):
          context_paths=["~/.claude/statusline.sh",
                         "~/.claude/docs/superpowers/specs/2026-05-31-statusline-balanced-design.md"],
          success_criteria="run-tests.sh fail=0; 총 출력 ≤1000 bytes; FLOOR 테이블·
-           run-length mkbar·자격증명·네트워크 0(T8)·rate_limits 부재 시 placeholder 가 수정 후에도 유지; spec
+           run-length mkbar·자격증명·네트워크 0(T8 대표 패턴 봉인 — 전수 증명 아님)·rate_limits 부재 시 placeholder 가 수정 후에도 유지; spec
            개정 기록이 변경과 일치")
 4. 실화면 확인을 사용자에게 요청 (이모지 폭·색은 터미널 의존이라 기계 검증 불가).
 

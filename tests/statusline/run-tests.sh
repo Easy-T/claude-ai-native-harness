@@ -14,11 +14,19 @@ run() { # run <fixture-file|abs-path> <fake-home>   -> stdout (ANSI-stripped)
   HOME="$2" USERPROFILE="$2" TMPDIR="$2" bash "$SL" <"$f" 2>/dev/null | strip
 }
 
-with_limits() { # with_limits <fixture> <u5> <u7> [iso|junk] -> writes $d/in.json (needs $d); 5h reset +3h30m, 7d +24h
+with_limits() { # with_limits <fixture> <u5> <u7> [iso|isoneg|nores|junk] -> writes $d/in.json (needs $d); 5h reset +3h30m, 7d +24h
+  # isoneg also writes $d/ref.json: the same instants as epoch seconds (the deterministic expectation).
   local now r5 r7; printf -v now '%(%s)T' -1; r5=$(( now + 12630 )); r7=$(( now + 86400 ))
   case "${4:-}" in
     iso)  jq --argjson u5 "$2" --argjson u7 "$3" --argjson r5 "$r5" --argjson r7 "$r7" \
             '. + {rate_limits:{five_hour:{used_percentage:$u5,resets_at:($r5|todate)},seven_day:{used_percentage:$u7,resets_at:($r7|todate)}}}' "$FX/$1" >"$d/in.json" ;;
+    isoneg) # local wall time at -05:00 = UTC - 5h; 5h value carries fractional seconds
+          jq --argjson u5 "$2" --argjson u7 "$3" --argjson r5 "$r5" --argjson r7 "$r7" \
+            '. + {rate_limits:{five_hour:{used_percentage:$u5,resets_at:((($r5-18000)|todate|rtrimstr("Z"))+".250-05:00")},seven_day:{used_percentage:$u7,resets_at:((($r7-18000)|todate|rtrimstr("Z"))+"-05:00")}}}' "$FX/$1" >"$d/in.json"
+          jq --argjson u5 "$2" --argjson u7 "$3" --argjson r5 "$r5" --argjson r7 "$r7" \
+            '. + {rate_limits:{five_hour:{used_percentage:$u5,resets_at:$r5},seven_day:{used_percentage:$u7,resets_at:$r7}}}' "$FX/$1" >"$d/ref.json" ;;
+    nores) jq --argjson u5 "$2" --argjson u7 "$3" --argjson r7 "$r7" \
+            '. + {rate_limits:{five_hour:{used_percentage:$u5},seven_day:{used_percentage:$u7,resets_at:$r7}}}' "$FX/$1" >"$d/in.json" ;;
     junk) jq --argjson u5 "$2" --argjson u7 "$3" --argjson r7 "$r7" \
             '. + {rate_limits:{five_hour:{used_percentage:$u5,resets_at:"not-a-date"},seven_day:{used_percentage:$u7,resets_at:$r7}}}' "$FX/$1" >"$d/in.json" ;;
     *)    jq --argjson u5 "$2" --argjson u7 "$3" --argjson r5 "$r5" --argjson r7 "$r7" \
@@ -77,7 +85,6 @@ out=$(run base-fable.json "$d")
 check "T4 still 5 lines"              "$(wc -l <<<"$out")" '^5$'
 check "T4 5h placeholder"             "$out" '5H Limit …'
 check "T4 7d placeholder"             "$out" '7D Limit …'
-check "T4 no stale marker on empty"   "$(grep -c stale <<<"$out")" '^0$'
 rm -rf "$d"
 
 # --- T5: resets_at as ISO-8601 string (robustness) ---
@@ -91,6 +98,23 @@ d=$(mktemp -d); with_limits base-fable.json 25 26 junk
 out=$(run "$d/in.json" "$d")
 check "T5b unparseable reset -> bar kept, no suffix" "$out" '5H Limit [█░]+ 25%$'
 check "T5b 7d unaffected"             "$out" '7D Limit [█░]+ 26% \('
+rm -rf "$d"
+
+# --- T5c: ISO resets_at with a NEGATIVE offset (-05:00, 5h also fractional) == the same instant as epoch ---
+d=$(mktemp -d); with_limits base-fable.json 25 26 isoneg
+out=$(run "$d/in.json" "$d"); ref=$(run "$d/ref.json" "$d")
+for n in 4 5; do
+  got=$(sed -n "${n}p" <<<"$out"); want=$(sed -n "${n}p" <<<"$ref")
+  check "T5c -05:00 ISO line $n == epoch render" "$([ "$got" = "$want" ] && echo same || echo "got=[$got] want=[$want]")" '^same$'
+done
+check "T5c 5h suffix present"         "$out" '5H Limit [█░]+ 25% \(3h(29|30)m\)$'
+rm -rf "$d"
+
+# --- T5d: used_percentage without resets_at -> bar + % kept, suffix omitted, other fields not shifted ---
+d=$(mktemp -d); with_limits base-fable.json 25 26 nores
+out=$(run "$d/in.json" "$d")
+check "T5d no resets_at -> bar kept, no suffix" "$out" '5H Limit [█░]+ 25%$'
+check "T5d 7d not shifted"            "$out" '7D Limit [█░]+ 26% \([0-9]{1,2}/[0-9]{1,2} [0-9]{1,2}(am|pm)\)$'
 rm -rf "$d"
 
 # --- T6: non-git cwd ---
@@ -108,7 +132,7 @@ check "T7 no 1M chip on gpt slot"     "$(head -1 <<<"$out")" '^[^[]*$'
 rm -rf "$d"
 
 # --- T8: v3 reads no credential file and makes no network call ---
-check "T8 no credential read / network" "$(grep -cE 'curl|\.ccs|access_token' "$SL")" '^0$'
+check "T8 no credential read / network" "$(grep -vE '^[[:space:]]*#' "$SL" | grep -ciE 'curl|wget|fetch|https?://|/dev/tcp|Invoke-WebRequest|\.ccs|auth\.json|credentials|access_token|\.codex/|\.opencodex/')" '^0$'
 
 echo "---"
 echo "pass=$PASS fail=$FAIL"

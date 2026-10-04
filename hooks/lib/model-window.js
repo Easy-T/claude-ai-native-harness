@@ -8,7 +8,7 @@ if (Number.isFinite(env) && env > 0) {
   process.stdout.write(String(env));
 } else {
   const MAP = [
-    [/(opus|sonnet)-(4-[6-9]|[5-9]|[1-9]\d)(?!\d)/, 1000000],  // 세대 규칙: Opus/Sonnet 4.6+·5+ = 1M (4.7/4.8 포함, 신규 릴리스 자동 수용 — alias 해소 ID는 [1m] 미부착)
+    [/(opus|sonnet)-(4-(?:[6-9]|[1-9]\d)|[5-9]|[1-9]\d)(?!\d)/, 1000000],  // 세대 규칙: Opus/Sonnet 4.6+(4.10 등 두 자리 마이너 포함)·5+ = 1M (4.7/4.8 포함, 신규 릴리스 자동 수용 — alias 해소 ID는 [1m] 미부착; (?!\d)가 날짜 접미사 -2025… 차단)
     [/fable|mythos/, 1000000],  // Fable/Mythos 전 세대 — 1M (공식 docs; statusline.sh 실측 368k>200k 동근거)
     [/1m/, 1000000],            // 명시적 1M 계열
   ];

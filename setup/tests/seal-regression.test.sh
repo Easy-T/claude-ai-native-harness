@@ -133,6 +133,17 @@ mut_c3_ocx_pattern_drop() {
 }
 mut_c3_ocx_unmarked() { printf -- '---\nname: "ocx-zz-handmade"\nmodel: sonnet\n---\nhand-written\n' > "$1/agents/ocx-zz-handmade.md"; }
 mut_c3_ocx_marked_inherit() { printf -- '---\nname: "ocx-zz-inh"\nmodel: inherit\n---\n<!-- generated-by: opencodex -->\n' > "$1/agents/ocx-zz-inh.md"; }
+# Mutator C25-d/e/f/g (C25 Closeout A1·A2·C2) — #47 전제 판정의 frontmatter 한정·값 정규화 봉인. 전부 마커 보유
+# 합성 래퍼다. d = frontmatter 에 model 없음, e = model 이 닫는 `---` 뒤 본문에만 있음(Claude Code 는 무선언=세션
+# 상속으로 취급), f = 따옴표로 감싼 inherit, g = 뒤쪽 YAML 주석이 붙은 inherit. 넷 다 전제 위반이어야 한다.
+mut_c3_ocx_marked_nomodel()  { printf -- '---\nname: "ocx-zz-nomodel"\n---\n<!-- generated-by: opencodex -->\n' > "$1/agents/ocx-zz-nomodel.md"; }
+mut_c3_ocx_body_model()      { printf -- '---\nname: "ocx-zz-body"\n---\n<!-- generated-by: opencodex -->\nmodel: sonnet\n' > "$1/agents/ocx-zz-body.md"; }
+mut_c3_ocx_quoted_inherit()  { printf -- "---\nname: \"ocx-zz-qinh\"\nmodel: 'inherit'\n---\n<!-- generated-by: opencodex -->\n" > "$1/agents/ocx-zz-qinh.md"; }
+mut_c3_ocx_comment_inherit() { printf -- '---\nname: "ocx-zz-cinh"\nmodel: inherit # generated default\n---\n<!-- generated-by: opencodex -->\n' > "$1/agents/ocx-zz-cinh.md"; }
+# Mutator C25-h (C25 Closeout 델타) — 1행이 UTF-8 BOM + `--- `(구분자 뒤 공백)인 wrapper 도 frontmatter 로 읽어야
+# 한다(1행 `---` 판정이 막히면 model 선언 wrapper 가 #47 시야에서 빠진다). BOM 제거·공백 허용 중 하나만 빠져도
+# 생존한다. 비-ocx 이름·제외목록 미등재 → drift 로 발화해야 한다.
+mut_c3_bom_model() { printf -- '\357\273\277--- \nname: zz-bom\nmodel: sonnet\n---\nbody\n' > "$1/agents/zz-bom.md"; }
 # Mutator 14 — seal #49 (C16 §15.3): layer-yield 축적 대장을 삭제하면 발화해야 한다
 #   (필드 parity 만 있고 대장이 없으면 per-layer 수율이 축적되지 않아 floor·배분 재심 데이터가 죽는다).
 mut_yield_ledger_drop() { rm -f "$1/docs/ai-context/review-yield.md"; }
@@ -243,6 +254,11 @@ assert_seal_fires "c3_exclude_drop"    mut_c3_exclude_drop    "Rule C3 제외목
 assert_seal_fires "c3_ocx_pattern_drop" mut_c3_ocx_pattern_drop "Rule C3 제외목록 drift"
 assert_seal_fires "c3_ocx_unmarked"     mut_c3_ocx_unmarked     "Rule C3 패턴 면제 전제 위반"
 assert_seal_fires "c3_ocx_marked_inherit" mut_c3_ocx_marked_inherit "Rule C3 패턴 면제 전제 위반"
+assert_seal_fires "c3_ocx_marked_nomodel"  mut_c3_ocx_marked_nomodel  "Rule C3 패턴 면제 전제 위반"
+assert_seal_fires "c3_ocx_body_model"      mut_c3_ocx_body_model      "Rule C3 패턴 면제 전제 위반"
+assert_seal_fires "c3_ocx_quoted_inherit"  mut_c3_ocx_quoted_inherit  "Rule C3 패턴 면제 전제 위반"
+assert_seal_fires "c3_ocx_comment_inherit" mut_c3_ocx_comment_inherit "Rule C3 패턴 면제 전제 위반"
+assert_seal_fires "c3_bom_model"           mut_c3_bom_model           "Rule C3 제외목록 drift"
 assert_seal_fires "seal49_ledger_missing" mut_yield_ledger_drop "layer-yield drift"
 assert_seal_fires "exec_fm_model_s5"    mut_exec_model    "execute-strict model"
 assert_seal_fires "exec_fm_model_s45"   mut_exec_model    "역할×모델 매트릭스 봉인 붕괴"

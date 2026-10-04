@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Status:** active
+**Status:** completed
 **RPI-Cycle:** 76
 **Started:** 2026-09-28
 
@@ -237,6 +237,8 @@ else
 fi
 ```
 
+*(Closeout 정정: 착륙 코드의 `am=` 줄은 이 스니펫과 다르다 — `model:` 을 YAML frontmatter 안에서만 읽고, 1행 UTF-8 BOM 제거·구분자 `---` 뒤 공백 허용, 값은 CR → 뒤쪽 주석 → 앞뒤 공백 → 감싼 따옴표 순으로 정규화한다(슬롯 2 A1·A2, 10-03 델타 재심 BOM·공백 회귀). 현행 = `setup/verify-setup.sh` #47 · spec model-policy §22.1.)*
+
 seal 번호 주석 블록 `# 47. …` 끝에 한 줄을 추가한다.
 `#     C25: ocx-* 는 생성기-소유 패턴 arm 으로 커버하고, 그 전제(마커·model 선언)를 함께 검사한다(spec §22.1).`
 
@@ -373,10 +375,13 @@ if [ -n "$_WT_ST" ]; then
 fi
 ```
 
+  *(Closeout 정정: 착륙 코드는 이 스니펫이 아니라 판정 함수 `wt_keep_reason()` 이다 — status 에 `--ignore-submodules=none`, `ls-files -v` 의 assume-unchanged/skip-worktree 검사(`noop:hidden-index-flags`·`noop:ls-files-failed`), 같은 판정의 `rm` 직전 재검사(`noop:dirty-recheck`)를 더했다(슬롯 2 B2·F1). 현행 = `hooks/worktree-teardown.sh` · spec teardown §12.3.)*
+
   - 머리 주석의 안전 불변식(7-8행) 끝에 `+ 미커밋 작업(ignored 제외)이 없을 때만(GUARD 6, cycle-76)` 을 덧붙인다.
 - [x] **Step 4: 전파.**
   - `SECURITY.md` "`worktree-teardown` 안전 모델" 절, `**데이터손실 0 다중방어**` 목록 끝에 추가한다:
     `  - **미커밋 보존(GUARD 6, cycle-76)**: 식별 경로(cwd·마커)와 무관하게 `git status --porcelain` 이 비어 있지 않거나(미커밋 수정·ignore 안 된 미추적 파일·정션) status 가 실패하면 삭제하지 않는다. 계기=워크트리 안에서 띄운 headless 자식 세션의 SessionEnd 가 부모 워크트리를 지운 라이브 사고(2026-09-28). 수용 잔여: ignore 된 비-재생성 파일(로컬 .env 등)은 clean 워크트리 삭제 시 여전히 소실.`
+    *(Closeout 정정: 이 문안은 GUARD 6 보강(index 플래그·서브모듈·재검사)과 수용 잔여 (a)~(f) 로 대체됐다 — 현행 = SECURITY.md teardown 절.)*
   - 같은 절 "검증" 줄의 `(13/13)` 을 실측 수로 갱신하고, 목록에 `미커밋·미추적 정션·status 실패 보존` 을 추가한다.
   - `README.md` 43행 `worktree-teardown` 행의 가드 서술 `가드(마커·sanity·linked-worktree 증명)로` 를 `가드(마커·sanity·linked-worktree 증명·미커밋 보존)로` 로 바꾼다.
 - [x] **Step 5: GREEN(staged HOME).** `restage` 후 `HOME="$STG" bash "$STG/.claude/hooks/tests/worktree-teardown.test.sh"` → `PASS=35 FAIL=0`.
@@ -421,7 +426,7 @@ with_limits() { # with_limits <fixture> <u5> <u7> [iso|junk] -> writes $d/in.jso
       - `check "T1 no account tags" "$(grep -cE 'biz|indie' <<<"$out")" '^0$'`
     - `rawbytes` 도 `$d/in.json` 입력으로 잰다: `bash "$SL" <"$d/in.json"`.
   - **T2/T3/T6/T7:** `seed_caches "$d" 5` 호출만 삭제한다. 단언은 바꾸지 않는다.
-  - **T4(누락):** 원본 `base-fable.json`(rate_limits 없음)으로 확인한다. `T4 no stale marker on empty` 는 유지한다.
+  - **T4(누락):** 원본 `base-fable.json`(rate_limits 없음)으로 확인한다. `T4 no stale marker on empty` 는 유지한다. *(Closeout 정정: v3 에서 stale 로직이 사라져 이 단언은 공허해졌으므로 삭제했다 — 통합 리뷰 M3.)*
     - `check "T4 5h placeholder" "$out" '5H Limit …'`
     - `check "T4 7d placeholder" "$out" '7D Limit …'`
     - 5줄 유지
@@ -429,7 +434,7 @@ with_limits() { # with_limits <fixture> <u5> <u7> [iso|junk] -> writes $d/in.jso
   - **T5b(신규):** `with_limits base-fable.json 25 26 junk` 로 두 가지를 확인한다.
     - `check "T5b unparseable reset -> bar kept, no suffix" "$out" '5H Limit [█░]+ 25%$'`
     - `check "T5b 7d unaffected" "$out" '7D Limit [█░]+ 26% \('`
-  - **T8(신규):** `check "T8 no credential read / network" "$(grep -cE 'curl|\.ccs|access_token' "$SL")" '^0$'`.
+  - **T8(신규):** `check "T8 no credential read / network" "$(grep -cE 'curl|\.ccs|access_token' "$SL")" '^0$'`. *(Closeout 정정: 패턴을 `curl|wget|fetch|https?://|/dev/tcp|Invoke-WebRequest|\.ccs|auth\.json|credentials|access_token|\.codex/|\.opencodex/` 로 넓히고 주석 줄을 제외했다 — 슬롯 2 C6. 대표 패턴 봉인이지 전수 증명은 아니다.)*
 - [x] **Step 3: RED.** `SL="$WT/statusline.sh" bash "$WT/tests/statusline/run-tests.sh"` → T1 새 단언 · T4 · T5 · T5b · T8 FAIL.
 - [x] **Step 4: 구현(`statusline.sh`).**
   - 머리 주석
@@ -477,10 +482,10 @@ lim_seg "$R7" "$R7R"; L5="📅 ${B}7D Limit${R} $SEG"
 - [x] **Step 6: skill 갱신.** `skills/statusline/SKILL.md` 를 v3 로 교체한다.
   - 10행 description: `OAuth usage API, 토큰 read-only` → `stdin rate_limits 계약`.
   - 36-42행 하드 제약
-    - usage API 계약과 토큰 read-only 두 항목을 **"rate_limits 계약"** 한 항목으로 바꾼다: `stdin .rate_limits.{five_hour,seven_day}.{used_percentage,resets_at}`, resets_at 은 epoch 초 또는 ISO. 없으면 `…`. 자격증명 읽기·네트워크 호출 0 — 추가 금지.
+    - usage API 계약과 토큰 read-only 두 항목을 **"rate_limits 계약"** 한 항목으로 바꾼다: `stdin .rate_limits.{five_hour,seven_day}.{used_percentage,resets_at}`, resets_at 은 epoch 초 또는 ISO. 없으면 `…`. 자격증명 읽기·네트워크 호출 0 — 추가 금지. *(Closeout 정정: `used_percentage` 부재 → `…`, `resets_at` 만 부재/파싱 불가 → 막대 유지·접미사만 생략(슬롯 2 A5). T8 은 대표 패턴 봉인 — 전수 증명 아님(C6).)*
     - 포그라운드 비용 항목에서 `usage는 60s 캐시 + mkdir-lock 백그라운드 refresh` 를 삭제한다.
   - 50행 복원 절차: `+ jq/curl 존재 확인. CCS 계정 구성이 다르면 … ACCTS 배열만 수정.` → `+ jq 존재 확인.`
-  - 67행 Phase 3 검증 기준: `토큰 read-only·60s 캐시 구조` → `자격증명·네트워크 0(T8)·rate_limits 부재 시 placeholder`.
+  - 67행 Phase 3 검증 기준: `토큰 read-only·60s 캐시 구조` → `자격증명·네트워크 0(T8)·rate_limits 부재 시 placeholder`. *(Closeout 정정: 착륙 문구는 T8 을 "대표 패턴 봉인"으로 한정한다 — C6.)*
   - 확인
     - `grep -nE 'usage API|oauth/usage|access_token|ACCTS|60s 캐시|curl' skills/statusline/SKILL.md` → 0건
     - opencode 미러 존재 여부: `ls opencode-harness/skill | grep -i statusline`(2026-09-28 실측 0건 — 미러 없음)
@@ -546,12 +551,14 @@ lim_seg "$R7" "$R7R"; L5="📅 ${B}7D Limit${R} $SEG"
     - claude-md-management: 불변
   - `skill-cksum: 252811375` · `skill-count: 33` 으로 바꾼다. 갱신 직전에 `find "$HOME/.claude/plugins/cache/claude-plugins-official" -name SKILL.md | sort | xargs cat | cksum` 로 재실측한다.
   - 갱신 이력 주석을 1개 추가한다. 내용은 판정 근거 요약, 행동 변화, 한계, 그리고 **명명 특성 재관찰**이다.
-    - 명명 특성 재관찰: `fa59bc9…` 와 `5bf4e78…` 는 이 하네스 repo 에 **없는 객체**다(`git cat-file -t` 실패). 따라서 07-17 에 세운 "캐시 버전명 = 로컬 하네스 커밋 sha" 관찰은 이번에 성립하지 않는다. cksum 이 유일한 실검증이라는 결론은 불변이다.
+    - 명명 특성 재관찰: `fa59bc9…` 와 `5bf4e78…` 는 이 하네스 repo 에 **없는 객체**다(`git cat-file -t` 실패). 따라서 07-17 에 세운 "캐시 버전명 = 로컬 하네스 커밋 sha" 관찰은 이번에 성립하지 않는다. cksum 이 유일한 실검증이라는 결론은 불변이다. *(Closeout 정정: 과잉 일반화였다. 같은 캐시에 하네스 커밋명 dir `1ec99123d23a` 도 공존하므로 "명명 원천이 혼재한다"가 정확하다 — 통합 리뷰 M5, plugin-pins 이력 주석도 정정.)*
 - [x] **Step 3: 확인.**
   - staged verify-setup 에서 seal #40 PASS.
   - session-start-audit 의 드리프트 ALERT 가 사라지는지는 머지 후 메인 트리 기준으로 다음 세션에서 확인한다. 사이클 보고에 기록한다.
 
 **결과(T6):** staged verify-setup `PASS=91 FAIL=0`(#40 `plugin-pins SKILL.md cksum 핀 존재` ✓) · session-start-audit 판정식(129-131행)을 그대로 재현하면 핀 `252811375` == 현재 캐시 `252811375` → 머지 후 드리프트 ALERT 소멸 예상. 실제 소멸은 다음 세션 SessionStart 에서 확인한다.
+
+**재판정(2026-10-03, Closeout 중):** 위 예상은 머지 전에 깨졌다 — 09-30T11:36Z 마켓플레이스가 context7·skill-creator·playwright 를 `fa59bc903774`→`2a8ad9f74633` 으로 교체해 라이브 캐시가 `413615869`/34 가 됐다. `diff -rq` 3/3 콘텐츠 차이 0(캐시 장부 파일만)·skill-creator SKILL.md `cmp` 동일 → byte-동일 사본 1개가 전량 해시에 추가된 것뿐이므로 정당 판정, 핀을 `413615869`/34 로 갱신(이력 주석 동반). 고아 dir 이 정리되면 한 번 더 드리프트가 뜬다(이력 주석에 예고).
 
 ### Task 7: Closeout
 
@@ -572,15 +579,26 @@ lim_seg "$R7" "$R7R"; L5="📅 ${B}7D Limit${R} $SEG"
   - statusline `pass=33 fail=0` · base-fable 337 bytes.
   - RED 대조: seal-regression 구현 전 스냅샷은 `PASS=31 FAIL=3` 이다(control 과 `c3_ocx_unmarked`·`c3_ocx_marked_inherit` 의 needle 부재).
   - (주의) 첫 verify-all 은 사이클 라벨 정정(C76→C25, 주석·메시지 문자열만) 때문에 중단하고 다시 돌렸다. 중단한 실행의 고아 프로세스가 같은 로그에 `MUTATED` 줄을 남겼지만, 그 줄은 NUL 구간 뒤에 섞인 옛 출력이었다. 최종 로그는 NUL 0 바이트이고 seal-regression 요약이 1회만 나온다.
-- [ ] **Step 2: 커밋 → PR → closeout-pr-cycle 통합 리뷰.** 통합 리뷰는 senior+drift 이고, 교차패밀리 슬롯 2(경로 A, worktree 밖 cwd)를 함께 돈다.
+- [x] **Step 2: 커밋 → PR → closeout-pr-cycle 통합 리뷰.** 통합 리뷰는 senior+drift 이고, 교차패밀리 슬롯 2(경로 A, worktree 밖 cwd)를 함께 돈다.
+
+  **진행(T7 S2):** 커밋 `6711cfb` → PR #44 → 통합 리뷰(senior+drift, review-strict opus) PASS · Critical 0 · Important 4 · Minor 8 → 교차패밀리 슬롯 2(경로 A `gpt-5.6-sol`) 17건 → 메인 2단계 트리아지 **REAL 16 · 기각 1**(C1: 뮤테이터 집합 단위 판별력 성립, RED 31/3) + 내부 I3(수용 잔여·차기 후보)·I4·M3~M8 → 정정-위임 미니-사이클(그룹 S·T·L, execute-strict opus) → 델타 재심.
+  - 미완료 사유(I4, 해소): 델타 재심 PASS 전에는 체크하지 않았다 — 2회차 PASS(2026-10-03)로 체크.
+  - 2026-10-03 재개(직전 세션 강제 종료): 미커밋 정정을 되돌리지 않고 메인이 마무리했다 — 전파 누락 3곳(CONTEXT.md GUARD 6 서술·statusline SKILL.md `resets_at` 부재 동작·MIGRATION-VERIFICATION.md 프록시 서술), 정정이 만든 회귀 1건(seal #47 frontmatter 파싱이 BOM 1행 파일을 건너뜀 → BOM 제거 + 뮤테이터 `c3_bom_model`; RED = BOM 래퍼 심고 `PASS=91 FAIL=0`, GREEN = `FAIL=1` 제외목록 drift 발화), 수용 잔여 (f) 서술 정정(파일 링크는 `abort-rm` 경로; 코드 판독 근거·E2E 불가 명시)과 재검사 보존 시 STEP A/B 선행 부작용 선언.
+  - 델타 재심 1회차(review-strict opus, 2026-10-03): **FAIL** · 실발견 2 + Minor 1 — ① plan 착륙-verbatim 스니펫 5곳(seal #47 `am=`·GUARD 6·SECURITY 문안·T8·SKILL 문구)이 정정 전 그대로인데 주석도 N/A 선언도 없음(전파 ② 범주 무언 통과) → `*(Closeout 정정: …)*` 주석 5곳 ② unknown 으로 올라온 `--- `(구분자 뒤 공백) 1행도 BOM 과 같은 회귀 부류로 판정 → 두 구분자 정규식에 `[ \t]*` 허용, `c3_bom_model` 을 BOM+공백 결합으로(RED: 정정 전 BOM+공백·순수 공백 둘 다 91/0 → GREEN 90/1 · 판별력: BOM 제거만 빼도, 공백 허용만 빼도 91/0 생존) ③ Minor: verify-setup 주석 "과탐 쪽으로"는 비-ocx 분기에만 맞음 → 정정. 부수: CONTEXT.md 사유 목록에 `noop:ls-files-failed`, teardown spec 개정 표기에 10-03.
+  - 델타 재심 2회차(review-strict opus, 2026-10-03): **PASS** — 주석 5곳 실물 대조 일치, 픽스처 28종 × 현행/1회차/HEAD 대조 의도 외 결과 0. 선언 2건: 닫는 구분자 공백 허용을 지키는 뮤테이터 부재(차기 보강 후보) · Claude Code 실제 구분자 규칙 미실측(수용 잔여).
+
+  **결과(T7 최종, Closeout 정정 후 — S1 의 309/34/35/33 은 정정 전 당시 값):** 최종 restage staged `verify-all.sh` **ALL PASS, RC=0**(2026-10-03 15:04, 로그 `delta3-1003-verify-all.log`).
+  - doctor 40/0(WARN 1 = staged 사본 git repo 아님) · verify-setup **91/0** · seal-regression **39/0**(뮤테이터 +5: frontmatter·정규화 4 + BOM/공백 1)
+  - failopen 5/0 · rpi-prereq 3/0 · orca-carrier 34/0 · run-all **315/315** · teardown E2E **47/0** · integration 8/0
+  - statusline `pass=37 fail=0` · base-fable 337 bytes(최대 385)
 
 **non-obvious 처분 — 명시 면제 + 차기 등록 후보 3건.** CLAUDE.md §4 는 등록 전에 사용자 확인과 5 Whys 를 요구한다. 무인 진행이라 이번 사이클에서는 등록하지 않고, 사이클 보고에 후보로 올린다(침묵 이월이 아니라 선언 이월이다).
 - ⓐ JS `String.replace(str, str)` 의 치환 패턴(`$`+백틱 등)이 C24 plan 에 134행 중복을 만들었다. 이 plan 의 Global Constraints 에 편집 규칙으로 반영했다.
-- ⓑ Edit 도구가 혼합-개행 spec 을 전부 CRLF 로 바꿨다(기존 non-obvious I1 의 재발). Gate 델타 재심이 잡았고, perl 바이트 편집으로 다시 적용했다.
+- ⓑ Edit 도구가 혼합-개행 spec 을 전부 CRLF 로 바꿨다(non-obvious.md #4(혼합 개행 Edit) 의 재발). Gate 델타 재심이 잡았고, perl 바이트 편집으로 다시 적용했다.
 - ⓒ worktree 안에서 띄운 headless `claude -p` 자식의 SessionEnd 가 부모 worktree 를 지웠다(데이터 손실 0). Task 3 의 GUARD 6 이 구조적 대응이고, 등록 후보는 "자식 세션의 cwd 가 식별 신호를 오염시키는 클래스"다.
 
-- [ ] **Step 3: 마감.**
-  - state.json cycle +2(75·76)
-  - review-yield 대장 append
+- [x] **Step 3: 마감.** 통합 리뷰 이후 선언적 편집(state·대장·Status)만 허용(D5) — 델타 재심 PASS 뒤 머지 직전에 했다.
+  - state.json cycle 74 → 76(75·76) · last_completed_at·last_drift_check 2026-10-03
+  - review-yield 대장 C24·C25 절 append
   - plan Status → completed(75 는 완료)
-  - 머지 후 메인 트리를 동기화한다: 사본의 내용 일치를 확인하고, 내 사본을 제거한 뒤 `pull --ff-only`.
+  - 머지 후 메인 트리 동기화는 이 plan 밖 마감 절차로 하고 사이클 보고에 기록한다. 계획했던 `pull --ff-only` 는 쓸 수 없다 — 메인 master 에 다른 세션의 미push 로컬 커밋(`a57fdfc`, review-yield 대장 append)이 있어서다. 내 사본(정정 전 초안)을 내용 확인 후 제거하고, 그 커밋을 보존하는 `git merge origin/master` 로 통합한다(대장 충돌은 append 시각 순서로 둘 다 유지).

@@ -9,15 +9,21 @@
 | 플러그인 | version | gitCommitSha |
 |---|---|---|
 | superpowers | 6.4.1 | `5bf4e78011075bcfc0dc295f0724994cd123ee71` |
-| context7 | fa59bc903774 | `fa59bc9037741ecfa131aa27938272605710d7b2` |
-| skill-creator | fa59bc903774 | `fa59bc9037741ecfa131aa27938272605710d7b2` |
-| playwright | fa59bc903774 | `fa59bc9037741ecfa131aa27938272605710d7b2` |
+| context7 | 2a8ad9f74633 | `2a8ad9f74633d10e3d9bb0660a03bfc6e50584b1` |
+| skill-creator | 2a8ad9f74633 | `2a8ad9f74633d10e3d9bb0660a03bfc6e50584b1` |
+| playwright | 2a8ad9f74633 | `2a8ad9f74633d10e3d9bb0660a03bfc6e50584b1` |
 | claude-md-management | 1.0.0 | `7bc347b89aaa7f1e02c03617b8d163243d86ecce` |
 
 <!-- 기계검증: 아래 skill-cksum 은 session-start-audit 드리프트 검사와 verify-setup seal #40 이 소비. 캐시 SKILL.md 전체 결정론 해시(`find plugins/cache/claude-plugins-official -name SKILL.md | sort | xargs cat | cksum`). -->
-skill-cksum: 252811375
-skill-count: 33
+skill-cksum: 413615869
+skill-count: 34
 
+<!-- 핀 갱신 이력: 2026-10-03 (C25 Closeout) — 절차 ② 정당 업데이트 판정(메인 실측): context7/skill-creator/playwright
+  fa59bc903774→2a8ad9f74633(installed_plugins.json lastUpdated 09-30T11:36Z, 구 dir 에 `.orphaned_at` = 정상 마켓플레이스
+  교체). `diff -rq` 3/3: 콘텐츠 차이 0(캐시 장부 파일 `.in_use`·`.orphaned_at` 만), skill-creator SKILL.md `cmp` 동일.
+  cksum 252811375→413615869·count 33→34 는 byte-동일 사본 1개가 전량 해시에 추가된 결과뿐 — rug-pull 아님.
+  2a8ad9f… 도 하네스 repo 에 없는 객체(`git cat-file -t` 실패). 예고: 고아 dir(`.orphaned_at`) 이 정리되면 count 가
+  다시 줄어 드리프트가 한 번 더 뜬다 — 그때도 콘텐츠 diff 로 판정. -->
 <!-- 핀 갱신 이력: 2026-09-29 (C25 T6) — 절차 ② 정당 업데이트 판정(explore-strict opus 보안 표면 diff 리뷰, LEGIT-UPDATE):
   superpowers 6.2.0→6.3.0→6.4.1(installed_plugins.json lastUpdated 09-25T15:38 · 6.3.0 캐시 orphaned_at 동시각 = 정상
   마켓플레이스 교체) + context7/skill-creator/playwright fa59bc903774 교체(lastUpdated 09-28). 판정 근거: hooks.json·
@@ -27,8 +33,10 @@ skill-count: 33
   (파괴적·보안·merge/push·계획 붕괴에서만 정지) — 하네스 Phase I (b) 경로에 영향, 사이클 보고에 표면화.
   한계: 6.2.0 캐시는 이미 삭제돼 6.2.0→6.3.0 구간은 릴리스 노트로만 재구성. context7·playwright 는 SKILL.md 없음,
   skill-creator 캐시 3개 dir byte-동일. ★명명 특성 재관찰: fa59bc9…·5bf4e78… 는 이 하네스 repo 에 **없는 객체**
-  (`git cat-file -t` 실패) — 07-17 관찰("캐시 버전명 = 로컬 하네스 커밋 sha")은 이번에 성립하지 않는다. cksum 이
-  유일한 실검증이라는 결론은 불변. -->
+  (`git cat-file -t` 실패) — 캐시 버전명의 원천이 혼재한다(하네스 커밋명 dir 과 비-하네스 sha dir 공존: context7·
+  playwright·skill-creator 캐시에 `1ec99123d23a`(= 하네스 커밋 `1ec9912`)·`ad30d62cd52a`·`fa59bc903774`(활성) 3개 dir)
+  — 07-17 관찰("캐시 버전명 = 로컬 하네스 커밋 sha")은 항상 성립하는 규칙이 아니다; cksum 이 유일한 실검증이라는
+  결론은 불변. -->
 <!-- 핀 갱신 이력: 2026-08-02 (C16-F-1) — 절차 ② 정당 업데이트 판정: superpowers 6.1.1→6.2.0(lastUpdated
   07-25) + context7/skill-creator/playwright 캐시 버전 디렉터리 추가(디렉터리명=하네스 repo sha — C10 명명
   특성 재확인). 콘텐츠 diff 실측(cmp 14/14 전수, C16 stage2 정정): 13/14 변경(byte-동일은 using-superpowers만)

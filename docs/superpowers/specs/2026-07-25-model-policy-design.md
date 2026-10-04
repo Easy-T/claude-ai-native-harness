@@ -2721,15 +2721,27 @@ C23 은 조항이 착륙하기 *전에* 그 조항의 내용을 **게이트 프�
     스폰 자체를 거부하므로 역류는 일어나지 않는다.
   - ocx-* 스폰에 `model:'inherit'` 를 명시해도 면제된다. 제외 목록 ①축(explore-strict 등)의 기존 동작과 같다 —
     생성 래퍼의 frontmatter model 이 호출 인자보다 우선하는지는 이 사이클 범위 밖이다.
-- seal-regression 변이(3종): 합성 생성기 래퍼를 심고 패턴 arm 을 지우면 #47 이 발화해야 한다. 마커 없는
+  - (C25 Closeout) seal #47 은 `$HOME/.claude/agents` 만 본다. 그래서 **project·plugin 범위의 `ocx-*` 에이전트는
+    전제 검사 밖**이다. 그런데 hook arm 은 범위와 무관하게 이름으로 면제한다. Rule C3 는 advisory 이고 런타임
+    frontmatter 해소는 위 ⓑ 에서 기각했으므로 이것은 수용 잔여다. 대응은 운영 규칙이다 — **`ocx-` 접두는
+    opencodex 생성기 전용 이름공간으로 예약한다**(어느 범위에서든 손으로 쓴 에이전트에 `ocx-` 이름을 쓰지 않는다).
+- seal-regression 변이(8종): 합성 생성기 래퍼를 심고 패턴 arm 을 지우면 #47 이 발화해야 한다. 마커 없는
   `ocx-*` 래퍼(전제 ①)와 마커는 있으나 `model: inherit` 인 래퍼(전제 ②)를 심어도 발화해야 한다. 라이브 디스크에 ocx 래퍼가 없는 머신에서도 vacuous 가 되지 않도록
   변이가 직접 심는다.
+  - C25 Closeout 추가 4종(전부 마커 보유): `c3_ocx_marked_nomodel`(frontmatter 에 model 없음)·`c3_ocx_body_model`
+    (닫는 `---` 뒤 본문에만 `model: sonnet`)·`c3_ocx_quoted_inherit`(`model: 'inherit'`)·`c3_ocx_comment_inherit`
+    (`model: inherit # generated default`).
+  - C25 Closeout 델타 1종: `c3_bom_model` — 1행이 UTF-8 BOM + `--- `(구분자 뒤 공백)인 비-ocx 선언 wrapper(`model: sonnet`, 제외목록
+    미등재). 1행 판정이 BOM·공백에 막혀 #47 시야에서 빠지던 회귀를 봉인한다(제외목록 drift 로 발화해야 함 — BOM 제거·공백 허용 중 하나만 빠져도 생존).
+  - 전제 판정은 **YAML frontmatter 안(1행 `---` ~ 다음 `---`)의 `model:` 만** 읽고(1행 UTF-8 BOM 은 벗기고, 구분자 `---` 뒤 공백은 허용), 값을 CR → 뒤쪽 주석(공백+`#`) → 앞뒤 공백 → 감싼 따옴표 순으로 정규화한 뒤 빈 값·`inherit` 을 위반으로 본다.
 
 ### §22.2 model-window — 세대 규칙 (§P1 "opus-4-(7|8) 유지" 판정의 supersede)
 
 - 종전 MAP `[/opus-4-(7|8)/, 1M]` 은 새 세대마다 한 줄씩 추가해야 했다. 그래서 `claude-opus-5-5` 세션이
   200K 로 오판정됐고, autocompact 안내가 틀렸다(2026-09-28 Phase A 실측).
-- **채택 = 세대 규칙** `(opus|sonnet)-(4-[6-9]|[5-9]|[1-9]\d)(?!\d)` → 1M. 여기에 `fable|mythos` → 1M 을 더한다.
+- **채택 = 세대 규칙** `(opus|sonnet)-(4-(?:[6-9]|[1-9]\d)|[5-9]|[1-9]\d)(?!\d)` → 1M. 여기에 `fable|mythos` → 1M 을 더한다.
+  - (C25 Closeout 정정) 종전 `4-[6-9]` 는 두 자리 마이너(`claude-sonnet-4-10`)를 200K 로 떨어뜨려 "4.6+" 서술과
+    어긋났다. 4.x 마이너를 `4-(?:[6-9]|[1-9]\d)` 로 넓힌다. 날짜 접미사(`-20250514`)는 `(?!\d)` 가 막는다.
   - 새 릴리스를 자동으로 수용하고, 새 **계열**일 때만 MAP 을 추가한다.
   - Haiku 는 규칙 밖(200K 기본값)으로 둔다. 기본값 회귀 케이스(79)는 `claude-haiku-4-5` 로 옮긴다.
     autocompact 창 케이스 61 도 같은 이유로 sonnet → haiku(`61-haiku-200k`)로 옮긴다(Sonnet 4.6 이 1M 이 되어
@@ -2738,3 +2750,9 @@ C23 은 조항이 착륙하기 *전에* 그 조항의 내용을 **게이트 프�
   - `212-modelwin-opus55`: `claude-opus-5-5` → 1M. 사용자 결정이 요구한 케이스다.
   - `213-modelwin-sonnet46`: `claude-sonnet-4-6` → 1M. 세대 규칙이 뒤집은 판정(종전 79 는 200K 단언)을
     양성으로 고정한다.
+  - 경계 케이스(C25 Closeout, 214~219):
+    - 음성(→ 200K): `214-modelwin-sonnet45-neg`(`claude-sonnet-4-5`)·`215-modelwin-opus41-date-neg`
+      (`claude-opus-4-1-20250805`)·`216-modelwin-sonnet4-date-neg`(`claude-sonnet-4-20250514`)·
+      `217-modelwin-legacy35-neg`(`claude-3-5-sonnet-20241022`). 규칙을 `(opus|sonnet)-\d` 로 넓히거나
+      `(?!\d)` 를 지우는 변이의 판별자다.
+    - 규칙 프로브(→ 1M): `218-modelwin-opus61`(`claude-opus-6-1`)·`219-modelwin-sonnet410`(`claude-sonnet-4-10`).

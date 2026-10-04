@@ -16,10 +16,10 @@ rate limits) are now in scope by explicit user request; v1 single-line layout is
   two fields under `rate_limits.seven_day`. This is the logged-in account's own data.
 - **Decision.** L4/L5 render from stdin `rate_limits`, one account, no tag:
   `🕐 5H Limit ████░░░░ 18% (1h23m)` · `📅 7D Limit ███░░░░░ 27% (10/2 6am)`. The 8-cell bar, thresholds, reset
-  formats, and the 5-line layout are unchanged, so no new visual decision is made. If a field is missing (API-key
-  auth, an older Claude Code, or before the first API response), the line shows the `…` placeholder.
-  `resets_at` is accepted as epoch seconds (current) or as an ISO-8601 string (robustness). An unparseable
-  value drops only the reset suffix (the bar still renders; field alignment is kept).
+  formats, and the 5-line layout are unchanged, so no new visual decision is made. If `used_percentage` is missing
+  (API-key auth, an older Claude Code, or before the first API response), the line shows the `…` placeholder.
+  `resets_at` is accepted as epoch seconds (current) or as an ISO-8601 string (robustness). If `resets_at` is
+  missing or unparseable, only the reset suffix is dropped (the bar still renders; field alignment is kept).
 - **Removed.** Account config (`ACCTS`), credential-file reads, the OAuth usage API call, the background refresh
   subshell, its lock, the cache files, and the `(stale)` marker. The statusline no longer reads any credential file
   and makes no network call.

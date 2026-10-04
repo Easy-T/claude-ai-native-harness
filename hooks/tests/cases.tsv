@@ -93,6 +93,12 @@ hooks-lib	80-modelwin-override	output	gen_lib_80
 hooks-lib	121-modelwin-fable	output	gen_lib_121
 hooks-lib	212-modelwin-opus55	output	gen_lib_212
 hooks-lib	213-modelwin-sonnet46	output	gen_lib_213
+hooks-lib	214-modelwin-sonnet45-neg	output	gen_lib_214
+hooks-lib	215-modelwin-opus41-date-neg	output	gen_lib_215
+hooks-lib	216-modelwin-sonnet4-date-neg	output	gen_lib_216
+hooks-lib	217-modelwin-legacy35-neg	output	gen_lib_217
+hooks-lib	218-modelwin-opus61	output	gen_lib_218
+hooks-lib	219-modelwin-sonnet410	output	gen_lib_219
 # Patch H (2026-06-02) — spec-before-plan gate (enforce-rpi-cycle)
 enforce-rpi-cycle	28-plan-no-spec-block	2	gen_erc_plan_nospec
 enforce-rpi-cycle	29-plan-with-spec-pass	0	gen_erc_plan_spec

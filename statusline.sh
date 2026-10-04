@@ -24,7 +24,7 @@ TZSEC=$(( 10#${TZOFF:1:2} * 3600 + 10#${TZOFF:3:2} * 60 ))
 # 7d reset renders as LOCAL M/D via epoch+TZSEC+gmtime (mingw jq localtime is unreliable).
 JQ='
 def parsedate:
-  try (capture("^(?<d>[0-9T:-]+)(\\.[0-9]+)?(?<o>Z|[+-][0-9]{2}:[0-9]{2})?$")
+  try (capture("^(?<d>[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2})(\\.[0-9]+)?(?<o>Z|[+-][0-9]{2}:[0-9]{2})?$")
        | ((.d + "Z") | fromdateiso8601)
          - (if .o == null or .o == "Z" then 0
             else (if .o[0:1] == "-" then -1 else 1 end) * ((.o[1:3]|tonumber)*3600 + (.o[4:6]|tonumber)*60)

@@ -146,7 +146,7 @@ node _oracle/capture-server.mjs /tmp/cap.jsonl 8319 &     # ground-truth outboun
 bash _oracle/oc-capture.sh 8319 "say OK"                  # L1: is AGENTS.md (8 §N markers) in the system prompt?
 bash _oracle/oc-test.sh "write a file foo.py without a plan"   # L2: is the plan-less write DENIED?  (opencodex proxy backend, locally)
 ```
-Headless `opencode run` waits on stdin → the scripts pass `</dev/null`. **L1 must use capture, NOT the proxy** (the proxy rewrites the system prompt to Claude Code's).
+Headless `opencode run` waits on stdin → the scripts pass `</dev/null`. **L1 must use capture, NOT a model proxy** (CCS was measured to rewrite the system prompt to Claude Code's; opencodex not re-measured).
 
 **C. Close the gaps you can (§5.1 is highest value):**
 - §5.1 project-level read: use the `init-ai-ready-project` skill to scaffold a temp project, run opencode from inside it, capture (a) whether the project `AGENTS.md` is injected and (b) whether the project `opencode.json` `permission.bash` denies `rm -rf x`.

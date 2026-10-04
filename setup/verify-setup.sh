@@ -523,7 +523,14 @@ OCX_ARM=0; grep -qE "^[[:space:]]*ocx-\*\)[[:space:]]*;;" "$SMP_HOOK" 2>/dev/nul
 for af in "$HOME/.claude/agents/"*.md; do
   [ -f "$af" ] || continue
   an=$(basename "$af" .md)
-  am=$(grep -m1 -E '^model:' "$af" 2>/dev/null | sed -E 's/^model:[[:space:]]*//' | tr -d '\r"')
+  # C25 Closeout (A1·A2): model 은 **YAML frontmatter 안**(1행 `---` ~ 다음 `---`)에서만 읽는다 — 닫는 `---` 뒤
+  # 본문의 `model:` 줄은 Claude Code 가 무시한다(=무선언·세션 상속). 값은 CR → 뒤쪽 주석(공백+#) → 앞뒤 공백 →
+  # 감싼 따옴표 순으로 정규화한다(`model: 'inherit'`·`model: inherit # x` 는 inherit 으로 판정). 1행의 UTF-8 BOM 은
+  # 벗기고 구분자 `---` 뒤 공백은 허용한다 — HEAD 의 전문 grep 이 보던 선언 wrapper 를 시야에서 빠뜨리지 않기 위해서다
+  # (비-ocx 는 과탐 방향, ocx-* 는 HEAD 와 같은 판정).
+  am=$(awk 'NR==1 { sub(/^\357\273\277/, ""); if ($0 !~ /^---[ \t]*\r?$/) exit; next } /^---[ \t]*\r?$/ { exit } /^model:/ { sub(/^model:/, ""); print; exit }' "$af" 2>/dev/null \
+       | tr -d '\r' | sed -E -e 's/[[:space:]]+#.*$//' -e 's/^[[:space:]]+//' -e 's/[[:space:]]+$//' \
+                          -e "s/^\"(.*)\"\$/\\1/" -e "s/^'(.*)'\$/\\1/")
   # C25 §22.1: ocx-* 는 패턴 arm 으로 면제 — 단 opencodex 생성 래퍼(마커 + inherit 아닌 model 선언)만.
   # 전제가 깨진 ocx-* 는 이름 등재로도 면제되지 않는다(접두 자체가 생성기 전용).
   case "$an" in
