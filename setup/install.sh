@@ -82,6 +82,7 @@ REQUIRED=(
   "$TARGET/commands/init-ai-ready.md"
   "$TARGET/CLAUDE.md"
   "$TARGET/settings.example.json"
+  "$TARGET/output-styles/attention-kind.md"
   "$TARGET/SECURITY.md"
 )
 MISSING_FILES=0
@@ -125,6 +126,7 @@ if [ -f "$TARGET/settings.json" ]; then
     }
     cur.hooks = merged;
     if (!cur.permissions) cur.permissions = tpl.permissions;
+    if (cur.outputStyle === undefined && tpl.outputStyle) cur.outputStyle = tpl.outputStyle;  // 사용자 지정값 보존
     fs.writeFileSync(HOME + "/.claude/settings.json", JSON.stringify(cur, null, 2));
     console.log("  ✓ hooks 병합 (하네스 hook 갱신 + 사용자 커스텀 hook 보존)");
   '

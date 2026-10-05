@@ -51,6 +51,12 @@
 |---|---|---|
 | `rpi-implement.js` | RPIC Phase I (d) canonical 2-stage 파이프라인 — stage1 execute(opus·heavy분기) → stage2 review(opus 명시 — 작업자 티어); 역할×모델 매트릭스의 코드 캐리어 | tri-model C12 (2026-07-26) |
 
+## Output Styles (1 — `ls output-styles/*.md`; `NOTICE.txt`·`LICENSE-*`는 스타일로 로드되지 않게 비-.md)
+
+| Style | 존재 이유 | 추적 |
+|---|---|---|
+| `attention-kind.md` | 기본 출력 스타일 — 결론 먼저·짧게·결정 질문은 끝에, 행동에 필요한 사실은 생략 금지(여러 세션 보고의 가독성). 외부 원문 그대로(alexgreensh/attention-span v0.8 `2714c965`, **AGPL-3.0** — `NOTICE.txt`·`LICENSE-attention-span` 동반), 매 세션 시스템 프롬프트 주입 입력이라 갱신은 의식적 승인 | 2026-10-05 반입(사용자 지시, RPI_SKIP=외부 원칙·스타일 반입 문서·설정) |
+
 ## Drift Seals (verify-setup.sh #17~#53, −#26 소각 = 36)
 
 거버넌스 사실의 재드리프트를 막는 특정-인스턴스 봉인(안정 앵커 있는 것만; generalized 프레임워크 아님).

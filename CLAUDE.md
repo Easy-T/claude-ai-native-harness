@@ -57,8 +57,12 @@ AI 실패 감지 시:
 
 ---
 
+> 아래 4원칙 출처: multica-ai/andrej-karpathy-skills `CLAUDE.md`(Karpathy의 LLM 코딩 함정 관찰).
+> **Tradeoff:** 속도보다 신중함 쪽으로 기운다. 사소한 작업은 판단으로(§3 trivial 예외와 같은 축).
+
 ## Think Before Coding
 Don't assume. Don't hide confusion. Surface tradeoffs.
+Before implementing:
 - State assumptions explicitly. If uncertain, ask.
 - If multiple interpretations exist, present them — don't pick silently.
 - If a simpler approach exists, say so. Push back when warranted.
@@ -70,6 +74,8 @@ Minimum code that solves the problem. Nothing speculative.
 - No abstractions for single-use code.
 - No "flexibility" or "configurability" that wasn't requested.
 - No error handling for impossible scenarios.
+- If you write 200 lines and it could be 50 (same behavior), rewrite it.
+  Ask: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
 - **Scope minimalism ≠ architecture downgrade.** 이 절은 *스코프*를 깎는 규칙이지, 채택한 설계의
   *품질*을 깎는 알리바이가 아니다. 같은 스코프를 구현하는 방식 중에서는 — 구현이 어렵고 복잡하더라도 —
   알려진 가장 기능적·확장 가능한 방향을 택한다. 최선안과 다른 채택은 plan의 Best-Direction Check에
@@ -80,7 +86,10 @@ Minimum code that solves the problem. Nothing speculative.
 Touch only what you must. Clean up only your own mess.
 - Don't "improve" adjacent code, comments, formatting.
 - Don't refactor things that aren't broken.
-- Match existing style.
+- Match existing style, even if you'd do it differently.
+- Unrelated dead code you notice: mention it — don't delete it.
+- Orphans YOUR change created (imports/variables/functions now unused): remove them.
+  Pre-existing dead code: leave it unless asked.
 - Test: every changed line traces directly to the user's request.
 
 ## Goal-Driven Execution
@@ -88,6 +97,10 @@ Define success criteria. Loop until verified.
 - "Add validation" → "Write tests for invalid inputs, then make them pass"
 - "Fix the bug" → "Write a test that reproduces it, then make it pass"
 - "Refactor X" → "Ensure tests pass before and after"
+- Multi-step tasks: state a brief plan, one check per step — `1. [Step] → verify: [check]`.
+- Strong criteria let you loop independently; weak ones ("make it work") need constant clarification.
+
+**작동 신호:** diff의 불필요 변경↓ · 과잉설계로 인한 재작성↓ · 질문이 실수 *후*가 아니라 구현 *전*에 나온다.
 
 ---
 
