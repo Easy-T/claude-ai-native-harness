@@ -9,15 +9,21 @@
 | 플러그인 | version | gitCommitSha |
 |---|---|---|
 | superpowers | 6.4.1 | `5bf4e78011075bcfc0dc295f0724994cd123ee71` |
-| context7 | 2a8ad9f74633 | `2a8ad9f74633d10e3d9bb0660a03bfc6e50584b1` |
-| skill-creator | 2a8ad9f74633 | `2a8ad9f74633d10e3d9bb0660a03bfc6e50584b1` |
-| playwright | 2a8ad9f74633 | `2a8ad9f74633d10e3d9bb0660a03bfc6e50584b1` |
+| context7 | d182ca456ca0 | `d182ca456ca09d31d139f7d3818d1d333b103cce` |
+| skill-creator | d182ca456ca0 | `d182ca456ca09d31d139f7d3818d1d333b103cce` |
+| playwright | d182ca456ca0 | `d182ca456ca09d31d139f7d3818d1d333b103cce` |
 | claude-md-management | 1.0.0 | `7bc347b89aaa7f1e02c03617b8d163243d86ecce` |
 
 <!-- 기계검증: 아래 skill-cksum 은 session-start-audit 드리프트 검사와 verify-setup seal #40 이 소비. 캐시 SKILL.md 전체 결정론 해시(`find plugins/cache/claude-plugins-official -name SKILL.md | sort | xargs cat | cksum`). -->
-skill-cksum: 413615869
-skill-count: 34
+skill-cksum: 723891489
+skill-count: 35
 
+<!-- 핀 갱신 이력: 2026-10-05 (오케스트레이터 c8cb279e 인계 정리) — 절차 ② 정당 업데이트 판정(메인 실측): context7/skill-creator/playwright
+  2a8ad9f74633→d182ca456ca0(installed_plugins.json lastUpdated 10-04T08:56Z = dir mtime, 구 dir `.orphaned_at`). `diff -rq` 3/3:
+  SKILL.md 차이 0 — 실변경은 context7 `.mcp.json` 의 `Authorization: ${CONTEXT7_API_KEY:-}` 헤더 제거 + plugin.json 설명
+  "Authenticate with Context7 when prompted"(API 키→OAuth 전환; 키 미설정 환경이라 기능 영향 0) — rug-pull 아님. count 34→35 =
+  byte-동일 사본 1개 추가. 별건: 10-04 18:46 `plugins/cache/temp_git_*`(superpowers 5bf4e78 임시 클론, 참조 0) 누출이 훅 전량
+  해시(cache 전체)에만 잡혀 공식 공식과 갈라졌음 → 삭제 후 훅·공식 공식 모두 723891489/35 일치. 공식 불일치 자체는 C26 후보. -->
 <!-- 핀 갱신 이력: 2026-10-03 (C25 Closeout) — 절차 ② 정당 업데이트 판정(메인 실측): context7/skill-creator/playwright
   fa59bc903774→2a8ad9f74633(installed_plugins.json lastUpdated 09-30T11:36Z, 구 dir 에 `.orphaned_at` = 정상 마켓플레이스
   교체). `diff -rq` 3/3: 콘텐츠 차이 0(캐시 장부 파일 `.in_use`·`.orphaned_at` 만), skill-creator SKILL.md `cmp` 동일.
