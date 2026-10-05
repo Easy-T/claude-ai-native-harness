@@ -153,6 +153,10 @@
 - **모집단 (2026-08-16 실측)**: 추적 `*.md` 중 혼합 파일 **2건** —
   `docs/superpowers/specs/2026-07-25-model-policy-design.md`(CRLF 1823/2597) ·
   `docs/ai-context/c21-orca-mode-design.md`(CRLF 728/754). 둘 다 사이클이 반복 편집하는 파일이다.
+- **재발 (2026-10-05 · 대상-프로젝트 second_brain_project RPI86 — #6 진단 중)**: Why-3/4 의
+  `grep -c $'\r'` 위음성이 그대로 재발했다(정답 CR 178 → 0 보고 · Python 텍스트모드 read 도 `0`).
+  Action 1(기한 C22 Phase P — 정본 계수기 배치)이 **미착륙**이라는 실증: `skills/`·`workflows/`·`setup/`·`hooks/`
+  에서 `perl -ne` 0건(2026-10-05 grep). 상세·후속 action = #6.
 - **5 Whys (시스템 원인까지)**:
   1. 왜 4줄 편집이 723줄을 지웠나? → Edit 이 파일 전체 개행을 **다수 쪽(CRLF)으로 통일**해,
      편집 시점 **LF-only 줄 723개 전량**이 반대 개행으로 재작성됐다(723 = 그 시점 LF 줄 수 — 산술 일치).
@@ -300,3 +304,65 @@
   ⓑ `reset --pairing-code`/`--environment`/`--retry-request` 의 스코프는 미측정(help 무설명) —
   "되돌림 수단 전무"는 `--all|--tasks|--messages` 기준으로만 확정. 안전제약 6이 계열 전체를 금지하므로
   결론은 불변. ⓒ 본건 fitness(재발 0)는 action item 1·2가 seal 로 착륙해야 자동 확보된다.
+
+---
+
+## 6. Windows 텍스트-모드 생성기가 **파생 Workflow 스크립트**에 CRLF 를 심어 거부된다 — 대용량 verbatim payload 를 캐리어에 싣는 공인 경로가 없다
+
+- **관측 (2026-10-05 KST · 2026-10-04T17:53Z, 대상-프로젝트 second_brain_project RPI86 Phase I (d))**: plan 8 task 를
+  verbatim 으로 싣기 위해 생성기 `gen_workflow.py` 가 캐리어 `workflows/rpi-implement.js` 를 텍스트 치환한 파생본을 만들어
+  `Workflow({scriptPath})`(args 미사용)로 디스패치했다. 응답 「The permission handler returned updatedInput for Workflow that
+  failed schema validation … "script" … script contains control characters that would be hidden in the approval dialog …
+  The tool input from the model was valid」. 원인: 생성기 `:89` 가 `write_text(out, encoding="utf-8")`(newline 미지정) —
+  Windows 텍스트 모드가 `\n`→`\r\n` 으로 바꿔 CR **178**개(원본 캐리어 CR 0). `newline="\n"` 로 고친 뒤 재디스패치 성공
+  (17:53:37Z → 17:54:36Z, 약 59초). 진단 중 위음성 3회 — Python 텍스트모드 read `0 []`·`Counter()`, `grep -c $'\r'` `0`
+  (정답 178) — `od -c`·`tr -cd '\r' | wc -c` 로 확정.
+- **5 Whys**:
+  1. 왜 거부됐나? → 권한 처리기가 scriptPath 를 해석해 돌려준 `updatedInput.script` 에 CR(Cc)이 있었고 스키마 검증이 거부했다(모델 입력은 유효).
+  2. 왜 CR 이 들어갔나? → 생성기가 `newline=` 없이 텍스트 모드로 썼다(Windows `os.linesep`=`\r\n`).
+  3. 왜 스크립트를 생성했나? → TDD-verbatim(start-rpi-cycle SKILL.md:168-169)은 요약을 금지하는데, 캐리어 입력은 도구 호출의
+     `args` 뿐이다(SKILL.md:161 `Workflow({scriptPath, args: [task 배열]})` · rpi-implement.js:10 args 계약·:24 검사).
+     payload 는 8 task `promptVerbatim` 합계 98,364자(헤더·Global Constraints 반복 포함) — args 경로는 이를 모델 출력으로
+     다시 내보내야 해 바이트 동일성을 보장할 수 없으므로, 생성기로 임베드했다(`gen_workflow.py:1` "no hand-copy" · `:84-88` `args`→`TASKS`).
+  4. 왜 막지 못했나? → SKILL.md:161 은 인라인/파생 스크립트에 모델 규약만 요구하고 **바이트 규칙(LF·Cc 0)과 디스패치 전 검사**가
+     없다(skills·workflows·docs 에서 `control char|newline=|write_text` 0건). 진단에서도 #4 정본 계수기가 어디에도 배치되지 않아
+     (skills·workflows·setup·hooks 에서 `perl -ne` 0건) 위음성 계수기가 쓰였다.
+  5. 왜 없나? → **대용량 verbatim payload 를 캐리어에 싣는 공인 경로가 없어 우회(파생 스크립트)가 강제되는데, 그 우회 경로에
+     소비자(Workflow `script` 검증기)의 바이트 계약이 정의·검사돼 있지 않다.** ← **시스템 원인**(사람/AI 아님 — 같은 Windows·같은 생성기면 결정론 재현).
+  - *반대 심문*: "args 로 넘겼으면 됐다" → args 경로는 시도되지 않아 한계는 미측정이다(정직 부기). 그러나 그 경로도
+    98K자의 바이트 동일성을 기계적으로 보장하지 못하므로 Why-5 의 공백은 그대로다.
+- **SMART action item**:
+  1. **바이트 규칙 + 사전 검사** — start-rpi-cycle SKILL.md Phase I (d) canonical 캐리어 ※줄(현 :161) 직후에 "파생/생성 스크립트는
+     `newline="\n"` 으로 쓰고, 디스패치 전 `perl -ne '$n++ if /\r/; END{print $n+0}' <script>` = 0 확인(`grep -c $'\r'`·Python 텍스트모드
+     read 는 위음성이라 금지)" 추가. 측정 = 그 SKILL.md 에서 `newline="\n"` 과 `perl -ne '$n++ if /\r/` 각각 ≥1건. 기한 = **C26 Phase P**.
+  2. **공인 임베더** — `workflows/embed-args.py <carrier> <args.json> <out>`: 캐리어의 **단일 sentinel**(예: `const TASKS = args`)만 치환
+     (전역 `re.sub(r"\bargs\b")` 금지), `newline="\n"` 강제, 쓴 직후 바이트를 다시 읽어 CR=0·Cc(`\n` 제외)=0·bidi/zero-width
+     (U+200B·U+200E-F·U+202A-E·U+2066-9)=0 확인, 위반 시 exit≠0. 측정 = `setup/tests/` seal 1건 + `newline=` 제거 뮤테이션 **RED→GREEN 증명**.
+     기한 = **C26 Phase P**(연기 시 그 사이클 보고에 명시적 defer).
+  3. **캐리어 바이트 seal** — `workflows/*.js` CR=0 seal + `.gitattributes` `workflows/*.js text eol=lf`. 근거: 시스템 gitconfig
+     `autocrlf = true`(`C:/Program Files/Git/etc/gitconfig:12`)인데 하네스 repo 만 로컬 `false`, `.gitattributes` 부재, `setup/install.sh:7` 은
+     수동 `git clone` 안내뿐 — 새 clone 은 캐리어를 CRLF 로 체크아웃해 **정식 경로도** 같은 거부를 맞을 수 있다(추론·미실측).
+     측정 = CRLF 복사본 픽스처에서 seal RED. 기한 = **C26 Phase P**.
+- **재현 픽스처**:
+  ① 기전(쓰기 기본값 × 계수기 위음성):
+  ```bash
+  D=$(mktemp -d)
+  python -c "import sys;from pathlib import Path;d=Path(sys.argv[1]);(d/'crlf.js').write_text('a\nb\n',encoding='utf-8');(d/'lf.js').write_text('a\nb\n',encoding='utf-8',newline='\n');print('py-textmode CR=',open(d/'crlf.js',encoding='utf-8').read().count('\r'))" "$D"
+  od -c "$D/crlf.js" | head -1
+  echo "grep=$(grep -c $'\r' "$D/crlf.js") perl=$(perl -ne '$n++ if /\r/; END{print $n+0}' "$D/crlf.js") perl-LF=$(perl -ne '$n++ if /\r/; END{print $n+0}' "$D/lf.js")"
+  rm -rf "$D"
+  ```
+  ② 실 캐리어:
+  ```bash
+  python -c "import sys;from pathlib import Path;s=Path(sys.argv[1]).read_text(encoding='utf-8');o=Path(sys.argv[2]);o.write_text(s,encoding='utf-8');print('carrier CR=',Path(sys.argv[1]).read_bytes().count(b'\r'),'textmode CR=',o.read_bytes().count(b'\r'));o.write_text(s,encoding='utf-8',newline='\n');print('lf CR=',o.read_bytes().count(b'\r'));o.unlink()" ~/.claude/workflows/rpi-implement.js "$(mktemp -u).js"
+  ```
+  → 실행 확인(2026-10-05): ① `a \r \n b \r \n` · py-textmode CR=0 · grep=0 · perl=2 · perl-LF=0 / ② carrier CR=0 · textmode CR=79 · lf CR=0.
+  ※ 워크트리-격리 세션에서는 가드가 `$(...)` 블록을 거부한다 — 리터럴 경로 단일 명령으로 나눠 실행.
+  Workflow 거부 자체는 셸 재현 불가 → `절차: start-rpi-cycle SKILL.md Phase I (d) canonical 캐리어 ※줄(:161) 직후 — 디스패치 전 perl CR=0`
+  — **현재 미배치**(Action 1 착륙 시 배치; 그 전까지 선언 상태 — 정직 부기).
+- **관계**: #4 와 **인접**(같은 Windows 개행 축, 메커니즘 다름 — #4 = Edit 이 혼합 파일을 통일, 본건 = 생성기 쓰기 기본값 × 소비자 검증기).
+  다만 진단에서 #4 Why-3/4(`grep -c $'\r'` 위음성)가 **재발**했다 — #4 Action 1(기한 C22 Phase P)이 미착륙이라는 실증(#4 관측 줄에 재발 부기).
+  #3 과 동류(확인 도구가 Windows/MSYS 에서 조용히 틀린 값). 프로젝트 등록부 `second_brain_project/docs/ai-context/non-obvious.md`
+  「2026-06-15: Windows cp949 콘솔 … UnicodeEncodeError」와 인접(같은 Windows Python 텍스트 I/O 기본값 계열, 인코딩 축).
+  손상은 크게 드러나고 복구 가능(약 59초) — #5 의 비가역 클래스 아님. 관측은 대상-프로젝트 사이클이나 결함·Action 표면이 전부
+  하네스라 이 등록부에 둔다(하네스 Phase R 이 읽는 자리 — #3 Why-4).
