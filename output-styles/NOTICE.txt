@@ -1,0 +1,17 @@
+# output-styles — 제3자 고지
+
+| 파일 | 출처 | 버전 / 커밋 | 라이선스 | 수정 |
+|---|---|---|---|---|
+| `attention-kind.md` | https://github.com/alexgreensh/attention-span (`output-styles/attention-kind.md`) | v0.8 / `2714c965e6be1fa2597510e66651e63bc67cb448` (2026-09-06) | AGPL-3.0 — 전문 `LICENSE-attention-span` | 없음(원문 그대로) |
+
+- `attention-kind.md`는 하네스 자체 라이선스가 아니라 **AGPL-3.0**을 따릅니다. 재배포할 때는 이 고지와 `LICENSE-attention-span`을 함께 유지해야 합니다.
+- **활성화**: `settings.json`의 `"outputStyle": "Attention-kind"`로 켭니다.
+  - `settings.example.json`에 기본값으로 들어 있습니다.
+  - `setup/install.sh`는 기존 `settings.json`에 `outputStyle`이 없을 때만 이 값을 채택합니다. 사용자가 정한 값은 보존합니다.
+  - 세션 안에서는 `/output-style`로 전환하고, 다음 세션부터 반영됩니다.
+- **갱신 절차**
+  1. upstream 원문을 그대로 받습니다.
+  2. 커밋·버전·cksum을 위 표에 갱신합니다.
+  3. diff를 검토한 뒤 커밋합니다.
+  - 이 파일은 매 세션 시스템 프롬프트에 주입되는 외부 입력입니다. 갱신은 의식적 승인으로 다룹니다(plugin-pins와 같은 원칙).
+- cksum 기록(2026-10-05 반입): `attention-kind.md` = `2697528746 7793`.

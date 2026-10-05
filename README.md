@@ -294,6 +294,10 @@ bash ~/.claude/setup/doctor.sh
 │
 ├── tests/statusline/                     statusline.sh 단위 테스트 (run-tests.sh + fixtures)
 │
+├── output-styles/                        출력 스타일 (기본 "Attention-kind" — 결론 먼저·짧게·결정 질문은 끝에)
+│   ├── attention-kind.md                  외부 반입 원문 (alexgreensh/attention-span v0.8, AGPL-3.0)
+│   └── NOTICE.txt · LICENSE-attention-span 출처·커밋·cksum 고지 + AGPL 전문
+│
 ├── setup/
 │   ├── doctor.sh                         환경 진단·치료
 │   ├── install.sh                        하네스 설치 스크립트
@@ -425,6 +429,13 @@ Windows에서 backslash path가 hook 화이트리스트를 못 통과하면:
 - 사용자 원칙 4개 (Think Before Coding / Simplicity First / Surgical Changes / Goal-Driven Execution)
 
 ⚠️ 변경 시 prefix 캐시 무효화 → 다음 세션 1회 cache miss 비용 (≈20배). 한 번에 모아서 수정.
+
+### 출력 스타일 (보고 형식)
+
+기본값 `"outputStyle": "Attention-kind"`(`settings.example.json`). 결론을 첫 문장에 두고, 짧게 쓰고, 결정 질문은 맨 끝에 둔다. 수치·경고·행동에 필요한 사실은 절대 생략하지 않는다.
+- 기존 설치: `setup/install.sh` 재실행 시 `settings.json`에 `outputStyle`이 없을 때만 채택(사용자 값 보존). 수동이면 한 줄 추가.
+- 끄기·전환: 세션에서 `/output-style`(다음 세션부터 반영) 또는 `settings.json`의 `outputStyle` 수정.
+- 갱신·라이선스: `output-styles/NOTICE.txt`(AGPL-3.0 외부 원문, 갱신은 의식적 승인).
 
 ### Hook enforcement 조정
 

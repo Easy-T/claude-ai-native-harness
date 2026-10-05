@@ -1,6 +1,7 @@
 {
   "$schema": "https://claude.ai/schemas/claude-code-settings",
   "_description": "Minimal settings for Claude AI-Native Harness. Copy to settings.json and customize. See README.md for plugin installation steps.",
+  "outputStyle": "Attention-kind",
   "env": {
     "DISABLE_BUG_COMMAND": "1",
     "DISABLE_ERROR_REPORTING": "1",
