@@ -317,6 +317,13 @@
   Windows 텍스트 모드가 `\n`→`\r\n` 으로 바꿔 CR **178**개(원본 캐리어 CR 0). `newline="\n"` 로 고친 뒤 재디스패치 성공
   (17:53:37Z → 17:54:36Z, 약 59초). 진단 중 위음성 3회 — Python 텍스트모드 read `0 []`·`Counter()`, `grep -c $'\r'` `0`
   (정답 178) — `od -c`·`tr -cd '\r' | wc -c` 로 확정.
+- **재발 (2026-10-07T12:10Z · 대상-프로젝트 second_brain_project RPI87 Phase I (d) W1 — 등록 초안 작성 2일 뒤, 같은 세션)**:
+  새 생성기 `gen_wave.py`(plan task 4건 verbatim 합계 53,102자 → 파생 `rpi87_w1.js`)가 같은 `write_text(…, encoding="utf-8")`
+  (newline 미지정)로 써 **동일 거부**. `newline="\n"` + 쓴 바이트 재독 CR 단언으로 고쳐 재생성(12:10:09Z 거부 → 12:11:25Z, 약 76초).
+  진단은 즉시(바이트 재독 — 위음성 계수기 미사용). **실증**: 등록부 지식은 재발을 막지 못했다 — Action 1~3(기한 C26 Phase P)
+  전부 미착륙(2026-10-08 확인: `skills/start-rpi-cycle/SKILL.md` 의 `newline=` 0건 · `workflows/` 에 `rpi-implement.js` 만[embed-args.py 부재]
+  · `.gitattributes` 부재). 같은 세션의 W2·Closeout 미니-사이클 생성기는 `newline="\n"`+CR/Cc 단언을 사전 적용해 무재발 —
+  개인 규율로만 막힌 상태. 재현 픽스처 = 아래 ①② 그대로(기전 동일).
 - **5 Whys**:
   1. 왜 거부됐나? → 권한 처리기가 scriptPath 를 해석해 돌려준 `updatedInput.script` 에 CR(Cc)이 있었고 스키마 검증이 거부했다(모델 입력은 유효).
   2. 왜 CR 이 들어갔나? → 생성기가 `newline=` 없이 텍스트 모드로 썼다(Windows `os.linesep`=`\r\n`).
