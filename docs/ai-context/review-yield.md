@@ -278,3 +278,18 @@
 - seal-regression: SKIP(사유: 대상-프로젝트 사이클 — 하네스 setup/+입력 집합 diff 0)
 - **트리거 대조(§18.1 판정 3)**: (a) 불성립[stage2 실발견 0 연속 = cafe-archiver C1·RPI86 2사이클 — 3사이클 미달. 차기 stage2 실행 사이클이 다시 0이면 성립] · (b) 불성립[GPT 슬롯 미실행] · (c) 불성립[티어·프레이밍·게이트 빈도 무변경] · **(d) 성립**[C23 (c) 발동 후 C24·C25·cafe-archiver C1·RPI86 4사이클 연속 (a)~(c) 무발동 → 다음 Closeout 배분 재심 1회 예약 — 하네스 거버넌스 소관, 대상-프로젝트 사이클은 미소비·이월]
 - (부기) 교훈 = **측정 단위가 운영 단위와 다르면 측정은 통과해도 운영은 실패한다.** recall은 surface 1개로 쟀고 Gate R/P·stage2·실모델 비교가 모두 그 수치를 승인했지만, 실제 호출은 surface k개가 예산 하나를 나눠 쓰는 배치였다. 적대 통합 리뷰가 호출부(`concepts.py:151`)에서 측정 단위를 역추적해 적발. non-obvious 후보 3건(셸 `ANTHROPIC_BASE_URL` 통과·빈 PDF 픽스처 은닉·생성 스크립트 CRLF 거부)은 CLAUDE.md §4 사용자 확인 대기 — 명시 보류.
+
+## second_brain_project RPI87 Full rebuild 잡화 (대상-프로젝트 cycle 87, 2026-10-05~09) — `POST /api/build/jobs`·coalesce·브레인 배리어·커밋 순서·FE 진행 표시 (PR #149 · ADR-100)
+
+- Gate R ×5: `1 PASS/4 FAIL→정정` · 실발견 17(9+1+2+5) · 발견 (1차: coalesce 제자리 반환[`[J1,R2,J2]` J2 누락]·배리어+엄격 FIFO 전역 HOL·커밋 I/O 과장·LOCKED 충돌 + Minor 5 / 델타 1: starter LLM↔"로컬 I/O" 모순 / 델타 2: 종료 계약 무조건 서술·report 경계 신규 모순 / 델타 3: 취소 대기 상한 "≤600s" 사실 오류[재시도 포함 ≈30분] 외 4) → 델타 4 PASS
+- Gate P ×2: `1 FAIL/1 PASS` · 실발견 6 + 메인 감수 1 · 발견 (부재 테스트 파일명 `test_api_jobs_queue.py` Important + Minor 5 · default 브레인 404 공백[메인])
+- stage2 ×6 (rpi-implement 캐리어 W1 4 + W2 2, review-strict opus): 6 PASS · 실발견 0 · 확인 (plan TDD-verbatim — RED/GREEN 증거 동반)
+- ui-design Phase 4 (review-strict, floor 18 + ceiling): PASS(중단 1회 후 재실행) · 실발견 0 · 확인
+- ui-design Phase 5 + 실모델 스모크 (메인 실측, 비판정 층): 실행 · 실발견 0 · 확인 (Playwright 390/1440 × light/dark 오버플로우 0·progressbar aria / `transport=direct` 36.6s·실 콜 2·트랜스크립트 0)
+- 통합(senior+drift, review-strict opus): PASS · 실발견 7(Important 1 · Minor 6) · 발견 (I1 drift F3 사이클 실패 처분 부재 · **M3 CommunityPanel refetch 실패 시 열린 목록 소거**[plan 계약 "기존 목록 유지"와 불일치 — 결함이 plan verbatim 코드블록(plan:1029)에 있어 stage2 ×6·Gate P 구조적 통과] · 커뮤니티별 요약↔파일 매핑 테스트 공백(상수 요약 픽스처) · 취소 테스트 뮤테이션 공허 · spec 엔진 소비자 열거 누락 3 · mermaid 엣지 2 · plan 날짜)
+- 정정-위임 미니-사이클(execute-strict opus → review-strict opus 델타 재심 ×1): PASS · 실발견 0 · 확인 (M1·M3 RED→GREEN·report.py 최종 diff 0)
+- 메인 감수(ledger 작성 중 트랜스크립트 대조): 실행 · 실발견 1 · 발견 (plan·PR 본문의 Gate R 회차 "4회 / FAIL ×3" 오기 → 실측 5회 / FAIL 4 — 대상 repo closeout PR에서 정정)
+- 교차패밀리 슬롯 1/2: SKIP(사유: 대상-프로젝트 기능 사이클 — 하네스 거버넌스·루브릭·하네스 spec 고-스테이크 아님. 선례 RPI86)
+- seal-regression: SKIP(사유: 대상-프로젝트 사이클 — 하네스 setup/+입력 집합 diff 0)
+- **트리거 대조(§18.1 판정 3)**: **(a) 성립**[stage2 층 실발견 0 3사이클 연속 = cafe-archiver C1·RPI86·RPI87 → stage2 층 한정 재심 예약 — 하네스 거버넌스 소관, 대상-프로젝트 사이클은 미소비·이월] · (b) 불성립[GPT 슬롯 미실행] · (c) 불성립[티어·프레이밍·게이트 빈도 무변경] · (d) RPI86 성립분 예약 이월(미소비) — 이번 (a) 발동으로 무발동 연속 카운트 리셋
+- (부기) 재심 입력: stage2 0 연속의 한 원인은 **준수-확인이 plan 코드블록 자체의 결함을 볼 수 없는 구조**다(M3 = plan verbatim 결함 → 통합 리뷰만 적발). 재심 시 "stage2 축소" 전에 "plan 코드블록 결함을 잡을 층이 어디인가(Gate P vs 통합)"를 같이 볼 것. 생성기 CRLF 거부는 non-obvious #6 재발로 부기(Action 1~3 미착륙 실증).
